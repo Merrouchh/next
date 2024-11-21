@@ -1,0 +1,180 @@
+/* components/Header.module.css */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: rgb(0, 0, 0); /* Semi-transparent background */
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    transition: background-color 0.3s ease, padding 0.3s ease;
+    box-sizing: border-box;
+}
+
+.logo {
+    font-size: 30px; /* Adjusted to be a bit smaller */
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: transparent;
+    text-align: left;
+    flex-shrink: 0;
+    font-family: 'Press Start 2P', sans-serif;
+    display: flex;
+    align-items: center;
+}
+
+.merrouch {
+    color: #ffb20b; /* Yellow for "Merrouch" */
+}
+
+.gaming {
+    color: #fff; /* White for "Gaming" */
+}
+
+.zen-dots-regular {
+    font-family: "Zen Dots", sans-serif; /* Apply Zen Dots font */
+    font-weight: 400;
+    font-style: normal;
+}
+
+.nav {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    transition: transform 0.3s ease;
+    flex-direction: row; /* Default to row layout on desktop */
+}
+
+.nav.open {
+    display: flex;
+    transform: translateY(0); /* Show when open */
+}
+
+.loginButton {
+    background-color: #ffb20b; /* Button color */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    min-width: 120px;
+}
+
+.loginButton:hover {
+    background-color: #ff3b2f;
+}
+
+.loginButton:focus {
+    outline: none;
+}
+
+.usernameBox {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-right: 10px; /* Space between the username and the logout button */
+    background-color: #444; /* Dark background for the username */
+    color: white;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    min-width: 120px; /* To match the login/logout button size */
+    text-align: center; /* Center the text */
+}
+
+.sticky {
+    background-color: rgba(0, 0, 0, 1); /* Solid black background when sticky */
+    padding: 10px 30px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Hamburger icon */
+.hamburger {
+    display: none; /* Initially hide hamburger on desktop */
+    flex-direction: column;
+    cursor: pointer;
+    gap: 5px;
+}
+
+.bar {
+    width: 25px;
+    height: 3px;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.logoutButton {
+    background-color: #f44336; /* Red color */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.logoutButton:hover {
+    background-color: #d32f2f; /* Darker red when hovered */
+}
+
+/* Responsive styling for mobile */
+@media (max-width: 768px) {
+    /* Mobile version adjustments */
+    .header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+    }
+
+    .usernameBox {
+        margin-right: 10px; /* Remove margin on mobile */
+        margin-left: 10px; /* Remove margin on mobile */
+        margin-top: 10px; /* Remove margin on mobile */
+    }
+
+    .logo {
+        font-size: 24px;
+    }
+
+    .nav {
+        display: none; /* Hide navigation by default */
+        justify-content: center;
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.9); /* Dark background for better visibility */
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        transform: translateY(-100%); /* Initially hidden above the screen */
+    }
+
+    .nav.open {
+        display: flex;
+        transform: translateY(0); /* Show when open */
+    }
+
+    .loginButton {
+        width: 100%;
+        padding: 12px;
+        font-size: 18px;
+    }
+
+    /* Show the hamburger menu only in mobile view */
+    .hamburger {
+        display: flex;
+    }
+
+    .nav.open {
+        display: flex;
+    }
+}

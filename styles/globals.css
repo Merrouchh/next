@@ -1,0 +1,14 @@
+/* styles/globals.css */
+
+body {
+  background-color: #000; /* Black background for the entire page */
+  color: #000000; /* White text by default */
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
