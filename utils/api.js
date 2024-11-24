@@ -1,15 +1,20 @@
 // Helper function to build API URLs
 export function buildApiUrl(endpoint) {
-    return `https://merrouchgaming.live/api${endpoint}`; // Ensure you're using HTTPS
+    return `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`; // Use environment variable for API URL
 }
 
 // Get common headers for API requests
 export function getAuthHeaders() {
+    const username = process.env.NEXT_PUBLIC_API_USERNAME; // Get username from environment variable
+    const password = process.env.NEXT_PUBLIC_API_PASSWORD; // Get password from environment variable
+
+    // Ensure that the credentials are securely used from environment variables
     return new Headers({
-        'Authorization': 'Basic ' + btoa('admin:Mg200723@l') // Your API credentials
+        'Authorization': 'Basic ' + btoa(`${username}:${password}`) // Use credentials from environment variables
     });
 }
 
+// Function to validate user credentials
 export const validateUserCredentials = async (username, password) => {
     const apiUrl = buildApiUrl(`/users/${encodeURIComponent(username)}/${encodeURIComponent(password)}/valid`);
 
@@ -42,6 +47,7 @@ export const validateUserCredentials = async (username, password) => {
     }
 };
 
+// Fetch active user sessions
 export async function fetchActiveUserSessions() {
     const apiUrl = buildApiUrl('/usersessions/active');
     try {
@@ -55,7 +61,7 @@ export async function fetchActiveUserSessions() {
     }
 }
 
-
+// Fetch user ID by username
 export const fetchUserId = async (username) => {
     try {
         console.log('API Call - fetching user ID for:', username);
@@ -69,7 +75,7 @@ export const fetchUserId = async (username) => {
     }
 };
 
-
+// Fetch user balance by user ID
 export async function fetchUserBalance(userId) {
     const apiUrl = buildApiUrl(`/users/${userId}/balance`);
     try {
@@ -79,7 +85,7 @@ export async function fetchUserBalance(userId) {
         const totalHours = data.result.availableTime / 3600;
         const hours = Math.floor(totalHours);
         const minutes = Math.floor((totalHours - hours) * 60);
-        
+
         return data.result.availableTime <= 0 ? 'No Time Left' : `${hours}h : ${minutes} min`;
     } catch (error) {
         console.error('Error fetching user balance:', error);

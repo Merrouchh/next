@@ -1,6 +1,8 @@
-export default {
+// next.config.mjs
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
-  images: {
-    domains: ['example.com'], // Add any domains if you're using external images
-  },
+  // Remove the appDir and swcMinify keys if they are present
 };
+
+export default nextConfig;
