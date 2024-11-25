@@ -1,0 +1,105 @@
+/* General Grid Layout for Normal PCs (Multiple Rows) */
+.computer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns per row */
+    gap: 10px;
+    padding: 20px;
+    height: auto;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+main {
+    padding-top: 90px;  /* Adjust space between header and main content */
+}
+
+/* Add margin to <h1> so it doesn't touch the top of the content */
+h1 {
+    margin-top: 20px;  /* This will add space between the <h1> and the top of the main section */
+}
+
+/* Heading inside the grid */
+h2 {
+    margin-top: 0;  /* No margin on top to keep it close to the grid */
+    color: white;  /* Set text color to white */
+    text-align: center;  /* Center the heading */
+    font-size: 24px;  /* Adjust size if necessary */
+}
+/* Style for each PC */
+.pc-square {
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    min-height: 70px;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+/* Active and inactive classes for color */
+.pc-square.active {
+    background-color: green; /* Active user in green */
+}
+
+.pc-square.inactive {
+    background-color: red; /* No user in red */
+}
+
+/* Warning state for low time remaining */
+.pc-square.warning {
+    background-color: orange; /* Active user with less than 60 minutes in orange */
+}
+
+/* VIP PC Grid Layout (Single Row, Horizontal) */
+.vip-computers {
+    display: flex; /* Display VIP PCs horizontally in one row */
+    gap: 20px; /* Space between the cards */
+    flex-wrap: nowrap; /* Prevent wrapping */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    padding: 20px;
+    margin-top: 20px; /* Optional: Space between other content */
+    justify-content: center; /* Ensure it starts from the left side */
+    align-items: center; /* Center the items vertically, if necessary */
+    width: 100%; /* Ensure full width of the parent container */
+    scroll-snap-type: none; /* Disable snapping behavior */
+}
+
+/* Styling for individual VIP PCs */
+.vip-pc-box {
+    padding: 30px;
+    background-color: #f0f0f0;
+    border: 2px solid #ccc;
+    text-align: center;
+    border-radius: 10px;
+    width: 200px; /* Set a fixed width for each card */
+    height: 250px; /* Set a fixed height for the cards */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for card effect */
+    transition: transform 0.3s ease; /* Smooth scaling effect */
+    flex-shrink: 0; /* Prevent cards from shrinking */
+}
+/* Active and inactive states for VIP PCs */
+.vip-pc-box.active {
+    background-color: #4caf50;
+    color: white;
+}
+
+.vip-pc-box.orange {
+    background-color: orange;
+    color: white;
+}
+
+.vip-pc-box.inactive {
+    background-color: #e0e0e0;
+    color: gray;
+}
+
+/* Headings */
+@media (max-width: 767px) {
+    .vip-computers {
+        flex-wrap: nowrap;
+        overflow-x: scroll; /* Ensure scrolling on mobile */
+        -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on mobile */
+        justify-content: flex-start; /* Ensure it starts from the left side */
+    }
+}

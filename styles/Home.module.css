@@ -1,0 +1,170 @@
+.container {
+    background-color: #000; /* Dark mode background */
+    color: #fff; /* Text color for dark mode */
+    margin: 0 auto;
+    padding: 2rem; /* Add vertical and horizontal padding */
+    width: 100%;
+    max-width: 1200px; /* Restrict container width */
+    box-sizing: border-box;
+    border-radius: 8px; /* Rounded corners */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the content horizontally */
+    justify-content: center; /* Center the content vertically */
+}
+
+/* Hero Section */
+.hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+    text-align: center;
+    width: 100%;
+}
+
+/* Hero Text */
+.heroText {
+    max-width: 900px;
+    width: 100%;
+    text-align: center;
+}
+
+/* Title Text */
+.heroTitle {
+    font-size: 3rem;
+    font-weight: 600;
+    color: #ffb20b;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Welcome and Prompt Text */
+.welcomeMessage, .prompt {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+}
+
+/* Description Styling */
+.gamingDescription {
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    font-weight: 400;
+    text-align: center;
+    margin: 2rem auto;
+    max-width: 900px;
+}
+
+/* Button Container */
+.buttonContainer {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.button {
+    padding: 12px 24px;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 2rem;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #555;
+}
+
+.active {
+    background-color: #ffb20b;
+}
+
+/* Map Container */
+.mapContainer {
+    margin-top: 1rem;
+    width: 100%;
+    height: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.5s ease-in-out;
+}
+
+.mapContainer iframe {
+    width: 100%;
+    height: 100%;
+}
+
+/* Empty Space Container */
+.emptySpaceContainer {
+    width: 100%;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #333;
+    font-size: 1.5rem;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Picture Gallery Container */
+.pictureGallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.galleryImage {
+    width: 100%;
+    max-width: 400px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.galleryImage:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Interactive Elements */
+.avComputersButton {
+    background-color: transparent;
+    margin-top: 5px;
+    border: none;
+    padding: auto;
+    cursor: pointer;
+    color: #007bff;
+    transition: color 0.3s ease;
+}
+
+.avComputersButton:hover {
+    color: #ebb70e;
+}
+@media (max-width: 768px) {
+    .mapContainer {
+        width: 70%; /* Slightly less than full width */
+        height: 300px; /* Adjust height for smaller screens */
+        margin: 0 auto; /* Center the map */
+        overflow: hidden; /* Prevent horizontal scrolling */
+        border-radius: 8px; /* Keep the rounded corners */
+    }
+}
+@media (max-width: 768px) { /* Mobile version */
+    .gamingDescription {
+      padding: 1rem 1.5rem; /* Adjust padding for smaller screens */
+    }
+  }
