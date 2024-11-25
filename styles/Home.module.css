@@ -1,16 +1,16 @@
-/* General Container Styling */
 .container {
-    background-color: #000; /* Black background for the container */
+    background-color: #000; /* Dark mode background */
+    color: #fff; /* Text color for dark mode */
     margin: 0 auto;
-    padding: 2rem;
-    max-width: 1200px; /* Limit the container's max-width */
-    border-radius: 8px; /* Optional: rounded corners */
-    box-sizing: border-box; /* Ensure padding doesn't exceed width */
-}
-
-/* Main content area */
-.main {
-    padding: 2rem;
+    padding: 2rem; /* Add vertical and horizontal padding */
+    width: 100%;
+    max-width: 1200px; /* Restrict container width */
+    box-sizing: border-box;
+    border-radius: 8px; /* Rounded corners */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the content horizontally */
+    justify-content: center; /* Center the content vertically */
 }
 
 /* Hero Section */
@@ -19,16 +19,19 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #333;
     padding: 3rem 0;
+    text-align: center;
+    width: 100%;
+}
+
+/* Hero Text */
+.heroText {
+    max-width: 900px;
+    width: 100%;
     text-align: center;
 }
 
-.heroText {
-    max-width: 900px;
-    padding: 0 1rem; /* Add padding for smaller screens */
-}
-
+/* Title Text */
 .heroTitle {
     font-size: 3rem;
     font-weight: 600;
@@ -36,39 +39,30 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.welcomeMessage,
-.prompt {
+/* Welcome and Prompt Text */
+.welcomeMessage, .prompt {
     font-size: 1.2rem;
     margin-top: 1rem;
 }
 
+/* Description Styling */
 .gamingDescription {
-    color: white; /* Make text white */
-    font-family: 'Poppins', sans-serif; /* Use Poppins font */
-    font-size: 1.2rem; /* Adjust font size for readability */
-    line-height: 1.6; /* Increase line height for better spacing */
-    font-weight: 400; /* Use a normal weight */
-    text-align: center; /* Center the text */
-    margin: 2rem auto; /* Center align the text */
-    max-width: 900px; /* Limit width to avoid text being too wide */
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    font-weight: 400;
+    text-align: center;
+    margin: 2rem auto;
+    max-width: 900px;
 }
 
-.welcomeMessage {
-    color: #3e3e3e;
-}
-
-
-.prompt {
-    color: #555;
-}
-
-/* Buttons to toggle between containers */
+/* Button Container */
 .buttonContainer {
     margin: 20px 0;
     display: flex;
     justify-content: center;
-    gap: 1rem; /* Adds space between the buttons */
-    position: relative;
+    gap: 1rem;
 }
 
 .button {
@@ -78,18 +72,16 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 2rem; /* Adjusted for better responsiveness */
-    transition: all 0.3s ease;
-    z-index: 2;
+    font-size: 2rem;
+    transition: background-color 0.3s;
 }
 
 .button:hover {
-    background-color: #3f3e3e; /* Button hover effect */
-    color: #ffffff;
+    background-color: #555;
 }
 
 .active {
-    background-color: #ffb20b; /* Active button color */
+    background-color: #ffb20b;
 }
 
 /* Map Container */
@@ -100,8 +92,7 @@
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: opacity 0.5s ease-in-out; /* Fade effect */
-    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
 }
 
 .mapContainer iframe {
@@ -112,17 +103,17 @@
 /* Empty Space Container */
 .emptySpaceContainer {
     width: 100%;
-    height: 400px; /* Same height as the map container */
+    height: 400px;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f9f9f9;
+    background-color: #333;
     font-size: 1.5rem;
-    color: #333;
+    color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     opacity: 0;
-    transition: opacity 0.5s ease-in-out; /* Fade effect */
+    transition: opacity 0.5s ease-in-out;
 }
 
 /* Picture Gallery Container */
@@ -134,132 +125,23 @@
     margin-top: 1rem;
 }
 
-/* Individual Gallery Images */
 .galleryImage {
-    width: 400px;
+    width: 100%;
+    max-width: 400px;
     height: 300px;
     object-fit: cover;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
+}
 
 .galleryImage:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Optional: Add hover effect for the Instagram link */
-a img.galleryImage:hover {
-    border: 2px solid #E1306C; /* Instagram's brand color */
-}
-
-.pictureGallery a {
-    position: relative;
-    display: inline-block;
-}
-
-.pictureGallery a img {
-    border: 3px solid transparent;
-    border-radius: 8px;
-    animation: pulse 2s infinite; /* Pulsating border */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Additional Styling for Responsiveness */
-@media (max-width: 1024px) {
-    .heroTitle {
-        font-size: 2.5rem;
-    }
-
-    .welcomeMessage,
-    .prompt {
-        font-size: 1.1rem;
-    }
-
-    .button {
-        padding: 10px 20px; /* Adjust the button size for smaller screens */
-    }
-
-    .galleryImage {
-        width: 100%;
-        max-width: 300px; /* Smaller images for smaller screens */
-        height: auto;
-    }
-}
-
-@media (max-width: 768px) {
-    .heroTitle {
-        font-size: 2rem;
-    }
-
-    .gamingDescription {
-        font-size: 1rem; /* Adjust font size */
-        padding: 0 1rem; /* Add padding for smaller screens */
-    }
-
-    .button {
-        font-size: 0.9rem;
-    }
-
-    .mapContainer {
-        height: 250px; /* Smaller height for mobile */
-    }
-
-    .emptySpaceContainer {
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .buttonContainer {
-        flex-direction: column;
-        gap: 0.5rem; /* Smaller gap for mobile */
-    }
-
-    .heroTitle {
-        font-size: 1.8rem;
-    }
-
-    .gamingDescription {
-        font-size: 0.9rem;
-        line-height: 1.4;
-    }
-
-    .galleryImage {
-        max-width: 100%; /* Full-width images on small screens */
-        height: auto;
-    }
-}
-
-.pictureGallery a {
-    position: relative;
-    display: inline-block;
-  }
-  
-  .pictureGallery a img {
-    border: 3px solid transparent;
-    border-radius: 8px;
-    animation: pulse 2s infinite; /* Pulsating border */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  @keyframes pulse {
-    0% {
-      border-color: transparent;
-      transform: scale(1);
-    }
-    50% {
-      border-color: #E1306C; /* Instagram brand color */
-      transform: scale(1.05);
-    }
-    100% {
-      border-color: transparent;
-      transform: scale(1);
-    }
-  }
-
-  .avComputersButton {
+/* Interactive Elements */
+.avComputersButton {
     background-color: transparent;
     margin-top: 5px;
     border: none;
@@ -267,9 +149,8 @@ a img.galleryImage:hover {
     cursor: pointer;
     color: #007bff;
     transition: color 0.3s ease;
-  }
-  
-  .avComputersButton:hover {
+}
+
+.avComputersButton:hover {
     color: #ebb70e;
-  }
-  
+}

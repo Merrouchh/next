@@ -1,39 +1,63 @@
 import { useState } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
-import { useAuth } from '../contexts/AuthContext'; // Import the useAuth hook
-import { useRouter } from 'next/router'; // Import useRouter for navigation
+import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
+import Image from 'next/image';
+import { AiOutlineDesktop } from 'react-icons/ai';
 import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
-import Image from 'next/image'; // Import the Image component from Next.js
-import { AiOutlineDesktop } from 'react-icons/ai'; // Import the desktop icon from react-icons
 
-const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), { 
-  ssr: false 
+// Dynamically import DarkModeMap with ssr: false to ensure it's client-side only
+const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
+  ssr: false,
 });
 
-export default function Home() {
-  const { isLoggedIn } = useAuth(); // Access the login state from the auth context
-  const [showMap, setShowMap] = useState(true); // State to toggle between map and pictures
-  const router = useRouter(); // Initialize router for navigation
+const imageGallery = ['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'];
 
-  const toggleView = () => {
-    setShowMap((prevState) => !prevState);
-  };
+export default function Home() {
+  const { isLoggedIn } = useAuth();
+  const [showMap, setShowMap] = useState(true);
+  const router = useRouter();
+
+  const toggleView = () => setShowMap(prevState => !prevState);
 
   const navigateToAvailableComputers = () => {
-    router.push('/avcomputers'); // Navigate to /avcomputers
+    router.push('/avcomputers');
   };
 
-  return (
-    <div className={styles.container}>
-      <Head>
-        <link rel="icon" href="/favicon.ico" />
-        {isLoggedIn ? (
-          <meta name="robots" content="noindex, nofollow" />
+  const renderGallery = () => (
+    imageGallery.map((img, index) => (
+      <div key={index} className={styles.galleryItem}>
+        {index === 3 ? (
+          <a href="https://www.instagram.com/merrouchgaming/" target="_blank" rel="noopener noreferrer">
+            <Image
+              src={`/${img}`}
+              alt={`Gallery Image ${index + 1}`}
+              className={styles.galleryImage}
+              width={500}
+              height={300}
+            />
+          </a>
         ) : (
-          <meta name="robots" content="index, follow" />
+          <Image
+            src={`/${img}`}
+            alt={`Gallery Image ${index + 1}`}
+            className={styles.galleryImage}
+            width={500}
+            height={300}
+          />
         )}
+      </div>
+    ))
+  );
+
+  return (
+    <>
+      <Head>
+        <meta name="color-scheme" content="light dark" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="robots" content={isLoggedIn ? 'noindex, nofollow' : 'index, follow'} />
       </Head>
 
       <Header />
@@ -43,79 +67,48 @@ export default function Home() {
           <div className={styles.heroText}>
             {isLoggedIn ? (
               <>
-                <h2 className={styles.heroTitle}>Welcome Back !</h2>
-                <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
-                {/* Replaced text with icon button */}
+                <h2 className={styles.heroTitle}>Welcome Back!</h2>
+                <p className={styles.welcomeMessage}>You're logged in!</p>
                 <button
                   className={`${styles.button} ${styles.avComputersButton}`}
                   onClick={navigateToAvailableComputers}
                 >
-                   <AiOutlineDesktop size={80} /> {/* Icon for "Available Computers" */}
+                  <AiOutlineDesktop size={80} />
                 </button>
               </>
             ) : (
-              <>  
+              <>
                 <h2 className={styles.heroTitle}>Welcome to Merrouch Gaming</h2>
                 <p className={styles.prompt}>Please log in to access all features.</p>
-                <div className={styles.gamingInfo}>
-                  {/* Buttons to toggle the view */}
-                  <div className={styles.buttonContainer}>
-                    <button
-                      className={`${styles.button} ${showMap ? styles.active : ''}`}
-                      onClick={toggleView}
-                    >
-                      Location
-                    </button>
-                    <button
-                      className={`${styles.button} ${!showMap ? styles.active : ''}`}
-                      onClick={toggleView}
-                    >
-                      Gallery
-                    </button>
-                  </div>
 
-                  {/* Conditionally render map or pictures */}
-                  <div className={styles.contentContainer}>
-                    {showMap ? (
-                      <div className={styles.mapContainer}>
-                        <DarkModeMap />
-                      </div>
-                    ) : (
-                      <div className={styles.pictureGallery}>
-                        {['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'].map((img, index) => (
-                          index === 3 ? (
-                            // Fourth image is a link to Instagram
-                            <a
-                              key={index}
-                              href="https://www.instagram.com/merrouchgaming/"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Image
-                                src={`/${img}`}
-                                alt={`Gallery Image ${index + 1}`}
-                                className={styles.galleryImage}
-                                width={500} // Specify width
-                                height={300} // Specify height
-                              />
-                            </a>
-                          ) : (
-                            // Other images are displayed normally
-                            <Image
-                              key={index}
-                              src={`/${img}`}
-                              alt={`Gallery Image ${index + 1}`}
-                              className={styles.galleryImage}
-                              width={500} // Specify width
-                              height={300} // Specify height
-                            />
-                          )
-                        ))}
-                      </div>
-                    )}
-                    <div className={styles.gamingDescription}>
-                      We are a premier gaming center located in the heart of Tangier, offering a wide variety of games, fast internet, and a comfortable environment to play and socialize with fellow gamers.
+                <div className={styles.buttonContainer}>
+                  <button
+                    className={`${styles.button} ${showMap ? styles.active : ''}`}
+                    onClick={toggleView}
+                  >
+                    Location
+                  </button>
+                  <button
+                    className={`${styles.button} ${!showMap ? styles.active : ''}`}
+                    onClick={toggleView}
+                  >
+                    Gallery
+                  </button>
+                </div>
+
+                <div className={styles.contentContainer}>
+                  {showMap ? (
+                    <div className={styles.mapContainer}>
+                      <DarkModeMap /> {/* Map stays here */}
                     </div>
+                  ) : (
+                    <div className={styles.pictureGallery}>
+                      {renderGallery()}
+                    </div>
+                  )}
+
+                  <div className={styles.gamingDescription}>
+                    We are a premier gaming center located in the heart of Tangier, offering a wide variety of games, fast internet, and a comfortable environment to play and socialize with fellow gamers.
                   </div>
                 </div>
               </>
@@ -123,6 +116,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-    </div>
+    </>
   );
 }
