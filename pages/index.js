@@ -68,7 +68,7 @@ export default function Home() {
             {isLoggedIn ? (
               <>
                 <h2 className={styles.heroTitle}>Welcome Back!</h2>
-                <p className={styles.welcomeMessage}>You're logged in!</p>
+                <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
                 <button
                   className={`${styles.button} ${styles.avComputersButton}`}
                   onClick={navigateToAvailableComputers}
