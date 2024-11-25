@@ -57,6 +57,7 @@
     color: #3e3e3e;
 }
 
+
 .prompt {
     color: #555;
 }
@@ -257,3 +258,18 @@ a img.galleryImage:hover {
       transform: scale(1);
     }
   }
+
+  .avComputersButton {
+    background-color: transparent;
+    margin-top: 5px;
+    border: none;
+    padding: auto;
+    cursor: pointer;
+    color: #007bff;
+    transition: color 0.3s ease;
+  }
+  
+  .avComputersButton:hover {
+    color: #ebb70e;
+  }
+  

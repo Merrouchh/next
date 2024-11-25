@@ -12,3 +12,18 @@ body {
   margin: 0;
   padding: 0;
 }
+
+.avComputersButton {
+  background-color: transparent;  /* Transparent background */
+  border: none;                    /* No border */
+  padding: 10px;                    /* Padding around the icon */
+  cursor: pointer;                 /* Pointer cursor on hover */
+  font-size: 24px;                  /* Set the size of the icon */
+  color: #007bff;                   /* Icon color (blue) */
+  transition: color 0.3s ease;      /* Smooth color transition */
+}
+
+/* Hover effect for the icon button */
+.avComputersButton:hover {
+  color: #0056b3;  /* Darker blue color when hovered */
+}

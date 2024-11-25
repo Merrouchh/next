@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'; // Import useRouter for navigation
 import styles from '../styles/Home.module.css';
 import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
 import Image from 'next/image'; // Import the Image component from Next.js
+import { AiOutlineDesktop } from 'react-icons/ai'; // Import the desktop icon from react-icons
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), { 
   ssr: false 
@@ -40,19 +41,21 @@ export default function Home() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <div className={styles.heroText}>
-            <h2 className={styles.heroTitle}>Welcome to Merrouch Gaming</h2>
             {isLoggedIn ? (
               <>
-                <p className={styles.welcomeMessage}>You&apos;re logged in! Welcome back!</p>
+                <h2 className={styles.heroTitle}>Welcome Back !</h2>
+                <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
+                {/* Replaced text with icon button */}
                 <button
                   className={`${styles.button} ${styles.avComputersButton}`}
                   onClick={navigateToAvailableComputers}
                 >
-                  View Available Computers
+                   <AiOutlineDesktop size={80} /> {/* Icon for "Available Computers" */}
                 </button>
               </>
             ) : (
-              <>
+              <>  
+                <h2 className={styles.heroTitle}>Welcome to Merrouch Gaming</h2>
                 <p className={styles.prompt}>Please log in to access all features.</p>
                 <div className={styles.gamingInfo}>
                   {/* Buttons to toggle the view */}

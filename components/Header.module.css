@@ -1,180 +1,236 @@
-/* components/Header.module.css */
+/* General Styles */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 30px;
-    background-color: rgb(0, 0, 0); /* Semi-transparent background */
+    padding: 10px 20px;
+    background-color: rgba(0, 0, 0, 0.9);
     color: white;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 1000;
-    transition: background-color 0.3s ease, padding 0.3s ease;
     box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.logo {
-    font-size: 30px; /* Adjusted to be a bit smaller */
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    color: transparent;
-    text-align: left;
-    flex-shrink: 0;
-    font-family: 'Press Start 2P', sans-serif;
-    display: flex;
-    align-items: center;
-}
-
-.merrouch {
-    color: #ffb20b; /* Yellow for "Merrouch" */
-}
-
-.gaming {
-    color: #fff; /* White for "Gaming" */
-}
-
-.zen-dots-regular {
-    font-family: "Zen Dots", sans-serif; /* Apply Zen Dots font */
-    font-weight: 400;
-    font-style: normal;
-}
-
-.nav {
-    display: flex;
-    justify-content: flex-end;
-    width: 100%;
-    transition: transform 0.3s ease;
-    flex-direction: row; /* Default to row layout on desktop */
-}
-
-.nav.open {
-    display: flex;
-    transform: translateY(0); /* Show when open */
-}
-
-.loginButton {
-    background-color: #ffb20b; /* Button color */
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-size: 16px;
-    min-width: 120px;
-}
-
-.loginButton:hover {
-    background-color: #ff3b2f;
-}
-
-.loginButton:focus {
-    outline: none;
-}
-
-.usernameBox {
-    display: inline-block;
-    padding: 10px 20px;
-    margin-right: 10px; /* Space between the username and the logout button */
-    background-color: #444; /* Dark background for the username */
-    color: white;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-    min-width: 120px; /* To match the login/logout button size */
-    text-align: center; /* Center the text */
-}
-
+/* Sticky Header */
 .sticky {
-    background-color: rgba(0, 0, 0, 1); /* Solid black background when sticky */
-    padding: 10px 30px;
+    background-color: rgba(0, 0, 0, 1);
+    padding: 8px 15px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Hamburger icon */
-.hamburger {
-    display: none; /* Initially hide hamburger on desktop */
-    flex-direction: column;
+/* Logo Styles */
+.logoContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center the logo for both mobile and desktop */
+    flex-grow: 1; /* Takes up all available space */
+    position: relative;
+}
+
+.logo {
+    font-size: 24px;
+    font-family: 'Zen Dots', sans-serif;
+    text-transform: uppercase;
+    color: white;
+    display: flex;
+    justify-content: center; /* Center logo content */
+    width: auto;
+}
+
+.merrouch {
+    color: #ffb20b;
+}
+
+.gaming {
+    color: white;
+}
+
+.mobileLogo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto; /* Centers the logo image in the available space */
+}
+
+/* Navigation */
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-direction: row;
+    transition: transform 0.3s ease;
+}
+
+.nav.open {
+    transform: translateY(0);
+}
+
+/* Buttons */
+.loginButton,
+.logoutButton {
+    font-family: 'Zen Dots', sans-serif;
+    background-color: #ffb20b;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.loginButton:hover,
+.logoutButton:hover {
+    background-color: #ff3b2f;
+}
+
+.usernameBox {
+    font-family: 'Zen Dots', sans-serif;
+    background-color: #444;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    min-width: 100px;
+}
+
+/* Hamburger Menu */
+.hamburger {
+    display: none;
+    flex-direction: column;
     gap: 5px;
+    cursor: pointer;
 }
 
 .bar {
     width: 25px;
     height: 3px;
     background-color: white;
+    border-radius: 2px;
     transition: all 0.3s ease;
 }
 
-.logoutButton {
-    background-color: #f44336; /* Red color */
-    color: white;
+/* Go Back Button */
+.goBackButton {
+    background: transparent;
     border: none;
-    padding: 10px 20px;
-    cursor: pointer;
+    color: #0070f3;
     font-size: 16px;
-    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    margin-right: 20px;
 }
 
-.logoutButton:hover {
-    background-color: #d32f2f; /* Darker red when hovered */
+.goBackButton:hover {
+    color: #005bb5;
 }
 
-/* Responsive styling for mobile */
+.goBackButton svg {
+    margin-right: 5px;
+}
+
+/* Mobile Styles */
 @media (max-width: 768px) {
-    /* Mobile version adjustments */
     .header {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 20px;
+        justify-content: flex-start; /* Align items to the left for mobile */
     }
 
-    .usernameBox {
-        margin-right: 10px; /* Remove margin on mobile */
-        margin-left: 10px; /* Remove margin on mobile */
-        margin-top: 10px; /* Remove margin on mobile */
+    /* Hamburger menu on the left */
+    .hamburger {
+        display: flex;
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%); /* Vertically center the hamburger */
     }
 
-    .logo {
-        font-size: 24px;
-    }
-
+    /* Hide nav items (username, logout) by default */
     .nav {
-        display: none; /* Hide navigation by default */
-        justify-content: center;
-        width: 100%;
+        display: none;
         flex-direction: column;
         gap: 10px;
         position: absolute;
-        top: 100%;
+        top: 60px;
         left: 0;
         right: 0;
-        background-color: rgba(0, 0, 0, 0.9); /* Dark background for better visibility */
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        transform: translateY(-100%); /* Initially hidden above the screen */
+        background-color: rgba(0, 0, 0, 0.95);
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transform: translateY(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
     }
 
     .nav.open {
         display: flex;
-        transform: translateY(0); /* Show when open */
+        transform: translateY(0); /* Show nav when hamburger is open */
     }
 
-    .loginButton {
-        width: 100%;
-        padding: 12px;
-        font-size: 18px;
+    /* Go Back button positioned to the right on mobile */
+    .goBackButton {
+        display: inline-block;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%); /* Vertically center the Go Back button */
     }
 
-    /* Show the hamburger menu only in mobile view */
-    .hamburger {
+    .logoContainer {
+        flex-grow: 1;
+        justify-content: center; /* Center the logo in the header */
+    }
+
+    .logo {
+        justify-content: center; /* Center logo content */
+        width: auto;
+    }
+
+    /* Logo for mobile */
+    .mobileLogo {
+        height: 40px;
+        width: auto;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+    }
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+    .header {
+        justify-content: space-between; /* Ensure space between elements */
+    }
+
+    .logoContainer {
+        justify-content: flex-start; /* Keep the logo at the left */
+    }
+
+    /* Go Back button and logout/username items in header */
+    .nav {
         display: flex;
+        align-items: center;
+        gap: 15px;
     }
 
-    .nav.open {
+    .goBackButton {
         display: flex;
+        margin-left: 10px;
+    }
+
+    /* Adjust Go Back button style for desktop */
+    .goBackButton {
+        font-size: 16px;
+        background: transparent;
+        border: none;
+        padding: 10px;
+        color: #0070f3;
+        cursor: pointer;
     }
 }
