@@ -154,3 +154,43 @@
 .avComputersButton:hover {
     color: #ebb70e;
 }
+
+/* Home.module.css */
+
+.iconContainer {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: auto;
+    border: 2px dashed #ccc; /* Visualize the circle */
+    border-radius: 50%; /* Makes it a circle */
+  }
+  
+  .icon {
+    position: absolute;
+    transform: translate(-50%, -50%); /* Center icons */
+    cursor: grab;
+  }
+  
+  .icon:active {
+    cursor: grabbing;
+  }
+  
+
+
+@media (max-width: 768px) {
+    .mapContainer {
+        width: 95%; /* Slightly less than full width */
+        height: 300px; /* Adjust height for smaller screens */
+        margin: 0 auto; /* Center the map */
+        overflow: hidden; /* Prevent horizontal scrolling */
+        border-radius: 8px; /* Keep the rounded corners */
+    }
+}
+
+@media (max-width: 768px) { /* Mobile version */
+    .gamingDescription {
+      padding: 1rem 1.5rem; /* Adjust padding for smaller screens */
+    }
+  }
+

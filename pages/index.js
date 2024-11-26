@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import Image from 'next/image';
-import { AiOutlineDesktop } from 'react-icons/ai';
+import { AiOutlineDesktop, AiOutlineEnvironment, AiOutlinePicture } from 'react-icons/ai'; // Add icons for Location and Gallery
 import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
+import Draggable from 'react-draggable'; // Import Draggable
 
 // Dynamically import DarkModeMap with ssr: false to ensure it's client-side only
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
@@ -17,13 +18,51 @@ const imageGallery = ['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'];
 
 export default function Home() {
   const { isLoggedIn } = useAuth();
-  const [showMap, setShowMap] = useState(true);
+  const [activeTab, setActiveTab] = useState('map'); // State to control active tab (map or gallery)
   const router = useRouter();
 
-  const toggleView = () => setShowMap(prevState => !prevState);
+  const [isDragged, setIsDragged] = useState(false); // State to track if the icon was dragged
+  const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 }); // Track the initial position of the icon
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // State to store current position of the icon
+  const [transitionDuration, setTransitionDuration] = useState('0s'); // Transition duration state
+
+  const toggleView = (view) => setActiveTab(view);
 
   const navigateToAvailableComputers = () => {
-    router.push('/avcomputers');
+    if (!isDragged) { // Only navigate if the icon was not dragged
+      router.push('/avcomputers');
+    }
+    setIsDragged(false); // Reset drag state after navigation or cancel
+  };
+
+  const handleDragStart = (e, data) => {
+    setIsDragged(true); // Mark as dragged when the user starts dragging the icon
+    setInitialPosition({ x: data.x, y: data.y }); // Store the initial position of the icon
+
+    // Set the transition to '0s' for fast grabbing
+    setTransitionDuration('0s');
+  };
+
+  const handleDragStop = (e, data) => {
+    // If the icon's position has changed significantly, mark it as dragged
+    if (Math.abs(data.x - initialPosition.x) > 10 || Math.abs(data.y - initialPosition.y) > 10) {
+      setIsDragged(true);
+    } else {
+      setIsDragged(false); // If the icon hasn't moved much, don't treat it as dragged
+    }
+
+    // Smooth reset to default position (0, 0) after drag
+    setPosition({ x: 0, y: 0 });
+    setTransitionDuration('0.5s'); // Smooth transition when the icon goes back
+  };
+
+  const handleClick = (e) => {
+    // Prevent click if the icon was dragged
+    if (isDragged) {
+      e.preventDefault(); // Prevent default behavior if dragged
+    } else {
+      navigateToAvailableComputers(); // Proceed with navigation on click
+    }
   };
 
   const renderGallery = () => (
@@ -69,12 +108,21 @@ export default function Home() {
               <>
                 <h2 className={styles.heroTitle}>Welcome Back!</h2>
                 <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
-                <button
-                  className={`${styles.button} ${styles.avComputersButton}`}
-                  onClick={navigateToAvailableComputers}
+
+                {/* Draggable Icon, Only when logged in */}
+                <Draggable
+                  position={position} // Set position to current state to reset to the default position
+                  onStart={handleDragStart} // Trigger when dragging starts
+                  onStop={handleDragStop} // Trigger when dragging stops
                 >
-                  <AiOutlineDesktop size={80} />
-                </button>
+                  <button
+                    className={`${styles.button} ${styles.avComputersButton}`}
+                    onClick={handleClick} // Handle click here to differentiate between click and drag
+                    style={{ transition: `transform ${transitionDuration} ease-in-out` }} // Apply dynamic transition duration
+                  >
+                    <AiOutlineDesktop size={80} />
+                  </button>
+                </Draggable>
               </>
             ) : (
               <>
@@ -82,22 +130,23 @@ export default function Home() {
                 <p className={styles.prompt}>Please log in to access all features.</p>
 
                 <div className={styles.buttonContainer}>
+                  {/* Icons instead of text buttons */}
                   <button
-                    className={`${styles.button} ${showMap ? styles.active : ''}`}
-                    onClick={toggleView}
+                    className={`${styles.button} ${activeTab === 'map' ? styles.active : ''}`}
+                    onClick={() => toggleView('map')}
                   >
-                    Location
+                    <AiOutlineEnvironment size={40} /> {/* Location Icon */}
                   </button>
                   <button
-                    className={`${styles.button} ${!showMap ? styles.active : ''}`}
-                    onClick={toggleView}
+                    className={`${styles.button} ${activeTab === 'gallery' ? styles.active : ''}`}
+                    onClick={() => toggleView('gallery')}
                   >
-                    Gallery
+                    <AiOutlinePicture size={40} /> {/* Gallery Icon */}
                   </button>
                 </div>
 
                 <div className={styles.contentContainer}>
-                  {showMap ? (
+                  {activeTab === 'map' ? (
                     <div className={styles.mapContainer}>
                       <DarkModeMap /> {/* Map stays here */}
                     </div>
