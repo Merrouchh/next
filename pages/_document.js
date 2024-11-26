@@ -20,7 +20,7 @@ class MyDocument extends Document {
           {/* Apple-specific meta tags for PWA */}
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black" />
           
           {/* Web App Meta Tags */}
           <meta name="mobile-web-app-capable" content="yes" />
@@ -28,8 +28,10 @@ class MyDocument extends Document {
           <meta name="apple-mobile-web-app-title" content="Merrouch" />
           <meta name="msapplication-navbutton-color" content="#000000" />
           <meta name="msapplication-starturl" content="/" />
-          <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-
+          
+          {/* Viewport Meta Tag */}
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+          
           {/* Web App Manifest */}
           <link rel="manifest" href="/manifest.json" />
         </Head>
