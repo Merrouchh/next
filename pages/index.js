@@ -36,26 +36,31 @@ export default function Home() {
   };
 
   const handleDragStart = (e, data) => {
+    // On mobile, prevent unnecessary drag logic if the touch is very slight
+    if (e.touches) {
+      e.preventDefault(); // Prevent default touch actions for mobile
+    }
+  
     setIsDragged(true); // Mark as dragged when the user starts dragging the icon
     setInitialPosition({ x: data.x, y: data.y }); // Store the initial position of the icon
-
+  
     // Set the transition to '0s' for fast grabbing
     setTransitionDuration('0s');
   };
-
+  
   const handleDragStop = (e, data) => {
-    // If the icon's position has changed significantly, mark it as dragged
+    // Check if drag has moved significantly to treat as a drag
     if (Math.abs(data.x - initialPosition.x) > 10 || Math.abs(data.y - initialPosition.y) > 10) {
       setIsDragged(true);
     } else {
       setIsDragged(false); // If the icon hasn't moved much, don't treat it as dragged
     }
-
+  
     // Smooth reset to default position (0, 0) after drag
     setPosition({ x: 0, y: 0 });
     setTransitionDuration('0.5s'); // Smooth transition when the icon goes back
   };
-
+  
   const handleClick = (e) => {
     // Prevent click if the icon was dragged
     if (isDragged) {
