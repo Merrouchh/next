@@ -43,7 +43,8 @@ h2 {
 }
 
 .pc-square.inactive {
-    background-color: red; /* No user in red */
+    background-color: #e0e0e0;
+    color: gray;
 }
 
 /* Warning state for low time remaining */

@@ -1,0 +1,171 @@
+/* General Styles */
+.main {
+  padding: 30px 20px;
+  font-family: 'Arial', sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.heading {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 60px;
+  margin-bottom: 40px;
+  color: #333;
+}
+
+/* Section Styles */
+.section {
+  margin-bottom: 20px;
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.section .itemsWrapper {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.section .itemsWrapper.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Toggle Button Styles */
+.toggleButton {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px 20px;
+  background-color: #f1f1f1;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #555;
+  width: 100%;
+  z-index: 10;
+  transition: background-color 0.3s ease;
+}
+
+.toggleButton:hover {
+  background-color: #e0e0e0;
+}
+
+.arrowIcon {
+  transition: transform 0.3s ease;
+}
+
+/* Item Styles */
+.itemsWrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  opacity: 1;
+  visibility: visible;
+}
+
+.item {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.item:hover {
+  transform: translateY(-5px);
+  background-color: #f9f9f9;
+}
+
+.selected {
+  border-color: #007BFF;
+  background-color: #e6f1ff;
+}
+
+.itemName {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.price {
+  font-size: 1.2rem;
+  color: #777;
+}
+
+.crownIcon {
+  margin-left: 8px;
+  color: gold;
+}
+
+/* PayPal Button Styles */
+.paypalButtonWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.paypalButton {
+  text-align: center;
+  background-color: #ffc60a;
+  color: #000000;
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.paypalButton:hover {
+  background-color: #e5a900;
+}
+
+.paypalButton:active {
+  transform: scale(0.98);
+}
+
+/* Item Container Styles */
+.itemContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 30px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.itemContainer:hover {
+  background-color: #f7f7f7;
+}
+
+.paypalButton {
+  background-color: #ffc60a;
+  color: #000000;
+  border: none;
+  border-radius: 0.25rem;
+  min-width: 11.625rem;
+  padding: 0 2rem;
+  height: 2.625rem;
+  font-weight: bold;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.paypalButton:hover {
+  background-color: #ffb800;
+}

@@ -1,6 +1,7 @@
 import { AuthProvider } from "../contexts/AuthContext"; // Adjust the path accordingly
 import '../styles/globals.css'; // Import the global styles
-import '../pages/avcomputers.css';  // Import your avcomputers.css here
+import '../pages/avcomputers.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import Head from 'next/head'; // Import Head for meta tags
 
 function MyApp({ Component, pageProps }) {

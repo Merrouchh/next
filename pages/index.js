@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import Image from 'next/image';
-import { AiOutlineDesktop, AiOutlineEnvironment, AiOutlinePicture } from 'react-icons/ai';
+import { AiOutlineDesktop, AiOutlineEnvironment, AiOutlinePicture, AiOutlineShop } from 'react-icons/ai'; // Import the Shop icon
 import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
 
 // Dynamically import DarkModeMap with ssr: false to ensure it's client-side only
@@ -24,6 +24,10 @@ export default function Home() {
 
   const navigateToAvailableComputers = () => {
     router.push('/avcomputers'); // Navigate to available computers page
+  };
+
+  const navigateToShop = () => {
+    router.push('/shop'); // Navigate to the shop page
   };
 
   const renderGallery = () => (
@@ -70,18 +74,32 @@ export default function Home() {
                 <h2 className={styles.heroTitle}>Welcome Back!</h2>
                 <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
 
-                {/* Clickable Button */}
-                <button
-                  className={`${styles.button} ${styles.avComputersButton}`}
-                  onClick={navigateToAvailableComputers}
-                  style={{
-                    position: 'relative',
-                    zIndex: 10, // Ensure it's above other elements
-                    touchAction: 'manipulation', // Prevents interference with touch scrolling
-                  }}
-                >
-                  <AiOutlineDesktop size={80} />
-                </button>
+                {/* Clickable Buttons */}
+                <div className={styles.buttonContainer}>
+                  <button
+                    className={`${styles.button} ${styles.avComputersButton}`}
+                    onClick={navigateToAvailableComputers}
+                    style={{
+                      position: 'relative',
+                      zIndex: 10, // Ensure it's above other elements
+                      touchAction: 'manipulation', // Prevents interference with touch scrolling
+                    }}
+                  >
+                    <AiOutlineDesktop size={80} />
+                  </button>
+
+                  <button
+                    className={`${styles.button} ${styles.shopButton}`}
+                    onClick={navigateToShop} // Navigate to the shop page
+                    style={{
+                      position: 'relative',
+                      zIndex: 10, // Ensure it's above other elements
+                      touchAction: 'manipulation', // Prevents interference with touch scrolling
+                    }}
+                  >
+                    <AiOutlineShop size={80} /> {/* Shop Icon */}
+                  </button>
+                </div>
               </>
             ) : (
               <>

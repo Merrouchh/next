@@ -141,7 +141,7 @@
 }
 
 /* Interactive Elements */
-.avComputersButton {
+.avComputersButton, .shopButton {
     background-color: transparent;
     margin-top: 5px;
     border: none;
@@ -151,9 +151,10 @@
     transition: color 0.3s ease;
 }
 
-.avComputersButton:hover {
+.avComputersButton:hover, .shopButton:hover {
     color: #ebb70e;
 }
+
 
 /* Home.module.css */
 
