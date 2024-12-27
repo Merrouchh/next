@@ -130,6 +130,17 @@ export default function Home() {
                   >
                     <AiOutlinePicture size={40} /> {/* Gallery Icon */}
                   </button>
+                  <button
+                    className={`${styles.button} ${styles.shopButton}`}
+                    onClick={navigateToShop} // Navigate to the shop page
+                    style={{
+                      position: 'relative',
+                      zIndex: 10, // Ensure it's above other elements
+                      touchAction: 'manipulation', // Prevents interference with touch scrolling
+                    }}
+                  >
+                    <AiOutlineShop size={40} /> {/* Shop Icon */}
+                  </button>
                 </div>
 
                 <div className={styles.contentContainer}>

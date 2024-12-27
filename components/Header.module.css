@@ -16,9 +16,6 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Add padding to body to prevent content overlap */
-
-
 /* Sticky Header */
 .sticky {
     background-color: rgba(0, 0, 0, 1);
@@ -43,14 +40,21 @@
     display: flex;
     justify-content: center; /* Center logo content */
     width: auto;
+    text-decoration: none; /* Ensure no underline */
 }
 
 .merrouch {
     color: #ffb20b;
+    text-decoration: none; /* Ensure no underline */
 }
 
 .gaming {
     color: white;
+    text-decoration: none; /* Ensure no underline */
+}
+
+.noUnderline {
+    text-decoration: none; /* Ensure no underline */
 }
 
 .mobileLogo {
@@ -128,7 +132,6 @@
     align-items: center;
     cursor: pointer;
     padding: 10px;
-    
 }
 
 .goBackButton:hover {

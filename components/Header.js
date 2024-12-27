@@ -83,16 +83,24 @@ export default function Header() {
 
           {/* Logo */}
           {isMobile ? (
-            <img
-              src="/logomobile.png"
-              alt="Merrouch Gaming Logo"
-              className={styles.mobileLogo}
-            />
+            <Link href="/" passHref legacyBehavior>
+              <a>
+                <img
+                  src="/logomobile.png"
+                  alt="Merrouch Gaming Logo"
+                  className={styles.mobileLogo}
+                />
+              </a>
+            </Link>
           ) : (
-            <h1 className={styles.logo}>
-              <span className={styles.merrouch}>Merrouch</span>{' '}
-              <span className={styles.gaming}>Gaming</span>
-            </h1>
+            <Link href="/" passHref legacyBehavior>
+              <a className={styles.noUnderline}>
+                <h1 className={styles.logo}>
+                  <span className={styles.merrouch}>Merrouch</span>{' '}
+                  <span className={styles.gaming}>Gaming</span>
+                </h1>
+              </a>
+            </Link>
           )}
         </div>
 

@@ -67,7 +67,7 @@
 
 .button {
     padding: 12px 24px;
-    background-color: #333;
+    background-color: #130e0e;
     color: white;
     border: none;
     border-radius: 8px;
@@ -142,8 +142,7 @@
 
 /* Interactive Elements */
 .avComputersButton, .shopButton {
-    background-color: transparent;
-    margin-top: 5px;
+    background-color: #130e0e;
     border: none;
     padding: auto;
     cursor: pointer;
