@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ import styles from '../styles/Home.module.css';
 import Image from 'next/image';
 import { AiOutlineDesktop, AiOutlineEnvironment, AiOutlinePicture, AiOutlineShop } from 'react-icons/ai'; // Import the Shop icon
 import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
+import NotificationButton from '../components/NotificationButton'; // Import the NotificationButton component
 
 // Dynamically import DarkModeMap with ssr: false to ensure it's client-side only
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
@@ -18,7 +19,57 @@ const imageGallery = ['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'];
 export default function Home() {
   const { isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState('map'); // State to control active tab (map or gallery)
+  const [status, setStatus] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.pushManager.getSubscription().then(subscription => {
+              const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM';
+              if (!subscription) {
+                registration.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+                }).then(newSubscription => {
+                  subscribeUser(newSubscription);
+                }).catch(error => {
+                  console.error('Failed to subscribe the user: ', error);
+                });
+              } else {
+                subscribeUser(subscription);
+              }
+            });
+          });
+        }
+      });
+    }
+
+    // Check if the user is admin2
+    const username = localStorage.getItem('username');
+    if (username === 'admin2') {
+      setIsAdmin(true);
+    }
+  }, [isLoggedIn]);
+
+  const subscribeUser = (subscription) => {
+    fetch('/api/subscribe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ subscription }),
+    }).then(response => {
+      if (response.ok) {
+        console.log('User is subscribed');
+      } else {
+        console.error('Failed to subscribe the user');
+      }
+    });
+  };
 
   const toggleView = (view) => setActiveTab(view);
 
@@ -28,6 +79,23 @@ export default function Home() {
 
   const navigateToShop = () => {
     router.push('/shop'); // Navigate to the shop page
+  };
+
+  const toggleStatus = async (newStatus) => {
+    const response = await fetch('/api/toggleStatus', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    if (response.ok) {
+      setStatus(newStatus);
+      alert(`Status set to ${newStatus}`);
+    } else {
+      alert('Failed to set status');
+    }
   };
 
   const renderGallery = () => (
@@ -100,6 +168,13 @@ export default function Home() {
                     <AiOutlineShop size={80} /> {/* Shop Icon */}
                   </button>
                 </div>
+
+                {isAdmin && (
+                  <div className={styles.statusButtons}>
+                    <button onClick={() => toggleStatus('on')}>Open</button>
+                    <button onClick={() => toggleStatus('off')}>Close</button>
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -165,4 +240,19 @@ export default function Home() {
       </main>
     </>
   );
+}
+
+// Utility function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  if (!base64String) {
+    throw new Error('Base64 string is required');
+  }
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }

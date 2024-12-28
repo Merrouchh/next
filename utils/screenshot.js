@@ -1,4 +1,7 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
 
 async function takeScreenshot(url, path) {
   const browser = await puppeteer.launch({
@@ -6,15 +9,11 @@ async function takeScreenshot(url, path) {
   });
   const page = await browser.newPage();
   console.log('Navigating to URL:', url);
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-  // Wait for the network to be idle
-  console.log('Waiting for network to be idle...');
-  await page.waitForNavigation({ waitUntil: 'networkidle2' });
+  await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 }); // Increase the timeout to 60 seconds
 
   // Wait for a specific DOM element to be visible
   console.log('Waiting for the user list to be visible...');
-  await page.waitForSelector('.TopUsers_userList__PTsaG', { visible: true, timeout: 10000 });
+  await page.waitForSelector('.TopUsers_userList__PTsaG', { visible: true, timeout: 60000 }); // Increase the timeout to 60 seconds
 
   // Set the viewport to a higher resolution
   const viewportWidth = 1920;
