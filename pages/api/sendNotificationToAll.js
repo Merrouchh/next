@@ -11,23 +11,40 @@ export default async function handler(req, res) {
 
   const { title, body, icon, url, image } = req.body;
 
-  // Read existing subscriptions
+  // Ensure the URL is valid and has the correct protocol
+  const formattedUrl = url && !url.startsWith('http') ? `https://${url}` : url;
+
+  // Log notification details
+  console.log('Notification details:', { title, body, icon, image, formattedUrl });
+
+  // Read subscriptions
   let subscriptions = [];
   if (fs.existsSync(subscriptionsFile)) {
-    const data = fs.readFileSync(subscriptionsFile);
-    subscriptions = JSON.parse(data);
+    try {
+      const data = fs.readFileSync(subscriptionsFile, 'utf-8');
+      subscriptions = JSON.parse(data);
+    } catch (error) {
+      console.error('Error reading subscriptions file:', error);
+      return res.status(500).json({ message: 'Error reading subscriptions file' });
+    }
   }
 
-  // Send notification to each subscription
+  // Notification payload
   const payload = JSON.stringify({
     title: title || 'No title',
     body: body || 'No body',
-    icon: icon || image || '/default-icon.png', // Use icon or image as the icon
-    image: image || '/default-image.png', // Include the image in the payload
-    data: { url: url || '/' } // Include the URL in the payload
+    icon: icon || image || '/default-icon.png',
+    image: image || '/default-image.png',
+    data: { url: formattedUrl || 'https://example.com' }, // Fallback URL
   });
+
+  console.log('Notification payload:', payload);
+
+  // Send notifications
   const sendNotificationPromises = subscriptions.map(subscription =>
-    webPush.sendNotification(subscription, payload)
+    webPush.sendNotification(subscription, payload).catch(error => {
+      console.error('Error sending notification to subscription:', subscription, error);
+    })
   );
 
   try {

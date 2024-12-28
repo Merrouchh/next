@@ -1,76 +1,95 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-const NotificationButton = () => {
-  const subscribeToPushNotifications = async () => {
-    try {
-      console.log('Requesting notification permission...');
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('Notification permission denied.');
-        return;
-      }
+export default function NotificationButton() {
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
-      console.log('Registering service worker...');
-      const registration = await navigator.serviceWorker.ready;
-      console.log('Service worker registered:', registration);
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.pushManager.getSubscription().then(subscription => {
+          setIsSubscribed(!!subscription);
+        });
+      });
+    }
+  }, []);
 
-      console.log('Subscribing to push notifications...');
-      const subscription = await registration.pushManager.subscribe({
+  const subscribeUser = () => {
+    navigator.serviceWorker.ready.then(registration => {
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM';
+      registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM'
-      });
-      console.log('Push subscription:', subscription);
-
-      // Check if keys property exists
-      if (subscription.keys) {
-        const p256dh = subscription.keys.p256dh;
-        const auth = subscription.keys.auth;
-        console.log('p256dh:', p256dh);
-        console.log('auth:', auth);
-      } else {
-        console.log('Subscription keys are not available.');
-      }
-
-      console.log('Sending subscription to server...');
-      await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ subscription })
-      });
-
-      console.log('Subscribed to push notifications');
-
-      // Wait for 2 seconds and then send a test notification to all users
-      setTimeout(async () => {
-        console.log('Sending test notification to all users...');
-        const response = await fetch('/api/sendNotificationToAll', {
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      }).then(subscription => {
+        fetch('/api/subscribe', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            title: 'Test Notification',
-            body: 'This is a test notification to all users.'
-          })
+          body: JSON.stringify({ subscription }),
+        }).then(response => {
+          if (response.ok) {
+            console.log('User is subscribed');
+            setIsSubscribed(true);
+          } else {
+            console.error('Failed to subscribe the user');
+          }
         });
-        if (response.ok) {
-          console.log('Test notification sent to all users');
-        } else {
-          console.error('Error sending test notification to all users:', response.statusText);
+      }).catch(error => {
+        console.error('Failed to subscribe the user:', error);
+      });
+    });
+  };
+
+  const unsubscribeUser = () => {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.pushManager.getSubscription().then(subscription => {
+        if (subscription) {
+          subscription.unsubscribe().then(() => {
+            fetch('/api/unsubscribe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ subscription }),
+            }).then(response => {
+              if (response.ok) {
+                console.log('User is unsubscribed');
+                setIsSubscribed(false);
+              } else {
+                console.error('Failed to unsubscribe the user');
+              }
+            });
+          }).catch(error => {
+            console.error('Failed to unsubscribe the user:', error);
+          });
         }
-      }, 2000);
-    } catch (error) {
-      console.error('Error subscribing to push notifications:', error);
-    }
+      });
+    });
   };
 
   return (
-    <button onClick={subscribeToPushNotifications}>
-      Enable Notifications
-    </button>
+    <div>
+      {isSubscribed ? (
+        <button onClick={unsubscribeUser}>
+          Disable Notifications
+        </button>
+      ) : (
+        <button onClick={subscribeUser}>
+          Enable Notifications
+        </button>
+      )}
+    </div>
   );
-};
+}
 
-export default NotificationButton;
+// Utility function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}

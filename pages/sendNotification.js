@@ -5,16 +5,25 @@ export default function SendNotification() {
   const [body, setBody] = useState('');
   const [icon, setIcon] = useState('');
   const [url, setUrl] = useState('');
+  const [image, setImage] = useState('');
+
+  const handleUrlChange = (e) => {
+    let inputUrl = e.target.value;
+    if (inputUrl && !inputUrl.startsWith('http')) {
+      inputUrl = `https://${inputUrl}`;
+    }
+    setUrl(inputUrl);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch('/api/sendNotification', {
+    const res = await fetch('/api/sendNotificationToAll', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, body, icon, url }),
+      body: JSON.stringify({ title, body, icon, url, image }),
     });
 
     if (res.ok) {
@@ -23,6 +32,7 @@ export default function SendNotification() {
       setBody('');
       setIcon('');
       setUrl('');
+      setImage('');
     } else {
       alert('Failed to send notification');
     }
@@ -54,8 +64,14 @@ export default function SendNotification() {
         <input
           type="text"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={handleUrlChange}
           placeholder="Click URL"
+        />
+        <input
+          type="text"
+          value={image}
+          onChange={(e) => setImage(e.target.value)}
+          placeholder="Image URL"
         />
         <button type="submit">Send</button>
       </form>

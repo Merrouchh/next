@@ -26,18 +26,21 @@ export default function Home() {
   useEffect(() => {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission); // Debug log
         if (permission === 'granted') {
           navigator.serviceWorker.ready.then(registration => {
             registration.pushManager.getSubscription().then(subscription => {
+              console.log('Push subscription:', subscription); // Debug log
               const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM';
               if (!subscription) {
                 registration.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
                 }).then(newSubscription => {
+                  console.log('New push subscription:', newSubscription); // Debug log
                   subscribeUser(newSubscription);
                 }).catch(error => {
-                  console.error('Failed to subscribe the user: ', error);
+                  console.error('Failed to subscribe the user:', error);
                 });
               } else {
                 subscribeUser(subscription);
@@ -168,6 +171,8 @@ export default function Home() {
                     <AiOutlineShop size={80} /> {/* Shop Icon */}
                   </button>
                 </div>
+
+                <NotificationButton /> {/* Add NotificationButton component */}
 
                 {isAdmin && (
                   <div className={styles.statusButtons}>
