@@ -80,7 +80,8 @@
 
 /* Buttons */
 .loginButton,
-.logoutButton {
+.logoutButton,
+.topUsersButton {
     font-family: 'Zen Dots', sans-serif;
     background-color: #ffb20b;
     color: white;
@@ -90,11 +91,18 @@
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    margin-left: 10px;
 }
 
 .loginButton:hover,
-.logoutButton:hover {
+.logoutButton:hover,
+.topUsersButton:hover {
     background-color: #ff3b2f;
+}
+
+.activeButton {
+    background-color: #ff3b2f; /* Different color for the active button */
+    color: white;
 }
 
 .usernameBox {
@@ -205,6 +213,18 @@
         object-fit: contain;
         display: block;
         margin: 0 auto;
+    }
+
+    .usernameBox {
+        margin-bottom: 10px;
+    }
+
+    .logoutButton,
+    .loginButton,
+    .topUsersButton {
+        width: 100%;
+        text-align: left;
+        margin: 5px 0;
     }
 }
 

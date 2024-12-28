@@ -69,6 +69,9 @@ export default function Header() {
     router.back(); // Navigate to the previous page
   };
 
+  // Determine if the current page is Top Users
+  const isTopUsersPage = router.pathname === '/topusers';
+
   return (
     <>
       <header className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
@@ -150,6 +153,16 @@ export default function Header() {
               Login
             </button>
           )}
+          <Link href="/topusers" passHref legacyBehavior>
+            <button
+              className={`${styles.topUsersButton} ${
+                isTopUsersPage ? styles.activeButton : ''
+              }`}
+              onClick={closeMenu}
+            >
+              Top Users
+            </button>
+          </Link>
         </nav>
       </header>
 

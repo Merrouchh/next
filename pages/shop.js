@@ -121,8 +121,10 @@ const Shop = () => {
         {showPopup && (
           <div className={styles.popup}>
             <div className={styles.popupContent}>
-              <p>
-                Paying online includes a small convenience fee ranging from 3.5 DH to 14 DH, depending on the package. The price shown during online payment already includes this fee, while paying by bank transfer or on-site does not include any additional charges.
+            <p>
+              <strong>English:</strong><br />
+              
+               Paying online includes a small convenience fee ranging from 3.5 DH to 14 DH, depending on the package. The price shown during online payment already includes this fee, while paying by bank transfer or on-site does not include any additional charges.
               </p>
               <p>
                 <strong>French:</strong><br />

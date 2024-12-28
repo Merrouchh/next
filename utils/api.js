@@ -11,12 +11,10 @@ export const validateUserCredentials = async (username, password) => {
       });
   
       if (!response.ok) {
-        console.error(`HTTP Error: ${response.status}`); // Log HTTP error
         throw new Error(`HTTP status ${response.status}`);
       }
   
       const data = await response.json();
-      console.log('API Response Body:', data); // Log the full API response
   
       // Assuming the API returns data.result.result === 0 for valid credentials
       if (data && data.result && data.result.result === 0) {
@@ -29,12 +27,10 @@ export const validateUserCredentials = async (username, password) => {
         return { isValid: false }; // Invalid credentials
       }
     } catch (error) {
-      console.error('Error in API call:', error);
       return { isValid: false }; // Handle errors
     }
   };
     
-// utils/api.js
 // utils/api.js
 export const fetchActiveUserSessions = async () => {
     try {
@@ -74,3 +70,26 @@ export const fetchUserById = async (userId) => {
         return null;
     }
 };
+
+export const fetchTopUsers = async (topUsersNumber) => {
+  try {
+    const url = `/api/fetchtopuser?topUsersNumber=${topUsersNumber}`;
+
+    const response = await fetch(url);
+
+    if (response.status === 404) {
+      return []; // Return an empty array or handle as needed
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error fetching top users: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data; // Return the fetched data
+  } catch (error) {
+    return [];
+  }
+};
+
