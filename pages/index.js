@@ -17,10 +17,9 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 const imageGallery = ['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'];
 
 export default function Home() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('map'); // State to control active tab (map or gallery)
   const [status, setStatus] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -49,12 +48,6 @@ export default function Home() {
           });
         }
       });
-    }
-
-    // Check if the user is admin2
-    const username = localStorage.getItem('username');
-    if (username === 'admin2') {
-      setIsAdmin(true);
     }
   }, [isLoggedIn]);
 
