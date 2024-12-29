@@ -52,7 +52,8 @@ export function AuthProvider({ children }) {
 
   // Method to log in (uses Supabase)
   const logIn = async (username, password) => {
-    const user = await userExists(username);
+    const lowerCaseUsername = username.toLowerCase();
+    const user = await userExists(lowerCaseUsername);
     if (user) {
       const { error, data } = await supabase.auth.signInWithPassword({ email: user.email, password });
       if (!error) {
@@ -93,10 +94,11 @@ export function AuthProvider({ children }) {
 
   // Method to check if a user exists in the Supabase database
   const userExists = async (username) => {
+    const lowerCaseUsername = username.toLowerCase();
     const { data, error } = await supabase
       .from('users')
       .select('username, email, is_admin')
-      .eq('username', username)
+      .eq('username', lowerCaseUsername)
       .single();
     if (error && error.code !== 'PGRST116') {
       console.error('Error checking if user exists:', error);
@@ -106,19 +108,20 @@ export function AuthProvider({ children }) {
 
   // Method to create a user in the Supabase database
   const createUser = async (email, password, username) => {
+    const lowerCaseUsername = username.toLowerCase();
     const { error: signUpError, data } = await supabase.auth.signUp({ email, password });
     if (!signUpError) {
       console.log('User signed up successfully:', data);
       if (data.user) {
         const { error: insertError } = await supabase
           .from('users')
-          .insert([{ id: data.user.id, email, username }]);
+          .insert([{ id: data.user.id, email, username: lowerCaseUsername }]);
         if (!insertError) {
           console.log('User inserted into users table successfully');
           // Automatically log in the user
           const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (!signInError) {
-            setUsername(username);
+            setUsername(lowerCaseUsername);
             setIsLoggedIn(true);
             console.log('User logged in successfully');
           } else {

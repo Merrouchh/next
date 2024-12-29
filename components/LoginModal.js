@@ -18,16 +18,17 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   const handleValidation = async (e) => {
     e.preventDefault();
+    const lowerCaseUsername = username.toLowerCase();
     if (password.length < 6) {
       setErrorMessage('Password must be at least 6 characters long.');
       return;
     }
     try {
-      const response = await validateUserCredentials(username, password);
+      const response = await validateUserCredentials(lowerCaseUsername, password);
       if (response.isValid) {
-        const user = await userExists(username);
+        const user = await userExists(lowerCaseUsername);
         if (user) {
-          await logIn(username, password);
+          await logIn(lowerCaseUsername, password);
           onClose();
           router.push('/');
         } else {
@@ -44,12 +45,13 @@ const LoginModal = ({ isOpen, onClose }) => {
   };
 
   const handleSignUp = async () => {
+    const lowerCaseUsername = username.toLowerCase();
     if (email === '') {
       setError('Email is required');
       return;
     }
     try {
-      await createUser(email, password, username);
+      await createUser(email, password, lowerCaseUsername);
       setError('');
       onClose();
       router.push('/'); // Redirect to the desired page
