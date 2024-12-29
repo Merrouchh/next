@@ -9,34 +9,53 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [isValidated, setIsValidated] = useState(false); // Track if credentials are validated
+  const [isNewUser, setIsNewUser] = useState(false); // Track if the user is new
   const router = useRouter();
-  const { logIn } = useAuth(); // Get the logIn function from context
+  const { logIn, userExists, createUser } = useAuth(); // Get the logIn, userExists, and createUser functions from context
 
-  const handleSubmit = async (e) => {
+  const handleValidation = async (e) => {
     e.preventDefault();
-
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
     try {
-      // Call the validateUserCredentials function from api.js
       const response = await validateUserCredentials(username, password);
-
-      if (response.isValid) { // Check for isValid instead of result === 0
-        const { userId, username: returnedUsername } = response;
-
-        // Save username and userId in localStorage
-        localStorage.setItem('username', returnedUsername);
-        localStorage.setItem('userId', userId);
-
-        // Update global auth state using logIn function from context
-        logIn(returnedUsername, userId); // Call logIn from context
-
-        // Close the modal and redirect
-        onClose();
-        router.push('/'); // Redirect to the desired page
+      if (response.isValid) {
+        const user = await userExists(username);
+        if (user) {
+          await logIn(username, password);
+          onClose();
+          router.push('/');
+        } else {
+          setIsValidated(true); // Mark as validated
+          setIsNewUser(true); // Mark as new user
+          setErrorMessage('');
+        }
       } else {
         setErrorMessage('Invalid credentials. Please try again.');
       }
     } catch (error) {
       setErrorMessage('An error occurred. Please try again later.');
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (email === '') {
+      setError('Email is required');
+      return;
+    }
+    try {
+      await createUser(email, password, username);
+      setError('');
+      onClose();
+      router.push('/'); // Redirect to the desired page
+    } catch (err) {
+      setError('Failed to sign up');
+      console.error(err);
     }
   };
 
@@ -47,27 +66,48 @@ const LoginModal = ({ isOpen, onClose }) => {
           <button className={styles.closeButton} onClick={onClose}>
             &times;
           </button>
-          <h2 className={styles.modalTitle}>Login</h2>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Username"
-              className={styles.inputField}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              className={styles.inputField}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
-            <button type="submit" className={styles.loginButton}>
-              Login
-            </button>
-          </form>
+          {!isValidated ? (
+            <>
+              <h2 className={styles.modalTitle}>Login</h2>
+              <form onSubmit={handleValidation}>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className={styles.inputField}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className={styles.inputField}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
+                <button type="submit" className={styles.loginButton}>
+                  Validate
+                </button>
+              </form>
+            </>
+          ) : (
+            isNewUser && (
+              <>
+                <h2 className={styles.modalTitle}>Sign Up</h2>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className={styles.inputField}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <button onClick={handleSignUp} className={styles.loginButton}>
+                  Sign Up
+                </button>
+                {error && <p className={styles.errorMessage}>{error}</p>}
+              </>
+            )
+          )}
         </div>
       </div>
     )

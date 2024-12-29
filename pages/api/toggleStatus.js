@@ -43,8 +43,8 @@ export default async function handler(req, res) {
   );
 
   try {
-    await Promise.all(sendNotificationPromises);
-    res.status(200).json({ message: `Status set to ${status} and notifications sent successfully` });
+    await Promise.allSettled(sendNotificationPromises);
+    res.status(200).json({ message: `Status set to ${status} and notifications sent (some may have failed)` });
   } catch (error) {
     console.error('Error sending notifications:', error);
     res.status(500).json({ message: 'Internal Server Error' });

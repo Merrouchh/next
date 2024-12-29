@@ -5,76 +5,78 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4); /* Slightly darker background */
+    background-color: rgba(0, 0, 0, 0.6); /* Darker background for better contrast */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1001; /* Ensure it's above the main content */
-  }
-  
-  .modal {
-    background-color: white;
+}
+
+.modal {
+    background-color: #1a1a1a; /* Dark background for the modal */
     padding: 25px;
     border-radius: 12px;
     width: 100%;
     max-width: 400px; /* Limit the max-width of the modal */
     text-align: center;
     box-sizing: border-box; /* Ensure padding is included in width calculation */
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Slightly darker shadow */
     transform: translateY(-50px); /* Adds a smooth entrance effect */
     animation: slideIn 0.3s ease-out forwards;
-  }
-  
-  @keyframes slideIn {
+}
+
+@keyframes slideIn {
     from {
-      transform: translateY(-50px);
+        transform: translateY(-50px);
     }
     to {
-      transform: translateY(0);
+        transform: translateY(0);
     }
-  }
-  
-  .closeButton {
+}
+
+.closeButton {
     position: absolute;
     top: 15px;
     right: 15px;
     font-size: 24px;
-    color: #333;
+    color: #fff; /* White color for better contrast */
     background: none;
     border: none;
     cursor: pointer;
     transition: color 0.3s ease;
-  }
-  
-  .closeButton:hover {
+}
+
+.closeButton:hover {
     color: #ff3b2f;
-  }
-  
-  .modalTitle {
+}
+
+.modalTitle {
     font-size: 24px;
-    color: #333;
+    color: #ffb20b; /* Yellow color for the title */
     margin-bottom: 15px;
     font-weight: bold;
-  }
-  
-  .inputField {
+}
+
+.inputField {
     width: 100%;
     padding: 12px;
     margin: 10px 0;
-    border: 1px solid #ddd;
+    border: 1px solid #444; /* Darker border for better contrast */
     border-radius: 8px;
     font-size: 16px;
+    background-color: #333; /* Dark background for the input field */
+    color: #fff; /* White text color */
     box-sizing: border-box; /* Ensure padding does not overflow */
-  }
-  
-  .inputField:focus {
+}
+
+.inputField:focus {
     border-color: #ffb20b; /* Highlight border on focus */
     outline: none;
-  }
-  
-  .loginButton {
+}
+
+.loginButton {
     background-color: #ffb20b;
-    color: white;
+    color: #000; /* Black text color for better contrast */
     padding: 12px 25px;
     border: none;
     border-radius: 8px;
@@ -83,21 +85,25 @@
     transition: background-color 0.3s ease, transform 0.2s ease;
     width: 100%;
     margin-top: 10px;
-  }
-  
-  .loginButton:hover {
+}
+
+.loginButton:hover {
     background-color: #ff3b2f;
     transform: scale(1.05); /* Slight hover effect */
-  }
-  
-  .loginButton:active {
+}
+
+.loginButton:active {
     transform: scale(1); /* Pressed button effect */
-  }
-  
-  @media (max-width: 768px) {
+}
+
+.errorMessage {
+    color: #ff3b2f; /* Red color for error messages */
+    margin-top: 10px;
+}
+
+@media (max-width: 768px) {
     .modal {
-      width: 85%;
-      max-width: 350px; /* Ensure it doesn't get too wide on small screens */
+        width: 85%;
+        max-width: 350px; /* Ensure it doesn't get too wide on small screens */
     }
-  }
-  
+}

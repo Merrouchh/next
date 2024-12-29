@@ -1,6 +1,7 @@
 body {
   padding-top: 60px; /* Adjust this value based on the header height */
 }
+
 /* Global CSS */
 html, body {
   margin: 0;
@@ -45,13 +46,14 @@ html, body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 2rem;
+  font-size: 1rem;
   padding: 12px 24px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.3s;
 }
 
 .button:hover {
   background-color: #555;
+  transform: translateY(-3px);
 }
 
 /* Responsive Styles */
@@ -75,6 +77,14 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: 1rem; /* Reduce padding for smaller screens */
+  }
+
+  .hero {
+    padding: 2rem 0; /* Reduce padding for smaller screens */
+  }
+
   .heroTitle {
     font-size: 2rem;
   }
@@ -86,6 +96,7 @@ html, body {
 
   .button {
     font-size: 0.9rem;
+    padding: 8px 16px; /* Adjust padding for smaller screens */
   }
 
   .mapContainer {
@@ -94,6 +105,10 @@ html, body {
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 0.5rem; /* Further reduce padding for mobile screens */
+  }
+
   .buttonContainer {
     flex-direction: column;
     gap: 0.5rem;
@@ -106,6 +121,11 @@ html, body {
   .gamingDescription {
     font-size: 0.9rem;
     line-height: 1.4;
+  }
+
+  .button {
+    font-size: 0.8rem;
+    padding: 6px 12px; /* Further adjust padding for mobile screens */
   }
 
   .galleryImage {

@@ -12,7 +12,7 @@ export default function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const { isLoggedIn, logOut, username } = useAuth(); // Using auth context
+  const { isLoggedIn, logOut, username, isAdmin } = useAuth(); // Using auth context
   const navRef = useRef(null); // Ref for the navigation menu
   const hamburgerRef = useRef(null); // Ref for the hamburger button
   const router = useRouter(); // Access the router to check the current page
@@ -74,7 +74,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
+      <header className={`${styles.header} ${isSticky ? styles.sticky : ''} ${isAdmin ? styles.adminHeader : ''}`}>
         {/* Logo and Hamburger Menu inside a container */}
         <div className={styles.logoContainer}>
           {/* Go Back Button in Header for Mobile */}
@@ -131,7 +131,24 @@ export default function Header() {
 
           {isLoggedIn ? (
             <>
-              <span className={styles.usernameBox}>{username}</span>
+              <span className={styles.usernameBox}>
+                {username}
+                {isAdmin && <span className={styles.adminBadge}>Admin</span>}
+              </span>
+              {isAdmin && (
+                <>
+                  <Link href="/admin" passHref legacyBehavior>
+                    <button className={styles.adminButton} onClick={closeMenu}>
+                      Admin
+                    </button>
+                  </Link>
+                  <Link href="/sendNotification" passHref legacyBehavior>
+                    <button className={styles.adminButton} onClick={closeMenu}>
+                      Send Notification
+                    </button>
+                  </Link>
+                </>
+              )}
               <button
                 className={styles.logoutButton}
                 onClick={() => {

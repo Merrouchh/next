@@ -84,6 +84,10 @@ export default function Home() {
     router.push('/shop'); // Navigate to the shop page
   };
 
+  const navigateToChat = () => {
+    router.push('/chat'); // Navigate to the chat page
+  };
+
   const toggleStatus = async (newStatus) => {
     const response = await fetch('/api/toggleStatus', {
       method: 'POST',
@@ -169,6 +173,18 @@ export default function Home() {
                     }}
                   >
                     <AiOutlineShop size={80} /> {/* Shop Icon */}
+                  </button>
+
+                  <button
+                    className={`${styles.button} ${styles.chatButton}`}
+                    onClick={navigateToChat}
+                    style={{
+                      position: 'relative',
+                      zIndex: 10,
+                      touchAction: 'manipulation',
+                    }}
+                  >
+                    Chat
                   </button>
                 </div>
 
