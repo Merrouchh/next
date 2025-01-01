@@ -4,15 +4,16 @@ import LoginModal from './LoginModal'; // Import LoginModal component
 import { useAuth } from '../contexts/AuthContext'; // Import useAuth hook
 import { useRouter } from 'next/router'; // Import useRouter for navigation
 import { AiOutlineArrowLeft } from 'react-icons/ai'; // Icon for the go back button
-import styles from './Header.module.css'; // Import styles
+import styles from '../styles/Header.module.css'; // Import styles
+import Image from 'next/image'; // Import Next.js Image component
 
-export default function Header() {
+const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const { isLoggedIn, logOut, username, isAdmin } = useAuth(); // Using auth context
+  const { isLoggedIn, logout, user } = useAuth(); // Using auth context
   const navRef = useRef(null); // Ref for the navigation menu
   const hamburgerRef = useRef(null); // Ref for the hamburger button
   const router = useRouter(); // Access the router to check the current page
@@ -61,8 +62,8 @@ export default function Header() {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  // Check if Go Back button should be visible
-  const showGoBackButton = isLoggedIn && router.pathname !== '/';
+  // Check if Go Back button should be visible - Add dashboard check
+  const showGoBackButton = isLoggedIn && router.pathname !== '/' && router.pathname !== '/dashboard';
 
   // Go back function
   const goBack = () => {
@@ -72,12 +73,30 @@ export default function Header() {
   // Determine if the current page is Top Users
   const isTopUsersPage = router.pathname === '/topusers';
 
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    console.log('Logout initiated');
+    
+    try {
+      const success = await logout();
+      if (success) {
+        router.push('/');
+      } else {
+        // Force reload on failure
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+      window.location.href = '/';
+    }
+  };
+
   return (
     <>
-      <header className={`${styles.header} ${isSticky ? styles.sticky : ''} ${isAdmin ? styles.adminHeader : ''}`}>
+      <header className={`${styles.header} ${isSticky ? styles.sticky : ''} ${user?.isAdmin ? styles.adminHeader : ''}`}>
         {/* Logo and Hamburger Menu inside a container */}
         <div className={styles.logoContainer}>
-          {/* Go Back Button in Header for Mobile */}
+          {/* Go Back Button in Header for Mobile - Add dashboard check */}
           {isMobile && showGoBackButton && (
             <button className={styles.goBackButton} onClick={goBack}>
               <AiOutlineArrowLeft size={30} /> {/* Icon for the button */}
@@ -88,10 +107,13 @@ export default function Header() {
           {isMobile ? (
             <Link href="/" passHref legacyBehavior>
               <a>
-                <img
+                <Image
                   src="/logomobile.png"
                   alt="Merrouch Gaming Logo"
+                  width={150}
+                  height={50}
                   className={styles.mobileLogo}
+                  priority
                 />
               </a>
             </Link>
@@ -123,6 +145,7 @@ export default function Header() {
           ref={navRef}
           className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}
         >
+          {/* Desktop Go Back button - Add dashboard check */}
           {!isMobile && showGoBackButton && (
             <button className={styles.goBackButton} onClick={goBack}>
               <AiOutlineArrowLeft size={30} /> {/* Icon for the button */}
@@ -132,10 +155,10 @@ export default function Header() {
           {isLoggedIn ? (
             <>
               <span className={styles.usernameBox}>
-                {username}
-                {isAdmin && <span className={styles.adminBadge}>Admin</span>}
+                {user?.username}
+                {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
               </span>
-              {isAdmin && (
+              {user?.isAdmin && (
                 <>
                   <Link href="/admin" passHref legacyBehavior>
                     <button className={styles.adminButton} onClick={closeMenu}>
@@ -151,10 +174,7 @@ export default function Header() {
               )}
               <button
                 className={styles.logoutButton}
-                onClick={() => {
-                  logOut();
-                  closeMenu(); // Close menu on logout
-                }}
+                onClick={handleLogout}
               >
                 Logout
               </button>
@@ -188,3 +208,5 @@ export default function Header() {
     </>
   );
 }
+
+export default Header;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router'; // Import useRouter for navigation
 import { validateUserCredentials } from '../utils/api'; // Import API function
-import { useAuth } from "../contexts/AuthContext"; // Import useAuth to get logIn function
+import { useAuth } from "../contexts/AuthContext"; // Import useAuth to get login function
 import styles from './LoginModal.module.css'; // Add your styles here
 
 const LoginModal = ({ isOpen, onClose }) => {
@@ -14,50 +14,67 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [isValidated, setIsValidated] = useState(false); // Track if credentials are validated
   const [isNewUser, setIsNewUser] = useState(false); // Track if the user is new
   const router = useRouter();
-  const { logIn, userExists, createUser } = useAuth(); // Get the logIn, userExists, and createUser functions from context
+  const { login, userExists, createUser } = useAuth(); // Get the login, userExists, and createUser functions from context
 
   const handleValidation = async (e) => {
     e.preventDefault();
     const lowerCaseUsername = username.toLowerCase();
+    
     if (password.length < 6) {
       setErrorMessage('Password must be at least 6 characters long.');
       return;
     }
+
     try {
+      // Step 1: Validate credentials with API
       const response = await validateUserCredentials(lowerCaseUsername, password);
+      
       if (response.isValid) {
-        const user = await userExists(lowerCaseUsername);
-        if (user) {
-          await logIn(lowerCaseUsername, password);
-          onClose();
-          router.push('/');
+        // Step 2: Check if user exists in Supabase
+        const existingUser = await userExists(lowerCaseUsername);
+        
+        if (existingUser) {
+          // Step 3: If exists, login with existing credentials
+          console.log('User exists, attempting login with:', lowerCaseUsername);
+          const loginSuccess = await login(lowerCaseUsername, password);
+          
+          if (loginSuccess) {
+            onClose();
+            router.push('/dashboard');
+          } else {
+            setErrorMessage('Login failed. Please try again.');
+          }
         } else {
-          setIsValidated(true); // Mark as validated
-          setIsNewUser(true); // Mark as new user
+          // Step 4: If doesn't exist, show email signup form
+          setIsValidated(true);
+          setIsNewUser(true);
           setErrorMessage('');
         }
       } else {
         setErrorMessage('Invalid credentials. Please try again.');
       }
     } catch (error) {
+      console.error('Error during validation:', error);
       setErrorMessage('An error occurred. Please try again later.');
     }
   };
 
   const handleSignUp = async () => {
     const lowerCaseUsername = username.toLowerCase();
-    if (email === '') {
+    
+    if (!email) {
       setError('Email is required');
       return;
     }
+
     try {
+      // Step 5: Create new user and login automatically
       await createUser(email, password, lowerCaseUsername);
-      setError('');
       onClose();
-      router.push('/'); // Redirect to the desired page
+      router.push('/dashboard');
     } catch (err) {
-      setError('Failed to sign up');
-      console.error(err);
+      setError('Failed to sign up. Please try again.');
+      console.error('Signup error:', err);
     }
   };
 

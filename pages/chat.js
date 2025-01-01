@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import styles from '../styles/Chat.module.css';
 
 export default function Chat() {
-  const { isLoggedIn, username, isAdmin, loading, userId } = useAuth();
+  const { isLoggedIn, user, loading } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -46,7 +46,7 @@ export default function Chat() {
       const roomOne = supabase.channel('room_01', {
         config: {
           presence: {
-            key: userId,
+            key: user.id,
           },
         },
       });
@@ -58,16 +58,16 @@ export default function Chat() {
           setOnlineUsers(onlineUsernames);
         })
         .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          console.log('join', key, newPresences);
+          setOnlineUsers(prevUsers => [...prevUsers, ...newPresences.map(presence => presence.user)]);
         })
         .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          console.log('leave', key, leftPresences);
+          setOnlineUsers(prevUsers => prevUsers.filter(user => !leftPresences.some(presence => presence.user === user)));
         })
         .subscribe(async (status) => {
           if (status !== 'SUBSCRIBED') return;
 
           const presenceTrackStatus = await roomOne.track({
-            user: username,
+            user: user.username,
             online_at: new Date().toISOString(),
           });
           console.log(presenceTrackStatus);
@@ -78,7 +78,7 @@ export default function Chat() {
         roomOne.unsubscribe();
       };
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, user]);
 
   useEffect(() => {
     scrollToBottom();
@@ -139,7 +139,7 @@ export default function Chat() {
           <div className={styles.messages}>
             {messages.map((message, index) => (
               <div key={index} className={styles.messageContainer}>
-                {message.users?.username !== username && (
+                {user && message.users?.username !== user.username && (
                   <div className={styles.messageHeader}>
                     <strong>
                       {message.users?.username || 'Unknown'}
@@ -148,7 +148,7 @@ export default function Chat() {
                   </div>
                 )}
                 <div
-                  className={`${styles.message} ${message.users?.username === username ? styles.myMessage : styles.otherMessage} ${message.users?.is_admin ? styles.adminMessage : ''}`}
+                  className={`${styles.message} ${user && message.users?.username === user.username ? styles.myMessage : styles.otherMessage} ${message.users?.is_admin ? styles.adminMessage : ''}`}
                 >
                   {message.content}
                 </div>

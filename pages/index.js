@@ -1,272 +1,334 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
+import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
-import Image from 'next/image';
-import { AiOutlineDesktop, AiOutlineEnvironment, AiOutlinePicture, AiOutlineShop } from 'react-icons/ai'; // Import the Shop icon
-import dynamic from 'next/dynamic'; // Import dynamic from next/dynamic
-import NotificationButton from '../components/NotificationButton'; // Import the NotificationButton component
+import { 
+  AiOutlineEnvironment, 
+  AiOutlineDesktop, 
+  AiOutlineWifi,
+  AiOutlineTeam,
+  AiOutlineInstagram, 
+  AiOutlinePhone
+} from 'react-icons/ai';
+import dynamic from 'next/dynamic';
 
-// Dynamically import DarkModeMap with ssr: false to ensure it's client-side only
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
 });
 
-const imageGallery = ['top.jpg', 'top2.jpg', 'top3.jpg', 'top4.jpg'];
-
 export default function Home() {
-  const { isLoggedIn, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('map'); // State to control active tab (map or gallery)
-  const [status, setStatus] = useState('');
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
+  const [activeSection, setActiveSection] = useState('hero');
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission); // Debug log
-        if (permission === 'granted') {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.pushManager.getSubscription().then(subscription => {
-              console.log('Push subscription:', subscription); // Debug log
-              const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM';
-              if (!subscription) {
-                registration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-                }).then(newSubscription => {
-                  console.log('New push subscription:', newSubscription); // Debug log
-                  subscribeUser(newSubscription);
-                }).catch(error => {
-                  console.error('Failed to subscribe the user:', error);
-                });
-              } else {
-                subscribeUser(subscription);
-              }
-            });
-          });
-        }
+    if (isLoggedIn) {
+      router.push('/dashboard');
+    }
+  }, [isLoggedIn, router]);
+
+  const features = [
+    {
+      icon: <AiOutlineDesktop size={32} />,
+      title: "High-End Gaming Rigs",
+      description: "Ryzen 7 7700, RTX 3070 Graphics & 180Hz Pro Displays"
+    },
+    {
+      icon: <AiOutlineWifi size={32} />,
+      title: "200 Mbps Internet",
+      description: "Ultra-Low Ping for Competitive Gaming"
+    },
+    {
+      icon: <AiOutlineTeam size={32} />,
+      title: "Gaming Community Hub",
+      description: "Local Tournaments & Events"
+    }
+  ];
+
+  const galleryImages = [
+    { 
+      src: '/top.jpg', 
+      alt: 'Gaming Setup 1',
+    },
+    { 
+      src: '/top2.jpg', 
+      alt: 'Gaming Setup 2',
+    },
+    { 
+      src: '/top3.jpg', 
+      alt: 'Gaming Setup 3',
+    }
+  ];
+
+  const handleButtonTouch = (e) => {
+    e.currentTarget.style.transform = 'scale(0.98)';
+    setTimeout(() => {
+      e.currentTarget.style.transform = 'scale(1)';
+    }, 100);
+  };
+
+  const scrollToNextSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
       });
     }
-  }, [isLoggedIn]);
-
-  const subscribeUser = (subscription) => {
-    fetch('/api/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ subscription }),
-    }).then(response => {
-      if (response.ok) {
-        console.log('User is subscribed');
-      } else {
-        console.error('Failed to subscribe the user');
-      }
-    });
   };
 
-  const toggleView = (view) => setActiveTab(view);
+  useEffect(() => {
+    const options = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.5
+    };
 
-  const navigateToAvailableComputers = () => {
-    router.push('/avcomputers'); // Navigate to available computers page
-  };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.dataset.section);
+        }
+      });
+    }, options);
 
-  const navigateToShop = () => {
-    router.push('/shop'); // Navigate to the shop page
-  };
+    const sections = document.querySelectorAll('[data-section]');
+    sections.forEach(section => observer.observe(section));
 
-  const navigateToChat = () => {
-    router.push('/chat'); // Navigate to the chat page
-  };
+    return () => sections.forEach(section => observer.unobserve(section));
+  }, []);
 
-  const toggleStatus = async (newStatus) => {
-    const response = await fetch('/api/toggleStatus', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: newStatus }),
-    });
+  const scrollToSection = (sectionId) => {
+    const section = document.querySelector(`[data-section="${sectionId}"]`);
+    if (section) {
+      const headerOffset = 60;
+      const elementPosition = section.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-    if (response.ok) {
-      setStatus(newStatus);
-      alert(`Status set to ${newStatus}`);
-    } else {
-      alert('Failed to set status');
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
-  const renderGallery = () => (
-    imageGallery.map((img, index) => (
-      <div key={index} className={styles.galleryItem}>
-        {index === 3 ? (
-          <a href="https://www.instagram.com/merrouchgaming/" target="_blank" rel="noopener noreferrer">
-            <Image
-              src={`/${img}`}
-              alt={`Gallery Image ${index + 1}`}
-              className={styles.galleryImage}
-              width={500}
-              height={300}
-            />
-          </a>
-        ) : (
-          <Image
-            src={`/${img}`}
-            alt={`Gallery Image ${index + 1}`}
-            className={styles.galleryImage}
-            width={500}
-            height={300}
-          />
-        )}
-      </div>
-    ))
-  );
+  useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window !== 'undefined') {
+        const winScroll = window.scrollY;
+        const height = document.documentElement.scrollHeight - window.innerHeight;
+        const scrolled = (winScroll / height) * 100;
+        setScrollProgress(scrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
       <Head>
-        <meta name="color-scheme" content="light dark" />
-        <link rel="icon" href="/favicon.ico" />
+        <title>Merrouch Gaming Center</title>
+        <meta name="description" content="Experience gaming at its finest with our high-end PCs, fast internet, and vibrant gaming community in Tangier." />
         <meta name="robots" content={isLoggedIn ? 'noindex, nofollow' : 'index, follow'} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="theme-color" content="#0f1119" />
       </Head>
 
       <Header />
+      
+      <div className={styles.scrollProgress}>
+        <div 
+          className={styles.scrollBar} 
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
 
-      <main className={styles.main}>
-        <section className={styles.hero}>
-          <div className={styles.heroText}>
-            {isLoggedIn ? (
-              <>
-                <h2 className={styles.heroTitle}>Welcome Back!</h2>
-                <p className={styles.welcomeMessage}>You&apos;re logged in!</p>
+      <main className={styles.mainWrapper}>
+        <nav className={styles.navDots}>
+          {[
+            { id: 'hero', label: 'Home' },
+            { id: 'packages', label: 'Packages' },
+            { id: 'features', label: 'Features' },
+          ].map(section => (
+            <button
+              key={section.id}
+              className={`${styles.navDot} ${activeSection === section.id ? styles.active : ''}`}
+              onClick={() => scrollToSection(section.id)}
+              aria-label={section.label}
+            >
+              <span className={styles.dotTooltip}>{section.label}</span>
+            </button>
+          ))}
+        </nav>
 
-                {/* Clickable Buttons */}
-                <div className={styles.buttonContainer}>
-                  <button
-                    className={`${styles.button} ${styles.avComputersButton}`}
-                    onClick={navigateToAvailableComputers}
-                    style={{
-                      position: 'relative',
-                      zIndex: 10, // Ensure it's above other elements
-                      touchAction: 'manipulation', // Prevents interference with touch scrolling
-                    }}
-                  >
-                    <AiOutlineDesktop size={80} />
-                  </button>
-
-                  <button
-                    className={`${styles.button} ${styles.shopButton}`}
-                    onClick={navigateToShop} // Navigate to the shop page
-                    style={{
-                      position: 'relative',
-                      zIndex: 10, // Ensure it's above other elements
-                      touchAction: 'manipulation', // Prevents interference with touch scrolling
-                    }}
-                  >
-                    <AiOutlineShop size={80} /> {/* Shop Icon */}
-                  </button>
-
-                  <button
-                    className={`${styles.button} ${styles.chatButton}`}
-                    onClick={navigateToChat}
-                    style={{
-                      position: 'relative',
-                      zIndex: 10,
-                      touchAction: 'manipulation',
-                    }}
-                  >
-                    Chat
-                  </button>
+        <section data-section="hero" className={`${styles.section} ${styles.mainHero}`}>
+          <div className={styles.gridContainer}>
+            <div className={styles.infoColumn}>
+              <div className={styles.logoWrapper}>
+                <Image
+                  src="/logomobile.png"
+                  alt="Merrouch Gaming"
+                  width={150}
+                  height={75}
+                  priority
+                  className={`${styles.brandLogo} ${styles.desktopOnly}`}
+                />
+                <div className={`${styles.textLogo} ${styles.mobileOnly}`}>
+                  <span className={styles.welcome}>Welcome To</span>
+                  <span className={styles.merrouch}>MERROUCH</span>{' '}
+                  <span className={styles.gaming}>GAMING</span>
                 </div>
-
-                <NotificationButton /> {/* Add NotificationButton component */}
-
-                {isAdmin && (
-                  <div className={styles.statusButtons}>
-                    <button onClick={() => toggleStatus('on')}>Open</button>
-                    <button onClick={() => toggleStatus('off')}>Close</button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <h2 className={styles.heroTitle}>Welcome to Merrouch Gaming</h2>
-                <p className={styles.prompt}>Please log in to access all features.</p>
-
-                <div className={styles.buttonContainer}>
-                  {/* Icons instead of text buttons */}
-                  <button
-                    className={`${styles.button} ${activeTab === 'map' ? styles.active : ''}`}
-                    onClick={() => toggleView('map')}
-                    style={{
-                      position: 'relative',
-                      zIndex: 10, // Ensure it's above other elements
-                      touchAction: 'manipulation', // Prevents interference with touch scrolling
-                    }}
-                  >
-                    <AiOutlineEnvironment size={40} /> {/* Location Icon */}
-                  </button>
-                  <button
-                    className={`${styles.button} ${activeTab === 'gallery' ? styles.active : ''}`}
-                    onClick={() => toggleView('gallery')}
-                    style={{
-                      position: 'relative',
-                      zIndex: 10, // Ensure it's above other elements
-                      touchAction: 'manipulation', // Prevents interference with touch scrolling
-                    }}
-                  >
-                    <AiOutlinePicture size={40} /> {/* Gallery Icon */}
-                  </button>
-                  <button
-                    className={`${styles.button} ${styles.shopButton}`}
-                    onClick={navigateToShop} // Navigate to the shop page
-                    style={{
-                      position: 'relative',
-                      zIndex: 10, // Ensure it's above other elements
-                      touchAction: 'manipulation', // Prevents interference with touch scrolling
-                    }}
-                  >
-                    <AiOutlineShop size={40} /> {/* Shop Icon */}
-                  </button>
+              </div>
+              <h1 className={styles.mainHeading}>
+                Professional Gaming Center<br />
+                in the Heart of Tangier
+              </h1>
+              <div className={styles.quickStats}>
+                <div className={styles.stat}>
+                  <AiOutlineDesktop size={24} />
+                  <span>Only Pc Gamers , Yes we got ps4 controllers for FC25 or simply controller players </span>
                 </div>
+                <div className={styles.stat}>
+                  <AiOutlineWifi size={24} />
+                  <span>200 Mbps Internet , Low Ping , Smooth Gaming Experience</span>
+                </div>
+              </div>
+              <div className={styles.actionButtons}>
+                <button 
+                  className={styles.primaryButton}
+                  onClick={() => router.push('/avcomputers')}
+                >
+                  Check Availability
+                </button>
+                <button 
+                  className={styles.outlineButton}
+                  onClick={() => scrollToNextSection('packages')}
+                >
+                  View Prices
+                </button>
+                <button 
+                  className={styles.outlineButton}
+                  onClick={() => router.push('/topusers')}
+                >
+                  Top Users
+                </button>
+              </div>
+            </div>
 
-                <div className={styles.contentContainer}>
-                  {activeTab === 'map' ? (
-                    <div className={styles.mapContainer}>
-                      <DarkModeMap /> {/* Map stays here */}
+            <div className={styles.mapColumn}>
+              <div className={styles.mapCard}>
+                <div className={styles.mapWrapper}>
+                  <DarkModeMap />
+                </div>
+                <div className={styles.locationDetails}>
+                  <div className={styles.contactInfo}>
+                    <div className={styles.contactItem}>
+                      <AiOutlineEnvironment  />&nbsp;
+                      Avenue Abi Elhassan Chadili, Tangier
                     </div>
-                  ) : (
-                    <div className={styles.pictureGallery}>
-                      {renderGallery()}
+                    <div className={styles.contactItem}>
+                      <AiOutlinePhone />&nbsp;
+                      0531098983
                     </div>
-                  )}
-
-                  <div className={styles.gamingDescription}>
-                    We are a premier gaming center located in the heart of Tangier, offering a wide variety of games, fast internet, and a comfortable environment to play and socialize with fellow gamers.
+                    <div className={styles.contactItem}>
+                      <AiOutlineInstagram />&nbsp;
+                      <a 
+                        href="https://instagram.com/merrouchgaming" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                      >
+                        @merrouchgaming
+                      </a>
+                    </div>
+                
                   </div>
+                  
                 </div>
-              </>
-            )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="packages" id="packages" className={`${styles.section} ${styles.packages}`}>
+          <div className={styles.containerNarrow}>
+            <h2 className={styles.sectionTitle}>Gaming Packages</h2>
+            <div className={styles.packagesGrid}>
+              <div className={`${styles.pricingCard} ${styles.glowEffect}`}>
+                <div className={styles.pricingHeader}>
+                  <h3>Normal PC</h3>
+                  <div className={styles.price}>15 MAD<span>/hour</span></div>
+                </div>
+                <ul className={styles.pricingFeatures}>
+                  <li>I5 10400F, 2060, 144Hz</li>
+                  <li>Premium Peripherals</li>
+                  <li>Fun Gaming</li>
+                </ul>
+              </div>
+              <div className={`${styles.pricingCard} ${styles.featured} ${styles.glowEffect}`}>
+                <div className={styles.pricingHeader}>
+                  <h3>VIP PC</h3>
+                  <div className={styles.price}>18 MAD<span>/hour</span></div>
+                </div>
+                <ul className={styles.pricingFeatures}>
+                  <li>Ryzen 7 7700, RTX 3070, 180Hz </li>
+                  <li>Premium Peripherals</li>
+                  <li>Serious Gaming</li>
+                </ul>
+              </div>
+            </div>
+            <div className={styles.learnMoreButton}>
+              <button 
+                className={styles.primaryButton}
+                onClick={() => router.push('/shop')}
+              >
+                Learn More About Our Packages
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section data-section="features" className={`${styles.section} ${styles.features}`}>
+          <div className={styles.containerWide}>
+            <div className={styles.featuresContent}>
+              <div className={styles.featuresGrid}>
+                {features.map((feature, index) => (
+                  <div key={index} className={`${styles.featureCard} ${styles.glowEffect}`}>
+                    <div className={styles.featureIcon}>{feature.icon}</div>
+                    <div className={styles.featureText}>
+                      <h3>{feature.title}</h3>
+                      <p>{feature.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.galleryGrid}>
+                {galleryImages.map((image, index) => (
+                  <div key={index} className={styles.galleryItem}>
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      layout="fill"
+                      objectFit="cover"
+                      className={styles.galleryImage}
+                      priority={index === 0}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       </main>
     </>
   );
-}
-
-// Utility function to convert VAPID key
-function urlBase64ToUint8Array(base64String) {
-  if (!base64String) {
-    throw new Error('Base64 string is required');
-  }
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
 }

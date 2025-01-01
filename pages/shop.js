@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
 import { AiOutlineCopy, AiOutlineDollar, AiOutlineCreditCard, AiOutlineBank, AiOutlineClose } from 'react-icons/ai';
-import styles from './Shop.module.css';
+import styles from '../styles/Shop.module.css';
 
 const Shop = () => {
   const { isLoggedIn } = useAuth();
@@ -16,6 +16,7 @@ const Shop = () => {
   const [isNormalSectionOpen, setIsNormalSectionOpen] = useState(false);
   const [isVIPSectionOpen, setIsVIPSectionOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState('');
 
   useEffect(() => {
     // Fetch the conversion rate from an API
@@ -80,9 +81,10 @@ const Shop = () => {
     return (usd * conversionRate).toFixed(2);
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, field) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard');
+    setCopyFeedback(`${field} copied!`);
+    setTimeout(() => setCopyFeedback(''), 2000);
   };
 
   const handleTabClick = (tab) => {
@@ -138,107 +140,114 @@ const Shop = () => {
         {/* Gaming Prices Section */}
         {activeTab === 'prices' && (
   <section className={styles.section}>
-    <div className={styles.centeredText}>Prices</div>
+    <div className={styles.centeredText}>Normal PC Prices</div>
     <table className={styles.priceTable}>
       <thead>
         <tr>
           <th>Duration</th>
-          <th>Type</th>
           <th>Price (DH)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>30 min</td>
-          <td>Normal</td>
-          <td>8 DH</td>
+          <td data-label="Duration">30 min</td>
+          <td data-label="Price">8 DH</td>
         </tr>
         <tr>
-          <td>1 hour</td>
-          <td>Normal</td>
-          <td>15 DH</td>
+          <td data-label="Duration">1 hour</td>
+          <td data-label="Price">15 DH</td>
         </tr>
         <tr>
-          <td>4 hour pack</td>
-          <td>Normal</td>
-          <td>50 DH</td>
+          <td data-label="Duration">4 hour pack</td>
+          <td data-label="Price">50 DH</td>
         </tr>
         <tr>
-          <td>10 hour</td>
-          <td>Normal</td>
-          <td>115 DH</td>
+          <td data-label="Duration">10 hour pack</td>
+          <td data-label="Price">115 DH</td>
         </tr>
         <tr>
-          <td>20 hour pack</td>
-          <td>Normal</td>
-          <td>210 DH</td>
-        </tr>
-        <tr>
-          <td>30 min</td>
-          <td>VIP</td>
-          <td>10 DH</td>
-        </tr>
-        <tr>
-          <td>1 hour</td>
-          <td>VIP</td>
-          <td>18 DH</td>
-        </tr>
-        <tr>
-          <td>3 hour pack</td>
-          <td>VIP</td>
-          <td>50 DH</td>
-        </tr>
-        <tr>
-          <td>8 hour pack</td>
-          <td>VIP</td>
-          <td>105 DH</td>
-        </tr>
-        <tr>
-          <td>20 hour pack</td>
-          <td>VIP</td>
-          <td>240 DH</td>
+          <td data-label="Duration">20 hour pack</td>
+          <td data-label="Price">210 DH</td>
         </tr>
       </tbody>
     </table>
-    <div className={styles.centeredText}>Cost Per Hour</div>
+
+    <div className={styles.centeredText}>Cost Per Hour - Normal PC</div>
     <table className={styles.priceTable}>
       <thead>
         <tr>
           <th>Pack</th>
-          <th>Type</th>
           <th>Cost Per Hour (DH)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>4 hour pack</td>
-          <td>Normal</td>
-          <td>12.5 DH</td>
+          <td data-label="Pack">4 hour pack</td>
+          <td data-label="Cost Per Hour">12.5 DH</td>
         </tr>
         <tr>
-          <td>10 hour pack</td>
-          <td>Normal</td>
-          <td>11.5 DH</td>
+          <td data-label="Pack">10 hour pack</td>
+          <td data-label="Cost Per Hour">11.5 DH</td>
         </tr>
         <tr>
-          <td>20 hour pack</td>
-          <td>Normal</td>
-          <td>10.5 DH</td>
+          <td data-label="Pack">20 hour pack</td>
+          <td data-label="Cost Per Hour">10.5 DH</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div className={styles.centeredText}>VIP PC Prices</div>
+    <table className={styles.priceTable}>
+      <thead>
+        <tr>
+          <th>Duration</th>
+          <th>Price (DH)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Duration">30 min</td>
+          <td data-label="Price">10 DH</td>
         </tr>
         <tr>
-          <td>3 hour pack</td>
-          <td>VIP</td>
-          <td>16.67 DH</td>
+          <td data-label="Duration">1 hour</td>
+          <td data-label="Price">18 DH</td>
         </tr>
         <tr>
-          <td>8 hour pack</td>
-          <td>VIP</td>
-          <td>13.125 DH</td>
+          <td data-label="Duration">3 hour pack</td>
+          <td data-label="Price">50 DH</td>
         </tr>
         <tr>
-          <td>20 hour pack</td>
-          <td>VIP</td>
-          <td>12 DH</td>
+          <td data-label="Duration">8 hour pack</td>
+          <td data-label="Price">105 DH</td>
+        </tr>
+        <tr>
+          <td data-label="Duration">20 hour pack</td>
+          <td data-label="Price">240 DH</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div className={styles.centeredText}>Cost Per Hour - VIP PC</div>
+    <table className={styles.priceTable}>
+      <thead>
+        <tr>
+          <th>Pack</th>
+          <th>Cost Per Hour (DH)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Pack">3 hour pack</td>
+          <td data-label="Cost Per Hour">16.67 DH</td>
+        </tr>
+        <tr>
+          <td data-label="Pack">8 hour pack</td>
+          <td data-label="Cost Per Hour">13.125 DH</td>
+        </tr>
+        <tr>
+          <td data-label="Pack">20 hour pack</td>
+          <td data-label="Cost Per Hour">12 DH</td>
         </tr>
       </tbody>
     </table>
@@ -440,19 +449,32 @@ const Shop = () => {
         {activeTab === 'bank' && (
           <section className={styles.section}>
             <div className={styles.bankTransferDetails}>
+              {copyFeedback && <div className={styles.copySuccess}>{copyFeedback}</div>}
               <h3 className={styles.bankTransferHeading}>CIH Bank Users</h3>
               <div className={styles.bankTransferItem}>
                 <label>Name:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="MERROUCH MOKHTAR" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('MERROUCH MOKHTAR')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('MERROUCH MOKHTAR', 'Name')}
+                    title="Copy name"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>Account Number:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="4273566211028100" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('4273566211028100')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('4273566211028100', 'Account Number')}
+                    title="Copy account number"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
               <div className={styles.divider}></div>
@@ -461,28 +483,52 @@ const Shop = () => {
                 <label>Name:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="MOKHTAR MERROUCH" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('MOKHTAR MERROUCH')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('MOKHTAR MERROUCH', 'Name')}
+                    title="Copy name"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>RIB:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="230 640 4273566211028100 66" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('230 640 4273566211028100 66')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('230 640 4273566211028100 66', 'RIB')}
+                    title="Copy RIB"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>IBAN:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="MA64 2306 4042 7356 6211 0281 0066" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066', 'IBAN')}
+                    title="Copy IBAN"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>Code SWIFT:</label>
                 <div className={styles.inputContainer}>
                   <input type="text" value="CIHMMAMC" readOnly />
-                  <AiOutlineCopy className={styles.copyIcon} onClick={() => copyToClipboard('CIHMMAMC')} />
+                  <div 
+                    className={styles.copyIcon}
+                    onClick={() => copyToClipboard('CIHMMAMC', 'Code SWIFT')}
+                    title="Copy code SWIFT"
+                  >
+                    <AiOutlineCopy size={20} />
+                  </div>
                 </div>
               </div>
             </div>

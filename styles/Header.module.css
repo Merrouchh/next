@@ -1,0 +1,327 @@
+/* General Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+/* Sticky Header */
+.sticky {
+  background: rgba(0, 0, 0, 0.98);
+  padding: 0.6rem 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Logo Styles */
+.logoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-family: 'Zen Dots', sans-serif;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #FFD700, #FFC000);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.merrouch {
+  color: #FFD700;
+  font-weight: 700;
+}
+
+.gaming {
+  color: white; /* Ensure this is set to white */
+  font-weight: 400;
+}
+
+.noUnderline {
+  text-decoration: none; /* Ensure no underline */
+}
+
+.mobileLogo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto; /* Centers the logo image in the available space */
+}
+
+/* Navigation */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-direction: row;
+  transition: transform 0.3s ease;
+}
+
+.nav.open {
+  transform: translateY(0);
+}
+
+/* Buttons */
+.loginButton,
+.logoutButton,
+.topUsersButton {
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loginButton:hover,
+.logoutButton:hover,
+.topUsersButton:hover {
+  background: #FFD700;
+  color: black;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.activeButton {
+  background: #FFD700;
+  color: black;
+}
+
+.usernameBox {
+  background: rgba(255, 215, 0, 0.1);
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #FFD700;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Hamburger Menu */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.bar {
+  width: 24px;
+  height: 2px;
+  background: #FFD700;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+/* Go Back Button */
+.goBackButton {
+  background: transparent;
+  border: none;
+  color: #FFD700;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.goBackButton:hover {
+  transform: translateX(-3px);
+  color: #FFC000;
+}
+
+.goBackButton svg {
+  margin-right: 5px;
+}
+
+/* Admin Styles */
+.adminHeader {
+  background-color: #000000; /* Change background color for admin */
+  border-bottom: 2px solid #FFD700;
+}
+
+.adminBadge {
+  background: #FFD700;
+  color: black;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.adminContainer {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+.adminContainer h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.adminContainer p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.6rem 1rem;
+    justify-content: flex-start; /* Align items to the left for mobile */
+  }
+
+  /* Hamburger menu on the left */
+  .hamburger {
+    display: flex;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center the hamburger */
+  }
+
+  /* Hide nav items (username, logout) by default */
+  .nav {
+    display: none;
+    flex-direction: column;
+    gap: 0.8rem;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.98);
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    border-top: 1px solid rgba(255, 215, 0, 0.2);
+  }
+
+  .nav.open {
+    display: flex;
+    transform: translateY(0); /* Show nav when hamburger is open */
+  }
+
+  /* Go Back button positioned to the right on mobile */
+  .goBackButton {
+    display: inline-block;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center the Go Back button */
+  }
+
+  .logoContainer {
+    flex-grow: 1;
+    justify-content: center; /* Center the logo in the header */
+  }
+
+  .logo {
+    justify-content: center; /* Center logo content */
+    width: auto;
+  }
+
+  /* Logo for mobile */
+  .mobileLogo {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .usernameBox {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .logoutButton,
+  .loginButton,
+  .topUsersButton {
+    width: 100%;
+    text-align: center;
+    margin: 5px 0;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+  .header {
+    justify-content: space-between; /* Ensure space between elements */
+  }
+
+  .logoContainer {
+    justify-content: flex-start; /* Keep the logo at the left */
+  }
+
+  /* Go Back button and logout/username items in header */
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .goBackButton {
+    display: flex;
+    margin-left: 10px;
+  }
+
+  /* Adjust Go Back button style for desktop */
+  .goBackButton {
+    font-size: 16px;
+    background: transparent;
+    border: none;
+    padding: 10px;
+    color: #0070f3;
+    cursor: pointer;
+  }
+}
+
+/* Animation for menu items */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav.open > * {
+  animation: slideIn 0.3s ease forwards;
+}

@@ -1,0 +1,895 @@
+/* General Grid Layout for Normal PCs (Multiple Rows) */
+.computerGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns per row */
+    gap: 10px;
+    padding: 20px;
+    height: auto;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.mainContainer {
+    padding-top: 90px;  /* Adjust space between header and main content */
+}
+
+/* Add margin to <h1> so it doesn't touch the top of the content */
+.pageHeading {
+    margin-top: 20px;  /* This will add space between the <h1> and the top of the main section */
+}
+
+/* Heading inside the grid */
+.sectionHeading {
+    margin-top: 0;  /* No margin on top to keep it close to the grid */
+    color: white;  /* Set text color to white */
+    text-align: center;  /* Center the heading */
+    font-size: 24px;  /* Adjust size if necessary */
+}
+/* Style for each PC */
+.pcSquare {
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    min-height: 70px;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+/* Active and inactive classes for color */
+.pcSquare.active {
+    background-color: green; /* Active user in green */
+}
+
+.pcSquare.inactive {
+    background-color: #e0e0e0;
+    color: gray;
+}
+
+/* Warning state for low time remaining */
+.pcSquare.warning {
+    background-color: orange; /* Active user with less than 60 minutes in orange */
+}
+
+/* VIP PC Grid Layout (Single Row, Horizontal) */
+.vipComputers {
+    display: flex; /* Display VIP PCs horizontally in one row */
+    gap: 20px; /* Space between the cards */
+    flex-wrap: nowrap; /* Prevent wrapping */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    padding: 20px;
+    margin-top: 20px; /* Optional: Space between other content */
+    justify-content: center; /* Ensure it starts from the left side */
+    align-items: center; /* Center the items vertically, if necessary */
+    width: 100%; /* Ensure full width of the parent container */
+    scroll-snap-type: none; /* Disable snapping behavior */
+}
+
+/* Styling for individual VIP PCs */
+.vipPcBox {
+    padding: 30px;
+    background-color: #f0f0f0;
+    border: 2px solid #ccc;
+    text-align: center;
+    border-radius: 10px;
+    width: 200px; /* Set a fixed width for each card */
+    height: 250px; /* Set a fixed height for the cards */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow for card effect */
+    transition: transform 0.3s ease; /* Smooth scaling effect */
+    flex-shrink: 0; /* Prevent cards from shrinking */
+}
+/* Active and inactive states for VIP PCs */
+.vipPcBox.active {
+    background-color: #4caf50;
+    color: white;
+}
+
+.vipPcBox.orange {
+    background-color: orange;
+    color: white;
+}
+
+.vipPcBox.inactive {
+    background-color: #e0e0e0;
+    color: gray;
+}
+
+/* Headings */
+@media (max-width: 767px) {
+    .vipComputers {
+        flex-wrap: nowrap;
+        overflow-x: scroll; /* Ensure scrolling on mobile */
+        -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on mobile */
+        justify-content: flex-start; /* Ensure it starts from the left side */
+    }
+}
+
+.main {
+  padding: 2rem;
+  padding-top: 6rem;
+  min-height: 100vh;
+  background: #0f1119;
+  background-image: linear-gradient(to bottom right, #0f1119 0%, #1a1f2c 100%);
+  color: #e1e1e1;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  text-align: center;
+  margin: 2rem 0;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255, 70, 85, 0.3);
+  background: linear-gradient(90deg, #FF4655, #ff2d55);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* VIP Computers Section */
+.vipComputers {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 2rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #1a1f2c;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 1rem; /* Space for scrollbar */
+}
+
+.vipPcBox {
+  flex: 0 0 250px; /* Fixed width, no growing or shrinking */
+  min-width: 250px; /* Ensure minimum width */
+  height: 150px; /* Fixed height */
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.vipPcBox::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FF4655, transparent);
+  opacity: 0.3;
+}
+
+.vipPcBox.active {
+  background: rgba(0, 220, 130, 0.1);
+  border-color: rgba(0, 220, 130, 0.3);
+}
+
+.vipPcBox.orange {
+  background: rgba(255, 165, 0, 0.1);
+  border-color: rgba(255, 165, 0, 0.3);
+}
+
+.vipPcBox.inactive {
+  background: rgba(255, 70, 85, 0.05);
+}
+
+/* Normal Computers Grid */
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Fixed 2 columns */
+  gap: 1.5rem;
+  padding: 1rem;
+  margin: 2rem auto;
+  max-width: 1000px; /* Limit max width for better layout */
+}
+
+.pcSquare {
+  padding: 1.2rem;
+  text-align: center;
+  background: #1a1f2c;
+  border: 1px solid rgba(255, 70, 85, 0.1);
+  border-radius: 12px;
+  color: #e1e1e1;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.pcSquare::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FF4655, transparent);
+  opacity: 0.3;
+}
+
+.pcSquare.active {
+  background: rgba(0, 220, 130, 0.1);
+  border-color: rgba(0, 220, 130, 0.3);
+}
+
+.pcSquare.warning {
+  background: rgba(255, 165, 0, 0.1);
+  border-color: rgba(255, 165, 0, 0.3);
+}
+
+.pcSquare.inactive {
+  background: rgba(255, 70, 85, 0.05);
+}
+
+.pcNumber {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #FF4655;
+}
+
+.statusText {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Hover Effects */
+.vipPcBox:hover,
+.pcSquare:hover {
+  box-shadow: 0 8px 16px rgba(255, 70, 85, 0.15);
+  /* Remove transform on hover */
+}
+
+/* Add separate active state for click */
+.vipPcBox:active,
+.pcSquare:active {
+  box-shadow: 0 4px 8px rgba(255, 70, 85, 0.1);
+  transition: box-shadow 0.1s ease;
+}
+
+/* Scrollbar Styling */
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: #1a1f2c;
+  border-radius: 4px;
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: #FF4655;
+  border-radius: 4px;
+  border: 2px solid #1a1f2c;
+}
+
+/* Container for VIP section */
+.vipSection {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 1rem;
+    padding-top: 5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .computerGrid {
+    grid-template-columns: 1fr; /* Single column on mobile */
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  .vipPcBox {
+    flex: 0 0 200px; /* Smaller width on mobile */
+    min-width: 200px;
+    height: 130px;
+    padding: 1rem;
+  }
+
+  .vipComputers {
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Normal Computers Grid - Always 2 columns */
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Always 2 columns */
+  gap: 1rem;
+  padding: 1rem;
+  margin: 2rem auto;
+  max-width: 1000px;
+}
+
+/* VIP Computers Section - Horizontal scroll */
+.vipComputers {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 2rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #1a1f2c;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 1rem;
+  padding-right: 2rem; /* Add extra padding on the right */
+}
+
+.vipPcBox {
+  flex: 0 0 200px; /* Smaller fixed width */
+  min-width: 200px;
+  height: 120px; /* Smaller height */
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.vipPcBox:last-child {
+  margin-right: 2rem; /* Add margin to the last VIP PC box */
+}
+
+/* Update mobile styles to maintain layout */
+@media (max-width: 768px) {
+  .mainContainer {
+    padding: 5rem 0.5rem 1rem 0.5rem;
+  }
+
+  .computerGrid {
+    gap: 0.5rem; /* Smaller gap on mobile */
+    padding: 0.5rem;
+  }
+
+  .pcSquare {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .pcNumber {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .statusText {
+    font-size: 0.8rem;
+  }
+
+  .vipComputers {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+  }
+}
+
+/* Ultra small screens */
+@media (max-width: 350px) {
+  .vipPcBox {
+    flex: 0 0 180px; /* Even smaller for tiny screens */
+    min-width: 180px;
+    height: 100px;
+  }
+
+  .pcSquare {
+    padding: 0.6rem;
+  }
+}
+
+/* Add these at the top of the file */
+.mainContainer {
+  padding: 6rem 1rem 1rem 1rem; /* Increased top padding for header */
+  max-width: 100vw;
+  overflow-x: hidden; /* Prevent horizontal scroll on main container */
+}
+
+/* Clean up and simplify VIP section styles */
+.vipSection {
+  width: 90%; /* Reduce width to add padding on sides */
+  position: relative;
+  margin: 0 auto;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden; /* Hide overflow on container */
+  background: #1a1f2c; /* Match container background with cards */
+}
+
+.vipComputers {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  padding-bottom: 2rem; /* Add space for scrollbar */
+  overflow-x: auto;
+  width: 100%;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #1a1f2c;
+  -webkit-overflow-scrolling: touch;
+  background: #1a1f2c;
+}
+
+/* Scrollbar styles */
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+  border-radius: 4px;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: #242938;
+  border-radius: 4px;
+  margin: 0 1rem; /* Add margin to track */
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: #FF4655;
+  border-radius: 4px;
+  border: 2px solid #242938;
+}
+
+/* Individual VIP PC box styles */
+.vipPcBox {
+  flex: 0 0 200px;
+  min-width: 200px;
+  height: 120px;
+  margin: 0 0.5rem;
+  position: relative;
+  background: #242938;
+  border: 1px solid rgba(255, 70, 85, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Clean up scrollbar styles */
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: #1a1f2c;
+  border-radius: 4px;
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: #FF4655;
+  border-radius: 4px;
+  border: 2px solid #1a1f2c;
+}
+
+/* Update media queries */
+@media (max-width: 768px) {
+  .mainContainer {
+    padding-top: 5rem; /* Slightly less padding on mobile */
+  }
+}
+
+/* VIP section wrapper and container */
+.vipWrapper {
+  width: 80%; /* Reduce from 90% to 80% */
+  margin: 0 auto;
+  padding: 1rem;
+  background: #1a1f2c;
+  border-radius: 12px;
+  position: relative;
+}
+
+.vipSection {
+  width: 100%;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.vipComputers {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  padding-bottom: 2rem;
+  overflow-x: auto;
+  width: 100%;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #242938;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 auto;
+}
+
+/* Add padding to the sides of the container content */
+.vipComputers::before,
+.vipComputers::after {
+  content: '';
+  min-width: 1rem; /* Add space at the start and end */
+}
+
+/* Update VIP PC box styles */
+.vipPcBox {
+  flex: 0 0 200px;
+  min-width: 200px;
+  height: 120px;
+  margin: 0;
+  position: relative;
+  background: #242938;
+  border: 1px solid rgba(255, 70, 85, 0.1);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Enhanced VIP section styles */
+.vipWrapper {
+  width: 90%;
+  margin: 2rem auto;
+  background: rgba(26, 31, 44, 0.8);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 70, 85, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: visible; /* Changed from hidden to visible */
+  position: relative; /* Added for absolute positioning of child */
+}
+
+.vipSection {
+  width: 100%;
+  position: relative;
+  padding: 1rem 0;
+  overflow: visible; /* Changed from hidden to visible */
+}
+
+/* Scrolling container for VIP PCs */
+.vipComputers {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  padding-bottom: 2rem;
+  overflow-x: scroll;
+  width: 100%; /* Reset to 100% */
+  position: relative;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #242938;
+  flex-wrap: nowrap;
+  /* Remove mask-image to prevent content cutoff */
+  margin: 0; /* Reset margin */
+}
+
+/* Add padding to the first and last items instead of container */
+.vipPcBox:first-child {
+  margin-left: 1rem;
+}
+
+.vipPcBox:last-child {
+  margin-right: 1rem;
+  padding-right: 1rem; /* Add extra padding to ensure visibility */
+}
+
+/* Remove the fade effects that might hide content */
+.vipComputers::before,
+.vipComputers::after {
+  display: none; /* Remove the gradient overlays */
+}
+
+/* Enhanced VIP section styles */
+.vipWrapper {
+  width: 90%;
+  margin: 2rem auto;
+  background: rgba(26, 31, 44, 0.8);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 70, 85, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  position: relative; /* Added for absolute positioning of child */
+}
+
+.vipSection {
+  width: 100%;
+  position: relative;
+  padding: 1rem 0;
+  overflow: hidden; /* Prevent section overflow */
+}
+
+/* Scrolling container for VIP PCs */
+.vipComputers {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  padding-bottom: 2rem;
+  overflow-x: scroll;
+  width: calc(100% + 40px); /* Extra width to account for padding */
+  margin: 0 -20px; /* Negative margin to offset the width */
+  position: relative;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #242938;
+  flex-wrap: nowrap;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 20px,
+    black calc(100% - 20px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 20px,
+    black calc(100% - 20px),
+    transparent
+  );
+}
+
+/* Update VIP PC box styles for better scrolling */
+.vipPcBox {
+  flex: 0 0 220px;
+  min-width: 220px;
+  height: 140px;
+  margin: 0 0.75rem;
+  background: linear-gradient(145deg, #1e2534, #242938);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: 16px;
+  transform-origin: center;
+  scroll-snap-align: center;
+}
+
+/* Enhanced scrollbar styles */
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+  background: transparent;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: rgba(26, 31, 44, 0.8);
+  border-radius: 4px;
+  margin: 0 1rem;
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #FF4655, #ff2d55);
+  border-radius: 4px;
+  border: 2px solid rgba(26, 31, 44, 0.8);
+}
+
+/* Add fade effect containers */
+.vipComputers::before,
+.vipComputers::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.vipComputers::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(26, 31, 44, 0.8), transparent);
+}
+
+.vipComputers::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(26, 31, 44, 0.8), transparent);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .vipWrapper {
+    width: 95%;
+    margin: 1rem auto;
+  }
+
+  .vipComputers {
+    padding: 1rem;
+    gap: 1rem;
+    width: calc(100% + 20px);
+    margin: 0 -10px;
+  }
+
+  .vipPcBox {
+    flex: 0 0 180px;
+    min-width: 180px;
+    height: 120px;
+    margin: 0 0.5rem;
+  }
+}
+
+/* Improved VIP PC box styles */
+.vipPcBox {
+  flex: 0 0 220px;
+  min-width: 220px;
+  height: 140px;
+  padding: 1.5rem;
+  position: relative;
+  background: linear-gradient(145deg, #1e2534, #242938);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  transform-origin: center;
+}
+
+.vipPcBox:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(255, 70, 85, 0.2);
+  border-color: rgba(255, 70, 85, 0.4);
+}
+
+.vipPcBox.active {
+  background: linear-gradient(145deg, rgba(0, 220, 130, 0.1), rgba(0, 220, 130, 0.2));
+  border-color: rgba(0, 220, 130, 0.4);
+}
+
+.vipPcBox.orange {
+  background: linear-gradient(145deg, rgba(255, 165, 0, 0.1), rgba(255, 165, 0, 0.2));
+  border-color: rgba(255, 165, 0, 0.4);
+}
+
+.vipPcBox.inactive {
+  background: linear-gradient(145deg, rgba(36, 41, 56, 0.8), rgba(26, 31, 44, 0.8));
+  border-color: rgba(255, 70, 85, 0.1);
+}
+
+/* Enhanced scrollbar styles */
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+  background: transparent;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: rgba(26, 31, 44, 0.8);
+  border-radius: 4px;
+  margin: 0 1rem;
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #FF4655, #ff2d55);
+  border-radius: 4px;
+  border: 2px solid rgba(26, 31, 44, 0.8);
+}
+
+/* Status text and number styling */
+.pcNumber {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  background: linear-gradient(90deg, #FF4655, #ff2d55);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2px 4px rgba(255, 70, 85, 0.2);
+}
+
+.statusText {
+  font-size: 1rem;
+  color: #e1e1e1;
+  opacity: 0.9;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .vipWrapper {
+    width: 95%;
+    margin: 1rem auto;
+  }
+
+  .vipPcBox {
+    flex: 0 0 180px;
+    min-width: 180px;
+    height: 120px;
+    padding: 1rem;
+  }
+
+  .pcNumber {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .statusText {
+    font-size: 0.9rem;
+  }
+}
+
+/* Enhanced VIP section styles with proper scrolling boundaries */
+.vipWrapper {
+  width: 90%;
+  margin: 2rem auto;
+  background: rgba(26, 31, 44, 0.8);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 70, 85, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden; /* Changed back to hidden */
+  position: relative;
+  display: flex;
+  justify-content: center; /* Center the content horizontally */
+}
+
+.vipSection {
+  width: 100%;
+  position: relative;
+  padding: 1rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center; /* Center the content horizontally */
+}
+
+/* Scrolling container for VIP PCs */
+.vipComputers {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0 1.5rem;
+  overflow-x: auto;
+  width: calc(100% - 3rem); /* Account for padding */
+  position: relative;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #FF4655 #242938;
+  flex-wrap: nowrap;
+  margin: 0 auto; /* Center the container */
+  padding-bottom: 1.5rem;
+  justify-content: flex-start; /* Align items from the start */
+  align-items: center;
+  scroll-padding: 0 1.5rem;
+}
+
+/* VIP PC box styles */
+.vipPcBox {
+  flex: 0 0 220px;
+  min-width: 220px;
+  height: 140px;
+  margin: 0;
+  scroll-snap-align: start;
+  /* ...existing vipPcBox styles... */
+}
+
+/* First and last item spacing */
+.vipPcBox:first-child {
+  margin-left: 0;
+}
+
+.vipPcBox:last-child {
+  margin-right: 0;
+  padding-right: 0; /* Remove extra padding */
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .vipWrapper {
+    width: 95%;
+  }
+
+  .vipComputers {
+    width: calc(100% - 2rem); /* Adjust for smaller padding on mobile */
+    padding: 0 1rem;
+    gap: 1rem;
+    padding-bottom: 1rem;
+  }
+}

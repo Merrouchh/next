@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Head from 'next/head';
 import { fetchTopUsers } from '../utils/api';
-import styles from './TopUsers.module.css';
+import styles from '../styles/TopUsers.module.css';
 
 const TopUsers = () => {
   const [topUsers, setTopUsers] = useState([]);
@@ -20,7 +20,7 @@ const TopUsers = () => {
         setTopUsers(data);
       }
     } catch (error) {
-      setError(`Error: ${error.message}. Please try again later.`);
+      setError('There are no users at the moment.');
     } finally {
       setLoading(false);
     }
@@ -100,9 +100,9 @@ const TopUsers = () => {
         <p className={styles.counterText}>
           {`Current Month: ${currentMonth} | Time Left Until Next Month: ${timeLeft}`}
         </p>
-        {loading && <p>Loading...</p>}
-        {error && <p>{error}</p>}
-        {!loading && !error && topUsers.length === 0 && <p>No users found.</p>}
+        {loading && <div className={styles.loading}><img src="/loading.gif" alt="Loading..." /></div>}
+        {error && <p className={styles.error}>{error}</p>}
+        {!loading && !error && topUsers.length === 0 && <p className={styles.noUsers}>No users found.</p>}
         {!loading && !error && topUsers.length > 0 && (
           <div className={styles.userList}>
             {topUsers.map((user, index) => (

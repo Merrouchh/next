@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { fetchActiveUserSessions, fetchUserById, fetchUserBalance } from '../utils/api';
 import Header from '../components/Header';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext'; // Assuming you have an Auth context
 import Head from 'next/head';
+import styles from '../styles/avcomputers.module.css';
 
 const HostVipComputers = () => {
   const [computers, setComputers] = useState([]);
+  const vipContainerRef = useRef(null);
+  const initialScrollDone = useRef(false); // Add this ref to track initial scroll
 
   useEffect(() => {
     const computersList = [
@@ -49,24 +52,59 @@ const HostVipComputers = () => {
     return () => clearInterval(intervalId); 
   }, []);
 
+  // Modified scroll effect to run only once
+  useEffect(() => {
+    if (!initialScrollDone.current && vipContainerRef.current && computers.length > 0) {
+      const container = vipContainerRef.current;
+      
+      // Calculate scroll position to show middle items
+      const totalWidth = container.scrollWidth;
+      const visibleWidth = container.offsetWidth;
+      const scrollToMiddle = (totalWidth - visibleWidth) / 2;
+
+      // Set initial scroll position
+      setTimeout(() => {
+        container.scrollLeft = scrollToMiddle;
+        initialScrollDone.current = true; // Mark as done after first scroll
+      }, 100);
+    }
+  }, [computers]);
+
   return (
-    <div className="vip-computers">
-      {computers.map(computer => {
-        const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
-          ? computer.timeLeft.split(' : ') 
-          : [0, 0];
+    <div className={styles.vipWrapper}>
+      <div className={styles.vipSection}>
+        <div 
+          ref={vipContainerRef}
+          className={styles.vipComputers}
+        >
+          {computers.map(computer => {
+            const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
+              ? computer.timeLeft.split(' : ') 
+              : [0, 0];
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            const totalMinutes = hours * 60 + minutes;
 
-        const hours = parseInt(timeParts[0]) || 0;
-        const minutes = parseInt(timeParts[1]) || 0;
-        const totalMinutes = hours * 60 + minutes;
-
-        return (
-          <div key={computer.id} className={`vip-pc-box ${computer.isActive ? (totalMinutes < 60 ? 'orange' : 'active') : 'inactive'}`}>
-            <strong>VIP PC{computer.number}</strong><br />
-            {computer.isActive ? `Active - Time Left: ${computer.timeLeft}` : 'No User'}
-          </div>
-        );
-      })}
+            return (
+              <div key={computer.id} 
+                   className={`${styles.vipPcBox} ${
+                     computer.isActive 
+                       ? totalMinutes < 60 
+                         ? styles.orange 
+                         : styles.active
+                       : styles.inactive
+                   }`}>
+                <div className={styles.pcNumber}>VIP PC{computer.number}</div>
+                <div className={styles.statusText}>
+                  {computer.isActive 
+                    ? `Active - Time Left: ${computer.timeLeft}` 
+                    : 'No User'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
@@ -134,32 +172,38 @@ const AvailableComputers = () => {
         <title>Available Computers</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <main>
-        <h2>Normal Computers</h2>
+      <main className={styles.mainContainer}>
+        <h2 className={styles.sectionHeading}>Normal Computers</h2>
+        <div className={styles.computerGrid}>
+          {computers.map(computer => {
+            const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
+              ? computer.timeLeft.split(' : ') 
+              : [0, 0];
+            const hours = parseInt(timeParts[0]) || 0;
+            const minutes = parseInt(timeParts[1]) || 0;
+            const totalMinutes = hours * 60 + minutes;
 
-        {/* Normal Computers Grid */}
-        <div id="normalComputers" className="computer-grid">
-          
-            {computers.map(computer => {
-                const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
-                    ? computer.timeLeft.split(' : ') 
-                    : [0, 0];
-
-                const hours = parseInt(timeParts[0]) || 0;
-                const minutes = parseInt(timeParts[1]) || 0;
-                const totalMinutes = hours * 60 + minutes;
-
-                return (
-                    <div key={computer.id} className={`pc-square ${computer.isActive ? (totalMinutes < 60 ? 'warning' : 'active') : 'inactive'}`}>
-                    <strong>PC{computer.number}</strong><br />
-                    {computer.isActive ? `Active - Time Left: ${computer.timeLeft}` : 'No User'}
-                    </div>
-                );
-            })}
+            return (
+              <div key={computer.id} 
+                   className={`${styles.pcSquare} ${
+                     computer.isActive 
+                       ? totalMinutes < 60 
+                         ? styles.warning 
+                         : styles.active
+                       : styles.inactive
+                   }`}>
+                <div className={styles.pcNumber}>PC{computer.number}</div>
+                <div className={styles.statusText}>
+                  {computer.isActive 
+                    ? `Active - Time Left: ${computer.timeLeft}` 
+                    : 'No User'}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* VIP Computers Grid */}
-        <h2>VIP PCs</h2>
+        <h2 className={styles.sectionHeading}>VIP PCs</h2>
         <HostVipComputers />
       </main>
     </>
