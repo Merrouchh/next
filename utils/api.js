@@ -1,3 +1,5 @@
+import { createClient } from './supabase/client';
+
 // utils/api.js
 export const validateUserCredentials = async (username, password) => {
   try {
@@ -35,7 +37,6 @@ export const validateUserCredentials = async (username, password) => {
   }
 };
     
-// utils/api.js
 export const fetchActiveUserSessions = async () => {
   try {
     const response = await fetch('/api/fetchActiveUserSessions');
@@ -99,23 +100,15 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
   }
 };
 
-// Remove the duplicate getUserIdByUsername and getGizmoIdByUsername functions
-// and replace with a single function to get Gizmo ID:
 
 export const fetchGizmoId = async (username) => {
   try {
     const response = await fetch(`/api/returngizmoid?username=${username}`);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Failed to fetch Gizmo ID:', errorData);
-      throw new Error(errorData.error || 'Failed to fetch Gizmo ID');
-    }
-
+    if (!response.ok) throw new Error('Error fetching Gizmo ID');
     const data = await response.json();
     return {
       gizmoId: data.gizmo_id,
-      message: data.message
+      message: 'Gizmo ID fetched successfully'
     };
   } catch (error) {
     console.error('Error fetching Gizmo ID:', error);
@@ -124,17 +117,15 @@ export const fetchGizmoId = async (username) => {
 };
 
 export const fetchUserPoints = async (gizmoId) => {
+  const url = `/api/points/${gizmoId}`;
   try {
-    if (!gizmoId) {
-      throw new Error('Gizmo ID is required');
-    }
-
-    const response = await fetch(`/api/points/${gizmoId}`);
+    console.log(`Fetching user points from URL: ${url}`);
+    const response = await fetch(url);
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Failed to fetch user points:', errorData);
-      throw new Error(errorData.error || 'Failed to fetch user points');
+      const errorText = await response.text();
+      console.error(`Failed to fetch user points from ${url}:`, errorText);
+      throw new Error(errorText || 'Failed to fetch user points');
     }
 
     const data = await response.json();

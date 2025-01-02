@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,100 +6,144 @@ import { useRouter } from 'next/router';
 import styles from '../styles/dashboard.module.css';
 import { AiOutlineDesktop, AiOutlineShop, AiOutlineUser, AiOutlineTrophy, AiOutlineWechat, AiOutlineReload } from 'react-icons/ai';
 import NotificationButton from '../components/NotificationButton';
-import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints } from '../utils/api';
+import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId } from '../utils/api';
 
 const Dashboard = () => {
-  const { isLoggedIn, user, loading } = useAuth();
-  const [status, setStatus] = useState('');
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [topUsers, setTopUsers] = useState([]);
-  const [error, setError] = useState(null);
-  const [userPoints, setUserPoints] = useState(null);
-  const [userAuth, setUserAuth] = useState(null);
+  const { user, loading, isLoggedIn } = useAuth();
   const router = useRouter();
+  const [pageState, setPageState] = useState({
+    loading: true,
+    error: null,
+    data: {
+      activeSessions: [],
+      topUsers: [],
+      userPoints: null,
+      status: ''
+    }
+  });
 
-  // Check if user is admin
-  const isAdmin = user?.isAdmin || false;
-
+  // Add loading state timeout
   useEffect(() => {
-    console.log('Dashboard useEffect triggered:', { isLoggedIn, user, loading });
-    
+    let timeoutId;
     if (loading) {
-      return; // Don't do anything while loading
+      timeoutId = setTimeout(() => {
+        // If still loading after 5 seconds, redirect to home
+        if (!isLoggedIn) {
+          window.location.href = '/';
+        }
+      }, 5000);
     }
+    return () => clearTimeout(timeoutId);
+  }, [loading, isLoggedIn]);
 
-    if (!isLoggedIn || !user) {
-      console.log('Not logged in or no user data, redirecting...');
-      router.push('/');
-      return;
-    }
+  // Add session verification
+  useEffect(() => {
+    const verifySession = async () => {
+      if (!loading) {
+        if (!isLoggedIn || !user) {
+          await router.replace('/');
+        }
+      }
+    };
 
-    async function fetchDashboardData() {
-      console.log('Starting to fetch dashboard data...');
-      
+    verifySession();
+  }, [loading, isLoggedIn, user, router]);
+
+  // Single useEffect for initialization and auth check
+  useEffect(() => {
+    let mounted = true;
+
+    const initializePage = async () => {
       try {
+        // Wait for auth to be ready
+        if (loading) return;
+
+        // Check auth status
+        if (!isLoggedIn || !user) {
+          console.log('Not authenticated, redirecting to home');
+          await router.replace('/');
+          return;
+        }
+
+        // Fetch all required data
         const [sessions, users] = await Promise.all([
           fetchActiveUserSessions(),
           fetchTopUsers(5)
         ]);
 
-        setActiveSessions(sessions);
-        setTopUsers(users);
-        setError(null);
-      } catch (err) {
-        console.error('Error in dashboard data fetch:', err);
-        setError('No Users Found');
-      }
-    }
+        if (!mounted) return;
 
-    fetchDashboardData();
-  }, [isLoggedIn, user, loading, router]);
+        // Update state atomically
+        setPageState(prev => ({
+          ...prev,
+          loading: false,
+          data: {
+            ...prev.data,
+            activeSessions: sessions,
+            topUsers: users
+          }
+        }));
 
-  useEffect(() => {
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.pushManager.getSubscription().then(subscription => {
-              const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BI77cEBaJDS7BT_bpo8zt7jjIdZhXVmMr2881f2TNVIUo6irIsgqp9KZYXeAVggEvXN9nyIQBUupl1RLUPgs9EM';
-              if (!subscription) {
-                registration.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-                }).then(newSubscription => {
-                  subscribeUser(newSubscription);
-                }).catch(error => {
-                  console.error('Failed to subscribe the user:', error);
-                });
-              } else {
-                subscribeUser(subscription);
+        // Fetch user points separately as it depends on gizmoId
+        console.log(`Fetching Gizmo ID for user: ${user.username}`);
+        const { gizmoId } = await fetchGizmoId(user.username);
+        console.log(`Fetched Gizmo ID: ${gizmoId}`);
+        if (gizmoId) {
+          console.log(`Fetching user points for Gizmo ID: ${gizmoId}`);
+          const { points } = await fetchUserPoints(gizmoId);
+          console.log(`Fetched user points: ${points}`);
+          if (mounted) {
+            setPageState(prev => ({
+              ...prev,
+              data: {
+                ...prev.data,
+                userPoints: points
               }
-            });
-          });
+            }));
+          }
         }
-      });
-    }
-  }, [isLoggedIn]);
+      } catch (error) {
+        console.error('Error initializing dashboard:', error);
+        if (mounted) {
+          setPageState(prev => ({
+            ...prev,
+            loading: false,
+            error: 'Failed to load dashboard data'
+          }));
+        }
+      }
+    };
 
-  useEffect(() => {
-    if (!loading && isLoggedIn && user?.gizmo_id) {
-      const fetchUserData = async () => {
-        try {
-          const { points } = await fetchUserPoints(user.gizmo_id);
-          setUserPoints(points);
-          setError(null);
-        } catch (err) {
-          console.error('Error fetching user data:', err);
-          setUserPoints(null);
-          setError('Failed to load points');
-        }
-      };
-      fetchUserData();
-    } else {
-      // Reset points if no gizmo_id is available
-      setUserPoints(null);
+    initializePage();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, isLoggedIn, user, router]);
+
+  // Updated loading render
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner} />
+        <p className={styles.loadingText}>
+          {isLoggedIn ? 'Loading dashboard...' : 'Checking authentication...'}
+        </p>
+      </div>
+    );
+  }
+
+  // Add immediate return if not authenticated
+  if (!isLoggedIn || !user) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
     }
-  }, [loading, isLoggedIn, user]);
+    return null;
+  }
+
+  // Destructure page state for easier access
+  const { error } = pageState;
+  const { activeSessions, topUsers, userPoints, status } = pageState.data;
 
   const subscribeUser = (subscription) => {
     fetch('/api/subscribe', {
@@ -117,16 +161,28 @@ const Dashboard = () => {
     });
   };
 
-  const navigateToAvailableComputers = () => {
-    router.push('/avcomputers'); // Navigate to available computers page
+  const navigateToAvailableComputers = async () => {
+    try {
+      await router.push('/avcomputers');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
-  const navigateToShop = () => {
-    router.push('/shop'); // Navigate to the shop page
+  const navigateToShop = async () => {
+    try {
+      await router.push('/shop');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
-  const navigateToChat = () => {
-    router.push('/chat'); // Navigate to the chat page
+  const navigateToChat = async () => {
+    try {
+      await router.push('/chat');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const toggleStatus = async (newStatus) => {
@@ -164,34 +220,45 @@ const Dashboard = () => {
     return points <= 72 ? styles.lowPoints : styles.highPoints;
   };
 
-  const navigateToTopUsers = () => {
-    router.push('/topusers');
+  const navigateToTopUsers = async () => {
+    try {
+      await router.push('/topusers');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   // Add refresh functionality for points
   const refreshUserData = async () => {
-    if (user?.gizmo_id) {
+    if (user) {
       try {
-        const { points } = await fetchUserPoints(user.gizmo_id);
-        setUserPoints(points);
-        setError(null);
+        console.log(`Refreshing Gizmo ID for user: ${user.username}`);
+        const { gizmoId } = await fetchGizmoId(user.username);
+        console.log(`Refreshed Gizmo ID: ${gizmoId}`);
+        if (!gizmoId) {
+          throw new Error('Gizmo ID not found');
+        }
+
+        console.log(`Refreshing user points for Gizmo ID: ${gizmoId}`);
+        const { points } = await fetchUserPoints(gizmoId);
+        console.log(`Refreshed user points: ${points}`);
+        setPageState(prev => ({
+          ...prev,
+          data: {
+            ...prev.data,
+            userPoints: points
+          },
+          error: null
+        }));
       } catch (err) {
         console.error('Error refreshing user data:', err);
-        setError('Failed to refresh data');
+        setPageState(prev => ({
+          ...prev,
+          error: 'Failed to refresh data'
+        }));
       }
     }
   };
-
-  // Add polling for active sessions
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isLoggedIn && user) {
-        fetchDashboardData();
-      }
-    }, 30000); // Poll every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [isLoggedIn, user]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -202,6 +269,12 @@ const Dashboard = () => {
     return null;
   }
 
+  // Update button click handlers to prevent default and use async/await
+  const handleNavigation = (handler) => async (e) => {
+    e.preventDefault();
+    await handler();
+  };
+
   return (
     <>
       <Head>
@@ -209,6 +282,7 @@ const Dashboard = () => {
         <meta name="theme-color" content="#1a1a1a" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="robots" content="noindex, nofollow" />
+
       </Head>
 
       <Header />
@@ -253,7 +327,7 @@ const Dashboard = () => {
                   {userPoints !== null ? userPoints : 'Loading...'}
                 </span>
               </p>
-              {user?.isAdmin && (
+              {user?.is_admin && (
                 <p>
                   <strong>Role:</strong>
                   <span>Admin</span>
@@ -268,7 +342,7 @@ const Dashboard = () => {
             role="button"
             tabIndex={0}
             data-clickable="true"
-            onClick={navigateToTopUsers}
+            onClick={handleNavigation(navigateToTopUsers)}
             onKeyDown={(e) => e.key === 'Enter' && navigateToTopUsers()}
             aria-label="View all top players"
           >
@@ -278,10 +352,10 @@ const Dashboard = () => {
               </div>
               <h3 id="top-players-section" className={styles.statTitle}>Top Players</h3>
             </div>
-            {loading ? (
+            {pageState.loading ? (
               <p>Loading top players...</p>
-            ) : error ? (
-              <p>{error}</p>
+            ) : pageState.error ? (
+              <p>{pageState.error}</p>
             ) : topUsers.length === 0 ? (
               <p>No top players found</p>
             ) : (
@@ -343,7 +417,7 @@ const Dashboard = () => {
         <div className={styles.bubbleButtons}>
           <button 
             className={styles.bubbleButton}
-            onClick={navigateToAvailableComputers}
+            onClick={handleNavigation(navigateToAvailableComputers)}
             aria-label="Navigate to Available Computers"
           >
             <AiOutlineDesktop className={styles.bubbleIcon} />
@@ -351,7 +425,7 @@ const Dashboard = () => {
 
           <button 
             className={styles.bubbleButton}
-            onClick={navigateToShop}
+            onClick={handleNavigation(navigateToShop)}
             aria-label="Navigate to Shop"
           >
             <AiOutlineShop className={styles.bubbleIcon} />
@@ -359,38 +433,25 @@ const Dashboard = () => {
 
           <button 
             className={styles.bubbleButton}
-            onClick={navigateToChat}
+            onClick={handleNavigation(navigateToChat)}
             aria-label="Navigate to Chat"
           >
             <AiOutlineWechat className={styles.bubbleIcon} />
           </button>
         </div>
 
-        {isAdmin && (
-          <div className={styles.adminControls} role="region" aria-labelledby="admin-controls">
-            <h3 id="admin-controls" className={styles.adminTitle}>Admin Controls</h3>
-            <div className={styles.adminButtons}>
-              <button 
-                className={`${styles.adminButton} ${styles.openButton}`}
-                onClick={() => toggleStatus('on')}
-                aria-pressed={status === 'on'}
-              >
-                Open Gaming Center
-              </button>
-              <button 
-                className={`${styles.adminButton} ${styles.closeButton}`}
-                onClick={() => toggleStatus('off')}
-                aria-pressed={status === 'off'}
-              >
-                Close Gaming Center
-              </button>
-            </div>
+        {user?.is_admin && (
+          <div className={styles.adminSection}>
+            <h2>Admin Section</h2>
+            <p>Here you can manage user information and other admin tasks.</p>
+            {/* Add admin-specific functionality here */}
           </div>
         )}
+        
       </main>
     </>
   );
-}
+};
 
 // Utility function to convert VAPID key
 function urlBase64ToUint8Array(base64String) {

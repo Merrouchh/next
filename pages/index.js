@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Header from '../components/Header';
 import Image from 'next/image';
@@ -14,22 +14,54 @@ import {
   AiOutlinePhone
 } from 'react-icons/ai';
 import dynamic from 'next/dynamic';
+import LoadingScreen from '../components/LoadingScreen';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
 });
 
 export default function Home() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading, user } = useAuth();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('hero');
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [pageState, setPageState] = useState({
+    isLoading: true,
+    isError: false
+  });
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.push('/dashboard');
+    if (!loading) {
+      if (isLoggedIn && user && router.pathname === '/') {
+        router.replace('/dashboard');
+      } else {
+        setPageState({ isLoading: false, isError: false });
+      }
     }
-  }, [isLoggedIn, router]);
+  }, [loading, isLoggedIn, user, router.pathname]);
+
+  // Add scroll progress handler
+  useEffect(() => {
+    const handleScroll = () => {
+      const winScroll = window.scrollY;
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = (winScroll / height) * 100;
+      setScrollProgress(scrolled);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Show loading state only if still initializing
+  if (loading || pageState.isLoading) {
+    return <LoadingScreen message="Loading..." />;
+  }
+
+  // Don't show home page content while redirecting logged-in users
+  if (isLoggedIn && user) {
+    return <LoadingScreen message="Redirecting..." />;
+  }
 
   const features = [
     {
@@ -81,27 +113,6 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.5
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.dataset.section);
-        }
-      });
-    }, options);
-
-    const sections = document.querySelectorAll('[data-section]');
-    sections.forEach(section => observer.observe(section));
-
-    return () => sections.forEach(section => observer.unobserve(section));
-  }, []);
-
   const scrollToSection = (sectionId) => {
     const section = document.querySelector(`[data-section="${sectionId}"]`);
     if (section) {
@@ -115,20 +126,6 @@ export default function Home() {
       });
     }
   };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (typeof window !== 'undefined') {
-        const winScroll = window.scrollY;
-        const height = document.documentElement.scrollHeight - window.innerHeight;
-        const scrolled = (winScroll / height) * 100;
-        setScrollProgress(scrolled);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   return (
     <>

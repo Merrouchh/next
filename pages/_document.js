@@ -7,7 +7,6 @@ class MyDocument extends Document {
         <Head>
           {/* Preconnect to external resources */}
           <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
@@ -30,9 +29,6 @@ class MyDocument extends Document {
           <meta name="apple-mobile-web-app-title" content="Merrouch" />
           <meta name="msapplication-navbutton-color" content="#000000" />
           <meta name="msapplication-starturl" content="/" />
-          
-          {/* Viewport Meta Tag */}
-          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
           
           {/* Web App Manifest */}
           <link rel="manifest" href="/manifest.json" />

@@ -1,19 +1,19 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../utils/supabase/client';
+import { useRouter } from 'next/router';
+import { fetchGizmoId } from '../utils/api';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
-
-const AuthContext = createContext(null);
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : null
-  }
+// Create context with default value
+const AuthContext = createContext({
+  isLoggedIn: false,
+  user: null,
+  loading: true,
+  login: async () => {},
+  logout: async () => {},
+  userExists: async () => {},
+  createUser: async () => {}
 });
 
-// Custom hook for using auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -22,188 +22,270 @@ export function useAuth() {
   return context;
 }
 
-export function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+export const AuthProvider = ({ children }) => {
+  const router = useRouter();
+  const supabase = createClient();
+  
+  // Move all useState declarations to the top
+  const [authState, setAuthState] = useState({
+    isLoggedIn: false,
+    user: null,
+    loading: true,
+    initialized: false
+  });
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutTimeout, setLogoutTimeout] = useState(null);
 
-  // Function to fetch user data from Supabase
-  const fetchUserData = async (authUser) => {
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('id, username, is_admin, email, gizmo_id') // Added gizmo_id here
-        .eq('id', authUser.id)
-        .single();
-
-      if (error) throw error;
-
-      return userData;
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      return null;
-    }
-  };
-
-  // Effect to check if the user is logged in (by checking Supabase)
+  // All useEffects should be after state declarations
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (authUser) {
-          const userData = await fetchUserData(authUser);
-          if (userData) {
-            setUser({
-              id: userData.id,
-              username: userData.username,
-              isAdmin: userData.is_admin,
-              email: userData.email,
-              gizmo_id: userData.gizmo_id // Added this line
-            });
-            setIsLoggedIn(true);
-            console.log('User data loaded:', userData);
-          }
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setIsLoggedIn(false);
-        setUser(null);
-      } finally {
-        setLoading(false);
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      await initAuth();
+      if (mounted) {
+        setAuthState(prev => ({ ...prev, initialized: true }));
       }
     };
 
-    checkUser();
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const userData = await fetchUserData(session.user);
-        if (userData) {
-          setUser({
-            id: userData.id,
-            username: userData.username,
-            isAdmin: userData.is_admin,
-            email: userData.email,
-            gizmo_id: userData.gizmo_id // Added this line
-          });
-          setIsLoggedIn(true);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsLoggedIn(false);
-        console.log('User signed out');
-      }
-    });
+    initializeAuth();
 
     return () => {
-      subscription?.unsubscribe();
+      mounted = false;
     };
   }, []);
 
-  // Login function
+  useEffect(() => {
+    let isHandlingVisibility = false;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !isHandlingVisibility) {
+        isHandlingVisibility = true;
+        try {
+          // Clear any stuck loading states
+          if (isLoggingOut) {
+            setIsLoggingOut(false);
+          }
+
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (error || !session) {
+            setAuthState({
+              user: null,
+              isLoggedIn: false,
+              loading: false,
+              initialized: true
+            });
+            router.push('/');
+            return;
+          }
+
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', session.user.email)
+            .single();
+
+          if (!userData) {
+            throw new Error('No user data found');
+          }
+
+          setAuthState({
+            user: userData,
+            isLoggedIn: true,
+            loading: false,
+            initialized: true
+          });
+        } catch (error) {
+          console.error('Visibility change error:', error);
+          setIsLoggingOut(false);
+          setAuthState({
+            user: null,
+            isLoggedIn: false,
+            loading: false,
+            initialized: true
+          });
+          router.push('/');
+        } finally {
+          isHandlingVisibility = false;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [router]);
+
+  useEffect(() => {
+    let refreshTimer;
+
+    const setupTokenRefresh = () => {
+      if (authState.user) {
+        // Refresh token 5 minutes before expiry
+        refreshTimer = setInterval(async () => {
+          try {
+            const { error } = await supabase.auth.refreshSession();
+            if (error) throw error;
+          } catch (error) {
+            console.error('Token refresh error:', error);
+          }
+        }, 55 * 60 * 1000); // 55 minutes
+      }
+    };
+
+    setupTokenRefresh();
+
+    return () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+    };
+  }, [authState.user]);
+
+  useEffect(() => {
+    return () => {
+      if (logoutTimeout) {
+        clearTimeout(logoutTimeout);
+      }
+    };
+  }, [logoutTimeout]);
+
+  // Add session recovery mechanism
   const login = async (username, password) => {
     try {
-      const lowerCaseUsername = username.toLowerCase();
-      console.log('Starting login process for:', lowerCaseUsername);
+      setAuthState(prev => ({ ...prev, loading: true }));
       
-      // First get user data from users table
-      const { data: userData, error: userError } = await supabase
+      // Get user email and gizmo_id first
+      const { data: userData } = await supabase
         .from('users')
-        .select('*')
-        .eq('username', lowerCaseUsername)
+        .select('email, gizmo_id')
+        .eq('username', username.toLowerCase())
         .single();
 
-      if (userError || !userData) {
-        console.error('User not found:', userError);
-        return false;
+      if (!userData?.email) {
+        throw new Error('User not found');
       }
 
-      // Login with Supabase auth
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userData.email,
-        password
-      });
-
-      if (signInError) {
-        console.error('Sign-in error:', signInError);
-        return false;
-      }
-
-      // Only fetch Gizmo ID if it doesn't exist
+      // Fetch Gizmo ID and update user record if gizmo_id is not already set
       if (!userData.gizmo_id) {
-        try {
-          console.log('No existing Gizmo ID, fetching for:', lowerCaseUsername);
-          const gizmoResponse = await fetch(`/api/returngizmoid?username=${lowerCaseUsername}`);
-          
-          if (!gizmoResponse.ok) {
-            const errorData = await gizmoResponse.json();
-            console.error('Failed to fetch Gizmo ID:', {
-              status: gizmoResponse.status,
-              data: errorData
-            });
-          } else {
-            const gizmoData = await gizmoResponse.json();
-            console.log('Gizmo ID fetched successfully:', gizmoData);
-            userData.gizmo_id = gizmoData.gizmo_id;
-          }
-        } catch (gizmoError) {
-          console.error('Error in Gizmo ID fetch:', gizmoError);
+        const { gizmoId } = await fetchGizmoId(username.toLowerCase());
+        if (gizmoId) {
+          await supabase
+            .from('users')
+            .update({ gizmo_id: gizmoId })
+            .eq('username', username.toLowerCase());
+        } else {
+          console.error('Failed to fetch Gizmo ID');
         }
-      } else {
-        console.log('Using existing Gizmo ID:', userData.gizmo_id);
       }
 
-      setUser({
-        id: userData.id,
-        username: userData.username,
-        isAdmin: userData.is_admin,
+      // Sign in with enhanced options
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: userData.email,
-        gizmo_id: userData.gizmo_id || null // Ensure gizmo_id is never undefined
+        password,
+        options: {
+          redirectTo: window.location.origin,
+          persistSession: true,
+          cookieOptions: {
+            name: 'sb-auth-token',
+            lifetime: 60 * 60 * 24 * 365, // 1 year
+            domain: window.location.hostname,
+            path: '/',
+            sameSite: 'lax'
+          }
+        }
       });
-      
-      setIsLoggedIn(true);
-      console.log('Login successful with complete user data:', userData);
-      return true;
+
+      if (error) throw error;
+
+      // Get full user data
+      const { data: fullUserData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', userData.email)
+        .single();
+
+      if (fullUserData) {
+        setAuthState({
+          user: fullUserData,
+          isLoggedIn: true,
+          loading: false,
+          initialized: true
+        });
+
+        // Only redirect to dashboard if this is an actual login attempt
+        if (router.pathname === '/') {
+          await router.push('/dashboard');
+        }
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      // Clear state on error
-      setUser(null);
-      setIsLoggedIn(false);
+      setAuthState(prev => ({ ...prev, loading: false }));
       return false;
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
-      console.log('Starting logout process...');
+      setIsLoggingOut(true);
       
-      // First clear all states
-      setUser(null);
-      setIsLoggedIn(false);
-      setLoading(true);
+      // Sign out from Supabase first
+      await supabase.auth.signOut({ scope: 'global' });
 
-      // Then sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Clear any local storage data
+      // Clear storage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('supabase.auth.token');
+        localStorage.clear();
+        sessionStorage.clear();
       }
 
-      console.log('Logged out successfully');
-      setLoading(false);
-      return true;
+      // Update state
+      setAuthState({
+        user: null,
+        isLoggedIn: false,
+        loading: false,
+        initialized: true
+      });
+
+      // Use router instead of window.location
+      await router.push('/');
+      
     } catch (error) {
       console.error('Logout error:', error);
-      // Force clean state even on error
-      setUser(null);
-      setIsLoggedIn(false);
-      setLoading(false);
-      return false;
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Update fetchUserData to use username and be more resilient
+  const fetchUserData = async (username) => {
+    if (!username) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          username,
+          email,
+          is_admin,
+          gizmo_id,
+          created_at
+        `)
+        .eq('username', username.toLowerCase())
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      return null;
     }
   };
 
@@ -267,14 +349,18 @@ export function AuthProvider({ children }) {
             // Automatically log in the user
             const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
             if (!signInError) {
-              setUser({
-                id: data.user.id,
-                username: lowerCaseUsername,
-                isAdmin: false,
-                email: email,
-                gizmo_id: gizmoId // Include Gizmo ID in user state
-              });
-              setIsLoggedIn(true);
+              setAuthState(prev => ({
+                ...prev,
+                user: {
+                  id: data.user.id,
+                  username: lowerCaseUsername,
+                  isAdmin: false,
+                  email: email,
+                  gizmo_id: gizmoId // Include Gizmo ID in user state
+                },
+                isLoggedIn: true,
+                loading: false
+              }));
               console.log('User logged in successfully with Gizmo ID:', gizmoId);
             } else {
               console.error('Error logging in user:', signInError);
@@ -293,22 +379,151 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = {
-    isLoggedIn,
-    user,
-    loading,
-    login,
-    logout,
-    userExists,
-    createUser
+  // Move broadcast channel effect after other effects
+  useEffect(() => {
+    let channel = null;
+    let handleStorageChange = null; // Declare the handler outside
+
+    if (typeof window !== 'undefined') {
+      channel = new BroadcastChannel('auth-sync');
+      
+      // Define the handler
+      handleStorageChange = async () => {
+        const session = await supabase.auth.getSession();
+        if (!session.data.session) {
+          setAuthState({
+            user: null,
+            isLoggedIn: false,
+            loading: false,
+            initialized: true
+          });
+          await router.push('/');
+        }
+      };
+
+      // Add event listeners
+      window.addEventListener('storage', handleStorageChange);
+      
+      channel.onmessage = async (event) => {
+        if (event.data.type === 'SIGNED_OUT') {
+          setAuthState({
+            user: null,
+            isLoggedIn: false,
+            loading: false,
+            initialized: true
+          });
+          await router.push('/');
+        }
+      };
+    }
+
+    // Cleanup function
+    return () => {
+      if (handleStorageChange) {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, [router]);
+
+  // Update visibility change handler
+  useEffect(() => {
+    let isHandlingVisibility = false;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && !isHandlingVisibility) {
+        isHandlingVisibility = true;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (!session && authState.isLoggedIn) {
+            setAuthState(prev => ({
+              ...prev,
+              user: null,
+              isLoggedIn: false,
+              loading: false
+            }));
+            
+            // Only redirect to home if not already there
+            if (router.pathname !== '/') {
+              // Optional: Show notification
+              toast?.error('Session expired. Please login again.');
+              await router.push('/');
+            }
+          }
+        } catch (error) {
+          console.error('Visibility change error:', error);
+        } finally {
+          isHandlingVisibility = false;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [router, authState.isLoggedIn]);
+
+  // Update initAuth function
+  const initAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setAuthState(prev => ({
+          ...prev,
+          user: null,
+          isLoggedIn: false,
+          loading: false,
+          initialized: true
+        }));
+        return;
+      }
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+
+      if (userData) {
+        setAuthState({
+          user: userData,
+          isLoggedIn: true,
+          loading: false,
+          initialized: true
+        });
+
+        // Only redirect to dashboard from home page
+        if (router.pathname === '/') {
+          await router.replace('/dashboard');
+        }
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      setAuthState({
+        user: null,
+        isLoggedIn: false,
+        loading: false,
+        initialized: true
+      });
+    }
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider 
+      value={{ 
+        isLoggedIn: authState.isLoggedIn,
+        user: authState.user,
+        loading: authState.loading || !authState.initialized,
+        login,
+        logout,
+        userExists,
+        createUser
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
-}
-
-// Export supabase client for use in other files
-export { supabase };
+};

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../contexts/AuthContext';
+import { createClient } from '../utils/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import styles from '../styles/Chat.module.css';
+
+const supabase = createClient();
 
 export default function Chat() {
   const { isLoggedIn, user, loading } = useAuth();
@@ -98,7 +100,7 @@ export default function Chat() {
   };
 
   const handleSendMessage = async () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && newMessage.length <= 255) {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         console.error('Error fetching user:', userError);

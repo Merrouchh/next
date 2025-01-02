@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import styles from '../styles/SendNotification.module.css';
 
 const SendNotification = () => {
-  const { isLoggedIn, isAdmin, loading } = useAuth();
+  const { isLoggedIn, user, loading } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -14,10 +14,10 @@ const SendNotification = () => {
   const [image, setImage] = useState('');
 
   useEffect(() => {
-    if (!loading && (!isLoggedIn || !isAdmin)) {
+    if (!loading && (!isLoggedIn || !user?.is_admin)) {
       router.push('/'); // Redirect to home if not logged in or not an admin
     }
-  }, [isLoggedIn, isAdmin, loading, router]);
+  }, [isLoggedIn, user, loading, router]);
 
   const handleUrlChange = (e) => {
     let inputUrl = e.target.value;
@@ -54,7 +54,7 @@ const SendNotification = () => {
     return <div>Loading...</div>;
   }
 
-  if (!isAdmin) {
+  if (!user?.is_admin) {
     return <div>Access Denied</div>; // Show access denied message if not an admin
   }
 

@@ -1,4 +1,6 @@
-import { supabase } from '../../contexts/AuthContext';
+import { createClient } from '../../utils/supabase/client';
+
+const supabase = createClient();
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

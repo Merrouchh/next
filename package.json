@@ -13,7 +13,9 @@
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.7.0",
     "@react-spring/web": "^9.7.5",
-    "@supabase/supabase-js": "^2.47.10",
+    "@supabase/auth-helpers-nextjs": "latest",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
     "@types/leaflet": "^1.9.15",
     "body-parser": "^1.20.3",
     "consolidate": "^1.0.4",
@@ -46,9 +48,12 @@
     "webpack": "^5.96.1"
   },
   "devDependencies": {
+    "@types/node": "^22.10.3",
+    "@types/react": "19.0.2",
     "eslint": "^8",
     "eslint-config-next": "15.0.3",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.7.2"
   }
 }

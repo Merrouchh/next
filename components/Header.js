@@ -12,8 +12,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const { isLoggedIn, logout, user } = useAuth(); // Using auth context
+  const { isLoggedIn, logout, user, loading } = useAuth(); // Using auth context
   const navRef = useRef(null); // Ref for the navigation menu
   const hamburgerRef = useRef(null); // Ref for the hamburger button
   const router = useRouter(); // Access the router to check the current page
@@ -57,6 +58,7 @@ const Header = () => {
     };
   }, [isMenuOpen]);
 
+
   const toggleMenu = () => setIsMenuOpen((prevState) => !prevState);
   const closeMenu = () => setIsMenuOpen(false);
   const openModal = () => setIsModalOpen(true);
@@ -75,21 +77,34 @@ const Header = () => {
 
   const handleLogout = async (e) => {
     e.preventDefault();
-    console.log('Logout initiated');
-    
+    setIsTransitioning(true);
     try {
       const success = await logout();
       if (success) {
-        router.push('/');
-      } else {
-        // Force reload on failure
-        window.location.href = '/';
+        // Clear any local storage or state
+        localStorage.clear();
+        // Force reload to clear any stale state
+        router.push('/').then(() => router.reload());
       }
-    } catch (error) {
-      console.error('Logout failed:', error);
-      window.location.href = '/';
+    } finally {
+      setIsTransitioning(false);
     }
   };
+
+  // Handle navigation with loading state
+  const handleNavigation = async (path) => {
+    setIsTransitioning(true);
+    try {
+      await router.push(path);
+    } finally {
+      setIsTransitioning(false);
+      setIsMenuOpen(false);
+    }
+  };
+
+  if (loading || isTransitioning) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>

@@ -1,43 +1,62 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import styles from '../styles/DarkModeMap.module.css';
 
 const DarkModeMap = () => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const isInitialized = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!mapRef.current || isInitialized.current) return;
+    // Wait for the DOM to be ready
+    if (typeof window === 'undefined') return;
 
-    // Set initialization flag
-    isInitialized.current = true;
-
-    const initMap = () => {
+    const initializeMap = async () => {
       try {
+        // Check if container exists
+        if (!mapRef.current) {
+          console.error('Map container not found');
+          return;
+        }
+
+        // Prevent multiple initializations
+        if (isInitialized.current) return;
+
+        const L = (await import('leaflet')).default;
+        await import('leaflet/dist/leaflet.css');
+
+        // Double check container still exists after imports
+        if (!mapRef.current) {
+          console.error('Map container lost after initialization');
+          return;
+        }
+
+        isInitialized.current = true;
+        
+        // Initialize map
         mapInstance.current = L.map(mapRef.current, {
           center: [35.768685, -5.810158],
           zoom: 16,
-          dragging: false, // Disable dragging
-          scrollWheelZoom: false, // Disable scroll wheel zoom
-          doubleClickZoom: false, // Disable double click zoom
-          touchZoom: false, // Disable touch zoom
-          zoomControl: false, // Disable zoom control
-          attributionControl: false, // Disable attribution control
+          dragging: false,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          touchZoom: false,
+          zoomControl: false,
+          attributionControl: false,
         });
 
-        // Add dark theme tiles
+        // Add tile layer
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
           maxZoom: 19,
         }).addTo(mapInstance.current);
 
-        // Create custom logo marker
+        // Add custom marker
         const customIcon = L.divIcon({
           className: styles.markerIcon,
           html: `
             <div class="${styles.markerContainer}">
-              <a href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7717735,-5.8325747,7380m/data=!3m1!1e3!4m6!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="${styles.tooltip}">Click Me</a>
+              <a href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7717735,-5.8325747,7380m/" target="_blank" class="${styles.tooltip}">Click Me</a>
               <img src="/logomobile.png" class="${styles.markerLogo}" alt="Merrouch Gaming" />
               <div class="${styles.markerRing}"></div>
             </div>
@@ -46,22 +65,27 @@ const DarkModeMap = () => {
           iconAnchor: [25, 25],
         });
 
-        // Add marker with Google Maps link
         L.marker([35.768685, -5.810158], {
           icon: customIcon,
         }).addTo(mapInstance.current);
 
-        // Force resize
-        mapInstance.current.invalidateSize();
+        // Force a resize to ensure proper rendering
+        setTimeout(() => {
+          mapInstance.current?.invalidateSize();
+          setIsLoading(false);
+        }, 250);
+
       } catch (error) {
         console.error('Map initialization error:', error);
+        setIsLoading(false);
       }
     };
 
-    // Initialize map with delay
-    setTimeout(initMap, 100);
+    // Delay initialization slightly to ensure DOM is ready
+    const timer = setTimeout(initializeMap, 100);
 
     return () => {
+      clearTimeout(timer);
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;
@@ -70,7 +94,16 @@ const DarkModeMap = () => {
     };
   }, []);
 
-  return <div ref={mapRef} className={styles.mapContainer} />;
+  return (
+    <div className={styles.mapWrapper}>
+      {isLoading && <div className={styles.mapLoading}>Loading map...</div>}
+      <div ref={mapRef} className={styles.mapContainer} />
+    </div>
+  );
 };
 
-export default DarkModeMap;
+// Export as dynamic component with no SSR
+export default dynamic(() => Promise.resolve(DarkModeMap), {
+  ssr: false,
+  loading: () => <div className={styles.mapLoading}>Loading map component...</div>
+});
