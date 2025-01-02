@@ -38,7 +38,7 @@ export default function Home() {
         setPageState({ isLoading: false, isError: false });
       }
     }
-  }, [loading, isLoggedIn, user, router.pathname]);
+  }, [loading, isLoggedIn, user, router, router.pathname]);
 
   // Add scroll progress handler
   useEffect(() => {

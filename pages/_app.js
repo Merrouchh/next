@@ -51,7 +51,7 @@ function MyApp({ Component, pageProps }) {
     };
 
     checkSession();
-  }, [router]);
+  }, [router, supabase.auth]);
 
   useEffect(() => {
     // Ensure loading state is reset if no session is found
