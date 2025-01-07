@@ -1,0 +1,231 @@
+.messagesScroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  width: 100%;
+  max-width: 500px;
+  background-color: #f9f9f9; /* Light background for messages */
+}
+
+.messageContainer {
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 15px; /* More rounded corners */
+  position: relative;
+  max-width: 60%; /* Limit width for better layout */
+  word-wrap: break-word; /* Ensure long words break to the next line */
+  overflow-wrap: break-word; /* Ensure long words break to the next line */
+  display: flex;
+  flex-direction: column;
+}
+
+.messageContent {
+  flex: 1;
+  padding-right: 50px; /* Add padding to the right to create space for the timestamp */
+}
+
+.timestampContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+}
+
+.timestamp {
+  font-size: 0.8em;
+  color: gray;
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 5px;
+}
+
+.sent {
+  background-color: #a9a9fa; /* Blue background for sent messages */
+  color: #ffffff; /* White text for sent messages */
+  align-self: flex-end;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+  text-align: left; /* Align text to the left */
+  margin-left: auto; /* Push message to the right */
+}
+
+.received {
+  background-color: #8deb68; /* Yellow background for received messages */
+  color: #000000; /* Black text for received messages */
+  align-self: flex-start;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+  text-align: left; /* Align text to the left */
+  margin-right: auto; /* Push message to the left */
+}
+
+.username {
+  font-weight: bold;
+  margin-right: 5px;
+  display: flex;
+  align-items: center;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 5px;
+}
+
+.online {
+  background-color: green;
+}
+
+.offline {
+  background-color: grey;
+}
+
+.timestamp {
+  font-size: 0.8em;
+  color: gray;
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+}
+
+.sent .timestamp {
+  font-size: 0.8em;
+  color: gray;
+  display: inline-block;
+  margin-left: auto; /* Push to the right */
+  margin-right: 10px; /* Add some spacing */
+  vertical-align: top; /* Align to the top of the line */
+  padding-left: 10px; /* Add padding to the left */
+  padding-top: 5px; /* Add padding to the top */
+  padding-right: 10px; /* Add padding to the right */
+  padding-bottom: 5px; /* Add padding to the bottom */
+}
+
+.received .timestamp {
+  font-size: 0.8em;
+  color: gray;
+  display: inline-block;
+  margin-right: auto; /* Push to the left */
+  margin-left: 10px; /* Add some spacing */
+  vertical-align: top; /* Align to the top of the line */
+  padding-left: 10px; /* Add padding to the left */
+  padding-top: 5px; /* Add padding to the top */
+  padding-right: 10px; /* Add padding to the right */
+  padding-bottom: 5px; /* Add padding to the bottom */
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  background-color: #fff;
+  gap: 10px; /* Add gap between elements */
+  position: relative; /* Add relative positioning */
+}
+
+.inputContainer input {
+  flex: 1;
+  padding: 10px 50px 10px 10px; /* Add padding to the right to create space for the counter */
+  border: 1px solid #ccc;
+  border-radius: 20px; /* Rounded input field */
+  transition: border-color 0.3s; /* Smooth transition */
+  max-width: 300px;
+}
+
+.inputContainer input:focus {
+  border-color: #007bff; /* Highlight on focus */
+}
+
+.inputContainer button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px; /* Rounded button */
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s; /* Smooth transition */
+}
+
+.inputContainer button:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+.charCounter {
+  font-size: 0.8em;
+  color: gray;
+  margin-left: 10px; /* Add margin to the left */
+  pointer-events: none; /* Ensure it doesn't interfere with input */
+  position: absolute; /* Position the counter absolutely */
+  right: 60px; /* Position it to the right inside the input container */
+  top: 50%; /* Center it vertically */
+  transform: translateY(-50%); /* Center it vertically */
+}
+
+.loadingContainer {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.2em;
+}
+
+/* New styles for centering and floating the chat container */
+.chatWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
+  padding: 20px; /* Add padding to avoid touching the edges */
+  box-sizing: border-box; /* Ensure padding is included in the height */
+}
+
+.chatContainer {
+  background-color: #fff; /* White background for the chat container */
+  border-radius: 15px; /* More rounded corners */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Floating effect */
+  width: 100%;
+  max-width: 900px; /* Smaller max width for the chat container */
+  height: 80vh; /* Smaller height for the chat container */
+  max-height: 600px; /* Ensure it doesn't exceed a certain height */
+  overflow: hidden; /* Prevent overflow */
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+}
+
+.chatContainer:focus {
+  outline: none; /* Remove default focus outline */
+}
+
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Ensure the messages container does not overflow */
+}
+
+.messagesScroll {
+  flex: 1;
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden;
+  padding: 10px;
+  width: 100%;
+  max-width: 900px;
+  background-color: #f9f9f9; /* Light background for messages */
+}
+
+.charCounter {
+  font-size: 0.8em;
+  color: gray;
+  position: absolute; /* Position the counter absolutely */
+  right: 20px; /* Position it to the right inside the input */
+  top: 50%; /* Center it vertically */
+  transform: translateY(-50%); /* Center it vertically */
+  pointer-events: none; /* Ensure it doesn't interfere with input */
+}
+
+@media screen and (max-width: 600px) {
+  .chatContainer {
+    height: 100vh; /* Full viewport height on smaller screens */
+  }
+  .inputContainer input {
+    max-width: 180px;
+  }
+}

@@ -1,0 +1,72 @@
+.adminContainer {
+  padding: 20px;
+  background-color: #333; /* Dark background color */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 40px auto;
+  color: #fff; /* White text color */
+  text-align: center; /* Center align text */
+}
+
+.adminContainer h1 {
+  font-size: 32px; /* Larger font size for the heading */
+  margin-bottom: 20px;
+  color: #ffcc00; /* Yellow color for the heading */
+}
+
+.adminContainer p {
+  font-size: 18px; /* Slightly larger font size for the paragraph */
+  line-height: 1.5;
+  margin-bottom: 30px; /* Add some space below the paragraph */
+}
+
+.cardContainer {
+  display: flex;
+  justify-content: space-around; /* Space out the cards */
+  flex-wrap: wrap; /* Allow cards to wrap to the next line */
+  gap: 20px; /* Add some space between the cards */
+}
+
+.card {
+  background-color: #444; /* Slightly lighter background for the card */
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  flex: 1; /* Allow cards to grow and shrink equally */
+  min-width: 200px; /* Minimum width for the card */
+  max-width: 300px; /* Maximum width for the card */
+  text-align: center; /* Center align text inside the card */
+}
+
+.card h2 {
+  font-size: 24px; /* Larger font size for the card heading */
+  margin-bottom: 10px;
+  color: #ffcc00; /* Yellow color for the card heading */
+}
+
+.card p {
+  font-size: 20px; /* Larger font size for the card content */
+  font-weight: bold;
+  color: #fff; /* White text color */
+}
+
+.userCountContainer {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #444; /* Slightly lighter background for the user count container */
+  border-radius: 8px;
+  text-align: center;
+}
+
+.userCountContainer h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #ffcc00; /* Yellow color for the subheading */
+}
+
+.userCountContainer p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff; /* White text color */
+}

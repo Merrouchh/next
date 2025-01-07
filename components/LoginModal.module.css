@@ -1,0 +1,110 @@
+/* components/LoginModal.module.css */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #1a1a1a;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.closeButton {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    color: #FFD700;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+    color: #ff3b2f;
+}
+
+.modalTitle {
+    font-size: 1.5rem;
+    color: #FFD700;
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.inputField {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 6px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    box-sizing: border-box; /* Ensure padding does not overflow */
+}
+
+.inputField:focus {
+    border-color: #ffb20b; /* Highlight border on focus */
+    outline: none;
+}
+
+.loginButton {
+    background: #FFD700;
+    color: #0f1119;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.loginButton:hover {
+    background: #FFC000;
+}
+
+.loginButton:active {
+    transform: scale(1); /* Pressed button effect */
+}
+
+.errorMessage {
+    color: #ff4444;
+    margin-top: 10px;
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .modal {
+        width: 85%;
+        max-width: 350px; /* Ensure it doesn't get too wide on small screens */
+    }
+}

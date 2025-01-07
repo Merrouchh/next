@@ -1,0 +1,337 @@
+:root {
+  --primary: #FF4655;
+  --background: #0f1119;
+  --surface: #1a1f2c;
+  --text: #e1e1e1;
+  --primary-yellow: #FFD700;
+  --primary-yellow-dark: #FFC000;
+  --primary-yellow-light: #FFE55C;
+  --accent-yellow: #FFB800;
+  --header-height-desktop: 64px;
+  --header-height-mobile: 64px; /* Make it same as desktop to ensure consistency */
+  --header-height: var(--header-height-desktop);
+  --mobile-header-height: 64px;
+  --header-height: 64px;
+  --header-height-mobile: 64px; /* Make it same as desktop to ensure consistency */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px); /* Add iOS safe area */
+  --border-color: rgba(255, 255, 255, 0.1);
+  --bg-primary: rgba(20, 23, 31, 0.95);
+  --bg-secondary: rgba(15, 17, 24, 0.95);
+  --bg-input: rgba(0, 0, 0, 0.95);
+  --gradient-primary: linear-gradient(135deg, #2962ff 0%, #3311ff 100%);
+  --gradient-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  /* ...other variables... */
+}
+
+/* Reset base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow-y: visible; /* Change from auto to visible */
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Remove padding-top since header is handled by Layout */
+  background: var(--gradient-bg);
+  color: white;
+}
+
+#__next {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: visible; /* Change from auto to visible */
+}
+
+/* Remove these conflicting styles */
+/* html {
+  scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  scrollbar-gutter: stable;
+} */
+
+/* Keep scroll-behavior in a separate rule */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Page-specific styles */
+[data-page="chat"] {
+  height: 100vh;
+  overflow: hidden;
+}
+
+[data-page="index"] {
+  min-height: 100vh;
+  overflow: auto;
+}
+
+[data-page="dashboard"] {
+  min-height: 100vh;
+  /* remove overflow-y: auto; */
+}
+
+/* Global CSS */
+main {
+  /* Remove padding-top since header is handled by Layout */
+  min-height: 100vh;
+  flex: 1;
+  overflow-y: visible; /* Change from auto to visible */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Add any other global styles here */
+
+.container {
+  background-color: #1a1a1a;
+  color: #fff;
+  flex-grow: 1;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.hero {
+  background-color: #333;
+  color: #fff;
+  border-radius: 8px;
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.button {
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 12px 24px;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.button:hover {
+  background-color: #555;
+  transform: translateY(-3px);
+}
+
+/* Basic button styles */
+button {
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+/* Links */
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+/* Smooth scrolling for the whole page */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFD700;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FFC000;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .gamingDescription {
+    font-size: 1.1rem;
+  }
+
+  .button {
+    padding: 10px 20px;
+  }
+
+  .galleryImage {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: var(--header-height-mobile);
+  }
+
+  .container {
+    padding: 1rem; /* Reduce padding for smaller screens */
+  }
+
+  .hero {
+    padding: 2rem 0; /* Reduce padding for smaller screens */
+  }
+
+  .heroTitle {
+    font-size: 2rem;
+  }
+
+  .gamingDescription {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+
+  .button {
+    font-size: 0.9rem;
+    padding: 8px 16px; /* Adjust padding for smaller screens */
+  }
+
+  .mapContainer {
+    height: 250px;
+  }
+
+  body {
+    font-size: 14px;
+    position: relative;
+    height: auto;
+    overflow-y: auto !important;
+    /* Remove padding-top */
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem; /* Further reduce padding for mobile screens */
+  }
+
+  .buttonContainer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .heroTitle {
+    font-size: 1.8rem;
+  }
+
+  .gamingDescription {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .button {
+    font-size: 0.8rem;
+    padding: 6px 12px; /* Further adjust padding for mobile screens */
+  }
+
+  .galleryImage {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Enhanced Responsive Design */
+@media (max-width: 1200px) {
+  :root {
+    font-size: 95%;
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    font-size: 90%;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 85%;
+  }
+}
+
+/* Remove these styles that were adding extra margin */
+/* @media (max-width: 768px) {
+  body {
+    padding-top: 45px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding-top: 40px;
+  }
+  }
+
+  body {
+    padding-top: 40px;
+  }
+}
+
+/* Desktop Optimizations */
+@media (min-width: 1200px) {
+  :root {
+    font-size: 16px;
+  }
+  
+  body {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) {
+  body {
+    cursor: default;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Page-specific container styles */
+.page-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
