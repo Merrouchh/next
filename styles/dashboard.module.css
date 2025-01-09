@@ -137,7 +137,7 @@
   color: #ffffff;
   min-height: 100vh;
   padding: 2rem;
-  padding-top: 120px; /* Added to prevent header overlap */
+  padding-top: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -485,7 +485,7 @@
   }
 
   .dashboardMain {
-    padding-top: 80px; /* Smaller padding for mobile */
+    padding-top: 80px;
   }
 
   .refreshButton {

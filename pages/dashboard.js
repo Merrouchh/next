@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/dashboard.module.css';
 import { AiOutlineDesktop, AiOutlineShop, AiOutlineUser, AiOutlineTrophy, AiOutlineWechat, AiOutlineReload } from 'react-icons/ai';
 import NotificationButton from '../components/NotificationButton';
 import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId } from '../utils/api';
+import LoadingScreen from '../components/LoadingScreen';
 
-const Dashboard = () => {
+export default function Dashboard() {
   const { user, loading, isLoggedIn } = useAuth();
   const router = useRouter();
   const [pageState, setPageState] = useState({
@@ -22,32 +22,12 @@ const Dashboard = () => {
     }
   });
 
-  // Add loading state timeout
+  // Remove redundant loading effect since middleware handles this
   useEffect(() => {
-    let timeoutId;
-    if (loading) {
-      timeoutId = setTimeout(() => {
-        // If still loading after 5 seconds, redirect to home
-        if (!isLoggedIn) {
-          window.location.href = '/';
-        }
-      }, 5000);
+    if (!loading && !isLoggedIn) {
+      router.replace('/');
     }
-    return () => clearTimeout(timeoutId);
-  }, [loading, isLoggedIn]);
-
-  // Add session verification
-  useEffect(() => {
-    const verifySession = async () => {
-      if (!loading) {
-        if (!isLoggedIn || !user) {
-          await router.replace('/');
-        }
-      }
-    };
-
-    verifySession();
-  }, [loading, isLoggedIn, user, router]);
+  }, [loading, isLoggedIn, router]);
 
   // Single useEffect for initialization and auth check
   useEffect(() => {
@@ -121,16 +101,9 @@ const Dashboard = () => {
     };
   }, [loading, isLoggedIn, user, router]);
 
-  // Updated loading render
+  // Single loading check
   if (loading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner} />
-        <p className={styles.loadingText}>
-          {isLoggedIn ? 'Loading dashboard...' : 'Checking authentication...'}
-        </p>
-      </div>
-    );
+    return <LoadingScreen message="Loading dashboard..." />;
   }
 
   // Add immediate return if not authenticated
@@ -261,7 +234,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen message="Loading dashboard..." />;
   }
 
   if (!isLoggedIn || !user) {
@@ -284,8 +257,6 @@ const Dashboard = () => {
         <meta name="robots" content="noindex, nofollow" />
 
       </Head>
-
-      <Header />
 
       <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
@@ -467,5 +438,3 @@ function urlBase64ToUint8Array(base64String) {
   }
   return outputArray;
 }
-
-export default Dashboard;

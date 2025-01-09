@@ -1,75 +1,73 @@
-.loadingContainer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
-  z-index: 9999;
-  text-align: center;
-}
-
-.loadingContent {
-  text-align: center;
-  background: rgb(0, 0, 0);
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border: 3px solid #ffd000;
-  border-top: 3px solid #0ea5e9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loadingContent p {
-  margin: 0;
-  color: #000000;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
 .loadingScreen {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #ffd000;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
 }
 
+/* Auth loading style - more prominent */
+.auth {
+  background-color: #0f1119;
+  backdrop-filter: none;
+}
+
+.auth .loadingSpinner {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+.auth .loadingMessage {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* Page transition style - more subtle */
+.transition {
+  background-color: rgba(15, 17, 25, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.transition .loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.transition .loadingMessage {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.loadingContainer {
+  text-align: center;
+  color: white;
+}
+
 .loadingSpinner {
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  border: 3px solid transparent;
+  border-top-color: #fff;
   border-radius: 50%;
-  border-top-color: #ffe600;
-  animation: spin 1s ease-in-out infinite;
-  margin: 0 auto;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
 }
 
 .loadingMessage {
   color: #fff;
-  margin-top: 1rem;
-  font-size: 1.1rem;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { AuthProvider } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -10,87 +10,19 @@ import { createClient } from '../utils/supabase/client';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
-  const supabase = createClient();
-  const [isLoading, setIsLoading] = useState(true);
 
+  // Add scroll to top on route change
   useEffect(() => {
-    // Check initial session
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const protectedRoutes = ['/dashboard', '/avcomputers', '/chat', '/shop'];
-        
-        if (session) {
-          if (protectedRoutes.includes(router.pathname)) {
-            setIsLoading(false);
-            return; // Stay on current route
-          }
-        } else if (router.pathname === '/topusers') {
-          setIsLoading(false);
-          return; // Allow access to topusers page
-        } else if (!protectedRoutes.includes(router.pathname)) {
-          setIsLoading(false);
-          return; // Allow access to non-protected routes
-        } else {
-          router.push('/'); // Redirect to home if not authenticated
-        }
-        
-        // Handle sign out case
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_OUT' && router.pathname !== '/') {
-            router.push('/');
-          }
-        });
-
-        setIsLoading(false);
-        return () => subscription?.unsubscribe();
-      } catch (error) {
-        console.error('Session check error:', error);
-        setIsLoading(false);
-      }
+    const handleRouteChange = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    checkSession();
-  }, [router, supabase.auth]);
+    router.events.on('routeChangeComplete', handleRouteChange);
 
-  useEffect(() => {
-    // Ensure loading state is reset if no session is found
-    if (isLoading) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-          setIsLoading(false);
-          if (router.pathname !== '/' && !['/topusers'].includes(router.pathname)) {
-            router.push('/');
-          }
-        } else {
-          setIsLoading(false);
-        }
-      }).catch(() => {
-        setIsLoading(false);
-        if (router.pathname !== '/' && !['/topusers'].includes(router.pathname)) {
-          router.push('/');
-        }
-      });
-    }
-  }, [isLoading, supabase, router]);
-
-  useEffect(() => {
-    // Handle case where user manually deletes cookies or local storage
-    const handleStorageChange = () => {
-      const authCookie = document.cookie.split(';').some((item) => item.trim().startsWith('auth='));
-      const storageToken = localStorage.getItem('supabase.auth.token');
-      if (!authCookie || !storageToken) {
-        router.push('/');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [router]);
-
-  if (isLoading) return <div>Loading...</div>;
+  }, [router.events]);
 
   return (
     <ErrorBoundary>

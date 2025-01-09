@@ -1,126 +1,87 @@
-/* Main Wrapper with Scroll Snap */
+/* Base Layout */
 .mainWrapper {
-  height: 100vh;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  background: #000000;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  position: relative;
-}
-
-.mainWrapper::-webkit-scrollbar {
-  display: none;
-}
-
-/* Enhanced Section Layout */
-.section {
+  padding-top: 100px; /* Increased from 80px */
   min-height: 100vh;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  position: relative;
+  background: #000000;
 }
 
-/* Containers with Max-Width for Desktop */
-.containerWide {
-  width: 90%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center the content */
+/* Hero Section */
+.hero {
+  width: 100%;
+  padding: 20px;
 }
 
-.containerNarrow {
-  width: 90%;
+/* Grid Container */
+.gridContainer {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center the content */
-}
-
-/* Grid Layout for Hero Section */
-.gridContainer {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Two columns by default for desktop */
-  gap: 4rem;
-  width: 90%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  padding: 1rem;
 }
 
-/* Info Column Layout */
+/* Info Column */
 .infoColumn {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  position: relative;
-  padding-right: 120px; /* Make space for logo */
-  align-items: flex-start; /* Align items to the left */
-}
-
-/* Map Column Layout */
-.mapColumn {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 2rem;
 }
 
-/* Logo Wrapper */
+/* Logo Styles */
 .logoWrapper {
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Desktop Logo */
+.brandLogo {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 150px;
+  display: none; /* Hidden by default */
+}
+
+/* Mobile Text Logo */
+.textLogo {
   display: flex;
   flex-direction: column;
-  align-items: flex-start; /* Align logo to the left */
-  margin-bottom: 1rem; /* Add space below the logo */
-}
-
-/* Logo Positioning */
-.brandLogo {
-  width: 150px !important;
-  height: auto !important;
-  display: none; /* Hide logo on mobile */
-}
-
-.textLogo {
-  display: none; /* Hide text logo on desktop */
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .welcome {
-  color: #FFD700;
-  font-weight: 600;
+  color: #ffffff;
   font-size: 1.2rem;
-  font-family: 'Inter', sans-serif;
+  font-weight: 500;
 }
 
 .merrouch {
   color: #FFD700;
+  font-size: 2.2rem;
   font-weight: 800;
-  font-size: 2rem;
-  font-family: 'Inter', sans-serif;
-  margin-bottom: -1.5rem; /* Reduce space between MERROUCH and GAMING */
+  text-transform: uppercase;
 }
 
 .gaming {
-  color: white;
-  font-weight: 400;
-  font-size: 2rem;
-  font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
+/* Media Queries */
 @media (min-width: 768px) {
   .brandLogo {
     display: block; /* Show logo on desktop */
   }
-
+  
   .textLogo {
     display: none; /* Hide text logo on desktop */
   }
@@ -130,93 +91,67 @@
   .brandLogo {
     display: none; /* Hide logo on mobile */
   }
-
+  
   .textLogo {
     display: flex; /* Show text logo on mobile */
-    flex-direction: column;
-    align-items: center; /* Center the text logo horizontally */
-    text-align: center;
-    position: absolute;
-    top: 10%; /* Align the text logo at the top */
-    left: 50%;
-    transform: translate(-50%, -10%);
-  }
-
-  .welcome {
-    font-size: 1.5rem; /* Make the welcome text bigger */
-  }
-
-  .merrouch, .gaming {
-    font-size: 2.5rem; /* Make the text logo bigger */
-  }
-
-  .mainWrapper {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
-  }
-
-  .mainWrapper::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
-  }
-
-  .primaryButton, .outlineButton {
-    padding: 0.5rem 1rem; /* Make buttons skinnier on mobile */
-    font-size: 0.875rem; /* Reduce font size on mobile */
   }
 }
 
-/* Hero Content */
+/* Main Heading */
 .mainHeading {
-  margin-top: 3rem; /* Add space for logo above */
-  text-align: left; /* Align text to the left */
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.3;
+  margin: 0;
+  text-align: center;
 }
 
 /* Quick Stats */
 .quickStats {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-start; /* Align items to the left */
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .stat {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 8px;
+  font-size: 0.95rem;
 }
 
 /* Action Buttons */
 .actionButtons {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
-  justify-content: flex-start; /* Align buttons to the left */
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .primaryButton, .outlineButton {
-  padding: 0.5rem 1rem; /* Make buttons skinnier */
-  width: auto; /* Make buttons shorter in width */
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 1.5rem;
   border-radius: 8px;
-  font-size: 0.875rem; /* Reduce font size */
+  font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
 }
 
 .primaryButton {
-  background: linear-gradient(90deg, #FFD700, #FFC000);
-  color: #0f1119;
-  border: none;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-}
-
-.primaryButton:hover {
-  background: linear-gradient(90deg, #FFC000, #FFD700);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 215, 0, 0.4);
+  background: linear-gradient(45deg, #FFD700, #FFC107);
+  color: #000;
 }
 
 .outlineButton {
@@ -225,257 +160,249 @@
   color: #FFD700;
 }
 
-.outlineButton:hover {
-  background: rgba(255, 215, 0, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+/* Map Section */
+.mapColumn {
+  width: 100%;
+  max-width: 600px;
+  margin: 2rem auto 0;
 }
 
-@media (max-width: 767px) {
+.mapCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mapWrapper {
+  width: 100%;
+  height: 250px;
+  position: relative;
+}
+
+.locationDetails {
+  padding: 1.5rem;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* Desktop Styles */
+@media (min-width: 1024px) {
+  .gridContainer {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    padding: 2rem;
+    align-items: center;
+  }
+
+  .infoColumn {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .mainHeading {
+    text-align: left;
+  }
+
+  .actionButtons {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .primaryButton, .outlineButton {
-    padding: 0.5rem 1rem; /* Make buttons skinnier on mobile */
-    font-size: 0.875rem; /* Reduce font size on mobile */
+    width: auto;
+    min-width: 180px;
+  }
+
+  .mapColumn {
+    margin: 0;
+    max-width: none;
+  }
+
+  .mapWrapper {
+    height: 300px;
   }
 }
 
-/* Gallery Grid */
+/* Tablet Styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mainWrapper {
+    padding-top: 100px;
+  }
+
+  .actionButtons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .primaryButton, .outlineButton {
+    width: auto;
+    min-width: 160px;
+  }
+}
+
+/* Mobile Landscape */
+@media (max-height: 480px) and (orientation: landscape) {
+  .mainWrapper {
+    padding-top: 60px;
+  }
+
+  .gridContainer {
+    gap: 1rem;
+  }
+
+  .mapWrapper {
+    height: 200px;
+  }
+}
+
+/* Features and Gallery Section */
+.features {
+  padding: 4rem 0;
+  background: rgba(255, 215, 0, 0.02);
+}
+
+.containerWide {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.featuresContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.featureCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-5px);
+}
+
+.featureIcon {
+  color: #FFD700;
+  font-size: 2.5rem;
+}
+
+.featureText h3 {
+  color: #FFD700;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.featureText p {
+  color: #e0e0e0;
+  line-height: 1.6;
+}
+
+/* Gallery Section */
 .galleryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  padding: 2rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 2rem;
 }
 
 .galleryItem {
   position: relative;
-  border-radius: 10px;
+  height: 250px;
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  height: 200px;
-}
-
-.galleryItem:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .galleryImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.5s ease !important;
 }
 
 .galleryItem:hover .galleryImage {
-  transform: scale(1.1);
-}
-
-/* Social Grid */
-.socialGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  padding: 2rem;
-}
-
-.socialItem {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  height: 200px;
-}
-
-.socialItem:hover {
   transform: scale(1.05);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
-.socialImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+/* Packages Section */
+.packages {
+  padding: 4rem 0;
 }
 
-.socialItem:hover .socialImage {
-  transform: scale(1.1);
+.containerNarrow {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-/* Features and Packages Grid */
-.featuresGrid, .packagesGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Three columns by default for desktop */
-  gap: 2rem;
-  width: 100%;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .gridContainer {
-    grid-template-columns: 1fr; /* Stack vertically on mobile */
-    gap: 2rem;
-    padding: 1rem;
-  }
-
-  .infoColumn {
-    padding-right: 0;
-    padding-top: 80px; /* Space for logo on mobile */
-  }
-
-  .brandLogo {
-    width: 100px !important;
-    display: none; /* Hide logo on mobile */
-  }
-
-  .textLogo {
-    display: flex;
-  }
-
-  .gridContainer {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  .galleryGrid {
-    grid-template-columns: 1fr; /* Single column on mobile */
-  }
-
-  .galleryItem {
-    height: 150px; /* Adjust height for mobile */
-  }
-
-  .socialGrid {
-    grid-template-columns: 1fr; /* Single column on mobile */
-  }
-
-  .socialItem {
-    height: 150px; /* Adjust height for mobile */
-  }
-
-  .featuresGrid, .packagesGrid {
-    grid-template-columns: 1fr; /* Stack vertically on mobile */
-    gap: 1rem;
-  }
-}
-
-/* Fix scroll progress bar */
-.scrollProgress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.scrollBar {
-  height: 100%;
-  background: #0ea5e9;
-  width: 0;
-  transition: width 0.2s ease;
-}
-
-/* Navigation Dots */
-.navDots {
-  position: fixed;
-  right: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  z-index: 1000;
-}
-
-.navDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid #FFD700;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 0;
-  position: relative;
-}
-
-.navDot::before {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: #FFD700;
-  transform: scale(0);
-  transition: transform 0.3s ease;
-}
-
-.navDot.active::before {
-  transform: scale(1);
-}
-
-.dotTooltip {
-  position: absolute;
-  right: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-right: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(0, 0, 0, 0.8);
-  color: #FFD700;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-}
-
-.navDot:hover .dotTooltip {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* Section Titles */
 .sectionTitle {
-  font-size: 2.5rem;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
+  font-size: 2.5rem;
   color: #FFD700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Pricing Grid */
 .packagesGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
-  padding: 2rem;
+  margin-bottom: 3rem;
 }
 
 .pricingCard {
-  background: rgba(255, 215, 0, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  padding: 3rem 2rem;
-  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
-.pricingCard.featured {
-  transform: scale(1.05);
-  border: 2px solid #FFD700;
+.pricingCard:hover {
+  transform: translateY(-5px);
 }
 
-.pricingHeader {
+.pricingHeader h3 {
+  color: #FFD700;
+  font-size: 1.8rem;
   margin-bottom: 1rem;
 }
 
 .price {
-  font-size: 1.5rem;
-  color: #FFD700;
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin-bottom: 2rem;
+}
+
+.price span {
+  font-size: 1rem;
+  opacity: 0.8;
 }
 
 .pricingFeatures {
@@ -485,170 +412,94 @@
 }
 
 .pricingFeatures li {
-  margin-bottom: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
 }
 
-/* Features Grid */
-.featuresGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  padding: 2rem;
+.pricingFeatures li:last-child {
+  border-bottom: none;
 }
 
-.featureCard {
-  background: rgba(255, 215, 0, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  padding: 2.5rem;
-  border-radius: 20px;
-  text-align: center;
-  transition: transform 0.3s ease;
+.featured {
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
 }
 
-.featureCard:hover {
-  transform: translateY(-10px);
-  background: rgba(255, 215, 0, 0.15);
+.featured:hover {
+  transform: scale(1.05) translateY(-5px);
 }
 
-.featureIcon {
-  font-size: 2rem;
-  color: #FFD700;
-}
-
-.featureCard h3 {
-  margin-top: 1rem;
-  font-size: 1.5rem;
-  color: #FFD700;
-}
-
-.featureCard p {
-  margin-top: 0.5rem;
-  color: #e1e1e1;
-  opacity: 0.9;
-}
-
-/* Learn More Button */
 .learnMoreButton {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 3rem;
 }
 
-.learnMoreButton button {
-  background: #FFD700;
-  color: #0f1119;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.learnMoreButton button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 215, 0, 0.2);
-  background: #FFC000;
-}
-
-/* Primary Button */
-.primaryButton {
-  background: #FFD700;
-  color: #0f1119;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.primaryButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 215, 0, 0.2);
-  background: #FFC000;
-}
-
-/* Outline Button */
-.outlineButton {
-  background: transparent;
-  border: 2px solid #FFD700;
-  color: #FFD700;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.outlineButton:hover {
-  background: rgba(255, 215, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-/* Control visibility of logo image based on screen size */
-.desktopOnly {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .desktopOnly {
-    display: block;
-  }
-}
-
-/* Features Section */
-.featuresContent {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
-}
-
-.featuresGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.featureCard {
-  background: rgba(255, 215, 0, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  padding: 2.5rem 2rem;
-  border-radius: 20px;
-  text-align: center;
-  transition: transform 0.3s ease;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Gallery Grid in Features Section */
-.galleryGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  width: 100%;
-}
-
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .featuresGrid, .galleryGrid {
+  .galleryGrid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 1rem;
+    gap: 1rem;
   }
 
-  .featureCard {
-    padding: 2rem 1.5rem;
+  .galleryItem {
+    height: 200px;
   }
 
-  .containerWide {
-    padding: 1rem;
+  .featuresGrid {
+    grid-template-columns: 1fr;
   }
+
+  .sectionTitle {
+    font-size: 2rem;
+  }
+
+  .packages {
+    padding: 2rem 0;
+  }
+
+  .pricingCard {
+    margin: 0 auto;
+    max-width: 350px;
+  }
+
+  .featured {
+    transform: none;
+  }
+
+  .featured:hover {
+    transform: translateY(-5px);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .galleryItem {
+    height: 220px;
+  }
+}
+
+/* Animation Classes */
+.glowEffect {
+  position: relative;
+}
+
+.glowEffect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glowEffect:hover::after {
+  opacity: 1;
 }

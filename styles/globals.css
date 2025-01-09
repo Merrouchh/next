@@ -1,275 +1,174 @@
-:root {
-  --primary: #FF4655;
-  --background: #0f1119;
-  --surface: #1a1f2c;
-  --text: #e1e1e1;
-  --primary-yellow: #FFD700;
-  --primary-yellow-dark: #FFC000;
-  --primary-yellow-light: #FFE55C;
-  --accent-yellow: #FFB800;
-}
+/* Import gaming-themed fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 
+/* Global styles */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-/* Enhanced Scrolling Behavior */
-html {
-  scroll-behavior: smooth;
-  height: 100%;
-  overflow: hidden;
-}
-
-html {
-  scrollbar-gutter: stable;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  font-family: 'Inter', sans-serif;
-  background: #000000;
-  color: #ffffff;
-}
-
-/* Global CSS */
+/* Base styles */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: auto; /* Ensure scrolling is enabled */
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: var(--background);
-  color: var(--text);
+  background: #0f1119;
+  color: #ffffff;
+  font-family: 'Rajdhani', sans-serif;
   line-height: 1.6;
 }
 
-/* Add any other global styles here */
-
-.container {
-  background-color: #1a1a1a;
-  color: #fff;
-  flex-grow: 1;
-  margin: 0 auto;
-  padding: 2rem;
-  width: 100%;
-  max-width: 1200px;
-  box-sizing: border-box;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.3s, color 0.3s;
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Orbitron', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.hero {
-  background-color: #333;
-  color: #fff;
-  border-radius: 8px;
-  padding: 3rem 0;
-  text-align: center;
+h1 {
+  font-size: 3.5rem;
+  background: linear-gradient(to right, #FFD700, #FFC107);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
 }
 
-.button {
-  background-color: #444;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 12px 24px;
-  transition: background-color 0.3s, transform 0.3s;
+h2 {
+  font-size: 2.5rem;
+  color: #FFD700;
 }
 
-.button:hover {
-  background-color: #555;
-  transform: translateY(-3px);
+h3 {
+  font-size: 2rem;
+  color: #ffffff;
 }
 
-/* Basic button styles */
-button {
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  border: none;
-  outline: none;
+p {
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  line-height: 1.8;
 }
 
-/* Links */
+/* Links and Buttons */
 a {
-  color: inherit;
+  color: #FFD700;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-/* Smooth scrolling for the whole page */
-.smooth-scroll {
-  scroll-behavior: smooth;
+a:hover {
+  color: #FFC107;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
-/* Custom Scrollbar */
+button {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+/* Progress bar with gaming theme */
+.progress-bar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 215, 0, 0.1);
+  z-index: 99999;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFC107);
+  width: 0;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Custom gaming scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 215, 0, 0.1);
+  background: #0f1119;
+  border: 1px solid rgba(255, 215, 0, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #FFD700;
-  border-radius: 4px;
+  background: linear-gradient(180deg, #FFD700, #FFC107);
+  border-radius: 5px;
+  border: 2px solid #0f1119;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FFC000;
+  background: linear-gradient(180deg, #FFC107, #FFD700);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
-/* Responsive Styles */
-@media (max-width: 1024px) {
-  .heroTitle {
+/* Selection style */
+::selection {
+  background: rgba(255, 215, 0, 0.3);
+  color: #ffffff;
+}
+
+/* Gaming-themed text effects */
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.cyber-text {
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  h1 {
     font-size: 2.5rem;
   }
 
-  .gamingDescription {
-    font-size: 1.1rem;
-  }
-
-  .button {
-    padding: 10px 20px;
-  }
-
-  .galleryImage {
-    width: 100%;
-    max-width: 300px;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    padding: 1rem; /* Reduce padding for smaller screens */
-  }
-
-  .hero {
-    padding: 2rem 0; /* Reduce padding for smaller screens */
-  }
-
-  .heroTitle {
+  h2 {
     font-size: 2rem;
   }
 
-  .gamingDescription {
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  p {
     font-size: 1rem;
-    padding: 0 1rem;
-  }
-
-  .button {
-    font-size: 0.9rem;
-    padding: 8px 16px; /* Adjust padding for smaller screens */
-  }
-
-  .mapContainer {
-    height: 250px;
-  }
-
-  body {
-    font-size: 14px;
   }
 }
 
-@media (max-width: 480px) {
-  .container {
-    padding: 0.5rem; /* Further reduce padding for mobile screens */
+/* Animation keyframes for gaming effects */
+@keyframes glow {
+  0% {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
   }
-
-  .buttonContainer {
-    flex-direction: column;
-    gap: 0.5rem;
+  50% {
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
   }
-
-  .heroTitle {
-    font-size: 1.8rem;
-  }
-
-  .gamingDescription {
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-
-  .button {
-    font-size: 0.8rem;
-    padding: 6px 12px; /* Further adjust padding for mobile screens */
-  }
-
-  .galleryImage {
-    max-width: 100%;
-    height: auto;
+  100% {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
   }
 }
 
-/* Enhanced Responsive Design */
-@media (max-width: 1200px) {
-  :root {
-    font-size: 95%;
-  }
-}
-
-@media (max-width: 992px) {
-  :root {
-    font-size: 90%;
-  }
-  
-  body {
-    padding-top: 50px;
-  }
-}
-
-@media (max-width: 768px) {
-  :root {
-    font-size: 85%;
-  }
-
-  body {
-    padding-top: 45px;
-  }
-}
-
-@media (max-width: 480px) {
-  :root {
-    font-size: 80%;
-  }
-
-  body {
-    padding-top: 40px;
-  }
-}
-
-/* Desktop Optimizations */
-@media (min-width: 1200px) {
-  :root {
-    font-size: 16px;
-  }
-  
-  body {
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-}
-
-/* Touch Device Optimizations */
-@media (hover: none) {
-  body {
-    cursor: default;
-  }
-
+/* Reduce motion if preferred */
+@media (prefers-reduced-motion: reduce) {
   * {
-    -webkit-tap-highlight-color: transparent;
+    animation: none !important;
+    transition: none !important;
   }
 }

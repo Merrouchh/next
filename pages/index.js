@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Header from '../components/Header';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -23,42 +22,35 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 export default function Home() {
   const { isLoggedIn, loading, user } = useAuth();
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState('hero');
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [pageState, setPageState] = useState({
-    isLoading: true,
-    isError: false
-  });
+  const [progress, setProgress] = useState(0);
 
+  // Scroll progress effect
   useEffect(() => {
-    if (!loading) {
-      if (isLoggedIn && user && router.pathname === '/') {
-        router.replace('/dashboard');
-      } else {
-        setPageState({ isLoading: false, isError: false });
-      }
+    const onScroll = () => {
+      const pixelsFromTop = window.scrollY;
+      const pageHeight = document.documentElement.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const scrollableHeight = pageHeight - windowHeight;
+      const percentage = (pixelsFromTop / scrollableHeight) * 100;
+      setProgress(percentage);
+    };
+
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Auth effect
+  useEffect(() => {
+    if (!loading && isLoggedIn && user && router.pathname === '/') {
+      router.replace('/dashboard');
     }
   }, [loading, isLoggedIn, user, router, router.pathname]);
 
-  // Add scroll progress handler
-  useEffect(() => {
-    const handleScroll = () => {
-      const winScroll = window.scrollY;
-      const height = document.documentElement.scrollHeight - window.innerHeight;
-      const scrolled = (winScroll / height) * 100;
-      setScrollProgress(scrolled);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Show loading state only if still initializing
-  if (loading || pageState.isLoading) {
+  if (loading) {
     return <LoadingScreen message="Loading..." />;
   }
 
-  // Don't show home page content while redirecting logged-in users
   if (isLoggedIn && user) {
     return <LoadingScreen message="Redirecting..." />;
   }
@@ -82,50 +74,10 @@ export default function Home() {
   ];
 
   const galleryImages = [
-    { 
-      src: '/top.jpg', 
-      alt: 'Gaming Setup 1',
-    },
-    { 
-      src: '/top2.jpg', 
-      alt: 'Gaming Setup 2',
-    },
-    { 
-      src: '/top3.jpg', 
-      alt: 'Gaming Setup 3',
-    }
+    { src: '/top.jpg', alt: 'Gaming Setup 1' },
+    { src: '/top2.jpg', alt: 'Gaming Setup 2' },
+    { src: '/top3.jpg', alt: 'Gaming Setup 3' }
   ];
-
-  const handleButtonTouch = (e) => {
-    e.currentTarget.style.transform = 'scale(0.98)';
-    setTimeout(() => {
-      e.currentTarget.style.transform = 'scale(1)';
-    }, 100);
-  };
-
-  const scrollToNextSection = (sectionId) => {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
-  };
-
-  const scrollToSection = (sectionId) => {
-    const section = document.querySelector(`[data-section="${sectionId}"]`);
-    if (section) {
-      const headerOffset = 60;
-      const elementPosition = section.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   return (
     <>
@@ -140,34 +92,16 @@ export default function Home() {
         <meta name="theme-color" content="#0f1119" />
       </Head>
 
-      <Header />
-      
-      <div className={styles.scrollProgress}>
+      {/* Progress Bar */}
+      <div className="progress-bar-container">
         <div 
-          className={styles.scrollBar} 
-          style={{ width: `${scrollProgress}%` }}
+          className="progress-bar"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
       <main className={styles.mainWrapper}>
-        <nav className={styles.navDots}>
-          {[
-            { id: 'hero', label: 'Home' },
-            { id: 'packages', label: 'Packages' },
-            { id: 'features', label: 'Features' },
-          ].map(section => (
-            <button
-              key={section.id}
-              className={`${styles.navDot} ${activeSection === section.id ? styles.active : ''}`}
-              onClick={() => scrollToSection(section.id)}
-              aria-label={section.label}
-            >
-              <span className={styles.dotTooltip}>{section.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <section data-section="hero" className={`${styles.section} ${styles.mainHero}`}>
+        <div className={styles.hero}>
           <div className={styles.gridContainer}>
             <div className={styles.infoColumn}>
               <div className={styles.logoWrapper}>
@@ -177,12 +111,14 @@ export default function Home() {
                   width={150}
                   height={75}
                   priority
-                  className={`${styles.brandLogo} ${styles.desktopOnly}`}
+                  className={styles.brandLogo}
                 />
-                <div className={`${styles.textLogo} ${styles.mobileOnly}`}>
+                <div className={styles.textLogo}>
                   <span className={styles.welcome}>Welcome To</span>
-                  <span className={styles.merrouch}>MERROUCH</span>{' '}
-                  <span className={styles.gaming}>GAMING</span>
+                  <div>
+                    <span className={styles.merrouch}>Merrouch</span>{' '}
+                    <span className={styles.gaming}>Gaming</span>
+                  </div>
                 </div>
               </div>
               <h1 className={styles.mainHeading}>
@@ -208,7 +144,7 @@ export default function Home() {
                 </button>
                 <button 
                   className={styles.outlineButton}
-                  onClick={() => scrollToNextSection('packages')}
+                  onClick={() => router.push('/shop')}
                 >
                   View Prices
                 </button>
@@ -229,7 +165,7 @@ export default function Home() {
                 <div className={styles.locationDetails}>
                   <div className={styles.contactInfo}>
                     <div className={styles.contactItem}>
-                      <AiOutlineEnvironment  />&nbsp;
+                      <AiOutlineEnvironment />&nbsp;
                       Avenue Abi Elhassan Chadili, Tangier
                     </div>
                     <div className={styles.contactItem}>
@@ -247,16 +183,14 @@ export default function Home() {
                         @merrouchgaming
                       </a>
                     </div>
-                
                   </div>
-                  
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section data-section="packages" id="packages" className={`${styles.section} ${styles.packages}`}>
+        <div className={styles.packages}>
           <div className={styles.containerNarrow}>
             <h2 className={styles.sectionTitle}>Gaming Packages</h2>
             <div className={styles.packagesGrid}>
@@ -292,9 +226,9 @@ export default function Home() {
               </button>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section data-section="features" className={`${styles.section} ${styles.features}`}>
+        <div className={styles.features}>
           <div className={styles.containerWide}>
             <div className={styles.featuresContent}>
               <div className={styles.featuresGrid}>
@@ -324,7 +258,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </main>
     </>
   );

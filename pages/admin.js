@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import Header from '../components/Header'; // Import Header component
 import { supabase } from '../contexts/AuthContext'; // Import supabase client
 import styles from './Admin.module.css';
+import LoadingScreen from '../components/LoadingScreen';
 
 const Admin = () => {
   const { isLoggedIn, isAdmin, loading } = useAuth();
@@ -34,12 +34,11 @@ const Admin = () => {
   }, [isLoggedIn, isAdmin]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen message="Loading..." />;
   }
 
   return (
     <>
-      <Header /> {/* Include the header component */}
       <div className={styles.adminContainer}>
         <h1>Admin Dashboard</h1>
         <p>Welcome, Admin! Here you can manage the application.</p>

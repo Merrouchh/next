@@ -1,65 +1,101 @@
 import React, { useEffect, useState } from 'react';
-import Header from '../components/Header';
 import Head from 'next/head';
 import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 
 const TopUsers = () => {
   const [topUsers, setTopUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
   const [currentMonth, setCurrentMonth] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 2000; // 2 seconds
 
-  const getTopUsers = async () => {
+  const getTopUsers = async (isRetry = false) => {
     try {
       const data = await fetchTopUsers(10);
-      if (data.length === 0) {
-        setError('No users found.');
+      if (data.length === 0 && retryCount < MAX_RETRIES) {
+        // If no users found and we haven't exceeded max retries
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => getTopUsers(true), RETRY_DELAY);
+        if (!isRetry) {
+          setError('Loading users...');
+        }
+      } else if (data.length === 0) {
+        setError('Unable to load users at the moment. Please try again later.');
+        setTopUsers([]);
       } else {
         setTopUsers(data);
+        setError(null);
+        setRetryCount(0);
       }
     } catch (error) {
-      setError('There are no users at the moment.');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching top users:', error);
+      if (retryCount < MAX_RETRIES) {
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => getTopUsers(true), RETRY_DELAY);
+        if (!isRetry) {
+          setError('Loading users...');
+        }
+      } else {
+        setError('Service temporarily unavailable. Please try again later.');
+        setTopUsers([]);
+      }
     }
   };
 
+  // Combine data fetching and timer setup
   useEffect(() => {
-    getTopUsers();
-  }, []);
-
-  useEffect(() => {
+    let mounted = true;
+    let timerInterval;
+    let refreshInterval;
+    
     const updateTimeLeft = () => {
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth();
-      const nextMonth = new Date(year, month + 1, 1, 0, 0, 0); // Midnight on the first day of the next month
+      const nextMonth = new Date(year, month + 1, 1, 0, 0, 0);
       const timeDiff = nextMonth - now;
 
-      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+      if (mounted) {
+        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
 
-      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
 
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      setCurrentMonth(monthNames[month]);
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        setCurrentMonth(monthNames[month]);
 
-      if (timeDiff <= 0) {
-        getTopUsers(); // Refresh the top users list when the timer reaches zero
+        if (timeDiff <= 0) {
+          getTopUsers();
+        }
       }
     };
 
-    updateTimeLeft();
-    const intervalId = setInterval(updateTimeLeft, 1000);
+    const refreshData = async () => {
+      if (!mounted) return;
+      await getTopUsers();
+    };
 
-    return () => clearInterval(intervalId);
+    // Initial fetch with retry capability
+    refreshData();
+    updateTimeLeft();
+
+    // Set up intervals
+    timerInterval = setInterval(updateTimeLeft, 1000);
+    refreshInterval = setInterval(refreshData, 30000); // Refresh every 30 seconds
+
+    return () => {
+      mounted = false;
+      clearInterval(timerInterval);
+      clearInterval(refreshInterval);
+    };
   }, []);
 
   const getPodiumIcon = (index) => {
@@ -90,7 +126,6 @@ const TopUsers = () => {
 
   return (
     <>
-      <Header />
       <Head>
         <title>Top Users</title>
         <meta name="robots" content="index, follow" />
@@ -100,10 +135,12 @@ const TopUsers = () => {
         <p className={styles.counterText}>
           {`Current Month: ${currentMonth} | Time Left Until Next Month: ${timeLeft}`}
         </p>
-        {loading && <div className={styles.loading}><img src="/loading.gif" alt="Loading..." /></div>}
-        {error && <p className={styles.error}>{error}</p>}
-        {!loading && !error && topUsers.length === 0 && <p className={styles.noUsers}>No users found.</p>}
-        {!loading && !error && topUsers.length > 0 && (
+        {error && (
+          <p className={`${styles.error} ${error === 'Loading users...' ? styles.loading : ''}`}>
+            {error}
+          </p>
+        )}
+        {!error && topUsers.length > 0 && (
           <div className={styles.userList}>
             {topUsers.map((user, index) => (
               <div key={index} className={`${styles.userItem} ${index < 3 ? styles.podium : ''}`}>

@@ -10,28 +10,35 @@ import { createClient } from '../utils/supabase/client';
 
 // Computer component
 const ComputerBox = ({ computer, isVip }) => {
-  const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
-    ? computer.timeLeft.split(' : ') 
-    : [0, 0];
-  const hours = parseInt(timeParts[0]) || 0;
-  const minutes = parseInt(timeParts[1]) || 0;
-  const totalMinutes = hours * 60 + minutes;
+  const getStatusClass = () => {
+    if (!computer.isActive) {
+      return styles.inactive;
+    }
 
-  const boxClass = isVip ? styles.vipPcBox : styles.pcSquare;
-  const activeClass = computer.isActive
-    ? totalMinutes < 60
-      ? isVip ? styles.orange : styles.warning
-      : styles.active
-    : styles.inactive;
+    // Parse time left
+    const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
+      ? computer.timeLeft.split(' : ')
+      : [0, 0];
+    const hours = parseInt(timeParts[0]) || 0;
+    const minutes = parseInt(timeParts[1]) || 0;
+    const totalMinutes = hours * 60 + minutes;
+
+    // If active but less than 60 minutes remaining
+    if (totalMinutes < 60) {
+      return isVip ? styles.orange : styles.warning;
+    }
+
+    return styles.active;
+  };
 
   return (
-    <div key={computer.id} className={`${boxClass} ${activeClass}`}>
+    <div className={`${isVip ? styles.vipPcBox : styles.pcSquare} ${getStatusClass()}`}>
       <div className={styles.pcNumber}>
-        {isVip ? 'VIP PC' : 'PC'}{computer.number}
+        {isVip ? 'VIP PC ' : 'PC '}{computer.number}
       </div>
       <div className={styles.statusText}>
         {computer.isActive 
-          ? `Active - Time Left: ${computer.timeLeft}` 
+          ? `Active - Time Left: ${computer.timeLeft}`
           : 'No User'}
       </div>
     </div>
@@ -72,37 +79,92 @@ const VIPComputers = ({ computers }) => {
 
 // Main component
 const AvailableComputers = () => {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  // Auth check
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/');
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
-
-  // Auth state listener
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        router.push('/');
+  // Separate initial load from refresh updates
+  const updateComputerStates = async (activeSessions) => {
+    const updatePromises = activeSessions.map(async (session) => {
+      try {
+        const user = await fetchUserById(session.userId);
+        if (!user) {
+          console.warn(`No user found for session ${session.hostId}`);
+          return {
+            hostId: session.hostId,
+            isActive: true,
+            timeLeft: 'Unknown'
+          };
+        }
+        
+        try {
+          const balance = await fetchUserBalance(user.id);
+          return {
+            hostId: session.hostId,
+            isActive: true,
+            timeLeft: balance
+          };
+        } catch (balanceError) {
+          console.warn(`Failed to fetch balance for user ${user.id}:`, balanceError);
+          return {
+            hostId: session.hostId,
+            isActive: true,
+            timeLeft: 'Unknown'
+          };
+        }
+      } catch (err) {
+        console.error('Error updating computer state:', err);
+        return {
+          hostId: session.hostId,
+          isActive: true,
+          timeLeft: 'Error'
+        };
       }
     });
 
-    return () => subscription?.unsubscribe();
-  }, [router]);
+    try {
+      const updates = await Promise.all(updatePromises);
 
-  // Data fetching
+      setComputers(prev => {
+        const newComputers = {
+          normal: prev.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
+          vip: prev.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
+        };
+
+        // Apply active updates
+        updates.forEach(update => {
+          if (!update) return;
+          
+          // Update normal computers
+          const normalPc = newComputers.normal.find(pc => pc.id === update.hostId);
+          if (normalPc) {
+            Object.assign(normalPc, {
+              isActive: true,
+              timeLeft: update.timeLeft
+            });
+          }
+          
+          // Update VIP computers
+          const vipPc = newComputers.vip.find(pc => pc.id === update.hostId);
+          if (vipPc) {
+            Object.assign(vipPc, {
+              isActive: true,
+              timeLeft: update.timeLeft
+            });
+          }
+        });
+
+        return newComputers;
+      });
+    } catch (err) {
+      console.error('Error updating computer states:', err);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
     const computersList = {
       normal: [
@@ -118,51 +180,68 @@ const AvailableComputers = () => {
       ]
     };
 
-    const fetchData = async () => {
+    const initializePage = async () => {
       try {
-        const activeSessions = await fetchActiveUserSessions();
-        const updateComputers = async (list) => {
-          return Promise.all(list.map(async (computer) => {
-            const session = activeSessions.find(s => s.hostId === computer.id);
-            if (!session) return { ...computer, isActive: false, timeLeft: 'No Time' };
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push('/');
+          return;
+        }
 
-            const user = await fetchUserById(session.userId);
-            const balance = user ? await fetchUserBalance(user.id) : 'No Time';
-            return {
-              ...computer,
-              isActive: true,
-              timeLeft: balance
-            };
-          }));
-        };
-
-        const [normalComputers, vipComputers] = await Promise.all([
-          updateComputers(computersList.normal),
-          updateComputers(computersList.vip)
-        ]);
-
-        setComputers({ normal: normalComputers, vip: vipComputers });
-        setError(null);
-      } catch (err) {
-        setError('Failed to fetch computer data');
-        console.error(err);
-      } finally {
+        // Set initial state
+        setComputers({
+          normal: computersList.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
+          vip: computersList.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
+        });
         setIsLoading(false);
+
+        // Initial data fetch
+        const activeSessions = await fetchActiveUserSessions();
+        await updateComputerStates(activeSessions);
+      } catch (err) {
+        console.error(err);
+        setError('Failed to fetch computer data');
       }
     };
 
-    fetchData();
-    const intervalId = setInterval(fetchData, 5000);
-    return () => clearInterval(intervalId);
+    initializePage();
+  }, [router]);
+
+  // Separate effect for periodic updates
+  useEffect(() => {
+    let mounted = true;
+    
+    const refreshData = async () => {
+      if (!mounted) return;
+      
+      try {
+        const activeSessions = await fetchActiveUserSessions();
+        if (mounted) {
+          await updateComputerStates(activeSessions);
+        }
+      } catch (err) {
+        console.error('Refresh error:', err);
+      }
+    };
+
+    // Initial load
+    refreshData();
+
+    // Set up refresh interval
+    const intervalId = setInterval(refreshData, 10000);
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
-  if (loading || isLoading) return <LoadingScreen />;
   if (!isLoggedIn) return null;
   if (error) return <div className={styles.error}>{error}</div>;
 
   return (
     <>
-      <Header />
       <Head>
         <title>Available Computers</title>
         <meta name="robots" content="noindex, nofollow" />

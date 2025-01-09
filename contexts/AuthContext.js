@@ -2,6 +2,7 @@ import { createContext, useState, useContext, useEffect } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/router';
 import { fetchGizmoId } from '../utils/api';
+import LoadingScreen from '../components/LoadingScreen';
 
 // Create context with default value
 const AuthContext = createContext({
@@ -39,6 +40,36 @@ export const AuthProvider = ({ children }) => {
   // All useEffects should be after state declarations
   useEffect(() => {
     let mounted = true;
+    let isHandlingVisibility = false;
+
+    const checkAuth = async () => {
+      if (!isHandlingVisibility) {
+        isHandlingVisibility = true;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (!session && authState.isLoggedIn) {
+            setAuthState({
+              user: null,
+              isLoggedIn: false,
+              loading: false,
+              initialized: true
+            });
+            
+            if (router.pathname !== '/') {
+              await router.push('/');
+            }
+          }
+        } catch (error) {
+          console.error('Auth check error:', error);
+        } finally {
+          isHandlingVisibility = false;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', checkAuth);
+    window.addEventListener('focus', checkAuth);
 
     const initializeAuth = async () => {
       await initAuth();
@@ -51,74 +82,10 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
+      document.removeEventListener('visibilitychange', checkAuth);
+      window.removeEventListener('focus', checkAuth);
     };
-  }, []);
-
-  useEffect(() => {
-    let isHandlingVisibility = false;
-
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && !isHandlingVisibility) {
-        isHandlingVisibility = true;
-        try {
-          // Clear any stuck loading states
-          if (isLoggingOut) {
-            setIsLoggingOut(false);
-          }
-
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error || !session) {
-            setAuthState({
-              user: null,
-              isLoggedIn: false,
-              loading: false,
-              initialized: true
-            });
-            router.push('/');
-            return;
-          }
-
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', session.user.email)
-            .single();
-
-          if (!userData) {
-            throw new Error('No user data found');
-          }
-
-          setAuthState({
-            user: userData,
-            isLoggedIn: true,
-            loading: false,
-            initialized: true
-          });
-        } catch (error) {
-          console.error('Visibility change error:', error);
-          setIsLoggingOut(false);
-          setAuthState({
-            user: null,
-            isLoggedIn: false,
-            loading: false,
-            initialized: true
-          });
-          router.push('/');
-        } finally {
-          isHandlingVisibility = false;
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
-    };
-  }, [router]);
+  }, [router, authState.isLoggedIn]);
 
   useEffect(() => {
     let refreshTimer;
@@ -234,7 +201,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      setIsLoggingOut(true);
+      setAuthState(prev => ({
+        ...prev,
+        loading: true  // Set loading to true during logout
+      }));
       
       // Sign out from Supabase first
       await supabase.auth.signOut({ scope: 'global' });
@@ -258,8 +228,10 @@ export const AuthProvider = ({ children }) => {
       
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      setIsLoggingOut(false);
+      setAuthState(prev => ({
+        ...prev,
+        loading: false
+      }));
     }
   };
 
@@ -379,18 +351,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Move broadcast channel effect after other effects
+  // Remove duplicate broadcast channel effect and merge storage listeners
   useEffect(() => {
     let channel = null;
-    let handleStorageChange = null; // Declare the handler outside
-
+    let handleStorageChange = null; // Declare outside to be accessible in cleanup
+    
     if (typeof window !== 'undefined') {
       channel = new BroadcastChannel('auth-sync');
       
       // Define the handler
       handleStorageChange = async () => {
+        const authCookie = document.cookie.split(';').some((item) => item.trim().startsWith('auth='));
+        const storageToken = localStorage.getItem('supabase.auth.token');
         const session = await supabase.auth.getSession();
-        if (!session.data.session) {
+        
+        if (!authCookie || !storageToken || !session.data.session) {
           setAuthState({
             user: null,
             isLoggedIn: false,
@@ -401,69 +376,24 @@ export const AuthProvider = ({ children }) => {
         }
       };
 
-      // Add event listeners
       window.addEventListener('storage', handleStorageChange);
       
       channel.onmessage = async (event) => {
         if (event.data.type === 'SIGNED_OUT') {
-          setAuthState({
-            user: null,
-            isLoggedIn: false,
-            loading: false,
-            initialized: true
-          });
-          await router.push('/');
+          await handleStorageChange();
         }
       };
     }
 
-    // Cleanup function
     return () => {
-      if (handleStorageChange) {
-        window.removeEventListener('storage', handleStorageChange);
-      }
       if (channel) {
+        if (handleStorageChange) { // Check if handler exists before removing
+          window.removeEventListener('storage', handleStorageChange);
+        }
         channel.close();
       }
     };
   }, [router]);
-
-  // Update visibility change handler
-  useEffect(() => {
-    let isHandlingVisibility = false;
-
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && !isHandlingVisibility) {
-        isHandlingVisibility = true;
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-
-          if (!session && authState.isLoggedIn) {
-            setAuthState(prev => ({
-              ...prev,
-              user: null,
-              isLoggedIn: false,
-              loading: false
-            }));
-            
-            // Only redirect to home if not already there
-            if (router.pathname !== '/') {
-              // Optional: Show notification
-              toast?.error('Session expired. Please login again.');
-              await router.push('/');
-            }
-          }
-        } catch (error) {
-          console.error('Visibility change error:', error);
-        } finally {
-          isHandlingVisibility = false;
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [router, authState.isLoggedIn]);
 
   // Update initAuth function
   const initAuth = async () => {
@@ -511,12 +441,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Helper function to safely check localStorage
+  const hasAuthToken = () => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem('supabase.auth.token');
+    }
+    return false;
+  };
+
+  // Only show loading screen during initial authentication and when not already logged in
+  if (!authState.initialized && !authState.isLoggedIn && !hasAuthToken()) {
+    return <LoadingScreen message="Authenticating..." type="auth" />;
+  }
+
   return (
     <AuthContext.Provider 
       value={{ 
         isLoggedIn: authState.isLoggedIn,
         user: authState.user,
-        loading: authState.loading || !authState.initialized,
+        loading: authState.loading && !authState.isLoggedIn && !hasAuthToken(), // Only show loading when not logged in and no token exists
         login,
         logout,
         userExists,
