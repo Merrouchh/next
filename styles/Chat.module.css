@@ -146,7 +146,9 @@
   padding: 12px 16px;
   position: relative;
   word-break: break-word;
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-width: 100%;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -177,6 +179,7 @@
   font-size: 0.95rem;
   line-height: 1.5;
   letter-spacing: 0.2px;
+  word-break: break-word;
 }
 
 /* Message Time Style */
@@ -217,7 +220,7 @@
 
 .mediaContainer {
   max-width: 400px;
-  margin: 5px 0;
+  margin: 4px 0;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -228,7 +231,7 @@
   max-height: 300px;
   object-fit: contain;
   border-radius: 12px;
-  background: #fff;
+  cursor: pointer;
 }
 
 .sharedVideo {
@@ -843,4 +846,126 @@
   color: rgba(255, 255, 255, 0.7); /* Slightly transparent white for time */
   margin-top: 4px;
   display: block;
+}
+
+/* Add styles for messages with both text and media */
+.messageContent .messageText + .mediaContainer,
+.messageContent .mediaContainer + .messageText {
+  margin-top: 8px;
+}
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #FFD700;
+}
+
+.thumbnailContainer {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fileInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* Enable text truncation */
+}
+
+.fileName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSize {
+  font-size: 0.8rem;
+  color: rgba(255, 215, 0, 0.7);
+}
+
+.removeFile {
+  background: none;
+  border: none;
+  color: #FFD700;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.removeFile:hover {
+  color: #fff;
+}
+
+.uploadButton.hasFile {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.inputWrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.uploadOptions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .uploadButton {
+    position: relative;
+  }
+
+  .uploadOptions {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: rgba(20, 20, 35, 0.95);
+    padding: 8px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    display: none;
+  }
+
+  .uploadButton:active .uploadOptions,
+  .uploadButton:focus-within .uploadOptions {
+    display: flex;
+  }
+
+  .uploadIcon {
+    width: 24px;
+    height: 24px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+
+  .uploadIcon:active {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }

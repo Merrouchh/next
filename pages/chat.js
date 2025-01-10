@@ -8,6 +8,9 @@ import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
 import dynamic from 'next/dynamic';
 import { getSupabaseClient } from '../utils/supabase/client';
+import ImageModal from '../components/ImageModal';
+import UploadProgressBar from '../components/UploadProgressBar';
+import MediaUploadDialog from '../components/MediaUploadDialog';
 
 const supabase = getSupabaseClient();
 const MAX_MESSAGE_LENGTH = 255;
@@ -54,19 +57,28 @@ const compressImage = async (file) => {
     console.log('Original image size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
     const options = {
-      maxSizeMB: 1,            // Max file size in MB
-      maxWidthOrHeight: 1280,  // Max width/height
+      maxSizeMB: 0.5,           // Reduce max size to 500KB
+      maxWidthOrHeight: 1024,   // Limit max width/height to 1024px
       useWebWorker: true,
       fileType: file.type,
-      initialQuality: 0.7      // Initial quality (0-1)
+      initialQuality: 0.8,      // Start with good quality
+      alwaysKeepResolution: false, // Allow resizing if needed
+      preserveExif: false,      // Remove EXIF data to reduce size
     };
+
+    // If image is already small, use lighter compression
+    if (file.size < 1024 * 1024) { // Less than 1MB
+      options.maxSizeMB = 0.3;
+      options.initialQuality = 0.85;
+    }
 
     const compressedFile = await imageCompression(file, options);
     console.log('Compressed image size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+    
     return compressedFile;
   } catch (error) {
     console.error('Image compression failed:', error);
-    return file;
+    return file; // Return original file if compression fails
   }
 };
 
@@ -128,31 +140,6 @@ const compressVideo = async (file, setCompressionProgress) => {
     console.error('Video compression failed:', error);
     throw new Error('Video compression failed: ' + error.message);
   }
-};
-
-const UploadProgress = ({ compression, upload }) => {
-  return (
-    <div className={styles.uploadProgress}>
-      {compression > 0 && (
-        <div className={styles.progressBar}>
-          <div 
-            className={styles.progressFill} 
-            style={{ width: `${compression}%` }}
-          />
-          <span>Compressing: {compression}%</span>
-        </div>
-      )}
-      {upload > 0 && (
-        <div className={styles.progressBar}>
-          <div 
-            className={styles.progressFill} 
-            style={{ width: `${upload}%` }}
-          />
-          <span>Uploading: {upload}%</span>
-        </div>
-      )}
-    </div>
-  );
 };
 
 // Add this helper function to upload files to Supabase
@@ -232,6 +219,32 @@ const getUniqueUsers = (users) => {
   return Array.from(uniqueUsersMap.values());
 };
 
+// Add this function to create thumbnails for files
+const createThumbnail = (file) => {
+  return new Promise((resolve) => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    } else if (file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        video.currentTime = 1; // Set to 1 second to avoid black frame
+      };
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL());
+      };
+      video.src = URL.createObjectURL(file);
+    }
+  });
+};
+
 export default function Chat() {
   const { isLoggedIn, user: currentUser } = useAuth();
   const router = useRouter();
@@ -251,8 +264,18 @@ export default function Chat() {
   // Add this state for loading
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [compressionProgress, setCompressionProgress] = useState(0);
   const [isFFmpegLoading, setIsFFmpegLoading] = useState(false);
+
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  // Add new state for the upload dialog
+  const [uploadDialog, setUploadDialog] = useState({ show: false, file: null });
+
+  // Add new state for selected file
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Add state for thumbnail
+  const [thumbnail, setThumbnail] = useState(null);
 
   // Function to check if user is near bottom - make it more sensitive
   const isNearBottom = () => {
@@ -308,18 +331,126 @@ export default function Chat() {
     }
   };
 
-  // Handle sending message
+  // Update handleFileUpload to create thumbnail
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setSelectedFile(file);
+    // Create thumbnail
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      const thumbnailUrl = await createThumbnail(file);
+      setThumbnail(thumbnailUrl);
+    }
+    // Reset the file input
+    event.target.value = '';
+  };
+
+  // Clear thumbnail when removing file
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setThumbnail(null);
+  };
+
+  // Modify handleSendMessage to handle both text and file
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (!newMessage.trim() || newMessage.length > MAX_MESSAGE_LENGTH || !currentUser?.id) return;
+    
+    // Check if we have either a message or a file
+    if ((!newMessage.trim() && !selectedFile) || !currentUser?.id) return;
+    if (newMessage.length > MAX_MESSAGE_LENGTH) return;
 
     try {
-      await insertMessage(supabase, currentUser.id, newMessage.trim());
+      let mediaUrl = null;
+      let mediaType = null;
+
+      // If we have a file, upload it first
+      if (selectedFile) {
+        setIsUploading(true);
+        setUploadProgress(0);
+
+        let fileToUpload = selectedFile;
+        if (selectedFile.type.startsWith('image/')) {
+          setUploadProgress(10);
+          fileToUpload = await compressImage(selectedFile);
+          setUploadProgress(30);
+        }
+
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+        const filePath = `${selectedFile.type.startsWith('video/') ? 'videos' : 'images'}/${fileName}`;
+
+        // Upload with progress tracking
+        const uploadPromise = new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = (event.loaded / event.total) * 100;
+              setUploadProgress(Math.round(percentComplete));
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+              resolve(xhr.response);
+            } else {
+              reject(new Error('Upload failed'));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('Upload failed'));
+          });
+
+          supabase.storage
+            .from('media')
+            .createSignedUploadUrl(filePath)
+            .then(({ data: { signedUrl }, error }) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+
+              xhr.open('PUT', signedUrl);
+              xhr.setRequestHeader('Content-Type', selectedFile.type);
+              xhr.send(fileToUpload);
+            });
+        });
+
+        await uploadPromise;
+        setUploadProgress(100);
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('media')
+          .getPublicUrl(filePath);
+
+        mediaUrl = publicUrl;
+        mediaType = selectedFile.type;
+      }
+
+      // Send message with media if present
+      await insertMessage(
+        supabase,
+        currentUser.id,
+        newMessage.trim(),
+        mediaUrl,
+        mediaType
+      );
+
+      // Clear inputs
       setNewMessage('');
-      scrollToBottom();
+      setSelectedFile(null);
+      setUploadProgress(0);
+      
+      // Scroll to bottom
+      setTimeout(scrollToBottom, 100);
+
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -600,37 +731,12 @@ export default function Chat() {
     }
   };
 
-  // Update the handleFileUpload function
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file || !currentUser?.id) return;
+  const handleImageClick = (url) => {
+    setSelectedImage(url);
+  };
 
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
-
-      let mediaUrl;
-
-      if (file.type.startsWith('video/') || file.type.startsWith('image/')) {
-        // Upload directly to Supabase
-        const folder = file.type.startsWith('video/') ? 'videos' : 'images';
-        mediaUrl = await uploadFileToSupabase(file, folder, currentUser.id);
-        setUploadProgress(50);
-      } else {
-        throw new Error('Unsupported file type');
-      }
-
-      // Insert message with file
-      await insertMessage(supabase, currentUser.id, '', mediaUrl, file.type);
-      setUploadProgress(100);
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload file. Please try again.');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      event.target.value = ''; // Reset the file input
-    }
+  const closeImageModal = () => {
+    setSelectedImage(null);
   };
 
   // Update message rendering to handle media
@@ -652,13 +758,11 @@ export default function Chat() {
           {message.media_url ? (
             <div className={styles.mediaContainer}>
               {isImage && (
-                <Image
+                <img
                   src={message.media_url}
-                  alt="Shared image"
-                  width={400}
-                  height={300}
+                  alt="Shared"
                   className={styles.sharedImage}
-                  loading="lazy"
+                  onClick={() => handleImageClick(message.media_url)}
                 />
               )}
               {isVideo && (
@@ -732,7 +836,64 @@ export default function Chat() {
                 </div>
               )}
               
-              {messages.map((message) => renderMessage(message))}
+              {messages.map((message) => {
+                const isOwnMessage = message.users?.username === currentUser?.username;
+                
+                return (
+                  <div key={message.id} className={styles.messageContainer}>
+                    {!isOwnMessage && (
+                      <div className={styles.messageUsername}>
+                        {message.users?.is_admin && <span className={styles.adminIcon}>👑</span>}
+                        {message.users?.username}
+                      </div>
+                    )}
+                    <div className={`${styles.messageContent} ${isOwnMessage ? styles.ownMessage : styles.otherMessage}`}>
+                      {/* Show text content if it exists */}
+                      {message.content && (
+                        <div className={styles.messageText}>
+                          {formatMessageContent(message.content)}
+                        </div>
+                      )}
+                      
+                      {/* Show media if it exists */}
+                      {message.media_url && (
+                        <div className={styles.mediaContainer}>
+                          {message.media_type?.startsWith('image/') && (
+                            <img
+                              src={message.media_url}
+                              alt="Shared"
+                              className={styles.sharedImage}
+                              onClick={() => handleImageClick(message.media_url)}
+                            />
+                          )}
+                          {message.media_type?.startsWith('video/') && (
+                            <div className={styles.mediaContainer}>
+                              <video
+                                controls
+                                className={styles.sharedVideo}
+                                preload="metadata"
+                                crossOrigin="anonymous"
+                                playsInline
+                              >
+                                <source 
+                                  src={message.media_url} 
+                                  type={message.media_type}
+                                  crossOrigin="anonymous"
+                                />
+                                Your browser does not support the video tag.
+                              </video>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <span className={styles.messageTime}>
+                        {formatMessageTime(message.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
               <div ref={messagesEndRef} />
               
               {hasNewMessages && (
@@ -755,46 +916,92 @@ export default function Chat() {
                       setNewMessage(e.target.value);
                     }
                   }}
-                  placeholder="Type your message..."
+                  placeholder={selectedFile ? "Add a message to your media (optional)" : "Type your message..."}
                   maxLength={MAX_MESSAGE_LENGTH}
                 />
                 <span className={styles.charCount}>
                   {newMessage.length}/{MAX_MESSAGE_LENGTH}
                 </span>
+                {selectedFile && (
+                  <div className={styles.selectedFile}>
+                    {thumbnail && (
+                      <div className={styles.thumbnailContainer}>
+                        <img src={thumbnail} alt="Preview" className={styles.thumbnail} />
+                      </div>
+                    )}
+                    <div className={styles.fileInfo}>
+                      <span className={styles.fileName}>{selectedFile.name}</span>
+                      <span className={styles.fileSize}>
+                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={handleRemoveFile}
+                      className={styles.removeFile}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
               </div>
-              <label className={`${styles.uploadButton} ${isUploading || isFFmpegLoading ? styles.uploading : ''}`}>
+              <label className={`${styles.uploadButton} ${isUploading ? styles.uploading : ''} ${selectedFile ? styles.hasFile : ''}`}>
                 <input
                   type="file"
                   onChange={handleFileUpload}
-                  disabled={isUploading || isFFmpegLoading}
-                  accept="image/*,video/*,audio/*"
+                  disabled={isUploading}
+                  accept="image/*,video/*"
+                  capture="environment"
+                  multiple={false}
                   style={{ display: 'none' }}
                 />
-                {isUploading || isFFmpegLoading ? (
+                {isUploading ? (
                   <div className={styles.spinner} />
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={styles.uploadIcon}>
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                  </svg>
+                  <div className={styles.uploadOptions}>
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      accept="image/*,video/*"
+                      style={{ display: 'none' }}
+                    />
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      accept="image/*"
+                      capture="environment"
+                      style={{ display: 'none' }}
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={styles.uploadIcon}>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                    </svg>
+                  </div>
                 )}
               </label>
               <button 
                 type="submit"
-                disabled={!newMessage.trim() || isUploading}
+                disabled={(!newMessage.trim() && !selectedFile) || isUploading}
               >
                 Send
               </button>
             </form>
 
-            {(uploadProgress > 0 || compressionProgress > 0) && (
-              <UploadProgress 
-                compression={compressionProgress} 
-                upload={uploadProgress} 
-              />
-            )}
+            {isUploading && <UploadProgressBar progress={uploadProgress} />}
           </div>
         </main>
       </div>
+      {selectedImage && (
+        <ImageModal imageUrl={selectedImage} onClose={closeImageModal} />
+      )}
+      {uploadDialog.show && (
+        <MediaUploadDialog
+          file={uploadDialog.file}
+          onConfirm={handleUploadConfirm}
+          onCancel={() => setUploadDialog({ show: false, file: null })}
+        />
+      )}
     </>
   );
 }
