@@ -103,29 +103,28 @@ const compressVideo = async (file, setCompressionProgress) => {
     
     setCompressionProgress(50);
 
-    // More stable FFmpeg command with simplified settings
+    // Always convert to MP4 with H.264 codec
     await ffmpegInstance.run(
       '-i', 'input.mp4',
       '-c:v', 'libx264',
-      '-preset', 'ultrafast', // Change to ultrafast for better stability
+      '-preset', 'ultrafast',
       '-tune', 'fastdecode',
-      '-crf', '30',
-      '-vf', 'scale=640:-2', // Reduced resolution
-      '-threads', '1',        // Single thread
+      '-crf', '28',
+      '-vf', 'scale=640:-2',
+      '-threads', '1',
       '-movflags', '+faststart',
       '-c:a', 'aac',
-      '-b:a', '64k',         // Reduced audio bitrate
-      '-y',                  // Overwrite output
+      '-b:a', '128k',
+      '-f', 'mp4', // Force MP4 container
+      '-y',
       'output.mp4'
     );
 
     setCompressionProgress(80);
 
-    // Read the compressed file
     const data = ffmpegInstance.FS('readFile', 'output.mp4');
     const compressedVideo = new Blob([data.buffer], { type: 'video/mp4' });
     
-    // Clean up
     try {
       ffmpegInstance.FS('unlink', 'input.mp4');
       ffmpegInstance.FS('unlink', 'output.mp4');
@@ -442,19 +441,25 @@ export default function Chat() {
       let mediaUrl = null;
       let mediaType = null;
 
-      // If we have a file, upload it first
       if (selectedFile) {
         setIsUploading(true);
         setUploadProgress(0);
 
         let fileToUpload = selectedFile;
+        
+        // Handle different file types
         if (selectedFile.type.startsWith('image/')) {
           setUploadProgress(10);
           fileToUpload = await compressImage(selectedFile);
-          setUploadProgress(30);
+          mediaType = selectedFile.type;
+        } else if (selectedFile.type.startsWith('video/')) {
+          // Always convert to MP4
+          fileToUpload = await compressVideo(selectedFile, setUploadProgress);
+          mediaType = 'video/mp4';
         }
 
-        const fileExt = selectedFile.name.split('.').pop();
+        // Upload the file
+        const fileExt = mediaType === 'video/mp4' ? 'mp4' : selectedFile.name.split('.').pop();
         const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
         const filePath = `${selectedFile.type.startsWith('video/') ? 'videos' : 'images'}/${fileName}`;
 
@@ -504,7 +509,6 @@ export default function Chat() {
           .getPublicUrl(filePath);
 
         mediaUrl = publicUrl;
-        mediaType = selectedFile.type;
       }
 
       // Send message with media if present
@@ -855,14 +859,18 @@ export default function Chat() {
                   controls
                   className={styles.sharedVideo}
                   preload="metadata"
-                  crossOrigin="anonymous"
                   playsInline
+                  webkit-playsinline="true" // For iOS support
                   onLoadedMetadata={() => handleMediaLoad()}
+                  controlsList="nodownload" // Prevent download button
                 >
                   <source 
                     src={message.media_url} 
+                    type="video/mp4" // Force mp4 type
+                  />
+                  <source 
+                    src={message.media_url} 
                     type={message.media_type}
-                    crossOrigin="anonymous"
                   />
                   Your browser does not support the video tag.
                 </video>
@@ -995,14 +1003,18 @@ export default function Chat() {
                               controls
                               className={styles.sharedVideo}
                               preload="metadata"
-                              crossOrigin="anonymous"
                               playsInline
+                              webkit-playsinline="true" // For iOS support
                               onLoadedMetadata={() => handleMediaLoad()}
+                              controlsList="nodownload" // Prevent download button
                             >
                               <source 
                                 src={message.media_url} 
+                                type="video/mp4" // Force mp4 type
+                              />
+                              <source 
+                                src={message.media_url} 
                                 type={message.media_type}
-                                crossOrigin="anonymous"
                               />
                               Your browser does not support the video tag.
                             </video>
