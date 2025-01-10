@@ -219,28 +219,61 @@ const getUniqueUsers = (users) => {
   return Array.from(uniqueUsersMap.values());
 };
 
-// Add this function to create thumbnails for files
+// Update createThumbnail function to be more mobile-friendly
 const createThumbnail = (file) => {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (e) => reject(e);
       reader.readAsDataURL(file);
     } else if (file.type.startsWith('video/')) {
+      // Special handling for mobile
       const video = document.createElement('video');
-      video.preload = 'metadata';
+      const url = URL.createObjectURL(file);
+      
+      // Add mobile-specific attributes
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.muted = true;
+      video.autoplay = false;
+      
+      // Different event for mobile compatibility
       video.onloadedmetadata = () => {
-        video.currentTime = 1; // Set to 1 second to avoid black frame
+        video.currentTime = 0.1; // Smaller time for faster loading
       };
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL());
+
+      video.oncanplay = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          // Adjust size for mobile
+          const maxSize = 640;
+          const ratio = Math.min(maxSize / video.videoWidth, maxSize / video.videoHeight);
+          canvas.width = video.videoWidth * ratio;
+          canvas.height = video.videoHeight * ratio;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.6); // Lower quality for mobile
+          URL.revokeObjectURL(url);
+          video.remove(); // Clean up video element
+          resolve(thumbnailUrl);
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          video.remove();
+          reject(error);
+        }
       };
-      video.src = URL.createObjectURL(file);
+
+      video.onerror = (error) => {
+        URL.revokeObjectURL(url);
+        video.remove();
+        reject(error);
+      };
+
+      video.src = url;
+      video.load();
     }
   });
 };
@@ -280,6 +313,9 @@ export default function Chat() {
   // Add a new function to track user's scroll state
   const [isUserScrolling, setIsUserScrolling] = useState(false);
 
+  // Add this state at the top with other states
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // Move these functions inside the component
   const isNearBottom = () => {
     const container = messagesContainerRef.current;
@@ -290,14 +326,16 @@ export default function Chat() {
 
   const scrollToBottom = (behavior = 'smooth') => {
     const container = messagesContainerRef.current;
-    if (!container || isUserScrolling) return; // Don't scroll if user is manually scrolling
+    if (!container || isUserScrolling) return;
 
-    requestAnimationFrame(() => {
+    if (behavior === 'smooth') {
       container.scrollTo({
         top: container.scrollHeight,
-        behavior
+        behavior: 'smooth'
       });
-    });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
   };
 
   // Update the useEffect for handling new messages
@@ -324,8 +362,8 @@ export default function Chat() {
         
         const isOwnMessage = newMessage.user_id === currentUser?.id;
         
-        // If it's our own message or we're near bottom and not actively scrolling
-        if (isOwnMessage || (isNearBottom() && !isUserScrolling)) {
+        // Only scroll for new messages if it's our message or we're near bottom
+        if (!isInitialLoad && (isOwnMessage || (isNearBottom() && !isUserScrolling))) {
           setTimeout(() => scrollToBottom('smooth'), 100);
         } else {
           setHasNewMessages(true);
@@ -334,7 +372,7 @@ export default function Chat() {
       .subscribe();
 
     return () => subscription.unsubscribe();
-  }, [currentUser, isUserScrolling]); // Add isUserScrolling to dependencies
+  }, [currentUser, isUserScrolling, isInitialLoad]); // Add isUserScrolling to dependencies
 
   // Update the handleMediaLoad function
   const handleMediaLoad = () => {
@@ -352,17 +390,24 @@ export default function Chat() {
     }
   };
 
-  // Update handleFileUpload to create thumbnail
+  // Update handleFileUpload to handle errors
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
     
     setSelectedFile(file);
-    // Create thumbnail
-    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      const thumbnailUrl = await createThumbnail(file);
-      setThumbnail(thumbnailUrl);
+    
+    try {
+      // Create thumbnail
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        const thumbnailUrl = await createThumbnail(file);
+        setThumbnail(thumbnailUrl);
+      }
+    } catch (error) {
+      console.error('Error creating thumbnail:', error);
+      // Still keep the file selected even if thumbnail fails
     }
+    
     // Reset the file input
     event.target.value = '';
   };
@@ -555,15 +600,22 @@ export default function Chat() {
           setMessages(reversedMessages);
           if (messages.length > 0) {
             lastMessageDate.current = messages[0].created_at;
-          }
-          
-          // Only scroll on first load
-          if (!messagesContainerRef.current.scrollTop) {
-            requestAnimationFrame(() => {
-              if (messagesContainerRef.current) {
-                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-              }
-            });
+            
+            // Only scroll on initial load with a more reliable approach
+            if (isInitialLoad) {
+              const scrollToInitialPosition = () => {
+                const container = messagesContainerRef.current;
+                if (container) {
+                  container.scrollTop = container.scrollHeight;
+                  setIsInitialLoad(false);
+                }
+              };
+
+              // Try multiple times to ensure proper scrolling
+              setTimeout(scrollToInitialPosition, 100);
+              setTimeout(scrollToInitialPosition, 300);
+              setTimeout(scrollToInitialPosition, 500);
+            }
           }
         }
 
@@ -590,8 +642,8 @@ export default function Chat() {
             
             const isOwnMessage = newMessage.user_id === currentUser?.id;
             
-            // If it's our own message or we're near bottom and not actively scrolling
-            if (isOwnMessage || (isNearBottom() && !isUserScrolling)) {
+            // Only scroll for new messages if it's our message or we're near bottom
+            if (!isInitialLoad && (isOwnMessage || (isNearBottom() && !isUserScrolling))) {
               setTimeout(() => scrollToBottom('smooth'), 100);
             } else {
               setHasNewMessages(true);
@@ -635,7 +687,7 @@ export default function Chat() {
       messageSubscription?.unsubscribe();
       presenceSubscription?.unsubscribe();
     };
-  }, [currentUser, isUserScrolling]); // Add isUserScrolling to dependencies
+  }, [currentUser, isUserScrolling, isInitialLoad]); // Add isUserScrolling to dependencies
 
   useEffect(() => {
     let presenceSubscription;
@@ -830,22 +882,40 @@ export default function Chat() {
     );
   };
 
+  // Update the handleScroll function
   const handleScroll = (e) => {
     const container = e.target;
     const scrollPosition = container.scrollHeight - container.scrollTop - container.clientHeight;
     
-    // Only set user scrolling if we're significantly up (more than 150px from bottom)
+    // Handle scroll near bottom
     if (scrollPosition > 150) {
       setIsUserScrolling(true);
     } else if (scrollPosition < 50) {
       setIsUserScrolling(false);
       setHasNewMessages(false);
     }
+  };
 
-    // Load older messages when near top
-    if (container.scrollTop < 100 && !isLoading && hasMore) {
-      loadOlderMessages();
-    }
+  // Add this CSS class to show loading indicator
+  const loadingIndicatorClass = isLoading ? styles.loading : '';
+
+  // Add this new LoadMore component
+  const LoadMore = ({ loading, hasMore, onClick }) => {
+    if (!hasMore) return null;
+    
+    return (
+      <button 
+        className={styles.loadMoreButton}
+        onClick={onClick}
+        disabled={loading}
+      >
+        {loading ? (
+          <span className={styles.loadingSpinner}>Loading...</span>
+        ) : (
+          'Load More Messages'
+        )}
+      </button>
+    );
   };
 
   if (!isLoggedIn) return null;
@@ -854,6 +924,7 @@ export default function Chat() {
     <>
       <Head>
         <title>Chat Room</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className={styles.chatWrapper}>
@@ -877,16 +948,15 @@ export default function Chat() {
 
             <div 
               ref={messagesContainerRef}
-              className={styles.messages} 
+              className={`${styles.messages} ${loadingIndicatorClass}`}
               onScroll={handleScroll}
               tabIndex={0}
             >
-              {isLoading && (
-                <div className={styles.loadingMore}>
-                  Loading more messages...
-                </div>
-              )}
-              
+              <LoadMore 
+                loading={isLoading}
+                hasMore={hasMore}
+                onClick={loadOlderMessages}
+              />
               {messages.map((message) => {
                 const isOwnMessage = message.users?.username === currentUser?.username;
                 const isLastMessage = message.id === messages[messages.length - 1]?.id;
