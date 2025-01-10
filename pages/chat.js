@@ -951,37 +951,19 @@ export default function Chat() {
                   onChange={handleFileUpload}
                   disabled={isUploading}
                   accept="image/*,video/*"
-                  capture="environment"
-                  multiple={false}
                   style={{ display: 'none' }}
                 />
                 {isUploading ? (
                   <div className={styles.spinner} />
                 ) : (
-                  <div className={styles.uploadOptions}>
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                      accept="image/*,video/*"
-                      style={{ display: 'none' }}
-                    />
-                    <input
-                      type="file"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                      accept="image/*"
-                      capture="environment"
-                      style={{ display: 'none' }}
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={styles.uploadIcon}>
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                    </svg>
-                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={styles.uploadIcon}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                  </svg>
                 )}
               </label>
               <button 
                 type="submit"
+                className={styles.sendButton}
                 disabled={(!newMessage.trim() && !selectedFile) || isUploading}
               >
                 Send

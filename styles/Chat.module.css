@@ -352,39 +352,59 @@
 
 /* Online Users Toggle */
 .onlineUsersToggle {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  position: fixed;
+  top: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  gap: 8px;
+  background: rgba(20, 20, 35, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  padding: 8px 12px;
+  border-radius: 20px;
   color: #FFD700;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.onlineUsersToggle:hover {
+  background: rgba(255, 215, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .onlineCount {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #FFD700;
-  color: #000;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .userIcon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .onlineUsersToggle {
+    top: 8px;
+    right: 8px;
+    padding: 6px 10px;
+  }
+
+  .userIcon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .onlineUsersToggle {
+    top: max(16px, env(safe-area-inset-top));
+    right: max(16px, env(safe-area-inset-right));
+  }
 }
 
 /* Scrollbar Styling */
@@ -926,46 +946,196 @@
   flex-direction: column;
 }
 
-.uploadOptions {
+/* Add/update these styles for better mobile responsiveness */
+
+.chatWrapper {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100vh;
+}
+
+.chatContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-bottom: 80px; /* Space for input container */
+}
+
+.inputContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   gap: 8px;
-  align-items: center;
+  padding: 12px;
+  background: rgba(20, 20, 35, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
 }
 
 /* Mobile-specific styles */
 @media (max-width: 768px) {
-  .uploadButton {
-    position: relative;
+  .chatWrapper {
+    height: 100dvh; /* Use dynamic viewport height for mobile */
   }
 
-  .uploadOptions {
-    position: absolute;
-    bottom: 100%;
-    right: 0;
-    background: rgba(20, 20, 35, 0.95);
+  .messages {
     padding: 8px;
-    border-radius: 12px;
+    padding-bottom: 90px;
+  }
+
+  .messageContainer {
+    max-width: 90%;
+  }
+
+  .inputContainer {
+    padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* For iPhone notch */
+  }
+
+  .inputWrapper {
+    flex: 1;
+  }
+
+  .inputWrapper input {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .selectedFile {
     margin-bottom: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    display: none;
   }
 
-  .uploadButton:active .uploadOptions,
-  .uploadButton:focus-within .uploadOptions {
-    display: flex;
+  /* Adjust media container size for mobile */
+  .mediaContainer {
+    max-width: 100%;
   }
 
-  .uploadIcon {
-    width: 24px;
-    height: 24px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transition: all 0.2s ease;
+  .sharedImage {
+    max-height: 250px;
   }
 
-  .uploadIcon:active {
-    background: rgba(255, 255, 255, 0.2);
+  /* Make online users drawer take full width on mobile */
+  .onlineUsersDrawer {
+    width: 100%;
+    right: -100%;
+  }
+
+  .onlineUsersDrawer.show {
+    right: 0;
+  }
+
+  /* Adjust new messages notification */
+  .newMessagesNotif {
+    bottom: 70px;
+    font-size: 0.85rem;
+    padding: 0.4rem 1rem;
+  }
+
+  /* Ensure upload button and send button are easy to tap */
+  .uploadButton {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .sendButton {
+    min-width: 60px;
+    min-height: 44px;
+    padding: 0 16px;
+  }
+
+  /* Adjust thumbnail size for mobile */
+  .thumbnailContainer {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Ensure proper spacing around message content */
+  .messageContent {
+    padding: 10px 12px;
+  }
+
+  /* Adjust message text size for mobile */
+  .messageText {
+    font-size: 0.9rem;
+  }
+
+  /* Handle keyboard appearance */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS-specific fix */
+    .chatWrapper {
+      height: -webkit-fill-available;
+    }
+
+    .inputContainer {
+      position: sticky;
+    }
+  }
+}
+
+/* Add safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .inputContainer {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Replace button[type="submit"] with .sendButton */
+.sendButton {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: #FFD700;
+  color: #000;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sendButton:hover {
+  background: #ffd900;
+  transform: translateY(-1px);
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* In your mobile media query, update the selector */
+@media (max-width: 768px) {
+  /* ... other mobile styles ... */
+
+  /* Change this from button[type="submit"] to .sendButton */
+  .sendButton {
+    min-width: 60px;
+    min-height: 44px;
+    padding: 0 16px;
   }
 }
