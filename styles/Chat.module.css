@@ -65,73 +65,182 @@
   left: 0;
   right: 0;
   display: flex;
-  gap: 8px;
-  padding: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
   background: rgba(20, 20, 35, 0.95);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 100;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .inputWrapper {
-  position: relative;
   flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .inputWrapper input {
   width: 100%;
-  padding: 0.875rem 1.25rem;
-  padding-right: 3.5rem;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 215, 0, 0.2);
   color: #fff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  font-size: 16px;
+  transition: all 0.2s ease;
 }
 
 .inputWrapper input:focus {
   outline: none;
   border-color: rgba(255, 215, 0, 0.5);
   background: rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 0 0 3px rgba(255, 215, 0, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
 }
 
-/* Send Button */
-.inputContainer button {
-  padding: 0.875rem 1.75rem;
-  border: none;
-  border-radius: 16px;
-  background: linear-gradient(45deg, #FFD700, #FFC107);
+.buttonContainer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.uploadButton {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.uploadButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.sendButton {
+  height: 44px;
+  padding: 0 24px;
+  background: #FFD700;
   color: #000;
+  border: none;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 110px;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
-  box-shadow: 
-    0 2px 8px rgba(255, 215, 0, 0.2),
-    0 0 0 1px rgba(255, 215, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
-.inputContainer button:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 4px 12px rgba(255, 215, 0, 0.3),
-    0 0 0 1px rgba(255, 215, 0, 0.2);
-  background: linear-gradient(45deg, #FFE44D, #FFD700);
+.sendButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffe44d;
 }
 
-.inputContainer button:active {
-  transform: translateY(0);
-  box-shadow: 
-    0 2px 4px rgba(255, 215, 0, 0.2),
-    0 0 0 1px rgba(255, 215, 0, 0.1);
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .chatWrapper {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .messages {
+    flex: 1;
+    padding-bottom: 130px; /* Adjust based on input height */
+  }
+
+  .inputContainer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .inputWrapper {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .inputWrapper input {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .buttonContainer {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .uploadButton {
+    flex: 0 0 44px;
+  }
+
+  .sendButton {
+    flex: 1;
+    padding: 0;
+    min-width: unset;
+  }
+
+  /* Selected file display */
+  .selectedFile {
+    margin: 4px 0;
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  /* Ensure content doesn't get hidden behind keyboard */
+  @supports (-webkit-touch-callout: none) {
+    .chatWrapper {
+      height: -webkit-fill-available;
+    }
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 769px) {
+  .inputContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+  }
+
+  .buttonContainer {
+    align-items: center;
+  }
+
+  .uploadButton {
+    width: 48px;
+    height: 48px;
+  }
+
+  .sendButton {
+    height: 48px;
+    min-width: 120px;
+  }
+}
+
+/* Safe area insets and notch handling */
+@supports (padding: max(0px)) {
+  .inputContainer {
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+    padding-left: max(15px, env(safe-area-inset-left));
+    padding-right: max(15px, env(safe-area-inset-right));
+  }
 }
 
 /* Message Container */
@@ -998,222 +1107,180 @@
   left: 0;
   right: 0;
   display: flex;
-  gap: 8px;
-  padding: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
   background: rgba(20, 20, 35, 0.95);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 100;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile-specific styles */
-@media (max-width: 768px) {
-  .chatWrapper {
-    height: 100dvh; /* Use dynamic viewport height for mobile */
-  }
-
-  .messages {
-    padding: 8px;
-    padding-bottom: 90px;
-  }
-
-  .messageContainer {
-    max-width: 90%;
-  }
-
-  .inputContainer {
-    padding: 8px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom)); /* For iPhone notch */
-  }
-
-  .inputWrapper {
-    flex: 1;
-  }
-
-  .inputWrapper input {
-    width: 100%;
-    padding: 10px;
-    font-size: 16px; /* Prevent zoom on iOS */
-  }
-
-  .selectedFile {
-    margin-bottom: 8px;
-  }
-
-  /* Adjust media container size for mobile */
-  .mediaContainer {
-    max-width: 100%;
-  }
-
-  .sharedImage {
-    max-height: 250px;
-  }
-
-  /* Make online users drawer take full width on mobile */
-  .onlineUsersDrawer {
-    width: 100%;
-    right: -100%;
-  }
-
-  .onlineUsersDrawer.show {
-    right: 0;
-  }
-
-  /* Adjust new messages notification */
-  .newMessagesNotif {
-    bottom: 70px;
-    font-size: 0.85rem;
-    padding: 0.4rem 1rem;
-  }
-
-  /* Ensure upload button and send button are easy to tap */
-  .uploadButton {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  .sendButton {
-    min-width: 60px;
-    min-height: 44px;
-    padding: 0 16px;
-  }
-
-  /* Adjust thumbnail size for mobile */
-  .thumbnailContainer {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* Ensure proper spacing around message content */
-  .messageContent {
-    padding: 10px 12px;
-  }
-
-  /* Adjust message text size for mobile */
-  .messageText {
-    font-size: 0.9rem;
-  }
-
-  /* Handle keyboard appearance */
-  @supports (-webkit-touch-callout: none) {
-    /* iOS-specific fix */
-    .chatWrapper {
-      height: -webkit-fill-available;
-    }
-
-    .inputContainer {
-      position: sticky;
-    }
-  }
+.inputWrapper {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-/* Add safe area insets for notched devices */
-@supports (padding: max(0px)) {
-  .inputContainer {
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
-  }
-}
-
-/* Replace button[type="submit"] with .sendButton */
-.sendButton {
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #FFD700;
-  color: #000;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
+.inputWrapper input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: #fff;
+  font-size: 16px;
   transition: all 0.2s ease;
 }
 
-.sendButton:hover {
-  background: #ffd900;
+.inputWrapper input:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+}
+
+.buttonContainer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.uploadButton {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.uploadButton:hover {
+  background: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
+}
+
+.sendButton {
+  height: 44px;
+  padding: 0 24px;
+  background: #FFD700;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sendButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffe44d;
 }
 
 .sendButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* In your mobile media query, update the selector */
+/* Mobile styles */
 @media (max-width: 768px) {
-  /* ... other mobile styles ... */
-
-  /* Change this from button[type="submit"] to .sendButton */
-  .sendButton {
-    min-width: 60px;
-    min-height: 44px;
-    padding: 0 16px;
+  .chatWrapper {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height */
+    display: flex;
+    flex-direction: column;
   }
-}
 
-/* Update selected file styles */
-.selectedFile {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 215, 0, 0.1);
-  padding: 8px;
-  border-radius: 8px;
-  margin-top: 8px;
-  font-size: 0.9rem;
-  color: #FFD700;
-}
+  .messages {
+    flex: 1;
+    padding-bottom: 130px; /* Adjust based on input height */
+  }
 
-/* Mobile-specific adjustments */
-@media (max-width: 768px) {
   .inputContainer {
-    flex-wrap: wrap;
-    padding: 8px;
-    gap: 8px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
 
   .inputWrapper {
     width: 100%;
-    order: 1;
+    margin-bottom: 8px;
   }
 
-  .selectedFile {
-    width: 100%;
-    margin-top: 4px;
-    margin-bottom: 4px;
+  .inputWrapper input {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
   }
 
-  /* Button container for upload and send buttons */
   .buttonContainer {
+    width: 100%;
     display: flex;
     gap: 8px;
-    width: 100%;
-    order: 2;
   }
 
   .uploadButton {
     flex: 0 0 44px;
-    height: 44px;
   }
 
   .sendButton {
     flex: 1;
-    height: 44px;
+    padding: 0;
+    min-width: unset;
   }
 
-  /* Adjust input padding */
-  .inputWrapper input {
-    padding: 12px;
-    font-size: 16px;
+  /* Selected file display */
+  .selectedFile {
+    margin: 4px 0;
+    padding: 8px;
+    border-radius: 8px;
   }
 
-  /* Ensure messages don't get hidden behind the input */
-  .messages {
-    padding-bottom: 180px; /* Increased to account for larger input area */
+  /* Ensure content doesn't get hidden behind keyboard */
+  @supports (-webkit-touch-callout: none) {
+    .chatWrapper {
+      height: -webkit-fill-available;
+    }
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 769px) {
+  .inputContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
   }
 
-  /* Adjust new messages notification position */
-  .newMessagesNotif {
-    bottom: 180px;
+  .buttonContainer {
+    align-items: center;
+  }
+
+  .uploadButton {
+    width: 48px;
+    height: 48px;
+  }
+
+  .sendButton {
+    height: 48px;
+    min-width: 120px;
+  }
+}
+
+/* Safe area insets and notch handling */
+@supports (padding: max(0px)) {
+  .inputContainer {
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+    padding-left: max(15px, env(safe-area-inset-left));
+    padding-right: max(15px, env(safe-area-inset-right));
   }
 }

@@ -1,29 +1,23 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import styles from '../styles/ImageModal.module.css';
 
 const ImageModal = ({ imageUrl, onClose }) => {
-  // Handle escape key press
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   return (
-    <div className={styles.modalBackdrop} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.modalOverlay} onClick={handleBackdropClick}>
+      <div className={styles.modalContent}>
+        <button className={styles.closeButton} onClick={onClose}>×</button>
         <img 
           src={imageUrl} 
-          alt="Enlarged" 
-          className={styles.enlargedImage} 
+          alt="Enlarged view" 
+          className={styles.modalImage}
           onClick={(e) => e.stopPropagation()}
         />
-        <button className={styles.closeButton} onClick={onClose}>×</button>
       </div>
     </div>
   );
