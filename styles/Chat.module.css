@@ -60,13 +60,24 @@
 
 /* Input Container */
 .inputContainer {
-  padding: 1.5rem;
-  background: rgba(20, 20, 35, 0.9);
-  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
-  gap: 1rem;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(20, 20, 35, 0.95);
   backdrop-filter: blur(10px);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 100;
+}
+
+.inputWrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .inputWrapper input {
@@ -877,7 +888,7 @@
 .selectedFile {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   background: rgba(255, 215, 0, 0.1);
   padding: 8px;
   border-radius: 8px;
@@ -1137,5 +1148,72 @@
     min-width: 60px;
     min-height: 44px;
     padding: 0 16px;
+  }
+}
+
+/* Update selected file styles */
+.selectedFile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #FFD700;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .inputContainer {
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .inputWrapper {
+    width: 100%;
+    order: 1;
+  }
+
+  .selectedFile {
+    width: 100%;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  /* Button container for upload and send buttons */
+  .buttonContainer {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    order: 2;
+  }
+
+  .uploadButton {
+    flex: 0 0 44px;
+    height: 44px;
+  }
+
+  .sendButton {
+    flex: 1;
+    height: 44px;
+  }
+
+  /* Adjust input padding */
+  .inputWrapper input {
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  /* Ensure messages don't get hidden behind the input */
+  .messages {
+    padding-bottom: 180px; /* Increased to account for larger input area */
+  }
+
+  /* Adjust new messages notification position */
+  .newMessagesNotif {
+    bottom: 180px;
   }
 }
