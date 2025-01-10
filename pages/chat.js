@@ -277,57 +277,78 @@ export default function Chat() {
   // Add state for thumbnail
   const [thumbnail, setThumbnail] = useState(null);
 
-  // Function to check if user is near bottom - make it more sensitive
+  // Add a new function to track user's scroll state
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+  // Move these functions inside the component
   const isNearBottom = () => {
     const container = messagesContainerRef.current;
     if (!container) return false;
-    
-    // Increase sensitivity by reducing the threshold from 100 to 150
     const scrollPosition = container.scrollHeight - container.scrollTop - container.clientHeight;
-    return scrollPosition < 150;
+    return scrollPosition < 100;
   };
 
-  // Handle new messages and scrolling behavior
+  const scrollToBottom = (behavior = 'smooth') => {
+    const container = messagesContainerRef.current;
+    if (!container || isUserScrolling) return; // Don't scroll if user is manually scrolling
+
+    requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior
+      });
+    });
+  };
+
+  // Update the useEffect for handling new messages
   useEffect(() => {
+    const subscription = supabase
+      .channel('messages')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages' 
+      }, async (payload) => {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('username, is_admin')
+          .eq('id', payload.new.user_id)
+          .single();
+
+        const newMessage = {
+          ...payload.new,
+          users: userData
+        };
+
+        setMessages(prev => [...prev, newMessage]);
+        
+        const isOwnMessage = newMessage.user_id === currentUser?.id;
+        
+        // If it's our own message or we're near bottom and not actively scrolling
+        if (isOwnMessage || (isNearBottom() && !isUserScrolling)) {
+          setTimeout(() => scrollToBottom('smooth'), 100);
+        } else {
+          setHasNewMessages(true);
+        }
+      })
+      .subscribe();
+
+    return () => subscription.unsubscribe();
+  }, [currentUser, isUserScrolling]); // Add isUserScrolling to dependencies
+
+  // Update the handleMediaLoad function
+  const handleMediaLoad = () => {
+    // Only scroll if this is a new message and we're already at the bottom
+    const lastMessage = messages[messages.length - 1];
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    // If user sends a message (last message is from current user)
-    const lastMessage = messages[messages.length - 1];
-    const isOwnMessage = lastMessage?.users?.username === currentUser?.username;
-    
-    if (isOwnMessage || isNearBottom()) {
-      // Delay the scroll slightly to ensure the new message is rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    } else {
-      // If user is scrolled up, show notification
-      setHasNewMessages(true);
-    }
-  }, [messages, currentUser?.username]);
-
-  // Update the handleScroll function
-  const handleScroll = (e) => {
-    const container = e.target;
-    
-    // Hide new messages notification if user scrolls near bottom
-    if (isNearBottom()) {
-      setHasNewMessages(false);
-    }
-
-    // Check if scrolled near top for loading older messages
-    if (container.scrollTop < 50 && !isLoading && hasMore) {
-      loadOlderMessages();
-    }
-  };
-
-  // Make scrollToBottom more reliable
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
-      setHasNewMessages(false);
+    // Only scroll if we're very close to bottom (within 50px)
+    const scrollPosition = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (scrollPosition < 50 && lastMessage?.media_url) {
+      requestAnimationFrame(() => {
+        scrollToBottom('smooth');
+      });
     }
   };
 
@@ -352,11 +373,23 @@ export default function Chat() {
     setThumbnail(null);
   };
 
-  // Modify handleSendMessage to handle both text and file
+  // Update the scroll notification click handler
+  const scrollToNewMessages = () => {
+    setHasNewMessages(false);
+    setIsUserScrolling(false); // Reset user scrolling state
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Update handleSendMessage to always scroll on new message
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     
-    // Check if we have either a message or a file
     if ((!newMessage.trim() && !selectedFile) || !currentUser?.id) return;
     if (newMessage.length > MAX_MESSAGE_LENGTH) return;
 
@@ -441,10 +474,14 @@ export default function Chat() {
       // Clear inputs
       setNewMessage('');
       setSelectedFile(null);
+      setThumbnail(null);
       setUploadProgress(0);
       
-      // Scroll to bottom
-      setTimeout(scrollToBottom, 100);
+      // Always scroll to bottom when sending a message
+      setIsUserScrolling(false); // Reset user scrolling state
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 100);
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -464,10 +501,7 @@ export default function Chat() {
       
       // Store current scroll position
       const container = messagesContainerRef.current;
-      const previousScrollHeight = container?.scrollHeight;
-      
-      // Add artificial delay
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      const previousScrollHeight = container?.scrollHeight || 0;
       
       const { data, error } = await supabase
         .from('messages')
@@ -486,21 +520,18 @@ export default function Chat() {
         lastMessageDate.current = data[data.length - 1].created_at;
         setMessages(prev => [...data.reverse(), ...prev]);
         
-        // Maintain scroll position after new messages are added
-        setTimeout(() => {
+        // Maintain scroll position
+        requestAnimationFrame(() => {
           if (container) {
             const newScrollHeight = container.scrollHeight;
             container.scrollTop = newScrollHeight - previousScrollHeight;
           }
-        }, 0);
+        });
       }
     } catch (error) {
       console.error('Error loading older messages:', error);
     } finally {
-      // Add small delay before hiding loading indicator
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
+      setIsLoading(false);
     }
   };
 
@@ -513,7 +544,6 @@ export default function Chat() {
 
     const initChat = async () => {
       try {
-        // Fetch initial messages
         const { data: messages } = await supabase
           .from('messages')
           .select('*, users(username, is_admin)')
@@ -526,13 +556,15 @@ export default function Chat() {
           if (messages.length > 0) {
             lastMessageDate.current = messages[0].created_at;
           }
-          // Focus chat and scroll to bottom after small delay
-          setTimeout(() => {
-            if (messagesContainerRef.current) {
-              messagesContainerRef.current.focus();
-              scrollToBottom();
-            }
-          }, 100);
+          
+          // Only scroll on first load
+          if (!messagesContainerRef.current.scrollTop) {
+            requestAnimationFrame(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+              }
+            });
+          }
         }
 
         // Subscribe to new messages
@@ -556,14 +588,13 @@ export default function Chat() {
 
             setMessages(prev => [...prev, newMessage]);
             
-            const isScrolledUp = messagesContainerRef.current && 
-              (messagesContainerRef.current.scrollHeight - messagesContainerRef.current.scrollTop - 
-               messagesContainerRef.current.clientHeight > 100);
-
-            if (isScrolledUp) {
-              setHasNewMessages(true);
+            const isOwnMessage = newMessage.user_id === currentUser?.id;
+            
+            // If it's our own message or we're near bottom and not actively scrolling
+            if (isOwnMessage || (isNearBottom() && !isUserScrolling)) {
+              setTimeout(() => scrollToBottom('smooth'), 100);
             } else {
-              scrollToBottom();
+              setHasNewMessages(true);
             }
           })
           .subscribe();
@@ -604,7 +635,7 @@ export default function Chat() {
       messageSubscription?.unsubscribe();
       presenceSubscription?.unsubscribe();
     };
-  }, [currentUser]);
+  }, [currentUser, isUserScrolling]); // Add isUserScrolling to dependencies
 
   useEffect(() => {
     let presenceSubscription;
@@ -744,18 +775,18 @@ export default function Chat() {
     const isImage = message.media_type?.startsWith('image/');
     const isVideo = message.media_type?.startsWith('video/');
     const isOwnMessage = message.users?.username === currentUser?.username;
-    const isAdmin = message.users?.is_admin; // Check if the user is an admin
+    const isLastMessage = message.id === messages[messages.length - 1]?.id;
 
     return (
       <div className={styles.messageContainer}>
         {!isOwnMessage && (
           <div className={styles.messageUsername}>
-            {isAdmin && <span className={styles.adminIcon}>👑</span>}
+            {message.users?.is_admin && <span className={styles.adminIcon}>👑</span>}
             {message.users?.username}
           </div>
         )}
         <div className={`${styles.messageContent} ${isOwnMessage ? styles.ownMessage : styles.otherMessage}`}>
-          {message.media_url ? (
+          {message.media_url && (
             <div className={styles.mediaContainer}>
               {isImage && (
                 <img
@@ -763,28 +794,30 @@ export default function Chat() {
                   alt="Shared"
                   className={styles.sharedImage}
                   onClick={() => handleImageClick(message.media_url)}
+                  onLoad={() => handleMediaLoad()}
+                  loading="lazy"
                 />
               )}
               {isVideo && (
-                <div className={styles.mediaContainer}>
-                  <video
-                    controls
-                    className={styles.sharedVideo}
-                    preload="metadata"
+                <video
+                  controls
+                  className={styles.sharedVideo}
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                  playsInline
+                  onLoadedMetadata={() => handleMediaLoad()}
+                >
+                  <source 
+                    src={message.media_url} 
+                    type={message.media_type}
                     crossOrigin="anonymous"
-                    playsInline
-                  >
-                    <source 
-                      src={message.media_url} 
-                      type={message.media_type}
-                      crossOrigin="anonymous"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
+                  />
+                  Your browser does not support the video tag.
+                </video>
               )}
             </div>
-          ) : (
+          )}
+          {message.content && (
             <div className={styles.messageText}>
               {formatMessageContent(message.content)}
             </div>
@@ -795,6 +828,24 @@ export default function Chat() {
         </div>
       </div>
     );
+  };
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    const scrollPosition = container.scrollHeight - container.scrollTop - container.clientHeight;
+    
+    // Only set user scrolling if we're significantly up (more than 150px from bottom)
+    if (scrollPosition > 150) {
+      setIsUserScrolling(true);
+    } else if (scrollPosition < 50) {
+      setIsUserScrolling(false);
+      setHasNewMessages(false);
+    }
+
+    // Load older messages when near top
+    if (container.scrollTop < 100 && !isLoading && hasMore) {
+      loadOlderMessages();
+    }
   };
 
   if (!isLoggedIn) return null;
@@ -838,6 +889,7 @@ export default function Chat() {
               
               {messages.map((message) => {
                 const isOwnMessage = message.users?.username === currentUser?.username;
+                const isLastMessage = message.id === messages[messages.length - 1]?.id;
                 
                 return (
                   <div key={message.id} className={styles.messageContainer}>
@@ -864,25 +916,26 @@ export default function Chat() {
                               alt="Shared"
                               className={styles.sharedImage}
                               onClick={() => handleImageClick(message.media_url)}
+                              onLoad={() => handleMediaLoad()}
+                              loading="lazy"
                             />
                           )}
                           {message.media_type?.startsWith('video/') && (
-                            <div className={styles.mediaContainer}>
-                              <video
-                                controls
-                                className={styles.sharedVideo}
-                                preload="metadata"
+                            <video
+                              controls
+                              className={styles.sharedVideo}
+                              preload="metadata"
+                              crossOrigin="anonymous"
+                              playsInline
+                              onLoadedMetadata={() => handleMediaLoad()}
+                            >
+                              <source 
+                                src={message.media_url} 
+                                type={message.media_type}
                                 crossOrigin="anonymous"
-                                playsInline
-                              >
-                                <source 
-                                  src={message.media_url} 
-                                  type={message.media_type}
-                                  crossOrigin="anonymous"
-                                />
-                                Your browser does not support the video tag.
-                              </video>
-                            </div>
+                              />
+                              Your browser does not support the video tag.
+                            </video>
                           )}
                         </div>
                       )}
@@ -899,7 +952,7 @@ export default function Chat() {
               {hasNewMessages && (
                 <button 
                   className={styles.newMessagesNotif}
-                  onClick={scrollToBottom}
+                  onClick={scrollToNewMessages}
                 >
                   New messages ↓
                 </button>
