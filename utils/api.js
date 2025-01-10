@@ -37,25 +37,12 @@ export const validateUserCredentials = async (username, password) => {
   }
 };
     
-// Add a reusable fetch function with cache control
-const fetchWithNoCache = async (url, options = {}) => {
-  const defaultOptions = {
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      ...options.headers
-    }
-  };
-
-  return fetch(url, { ...options, ...defaultOptions });
-};
-
 export const fetchActiveUserSessions = async () => {
   try {
-    const response = await fetchWithNoCache('/api/fetchActiveUserSessions');
+    const response = await fetch('/api/fetchActiveUserSessions');
     if (!response.ok) throw new Error('Error fetching active sessions');
     const data = await response.json();
+    console.log('API response (active sessions):', data); // Add this line
     return data.result || [];
   } catch (error) {
     console.error('Error fetching active user sessions:', error);
@@ -65,56 +52,51 @@ export const fetchActiveUserSessions = async () => {
 
 export const fetchUserBalance = async (userId) => {
   try {
-    const response = await fetchWithNoCache(`/api/fetchUserBalance/${userId}`);
+    const response = await fetch(`/api/fetchUserBalance/${userId}`);
     if (!response.ok) throw new Error('Error fetching user balance');
     const data = await response.json();
-    return data.balance;
+    console.log('API response (user balance):', data); // Add this line
+    return data.balance || 'Error fetching time';
   } catch (error) {
     console.error('Error fetching user balance:', error);
-    return 'Error';
+    return 'Error fetching time';
   }
 };
 
 export const fetchUserById = async (userId) => {
-  try {
-    const response = await fetchWithNoCache(`/api/fetchUserById/${userId}`);
-    if (!response.ok) {
-      console.warn(`Failed to fetch user ${userId}, status: ${response.status}`);
-      return null;
+    try {
+        const response = await fetch(`/api/fetchUserById/${userId}`);
+        if (!response.ok) throw new Error('Error fetching user by ID');
+        const data = await response.json();
+        return data.user || null;
+    } catch (error) {
+        console.error('Error fetching user by ID:', error);
+        return null;
     }
-    const data = await response.json();
-    return data.user || null;
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    return null;
-  }
 };
 
 export const fetchTopUsers = async (numberOfUsers = 10) => {
+  console.log('fetchTopUsers called');
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetchWithNoCache(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}&t=${Date.now()}`, {
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
+    console.log('Making request to /api/fetchtopusers');
+    const response = await fetch(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}`);
+    
     if (!response.ok) {
-      console.error('Top users fetch failed:', response.status);
-      return [];
+      const errorText = await response.text();
+      console.error('Top users fetch failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to fetch top users: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Top users fetch succeeded:', data);
     return data;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('Request timeout fetching top users');
-    } else {
-      console.error('Error in fetchTopUsers:', error);
-    }
-    return [];
+    console.error('Error in fetchTopUsers:', error);
+    throw error;
   }
 };
 

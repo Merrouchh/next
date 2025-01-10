@@ -1,6 +1,6 @@
 /* Main Container */
 .container {
-  padding-top: 100px;
+  padding-top: 80px;
   padding-left: 2rem;
   padding-right: 2rem;
   padding-bottom: 2rem;
@@ -8,23 +8,40 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: linear-gradient(135deg, rgba(16, 16, 28, 0.95) 0%, rgba(25, 25, 45, 0.95) 100%);
 }
 
 /* Chat Container */
 .chatContainer {
   width: 100%;
   max-width: 1200px;
-  height: 75vh;
+  height: 80vh;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 215, 0, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  background: rgba(30, 30, 50, 0.8);
+  border-radius: 24px;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 32px rgba(255, 215, 0, 0.05);
   position: relative;
   overflow: hidden;
+  animation: containerFadeIn 0.5s ease-out;
+}
+
+/* Add animation for container */
+@keyframes containerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Messages Area */
@@ -35,81 +52,257 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  outline: none; /* Remove focus outline but keep focusable */
+  background: linear-gradient(180deg, 
+    rgba(30, 30, 50, 0) 0%,
+    rgba(30, 30, 50, 0.5) 100%
+  );
+}
+
+/* Input Container */
+.inputContainer {
+  padding: 1.5rem;
+  background: rgba(20, 20, 35, 0.9);
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  display: flex;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.inputWrapper input {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  padding-right: 3.5rem;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.inputWrapper input:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 0 0 3px rgba(255, 215, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Send Button */
+.inputContainer button {
+  padding: 0.875rem 1.75rem;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(45deg, #FFD700, #FFC107);
+  color: #000;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 110px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 2px 8px rgba(255, 215, 0, 0.2),
+    0 0 0 1px rgba(255, 215, 0, 0.1);
+}
+
+.inputContainer button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(255, 215, 0, 0.3),
+    0 0 0 1px rgba(255, 215, 0, 0.2);
+  background: linear-gradient(45deg, #FFE44D, #FFD700);
+}
+
+.inputContainer button:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 4px rgba(255, 215, 0, 0.2),
+    0 0 0 1px rgba(255, 215, 0, 0.1);
 }
 
 /* Message Container */
 .messageContainer {
+  margin: 8px 0;
+  max-width: 85%;
   display: flex;
   flex-direction: column;
-  max-width: 70%;
 }
 
-/* Message alignment */
-.messageContainer:has(.myMessage) {
-  align-self: flex-end;
+/* Username Style */
+.messageUsername {
+  font-size: 0.9rem;
+  color: #FFD700;
+  margin-bottom: 4px;
+  margin-left: 12px;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-.messageContainer:has(.otherMessage) {
+/* Message Content Base Style */
+.messageContent {
+  padding: 12px 16px;
+  position: relative;
+  word-break: break-word;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+/* Your Own Message Style */
+.ownMessage {
+  background: linear-gradient(135deg, rgba(0, 150, 255, 0.15), rgba(0, 100, 255, 0.25));
+  border-left: 3px solid #0084ff;
+  color: #ffffff;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0, 132, 255, 0.15);
+}
+
+/* Other Users' Message Style */
+.otherMessage {
+  background: linear-gradient(135deg, rgba(45, 45, 65, 0.7), rgba(30, 30, 45, 0.9));
+  border-left: 3px solid #4a4a6a;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Message Text Style */
+.messageText {
+  color: #ffffff;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  letter-spacing: 0.2px;
+}
+
+/* Message Time Style */
+.messageTime {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+  display: block;
+  text-align: right;
+}
+
+/* Message Link Style */
+.messageLink {
+  color: #00ccff;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 204, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.messageLink:hover {
+  color: #66e6ff;
+  border-bottom-color: rgba(102, 230, 255, 0.5);
+}
+
+/* Hover Effects */
+.messageContent:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.ownMessage:hover {
+  box-shadow: 0 6px 20px rgba(0, 132, 255, 0.2);
+}
+
+.otherMessage:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.mediaContainer {
+  max-width: 400px;
+  margin: 5px 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sharedImage {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.sharedVideo {
+  width: 100%;
+  max-width: 400px;
+  max-height: 300px;
+  border-radius: 12px;
+  background: #000;
+}
+
+.messageLink {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.ownMessage .messageLink {
+  color: #fff;
+}
+
+/* Message container alignment */
+.messageContainer:not(:has(.ownMessage)) {
   align-self: flex-start;
 }
 
-.messageHeader {
-  font-size: 0.85rem;
-  color: #FFD700;
-  margin-bottom: 0.25rem;
-  padding-left: 0.5rem;
+.messageContainer:has(.ownMessage) {
+  align-self: flex-end;
 }
 
-/* Message Styles */
-.message {
+/* Improve video controls visibility */
+.sharedVideo::-webkit-media-controls {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 0 0 12px 12px;
+}
+
+.sharedVideo::-webkit-media-controls-panel {
+  padding: 0 5px;
+}
+
+/* Upload progress styles */
+.uploadProgress {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
   padding: 1rem;
-  border-radius: 16px;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  max-width: 100%;
-  word-break: break-word;
+  border-radius: 8px;
+  z-index: 1000;
+}
+
+.progressBar {
+  width: 200px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 5px 0;
   position: relative;
 }
 
-.myMessage {
-  background: linear-gradient(45deg, #FFD700, #FFC107);
-  color: #000;
-  border-bottom-right-radius: 4px;
-  margin-left: auto;
+.progressFill {
+  height: 100%;
+  background: #4a9eff;
+  transition: width 0.3s ease;
 }
 
-.otherMessage {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-bottom-left-radius: 4px;
-}
-
-/* Message bubble tails */
-.myMessage::after {
-  content: '';
+.progressBar span {
   position: absolute;
-  bottom: 0;
-  right: -8px;
-  width: 0;
-  height: 0;
-  border: 8px solid transparent;
-  border-left-color: #FFC107;
-  border-right: 0;
-  border-bottom: 0;
-}
-
-.otherMessage::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: -8px;
-  width: 0;
-  height: 0;
-  border: 8px solid transparent;
-  border-right-color: rgba(255, 255, 255, 0.1);
-  border-left: 0;
-  border-bottom: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 /* Input Area */
@@ -412,7 +605,7 @@
   backdrop-filter: blur(10px);
   border-left: 1px solid rgba(255, 215, 0, 0.1);
   transition: right 0.3s ease;
-  z-index: 1000;
+  z-index: 999;
   padding: 1rem;
 }
 
@@ -429,6 +622,26 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.drawerHeader h3 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.drawerHeader button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.drawerHeader button:hover {
+  color: #ffffff;
+}
+
 .onlineUsersList {
   list-style: none;
   padding: 0;
@@ -441,6 +654,17 @@
   border-radius: 8px;
   color: #fff;
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.onlineUsersList li:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.adminIcon {
+  color: #FFD700;
 }
 
 .backdrop {
@@ -450,13 +674,13 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  z-index: 998;
 }
 
 /* New Messages Notification */
 .newMessagesNotif {
-  position: absolute;
-  bottom: 100px;
+  position: fixed;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(20, 20, 35, 0.95);
@@ -467,7 +691,7 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  z-index: 10;
+  z-index: 1000;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -535,4 +759,88 @@
 
 .messageLink:active {
   opacity: 0.6;
+}
+
+.fileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4a9eff;
+  text-decoration: none;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.fileLink:hover {
+  background: rgba(74, 158, 255, 0.2);
+}
+
+.uploadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.uploadButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.uploadButton.uploading {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uploadIcon {
+  width: 24px;
+  height: 24px;
+  color: #FFD700;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-top-color: #FFD700;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .mediaContainer {
+    max-width: 250px;
+  }
+  
+  .uploadButton {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .uploadIcon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Message Text Style */
+.messageText {
+  color: #ffffff; /* White text for better readability */
+}
+
+/* Message Time Style */
+.messageTime {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7); /* Slightly transparent white for time */
+  margin-top: 4px;
+  display: block;
 }

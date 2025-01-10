@@ -9,24 +9,20 @@ const DarkModeMap = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Wait for the DOM to be ready
     if (typeof window === 'undefined') return;
 
     const initializeMap = async () => {
       try {
-        // Check if container exists
         if (!mapRef.current) {
           console.error('Map container not found');
           return;
         }
 
-        // Prevent multiple initializations
         if (isInitialized.current) return;
 
         const L = (await import('leaflet')).default;
         await import('leaflet/dist/leaflet.css');
 
-        // Double check container still exists after imports
         if (!mapRef.current) {
           console.error('Map container lost after initialization');
           return;
@@ -34,7 +30,6 @@ const DarkModeMap = () => {
 
         isInitialized.current = true;
         
-        // Initialize map
         mapInstance.current = L.map(mapRef.current, {
           center: [35.768685, -5.810158],
           zoom: 16,
@@ -46,12 +41,12 @@ const DarkModeMap = () => {
           attributionControl: false,
         });
 
-        // Add tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-        }).addTo(mapInstance.current);
+        const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        });
 
-        // Add custom marker
+        darkTileLayer.addTo(mapInstance.current);
+
         const customIcon = L.divIcon({
           className: styles.markerIcon,
           html: `
@@ -69,7 +64,6 @@ const DarkModeMap = () => {
           icon: customIcon,
         }).addTo(mapInstance.current);
 
-        // Force a resize to ensure proper rendering
         setTimeout(() => {
           mapInstance.current?.invalidateSize();
           setIsLoading(false);
@@ -81,7 +75,6 @@ const DarkModeMap = () => {
       }
     };
 
-    // Delay initialization slightly to ensure DOM is ready
     const timer = setTimeout(initializeMap, 100);
 
     return () => {
@@ -102,7 +95,6 @@ const DarkModeMap = () => {
   );
 };
 
-// Export as dynamic component with no SSR
 export default dynamic(() => Promise.resolve(DarkModeMap), {
   ssr: false,
   loading: () => <div className={styles.mapLoading}>Loading map component...</div>

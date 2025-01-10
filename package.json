@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.11.0",
+    "@ffmpeg/ffmpeg": "^0.11.0",
+    "@ffmpeg/util": "0.12.1",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.7.0",
@@ -18,10 +21,13 @@
     "@supabase/supabase-js": "latest",
     "@types/leaflet": "^1.9.15",
     "body-parser": "^1.20.3",
+    "browser-image-compression": "^2.0.2",
     "consolidate": "^1.0.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ffmpeg": "^0.0.4",
+    "formidable": "^3.5.2",
     "fullpage.js": "^4.0.31",
     "git": "^0.1.5",
     "leaflet": "^1.9.4",

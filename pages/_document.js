@@ -32,6 +32,9 @@ class MyDocument extends Document {
           
           {/* Web App Manifest */}
           <link rel="manifest" href="/manifest.json" />
+          <meta httpEquiv="Cross-Origin-Opener-Policy" content="same-origin" />
+          <meta httpEquiv="Cross-Origin-Embedder-Policy" content="credentialless" />
+          <meta httpEquiv="Cross-Origin-Resource-Policy" content="same-site" />
         </Head>
         <body>
           <Main />

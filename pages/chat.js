@@ -1,12 +1,236 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { createClient } from '../utils/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/Chat.module.css';
 import Head from 'next/head';
+import Image from 'next/image';
+import imageCompression from 'browser-image-compression';
+import dynamic from 'next/dynamic';
+import { getSupabaseClient } from '../utils/supabase/client';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 const MAX_MESSAGE_LENGTH = 255;
+
+// Initialize FFmpeg at module level
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+
+let ffmpeg = null;
+let isFFmpegLoaded = false;
+
+// Initialize FFmpeg function
+const initFFmpeg = async () => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    if (!ffmpeg) {
+      ffmpeg = createFFmpeg({
+        log: true,
+        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+        wasmPath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm',
+        mainName: 'main',
+        threads: 1, // Disable multi-threading to avoid errors
+        logger: ({ message }) => console.log('FFmpeg Log:', message),
+        progress: ({ ratio }) => console.log('FFmpeg Progress:', ratio)
+      });
+    }
+
+    if (!isFFmpegLoaded) {
+      await ffmpeg.load();
+      isFFmpegLoaded = true;
+      console.log('FFmpeg loaded successfully');
+    }
+
+    return ffmpeg;
+  } catch (error) {
+    console.error('FFmpeg initialization failed:', error);
+    return null;
+  }
+};
+
+const compressImage = async (file) => {
+  try {
+    console.log('Starting image compression...');
+    console.log('Original image size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+
+    const options = {
+      maxSizeMB: 1,            // Max file size in MB
+      maxWidthOrHeight: 1280,  // Max width/height
+      useWebWorker: true,
+      fileType: file.type,
+      initialQuality: 0.7      // Initial quality (0-1)
+    };
+
+    const compressedFile = await imageCompression(file, options);
+    console.log('Compressed image size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+    return compressedFile;
+  } catch (error) {
+    console.error('Image compression failed:', error);
+    return file;
+  }
+};
+
+const getFileBlob = async (file) => {
+  const response = await fetch(URL.createObjectURL(file));
+  const data = await response.blob();
+  return data;
+};
+
+// Update compressVideo function with faster settings
+const compressVideo = async (file, setCompressionProgress) => {
+  try {
+    const ffmpegInstance = await initFFmpeg();
+    if (!ffmpegInstance) throw new Error('FFmpeg not initialized');
+
+    setCompressionProgress(30);
+    console.log('Starting video compression...');
+
+    // Convert file to buffer
+    const fileData = await fetchFile(file);
+    ffmpegInstance.FS('writeFile', 'input.mp4', fileData);
+    
+    setCompressionProgress(50);
+
+    // More stable FFmpeg command with simplified settings
+    await ffmpegInstance.run(
+      '-i', 'input.mp4',
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast', // Change to ultrafast for better stability
+      '-tune', 'fastdecode',
+      '-crf', '30',
+      '-vf', 'scale=640:-2', // Reduced resolution
+      '-threads', '1',        // Single thread
+      '-movflags', '+faststart',
+      '-c:a', 'aac',
+      '-b:a', '64k',         // Reduced audio bitrate
+      '-y',                  // Overwrite output
+      'output.mp4'
+    );
+
+    setCompressionProgress(80);
+
+    // Read the compressed file
+    const data = ffmpegInstance.FS('readFile', 'output.mp4');
+    const compressedVideo = new Blob([data.buffer], { type: 'video/mp4' });
+    
+    // Clean up
+    try {
+      ffmpegInstance.FS('unlink', 'input.mp4');
+      ffmpegInstance.FS('unlink', 'output.mp4');
+    } catch (e) {
+      console.warn('Cleanup warning:', e);
+    }
+
+    setCompressionProgress(100);
+    
+    return compressedVideo;
+  } catch (error) {
+    console.error('Video compression failed:', error);
+    throw new Error('Video compression failed: ' + error.message);
+  }
+};
+
+const UploadProgress = ({ compression, upload }) => {
+  return (
+    <div className={styles.uploadProgress}>
+      {compression > 0 && (
+        <div className={styles.progressBar}>
+          <div 
+            className={styles.progressFill} 
+            style={{ width: `${compression}%` }}
+          />
+          <span>Compressing: {compression}%</span>
+        </div>
+      )}
+      {upload > 0 && (
+        <div className={styles.progressBar}>
+          <div 
+            className={styles.progressFill} 
+            style={{ width: `${upload}%` }}
+          />
+          <span>Uploading: {upload}%</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Add this helper function to upload files to Supabase
+const uploadFileToSupabase = async (file, folder, userId) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}/${Date.now()}.${fileExt}`;
+  const filePath = `${folder}/${fileName}`;
+
+  const { data, error } = await supabase.storage
+    .from('media')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) throw error;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('media')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
+};
+
+// Add helper function to insert message
+const insertMessage = async (supabase, userId, content = '', mediaUrl = null, mediaType = null) => {
+  if (!userId) throw new Error('User ID is required');
+
+  const messageData = {
+    user_id: userId,
+    content: content,
+    ...(mediaUrl && { media_url: mediaUrl }),
+    ...(mediaType && { media_type: mediaType })
+  };
+
+  const { data, error } = await supabase
+    .from('messages')
+    .insert([messageData])
+    .select('*, users(username, is_admin)')
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+const OnlineUsersDrawer = ({ users, isOpen, onClose }) => {
+  console.log('Online Users in Drawer:', users);
+  return (
+    <>
+      {isOpen && <div className={styles.backdrop} onClick={onClose} />}
+      <div className={`${styles.onlineUsersDrawer} ${isOpen ? styles.show : ''}`}>
+        <div className={styles.drawerHeader}>
+          <h3>Online Users ({users.length})</h3>
+          <button onClick={onClose}>×</button>
+        </div>
+        <ul className={styles.onlineUsersList}>
+          {users.map((user) => (
+            <li key={user.user_id}>
+              {user.is_admin && <span className={styles.adminIcon}>👑 </span>}
+              {user.username}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+// Function to filter out duplicate usernames
+const getUniqueUsers = (users) => {
+  const uniqueUsersMap = new Map();
+  users.forEach(user => {
+    if (!uniqueUsersMap.has(user.username)) {
+      uniqueUsersMap.set(user.username, user);
+    }
+  });
+  return Array.from(uniqueUsersMap.values());
+};
 
 export default function Chat() {
   const { isLoggedIn, user: currentUser } = useAuth();
@@ -24,33 +248,48 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Update scroll behavior
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      container.scrollTop = container.scrollHeight;
-    }
+  // Add this state for loading
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const [isFFmpegLoading, setIsFFmpegLoading] = useState(false);
+
+  // Function to check if user is near bottom - make it more sensitive
+  const isNearBottom = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return false;
+    
+    // Increase sensitivity by reducing the threshold from 100 to 150
+    const scrollPosition = container.scrollHeight - container.scrollTop - container.clientHeight;
+    return scrollPosition < 150;
   };
 
-  // Scroll to bottom on new messages
+  // Handle new messages and scrolling behavior
   useEffect(() => {
-    // Only auto-scroll if user is already at bottom or it's the initial load
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      
-      if (isAtBottom) {
-        scrollToBottom();
-      }
-    }
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-  // Handle scroll with throttling
+    // If user sends a message (last message is from current user)
+    const lastMessage = messages[messages.length - 1];
+    const isOwnMessage = lastMessage?.users?.username === currentUser?.username;
+    
+    if (isOwnMessage || isNearBottom()) {
+      // Delay the scroll slightly to ensure the new message is rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } else {
+      // If user is scrolled up, show notification
+      setHasNewMessages(true);
+    }
+  }, [messages, currentUser?.username]);
+
+  // Update the handleScroll function
   const handleScroll = (e) => {
     const container = e.target;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
     
-    if (isNearBottom) {
+    // Hide new messages notification if user scrolls near bottom
+    if (isNearBottom()) {
       setHasNewMessages(false);
     }
 
@@ -60,23 +299,27 @@ export default function Chat() {
     }
   };
 
+  // Make scrollToBottom more reliable
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+      setHasNewMessages(false);
+    }
+  };
+
   // Handle sending message
   const handleSendMessage = async (e) => {
     e?.preventDefault();
-    if (!newMessage.trim() || newMessage.length > MAX_MESSAGE_LENGTH) return;
+    if (!newMessage.trim() || newMessage.length > MAX_MESSAGE_LENGTH || !currentUser?.id) return;
 
     try {
-      await supabase
-        .from('messages')
-        .insert([{ 
-          user_id: currentUser.id, 
-          content: newMessage.trim() 
-        }]);
-
+      await insertMessage(supabase, currentUser.id, newMessage.trim());
       setNewMessage('');
-      scrollToBottom(); // Add scroll after sending
+      scrollToBottom();
     } catch (error) {
       console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
     }
   };
 
@@ -199,15 +442,24 @@ export default function Chat() {
         
         presenceSubscription
           .on('presence', { event: 'sync' }, () => {
-            const presenceState = presenceSubscription.presenceState();
-            const users = Object.values(presenceState).flat();
-            setOnlineUsers(users.map(u => u.username));
+            const state = presenceSubscription.presenceState();
+            const presentUsers = Object.values(state).flat().map(presence => ({
+              user_id: presence.user_id,
+              username: presence.username,
+              is_admin: presence.is_admin
+            }));
+
+            // Use the function to get unique users
+            const uniqueUsers = getUniqueUsers(presentUsers);
+            console.log('Present Users:', uniqueUsers); // Debugging log
+            setOnlineUsers(uniqueUsers);
           })
           .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
               await presenceSubscription.track({
+                user_id: currentUser.id,
                 username: currentUser.username,
-                online_at: new Date().toISOString(),
+                is_admin: currentUser.is_admin
               });
             }
           });
@@ -222,6 +474,64 @@ export default function Chat() {
       presenceSubscription?.unsubscribe();
     };
   }, [currentUser]);
+
+  useEffect(() => {
+    let presenceSubscription;
+
+    const setupPresence = async () => {
+      if (!currentUser?.id) return;
+
+      try {
+        // Clean up any existing subscriptions
+        const existingChannels = supabase.getChannels();
+        for (const channel of existingChannels) {
+          await channel.unsubscribe();
+        }
+
+        // Set up presence channel
+        presenceSubscription = supabase
+          .channel('online-users')
+          .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+            setOnlineUsers(prevUsers => [...prevUsers, ...newPresences]);
+          })
+          .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+            setOnlineUsers(prevUsers => 
+              prevUsers.filter(user => 
+                !leftPresences.find(left => left.user_id === user.user_id)
+              )
+            );
+          })
+          .on('presence', { event: 'sync' }, () => {
+            const state = presenceSubscription.presenceState();
+            // Convert presence state to array of users
+            const users = Object.values(state).flat();
+            setOnlineUsers(users);
+          })
+          .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+              await presenceSubscription.track({
+                user_id: currentUser.id,
+                username: currentUser.username,
+                is_admin: currentUser.is_admin
+              });
+            }
+          });
+
+      } catch (error) {
+        console.error('Error setting up presence:', error);
+      }
+    };
+
+    setupPresence();
+
+    // Cleanup function
+    return () => {
+      if (presenceSubscription) {
+        presenceSubscription.untrack();
+        presenceSubscription.unsubscribe();
+      }
+    };
+  }, [currentUser?.id, currentUser?.username, currentUser?.is_admin]);
 
   const formatMessageContent = (content) => {
     // Updated regex to match URLs with or without protocol
@@ -290,6 +600,99 @@ export default function Chat() {
     }
   };
 
+  // Update the handleFileUpload function
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !currentUser?.id) return;
+
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      let mediaUrl;
+
+      if (file.type.startsWith('video/') || file.type.startsWith('image/')) {
+        // Upload directly to Supabase
+        const folder = file.type.startsWith('video/') ? 'videos' : 'images';
+        mediaUrl = await uploadFileToSupabase(file, folder, currentUser.id);
+        setUploadProgress(50);
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      // Insert message with file
+      await insertMessage(supabase, currentUser.id, '', mediaUrl, file.type);
+      setUploadProgress(100);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      event.target.value = ''; // Reset the file input
+    }
+  };
+
+  // Update message rendering to handle media
+  const renderMessage = (message) => {
+    const isImage = message.media_type?.startsWith('image/');
+    const isVideo = message.media_type?.startsWith('video/');
+    const isOwnMessage = message.users?.username === currentUser?.username;
+    const isAdmin = message.users?.is_admin; // Check if the user is an admin
+
+    return (
+      <div className={styles.messageContainer}>
+        {!isOwnMessage && (
+          <div className={styles.messageUsername}>
+            {isAdmin && <span className={styles.adminIcon}>👑</span>}
+            {message.users?.username}
+          </div>
+        )}
+        <div className={`${styles.messageContent} ${isOwnMessage ? styles.ownMessage : styles.otherMessage}`}>
+          {message.media_url ? (
+            <div className={styles.mediaContainer}>
+              {isImage && (
+                <Image
+                  src={message.media_url}
+                  alt="Shared image"
+                  width={400}
+                  height={300}
+                  className={styles.sharedImage}
+                  loading="lazy"
+                />
+              )}
+              {isVideo && (
+                <div className={styles.mediaContainer}>
+                  <video
+                    controls
+                    className={styles.sharedVideo}
+                    preload="metadata"
+                    crossOrigin="anonymous"
+                    playsInline
+                  >
+                    <source 
+                      src={message.media_url} 
+                      type={message.media_type}
+                      crossOrigin="anonymous"
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={styles.messageText}>
+              {formatMessageContent(message.content)}
+            </div>
+          )}
+          <span className={styles.messageTime}>
+            {formatMessageTime(message.created_at)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   if (!isLoggedIn) return null;
 
   return (
@@ -311,40 +714,25 @@ export default function Chat() {
               </svg>
             </button>
 
+            <OnlineUsersDrawer 
+              users={onlineUsers}
+              isOpen={showOnlineUsers}
+              onClose={() => setShowOnlineUsers(false)}
+            />
+
             <div 
               ref={messagesContainerRef}
               className={styles.messages} 
               onScroll={handleScroll}
-              tabIndex={0} // Make container focusable
+              tabIndex={0}
             >
-              {/* Loading indicator */}
               {isLoading && (
                 <div className={styles.loadingMore}>
                   Loading more messages...
                 </div>
               )}
               
-              {messages.map((message) => (
-                <div key={message.id} className={styles.messageContainer}>
-                  {message.users?.username !== currentUser?.username && (
-                    <div className={styles.messageHeader}>
-                      <strong>{message.users?.username || 'Unknown'}</strong>
-                    </div>
-                  )}
-                  <div className={`${styles.message} ${
-                    message.users?.username === currentUser?.username 
-                      ? styles.myMessage 
-                      : styles.otherMessage
-                  }`}>
-                    <div className={styles.messageContent}>
-                      {formatMessageContent(message.content)}
-                    </div>
-                    <span className={styles.messageTime}>
-                      {formatMessageTime(message.created_at)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {messages.map((message) => renderMessage(message))}
               <div ref={messagesEndRef} />
               
               {hasNewMessages && (
@@ -374,34 +762,37 @@ export default function Chat() {
                   {newMessage.length}/{MAX_MESSAGE_LENGTH}
                 </span>
               </div>
+              <label className={`${styles.uploadButton} ${isUploading || isFFmpegLoading ? styles.uploading : ''}`}>
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={isUploading || isFFmpegLoading}
+                  accept="image/*,video/*,audio/*"
+                  style={{ display: 'none' }}
+                />
+                {isUploading || isFFmpegLoading ? (
+                  <div className={styles.spinner} />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={styles.uploadIcon}>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                  </svg>
+                )}
+              </label>
               <button 
                 type="submit"
-                disabled={!newMessage.trim()}
+                disabled={!newMessage.trim() || isUploading}
               >
                 Send
               </button>
             </form>
-          </div>
 
-          {showOnlineUsers && (
-            <>
-              <div className={`${styles.onlineUsersDrawer} ${showOnlineUsers ? styles.show : ''}`}>
-                <div className={styles.drawerHeader}>
-                  <h3>Online Users ({onlineUsers.length})</h3>
-                  <button onClick={() => setShowOnlineUsers(false)}>×</button>
-                </div>
-                <ul className={styles.onlineUsersList}>
-                  {onlineUsers.map((username, index) => (
-                    <li key={index}>{username}</li>
-                  ))}
-                </ul>
-              </div>
-              <div 
-                className={styles.backdrop}
-                onClick={() => setShowOnlineUsers(false)}
+            {(uploadProgress > 0 || compressionProgress > 0) && (
+              <UploadProgress 
+                compression={compressionProgress} 
+                upload={uploadProgress} 
               />
-            </>
-          )}
+            )}
+          </div>
         </main>
       </div>
     </>

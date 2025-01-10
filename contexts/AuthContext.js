@@ -36,6 +36,8 @@ export const AuthProvider = ({ children }) => {
   });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutTimeout, setLogoutTimeout] = useState(null);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // All useEffects should be after state declarations
   useEffect(() => {
@@ -123,10 +125,10 @@ export const AuthProvider = ({ children }) => {
 
   // Add session recovery mechanism
   const login = async (username, password) => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setAuthState(prev => ({ ...prev, loading: true }));
-      
-      // Get user email and gizmo_id first
       const { data: userData } = await supabase
         .from('users')
         .select('email, gizmo_id')
@@ -167,7 +169,14 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('rate limit')) {
+          setError('Too many login attempts. Please try again later.');
+        } else {
+          setError(error.message);
+        }
+        return;
+      }
 
       // Get full user data
       const { data: fullUserData } = await supabase
@@ -194,8 +203,11 @@ export const AuthProvider = ({ children }) => {
       return false;
     } catch (error) {
       console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
       setAuthState(prev => ({ ...prev, loading: false }));
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -463,7 +475,9 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         userExists,
-        createUser
+        createUser,
+        error,
+        isLoading
       }}
     >
       {children}
