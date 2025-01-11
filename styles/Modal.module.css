@@ -4,181 +4,62 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
-  padding: 1rem;
-  animation: fadeIn 0.3s ease;
 }
 
 .modalContent {
-  background: linear-gradient(145deg, #131722, #1a1f2e);
-  border-radius: 20px;
-  padding: 2rem;
-  max-width: 400px;
-  width: 100%;
-  position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 215, 0, 0.1);
-  animation: slideUp 0.4s ease;
+  background: rgb(0, 0, 0);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 400px;
+}
+
+.modalContent h2 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.modalContent p {
+  font-size: 1rem;
+  margin-bottom: 20px;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.loginButton {
+  background-color: #ffb006;
+  color: rgb(0, 0, 0);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.loginButton:hover {
+  background-color: #ffffff;
 }
 
 .closeButton {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
+  background-color: #ccc;
+  color: black;
   border: none;
-  color: #FFD700;
-  font-size: 1.5rem;
+  padding: 10px 15px;
+  border-radius: 5px;
   cursor: pointer;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  transition: background-color 0.3s;
 }
 
 .closeButton:hover {
-  background: rgba(255, 215, 0, 0.1);
-  transform: rotate(90deg);
-}
-
-.modalTitle {
-  color: #FFD700;
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
-  font-weight: 600;
-  font-family: 'Orbitron', sans-serif;
-}
-
-.modalForm {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-.inputGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.label {
-  color: #FFD700;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-left: 0.5rem;
-}
-
-.input {
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  color: #ffffff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #FFD700;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-}
-
-.submitButton {
-  background: linear-gradient(45deg, #FFD700, #FFC107);
-  color: #000000;
-  padding: 1rem;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.submitButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-}
-
-.submitButton:active {
-  transform: translateY(0);
-}
-
-.error {
-  color: #ff4d4d;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-  text-align: center;
-  background: rgba(255, 77, 77, 0.1);
-  padding: 0.5rem;
-  border-radius: 8px;
-  animation: shake 0.5s ease;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-/* Mobile Responsiveness */
-@media (max-width: 480px) {
-  .modalContent {
-    padding: 1.5rem;
-  }
-
-  .modalTitle {
-    font-size: 1.5rem;
-  }
-
-  .input {
-    font-size: 16px; /* Prevents zoom on mobile */
-  }
-
-  .submitButton {
-    padding: 0.8rem;
-  }
-}
-
-/* Dark mode optimization */
-@media (prefers-color-scheme: dark) {
-  .modalContent {
-    background: linear-gradient(145deg, #0f1119, #161a27);
-  }
+  background-color: #aaa;
 } 

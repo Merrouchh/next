@@ -105,7 +105,7 @@ const LoginModal = ({ isOpen, onClose }) => {
                 />
                 {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
                 <button type="submit" className={styles.loginButton}>
-                  Validate
+                  Login
                 </button>
               </form>
             </>

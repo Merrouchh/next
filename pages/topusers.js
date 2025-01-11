@@ -125,7 +125,7 @@ const TopUsers = () => {
   };
 
   return (
-    <>
+    <div className={styles.container}>
       <Head>
         <title>Top Users</title>
         <meta name="robots" content="index, follow" />
@@ -158,7 +158,7 @@ const TopUsers = () => {
           </div>
         )}
       </main>
-    </>
+    </div>
   );
 };
 

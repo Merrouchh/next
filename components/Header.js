@@ -113,7 +113,7 @@ const Header = () => {
         <div className={styles.logoContainer}>
           {/* Go Back Button in Header for Mobile - Add dashboard check */}
           {isMobile && showGoBackButton && (
-            <button className={styles.goBackButton} onClick={goBack}>
+            <button className={`${styles.goBackButton} ${showGoBackButton ? styles.show : ''}`} onClick={goBack}>
               <AiOutlineArrowLeft size={30} /> {/* Icon for the button */}
             </button>
           )}

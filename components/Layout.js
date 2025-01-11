@@ -4,13 +4,15 @@ import { useRouter } from 'next/router';
 
 const Layout = ({ children }) => {
   const router = useRouter();
-  const isChat = router.pathname === '/chat';
+  const hideFooterPaths = ['/avcomputers', '/dashboard', '/chat']; // Pages where footer should be hidden
 
   return (
     <>
       <Header />
       {children}
-      {!isChat && <Footer />}
+      {!hideFooterPaths.includes(router.pathname) && (
+        <Footer />
+      )}
     </>
   );
 };

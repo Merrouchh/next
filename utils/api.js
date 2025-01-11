@@ -50,16 +50,29 @@ export const fetchActiveUserSessions = async () => {
   }
 };
 
-export const fetchUserBalance = async (userId) => {
+export const fetchUserBalance = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/fetchUserBalance/${userId}`);
-    if (!response.ok) throw new Error('Error fetching user balance');
+    const response = await fetch(`/api/users/${gizmoId}/balance`);
+    if (!response.ok) {
+      console.error('Error response from balance API:', response.status);
+      throw new Error('Failed to fetch balance info');
+    }
+
     const data = await response.json();
-    console.log('API response (user balance):', data); // Add this line
-    return data.balance || 'Error fetching time';
+    console.log('Balance info:', data);
+
+    return {
+      balance: data.balance || 0,
+      hasDebt: data.balance < 0,
+      debtAmount: data.balance < 0 ? Math.abs(data.balance) : 0
+    };
   } catch (error) {
     console.error('Error fetching user balance:', error);
-    return 'Error fetching time';
+    return {
+      balance: 0,
+      hasDebt: false,
+      debtAmount: 0
+    };
   }
 };
 
@@ -136,6 +149,64 @@ export const fetchUserPoints = async (gizmoId) => {
   } catch (error) {
     console.error('Error fetching user points:', error);
     throw error;
+  }
+};
+
+export const fetchUserTimeInfo = async (gizmoId) => {
+  try {
+    const response = await fetch(`/api/users/${gizmoId}/producttimeextended`);
+    if (!response.ok) {
+      console.error('Error response from time info API:', response.status);
+      throw new Error('Failed to fetch time info');
+    }
+
+    const data = await response.json();
+    console.log('Time info API response:', data);
+
+    // Check if data has the expected structure
+    if (!data || !Array.isArray(data.result)) {
+      console.error('Invalid data structure received:', data);
+      return {
+        vip: { hours: 0, minutes: 0 },
+        normal: { hours: 0, minutes: 0 },
+        bonus: { hours: 0, minutes: 0 }
+      };
+    }
+
+    const validEntries = data.result.filter(entry => 
+      entry && !entry.isDepleted && !entry.isVoided
+    );
+
+    // Calculate totals for each category
+    const totals = validEntries.reduce((acc, entry) => {
+      if (!entry || !entry.productName) return acc;
+
+      const category = entry.productName.toLowerCase().includes('vip') ? 'vip' :
+                      entry.productName.toLowerCase().includes('normal') ? 'normal' : 'bonus';
+      
+      acc[category] += (entry.secondsLeft || 0);
+      return acc;
+    }, { vip: 0, normal: 0, bonus: 0 });
+
+    // Convert seconds to hours and minutes
+    const formatTime = (seconds) => ({
+      hours: Math.floor(seconds / 3600),
+      minutes: Math.floor((seconds % 3600) / 60)
+    });
+
+    return {
+      vip: formatTime(totals.vip),
+      normal: formatTime(totals.normal),
+      bonus: formatTime(totals.bonus)
+    };
+  } catch (error) {
+    console.error('Error fetching user time info:', error);
+    // Return default values on error
+    return {
+      vip: { hours: 0, minutes: 0 },
+      normal: { hours: 0, minutes: 0 },
+      bonus: { hours: 0, minutes: 0 }
+    };
   }
 };
 

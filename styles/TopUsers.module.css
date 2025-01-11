@@ -245,3 +245,10 @@
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
+
+
+
+/* Add this new style for the last user item */
+.userItem:last-child {
+  margin-bottom: 60px; /* Adjust the value as needed */
+}

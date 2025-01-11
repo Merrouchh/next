@@ -14,6 +14,9 @@ import {
 } from 'react-icons/ai';
 import dynamic from 'next/dynamic';
 import LoadingScreen from '../components/LoadingScreen';
+import AccountPromptModal from '../components/AccountPromptModal';
+import LoginModal from '../components/LoginModal';
+import NumberDisplay from '../components/NumberDisplay';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -23,6 +26,8 @@ export default function Home() {
   const { isLoggedIn, loading, user } = useAuth();
   const router = useRouter();
   const [progress, setProgress] = useState(0);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Scroll progress effect
   useEffect(() => {
@@ -46,6 +51,19 @@ export default function Home() {
       router.replace('/dashboard');
     }
   }, [loading, isLoggedIn, user, router, router.pathname]);
+
+  const handleCheckAvailability = () => {
+    if (!isLoggedIn) {
+      setShowAccountPrompt(true);
+    } else {
+      router.push('/avcomputers');
+    }
+  };
+
+  const handleLogin = () => {
+    setShowAccountPrompt(false);
+    setIsLoginModalOpen(true);
+  };
 
   if (loading) {
     return <LoadingScreen message="Loading..." />;
@@ -138,7 +156,7 @@ export default function Home() {
               <div className={styles.actionButtons}>
                 <button 
                   className={styles.primaryButton}
-                  onClick={() => router.push('/avcomputers')}
+                  onClick={handleCheckAvailability}
                 >
                   Check Availability
                 </button>
@@ -170,7 +188,7 @@ export default function Home() {
                     </div>
                     <div className={styles.contactItem}>
                       <AiOutlinePhone />&nbsp;
-                      0531098983
+                      <NumberDisplay number="0531098983" />
                     </div>
                     <div className={styles.contactItem}>
                       <AiOutlineInstagram />&nbsp;
@@ -260,6 +278,19 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {showAccountPrompt && (
+        <AccountPromptModal 
+          onClose={() => setShowAccountPrompt(false)} 
+          onLogin={handleLogin} 
+        />
+      )}
+
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
+
     </>
   );
 }

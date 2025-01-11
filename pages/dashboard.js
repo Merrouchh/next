@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/dashboard.module.css';
-import { AiOutlineDesktop, AiOutlineShop, AiOutlineUser, AiOutlineTrophy, AiOutlineWechat, AiOutlineReload } from 'react-icons/ai';
+import { AiOutlineDesktop, AiOutlineShop, AiOutlineUser, AiOutlineTrophy, AiOutlineWechat, AiOutlineReload, AiOutlineClockCircle } from 'react-icons/ai';
 import NotificationButton from '../components/NotificationButton';
-import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId } from '../utils/api';
+import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId, fetchUserTimeInfo, fetchUserBalance } from '../utils/api';
 import LoadingScreen from '../components/LoadingScreen';
 
 export default function Dashboard() {
@@ -18,6 +18,8 @@ export default function Dashboard() {
       activeSessions: [],
       topUsers: [],
       userPoints: null,
+      timeInfo: null,
+      balanceInfo: null,
       status: ''
     }
   });
@@ -29,77 +31,93 @@ export default function Dashboard() {
     }
   }, [loading, isLoggedIn, router]);
 
-  // Single useEffect for initialization and auth check
-  useEffect(() => {
-    let mounted = true;
+  // Function to initialize page data
+  const initializePage = async () => {
+    let mounted = true; // Track if the component is mounted
 
-    const initializePage = async () => {
-      try {
-        // Wait for auth to be ready
-        if (loading) return;
+    try {
+      // Wait for auth to be ready
+      if (loading) return;
 
-        // Check auth status
-        if (!isLoggedIn || !user) {
-          console.log('Not authenticated, redirecting to home');
-          await router.replace('/');
-          return;
+      // Check auth status
+      if (!isLoggedIn || !user) {
+        console.log('Not authenticated, redirecting to home');
+        await router.replace('/');
+        return;
+      }
+
+      // Fetch all required data
+      const [sessions, users] = await Promise.all([
+        fetchActiveUserSessions(),
+        fetchTopUsers(5)
+      ]);
+
+      if (!mounted) return;
+
+      // Update state atomically
+      setPageState(prev => ({
+        ...prev,
+        loading: false,
+        data: {
+          ...prev.data,
+          activeSessions: sessions,
+          topUsers: users
         }
+      }));
 
-        // Fetch all required data
-        const [sessions, users] = await Promise.all([
-          fetchActiveUserSessions(),
-          fetchTopUsers(5)
+      // Fetch user points separately as it depends on gizmoId
+      console.log(`Fetching Gizmo ID for user: ${user.username}`);
+      const { gizmoId } = await fetchGizmoId(user.username);
+      console.log(`Fetched Gizmo ID: ${gizmoId}`);
+      if (gizmoId) {
+        console.log(`Fetching user points for Gizmo ID: ${gizmoId}`);
+        const [{ points }, timeInfo, balanceInfo] = await Promise.all([
+          fetchUserPoints(gizmoId),
+          fetchUserTimeInfo(gizmoId),
+          fetchUserBalance(gizmoId)
         ]);
-
-        if (!mounted) return;
-
-        // Update state atomically
-        setPageState(prev => ({
-          ...prev,
-          loading: false,
-          data: {
-            ...prev.data,
-            activeSessions: sessions,
-            topUsers: users
-          }
-        }));
-
-        // Fetch user points separately as it depends on gizmoId
-        console.log(`Fetching Gizmo ID for user: ${user.username}`);
-        const { gizmoId } = await fetchGizmoId(user.username);
-        console.log(`Fetched Gizmo ID: ${gizmoId}`);
-        if (gizmoId) {
-          console.log(`Fetching user points for Gizmo ID: ${gizmoId}`);
-          const { points } = await fetchUserPoints(gizmoId);
-          console.log(`Fetched user points: ${points}`);
-          if (mounted) {
-            setPageState(prev => ({
-              ...prev,
-              data: {
-                ...prev.data,
-                userPoints: points
-              }
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing dashboard:', error);
+        console.log(`Fetched user points: ${points}`);
         if (mounted) {
           setPageState(prev => ({
             ...prev,
-            loading: false,
-            error: 'Failed to load dashboard data'
+            data: {
+              ...prev.data,
+              userPoints: points,
+              timeInfo: timeInfo,
+              balanceInfo: balanceInfo
+            }
           }));
         }
       }
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+      if (mounted) {
+        setPageState(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to load dashboard data'
+        }));
+      }
+    }
+  };
+
+  // useEffect to handle route changes and initial data fetching
+  useEffect(() => {
+    const handleRouteChange = () => {
+      initializePage(); // Call your data fetching function here
     };
 
+    // Fetch data on initial load
     initializePage();
 
+    // Listen for route changes
+    router.events.on('routeChangeComplete', handleRouteChange);
+
+    // Cleanup the event listener on unmount
     return () => {
-      mounted = false;
+      router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [loading, isLoggedIn, user, router]);
+  }, [router.events]); // Add router.events as a dependency
 
   // Single loading check
   if (loading) {
@@ -116,7 +134,7 @@ export default function Dashboard() {
 
   // Destructure page state for easier access
   const { error } = pageState;
-  const { activeSessions, topUsers, userPoints, status } = pageState.data;
+  const { activeSessions, topUsers, userPoints, timeInfo, status } = pageState.data;
 
   const subscribeUser = (subscription) => {
     fetch('/api/subscribe', {
@@ -285,19 +303,25 @@ export default function Dashboard() {
                 <span>{user?.email}</span>
               </p>
               <p>
-                <strong>Supabase ID:</strong>
-                <span>{user?.id}</span>
-              </p>
-              <p>
-                <strong>Gizmo ID:</strong>
-                <span>{user?.gizmo_id || 'Not linked'}</span>
-              </p>
-              <p>
                 <strong>Points:</strong>
                 <span className={userPoints !== null ? getPointsColor(userPoints) : ''}>
                   {userPoints !== null ? userPoints : 'Loading...'}
                 </span>
               </p>
+              {pageState.data.balanceInfo && (
+                <p className={styles.debtInfo}>
+                  <strong>Outstanding Balance:</strong>
+                  {pageState.data.balanceInfo.hasDebt ? (
+                    <span className={styles.debtAmount}>
+                      {-pageState.data.balanceInfo.debtAmount} DH
+                    </span>
+                  ) : (
+                    <span className={styles.noDebtMessage}>
+                      No Debt or All Paid
+                    </span>
+                  )}
+                </p>
+              )}
               {user?.is_admin && (
                 <p>
                   <strong>Role:</strong>
@@ -305,6 +329,73 @@ export default function Dashboard() {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Time Remaining Card */}
+          <div className={`${styles.statCard} ${styles.mediumCard}`} role="region" aria-labelledby="time-section">
+            <div className={styles.statHeader}>
+              <div className={styles.statIcon}>
+                <AiOutlineClockCircle size={24} />
+              </div>
+              <h3 id="time-section" className={styles.statTitle}>Time Remaining</h3>
+            </div>
+            {pageState.data.timeInfo ? (
+              <div className={styles.timeInfoContainer}>
+                {(pageState.data.timeInfo.vip.hours > 0 || pageState.data.timeInfo.vip.minutes > 0) && (
+                  <div className={styles.timePackage}>
+                    <div className={styles.packageLabel}>VIP</div>
+                    <div className={styles.packageTime}>
+                      <span className={styles.vipTime}>
+                        {pageState.data.timeInfo.vip.hours}h {pageState.data.timeInfo.vip.minutes}m
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {(pageState.data.timeInfo.normal.hours > 0 || pageState.data.timeInfo.normal.minutes > 0) && (
+                  <div className={styles.timePackage}>
+                    <div className={styles.packageLabel}>Normal</div>
+                    <div className={styles.packageTime}>
+                      <span className={styles.normalTime}>
+                        {pageState.data.timeInfo.normal.hours}h {pageState.data.timeInfo.normal.minutes}m
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {(pageState.data.timeInfo.bonus.hours > 0 || pageState.data.timeInfo.bonus.minutes > 0) && (
+                  <div className={styles.timePackage}>
+                    <div className={styles.packageLabel}>Bonus</div>
+                    <div className={styles.packageTime}>
+                      <span className={styles.bonusTime}>
+                        {pageState.data.timeInfo.bonus.hours}h {pageState.data.timeInfo.bonus.minutes}m
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {!pageState.data.timeInfo.vip.hours && 
+                 !pageState.data.timeInfo.normal.hours && 
+                 !pageState.data.timeInfo.bonus.hours && 
+                 !pageState.data.timeInfo.vip.minutes && 
+                 !pageState.data.timeInfo.normal.minutes && 
+                 !pageState.data.timeInfo.bonus.minutes && (
+                  <div className={styles.noTimeContainer}>
+                    <p className={styles.noTime}>No Time Remaining!</p>
+                    <p className={styles.noTimeMessage}>
+                      Your account needs to be recharged to continue gaming.
+                    </p>
+                    <button 
+                      className={styles.rechargeButton}
+                      onClick={handleNavigation(navigateToShop)}
+                    >
+                      Recharge Now
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={styles.timeInfoLoading}>
+                <p>Loading time information...</p>
+              </div>
+            )}
           </div>
 
           {/* Top Players Card */}
@@ -355,7 +446,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Fix Active Sessions Card Structure */}
+          {/* Active Sessions Card */}
           <div className={`${styles.statCard} ${styles.smallCard}`} role="region" aria-labelledby="active-sessions-section">
             <div className={styles.statHeader}>
               <div className={styles.statIcon}>
@@ -363,12 +454,13 @@ export default function Dashboard() {
               </div>
               <h3 id="active-sessions-section" className={styles.statTitle}>Active Sessions</h3>
             </div>
-            <div className={styles.statValue}>
-              {Array.isArray(activeSessions) ? (
-                <p>{activeSessions.length} Active {activeSessions.length === 1 ? 'Session' : 'Sessions'}</p>
-              ) : (
-                <p>0 Active Sessions</p>
-              )}
+            <div className={styles.sessionStats}>
+              <div className={styles.sessionNumber}>
+                {Array.isArray(activeSessions) ? activeSessions.length : 0}
+              </div>
+              <div className={styles.sessionLabel}>
+                Active {(Array.isArray(activeSessions) && activeSessions.length === 1) ? 'Session' : 'Sessions'}
+              </div>
             </div>
           </div>
 
