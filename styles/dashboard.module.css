@@ -714,20 +714,28 @@
 .debtAmount {
   color: #ff4d4d;
   font-weight: bold;
-  animation: pulseDebt 2s infinite;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-@keyframes pulseDebt {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
+  margin-left: 0.5rem;
 }
 
 .noDebtMessage {
-  color: #4caf50; /* Green color for positive message */
+  color: #4caf50;
   font-weight: bold;
-  margin-left: 0.5rem; /* Add some spacing */
+  margin-left: 0.5rem;
+}
+
+.debtWarning {
+  background-color: #fff3f3;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 10px;
+  color: #d32f2f;
+}
+
+.balanceSection {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
 }

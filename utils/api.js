@@ -1,5 +1,7 @@
 import { createClient } from './supabase/client';
 
+const supabase = createClient();
+
 // utils/api.js
 export const validateUserCredentials = async (username, password) => {
   try {
@@ -39,53 +41,65 @@ export const validateUserCredentials = async (username, password) => {
     
 export const fetchActiveUserSessions = async () => {
   try {
-    const response = await fetch('/api/fetchActiveUserSessions');
-    if (!response.ok) throw new Error('Error fetching active sessions');
+    const response = await fetch('/api/fetchactivesessions');
+    if (!response.ok) throw new Error('Failed to fetch sessions');
     const data = await response.json();
-    console.log('API response (active sessions):', data); // Add this line
     return data.result || [];
   } catch (error) {
-    console.error('Error fetching active user sessions:', error);
     return [];
   }
 };
 
 export const fetchUserBalance = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/users/${gizmoId}/balance`);
+    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`);
     if (!response.ok) {
-      console.error('Error response from balance API:', response.status);
-      throw new Error('Failed to fetch balance info');
+      return 'Error fetching time';
     }
-
     const data = await response.json();
-    console.log('Balance info:', data);
+    return data.balance || 'Error fetching time';
+  } catch (error) {
+    return 'Error fetching time';
+  }
+};
 
+export const fetchUserBalanceWithDebt = async (gizmoId) => {
+  try {
+    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`);
+    if (!response.ok) {
+      return {
+        balance: 'Error fetching time',
+        hasDebt: false,
+        debtAmount: 0,
+        rawBalance: 0
+      };
+    }
+    const data = await response.json();
     return {
-      balance: data.balance || 0,
-      hasDebt: data.balance < 0,
-      debtAmount: data.balance < 0 ? Math.abs(data.balance) : 0
+      balance: data.balance || 'Error fetching time',
+      hasDebt: data.hasDebt || false,
+      debtAmount: data.debtAmount || 0,
+      rawBalance: data.rawBalance || 0
     };
   } catch (error) {
-    console.error('Error fetching user balance:', error);
     return {
-      balance: 0,
+      balance: 'Error fetching time',
       hasDebt: false,
-      debtAmount: 0
+      debtAmount: 0,
+      rawBalance: 0
     };
   }
 };
 
-export const fetchUserById = async (userId) => {
-    try {
-        const response = await fetch(`/api/fetchUserById/${userId}`);
-        if (!response.ok) throw new Error('Error fetching user by ID');
-        const data = await response.json();
-        return data.user || null;
-    } catch (error) {
-        console.error('Error fetching user by ID:', error);
-        return null;
-    }
+export const fetchUserById = async (gizmoId) => {
+  try {
+    const response = await fetch(`/api/fetchUserById/${gizmoId}`);
+    if (!response.ok) throw new Error('Error fetching user by ID');
+    const data = await response.json();
+    return data.result;
+  } catch (error) {
+    return null;
+  }
 };
 
 export const fetchTopUsers = async (numberOfUsers = 10) => {
@@ -116,16 +130,27 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
 
 export const fetchGizmoId = async (username) => {
   try {
-    const response = await fetch(`/api/returngizmoid?username=${username}`);
-    if (!response.ok) throw new Error('Error fetching Gizmo ID');
+    const response = await fetch(`/api/returngizmoid?username=${encodeURIComponent(username)}`);
     const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch Gizmo ID');
+    }
+
+    if (!data.gizmo_id) {
+      throw new Error('No Gizmo ID returned');
+    }
+
     return {
       gizmoId: data.gizmo_id,
-      message: 'Gizmo ID fetched successfully'
+      success: true
     };
   } catch (error) {
-    console.error('Error fetching Gizmo ID:', error);
-    throw error;
+    return {
+      gizmoId: null,
+      success: false,
+      error: error.message
+    };
   }
 };
 

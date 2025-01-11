@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import styles from '../styles/dashboard.module.css';
 import { AiOutlineDesktop, AiOutlineShop, AiOutlineUser, AiOutlineTrophy, AiOutlineWechat, AiOutlineReload, AiOutlineClockCircle } from 'react-icons/ai';
 import NotificationButton from '../components/NotificationButton';
-import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId, fetchUserTimeInfo, fetchUserBalance } from '../utils/api';
+import { fetchActiveUserSessions, fetchTopUsers, fetchUserPoints, fetchGizmoId, fetchUserTimeInfo, fetchUserBalanceWithDebt } from '../utils/api';
 import LoadingScreen from '../components/LoadingScreen';
 
 export default function Dashboard() {
@@ -74,7 +74,7 @@ export default function Dashboard() {
         const [{ points }, timeInfo, balanceInfo] = await Promise.all([
           fetchUserPoints(gizmoId),
           fetchUserTimeInfo(gizmoId),
-          fetchUserBalance(gizmoId)
+          fetchUserBalanceWithDebt(gizmoId)
         ]);
         console.log(`Fetched user points: ${points}`);
         if (mounted) {
@@ -311,9 +311,9 @@ export default function Dashboard() {
               {pageState.data.balanceInfo && (
                 <p className={styles.debtInfo}>
                   <strong>Outstanding Balance:</strong>
-                  {pageState.data.balanceInfo.hasDebt ? (
+                  {pageState.data.balanceInfo.rawBalance < 0 ? (
                     <span className={styles.debtAmount}>
-                      {-pageState.data.balanceInfo.debtAmount} DH
+                      {Math.abs(pageState.data.balanceInfo.rawBalance)} DH
                     </span>
                   ) : (
                     <span className={styles.noDebtMessage}>

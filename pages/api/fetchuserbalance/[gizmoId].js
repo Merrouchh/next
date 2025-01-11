@@ -1,12 +1,11 @@
-// pages/api/fetchUserBalance/[userId].js
 export default async function handler(req, res) {
-  const { userId } = req.query;
+  const { gizmoId } = req.query;
   
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const apiUrl = `${process.env.API_BASE_URL}/users/${userId}/balance`;
+  const apiUrl = `${process.env.API_BASE_URL}/users/${gizmoId}/balance`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -16,20 +15,24 @@ export default async function handler(req, res) {
     });
 
     if (!response.ok) {
-      console.error(`HTTP Error: ${response.status}`);
       return res.status(response.status).json({ message: 'Failed to fetch user balance' });
     }
 
     const data = await response.json();
-    const totalHours = data.result.availableTime / 3600;
+    const availableTime = data.result?.availableTime || 0;
+    const totalHours = Math.abs(availableTime) / 3600;
     const hours = Math.floor(totalHours);
     const minutes = Math.floor((totalHours - hours) * 60);
     
-    const balance = data.result.availableTime <= 0 ? 'No Time Left' : `${hours}h : ${minutes} min`;
+    const balance = data.result?.balance || 0;
 
-    return res.status(200).json({ balance });
+    return res.status(200).json({
+      balance: availableTime <= 0 ? 'No Time Left' : `${hours} : ${minutes}`,
+      hasDebt: balance < 0,
+      debtAmount: Math.abs(balance),
+      rawBalance: balance
+    });
   } catch (error) {
-    console.error('Error fetching user balance:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
-}
+} 

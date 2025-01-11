@@ -10,43 +10,28 @@ import { createClient } from '../utils/supabase/client';
 
 // Computer component
 const ComputerBox = ({ computer, isVip }) => {
-  const getStatusClass = () => {
-    if (!computer.isActive) {
-      return styles.inactive;
-    }
+  const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
+    ? computer.timeLeft.split(' : ') 
+    : [0, 0];
+  const hours = parseInt(timeParts[0]) || 0;
+  const minutes = parseInt(timeParts[1]) || 0;
+  const totalMinutes = hours * 60 + minutes;
 
-    // Check if timeLeft exists and is a string before splitting
-    const timeLeft = computer.timeLeft;
-    if (!timeLeft || typeof timeLeft !== 'string' || timeLeft === 'No Time') {
-      return styles.inactive;
-    }
-
-    try {
-      const timeParts = timeLeft.split(' : ');
-      const hours = parseInt(timeParts[0]) || 0;
-      const minutes = parseInt(timeParts[1]) || 0;
-      const totalMinutes = hours * 60 + minutes;
-
-      // If active but less than 60 minutes remaining
-      if (totalMinutes < 60) {
-        return isVip ? styles.orange : styles.warning;
-      }
-
-      return styles.active;
-    } catch (error) {
-      console.error('Error parsing time:', error);
-      return styles.inactive;
-    }
-  };
+  const boxClass = isVip ? styles.vipPcBox : styles.pcSquare;
+  const activeClass = computer.isActive
+    ? totalMinutes < 60
+      ? isVip ? styles.orange : styles.warning
+      : styles.active
+    : styles.inactive;
 
   return (
-    <div className={`${isVip ? styles.vipPcBox : styles.pcSquare} ${getStatusClass()}`}>
+    <div key={computer.id} className={`${boxClass} ${activeClass}`}>
       <div className={styles.pcNumber}>
-        {isVip ? 'VIP PC ' : 'PC '}{computer.number}
+        {isVip ? 'VIP PC' : 'PC'}{computer.number}
       </div>
       <div className={styles.statusText}>
-        {computer.isActive && computer.timeLeft && typeof computer.timeLeft === 'string'
-          ? `Active - Time Left: ${computer.timeLeft}`
+        {computer.isActive 
+          ? `Active - Time Left: ${computer.timeLeft}` 
           : 'No User'}
       </div>
     </div>
@@ -87,92 +72,50 @@ const VIPComputers = ({ computers }) => {
 
 // Main component
 const AvailableComputers = () => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  // Separate initial load from refresh updates
-  const updateComputerStates = async (activeSessions) => {
-    const updatePromises = activeSessions.map(async (session) => {
-      try {
-        const user = await fetchUserById(session.userId);
-        if (!user) {
-          console.warn(`No user found for session ${session.hostId}`);
-          return {
-            hostId: session.hostId,
-            isActive: true,
-            timeLeft: 'Unknown'
-          };
-        }
-        
-        try {
-          const balance = await fetchUserBalance(user.id);
-          return {
-            hostId: session.hostId,
-            isActive: true,
-            timeLeft: balance
-          };
-        } catch (balanceError) {
-          console.warn(`Failed to fetch balance for user ${user.id}:`, balanceError);
-          return {
-            hostId: session.hostId,
-            isActive: true,
-            timeLeft: 'Unknown'
-          };
-        }
-      } catch (err) {
-        console.error('Error updating computer state:', err);
-        return {
-          hostId: session.hostId,
-          isActive: true,
-          timeLeft: 'Error'
-        };
+  // Auth check
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // Auth state listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/');
       }
     });
 
-    try {
-      const updates = await Promise.all(updatePromises);
+    return () => subscription?.unsubscribe();
+  }, [router]);
 
-      setComputers(prev => {
-        const newComputers = {
-          normal: prev.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
-          vip: prev.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
-        };
-
-        // Apply active updates
-        updates.forEach(update => {
-          if (!update) return;
-          
-          // Update normal computers
-          const normalPc = newComputers.normal.find(pc => pc.id === update.hostId);
-          if (normalPc) {
-            Object.assign(normalPc, {
-              isActive: true,
-              timeLeft: update.timeLeft
-            });
-          }
-          
-          // Update VIP computers
-          const vipPc = newComputers.vip.find(pc => pc.id === update.hostId);
-          if (vipPc) {
-            Object.assign(vipPc, {
-              isActive: true,
-              timeLeft: update.timeLeft
-            });
-          }
-        });
-
-        return newComputers;
-      });
-    } catch (err) {
-      console.error('Error updating computer states:', err);
+  // Add session check and API error handling
+  const handleApiError = async (error) => {
+    if (error.message === 'Auth session missing!' || error.status === 401) {
+      const { data: { session }, error: refreshError } = await supabase.auth.getSession();
+      
+      if (refreshError || !session) {
+        router.push('/');
+        return true;
+      }
     }
+    return false;
   };
 
-  // Initial load
+  // Data fetching
   useEffect(() => {
     const computersList = {
       normal: [
@@ -188,68 +131,78 @@ const AvailableComputers = () => {
       ]
     };
 
-    const initializePage = async () => {
+    const fetchData = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          router.push('/');
-          return;
-        }
+        const activeSessions = await fetchActiveUserSessions();
+        const updateComputers = async (list) => {
+          return Promise.all(list.map(async (computer) => {
+            const session = activeSessions.find(s => s.hostId === computer.id);
+            if (!session) {
+              return { 
+                ...computer, 
+                isActive: false, 
+                timeLeft: 'No Time' 
+              };
+            }
 
-        // Set initial state
-        setComputers({
-          normal: computersList.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
-          vip: computersList.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
+            try {
+              const user = await fetchUserById(session.userId);
+              if (!user) {
+                return {
+                  ...computer,
+                  isActive: true,
+                  timeLeft: 'No Time'
+                };
+              }
+
+              const balance = await fetchUserBalance(user.id);
+              return {
+                ...computer,
+                isActive: true,
+                timeLeft: typeof balance === 'string' ? balance : balance.balance || 'No Time'
+              };
+            } catch (error) {
+              return {
+                ...computer,
+                isActive: true,
+                timeLeft: 'No Time'
+              };
+            }
+          }));
+        };
+
+        const [normalComputers, vipComputers] = await Promise.all([
+          updateComputers(computersList.normal),
+          updateComputers(computersList.vip)
+        ]);
+
+        setComputers({ 
+          normal: normalComputers, 
+          vip: vipComputers 
         });
-        setIsLoading(false);
-
-        // Initial data fetch
-        const activeSessions = await fetchActiveUserSessions();
-        await updateComputerStates(activeSessions);
+        setError(null);
       } catch (err) {
-        console.error(err);
-        setError('Failed to fetch computer data');
-      }
-    };
-
-    initializePage();
-  }, [router]);
-
-  // Separate effect for periodic updates
-  useEffect(() => {
-    let mounted = true;
-    
-    const refreshData = async () => {
-      if (!mounted) return;
-      
-      try {
-        const activeSessions = await fetchActiveUserSessions();
-        if (mounted) {
-          await updateComputerStates(activeSessions);
+        const isAuthError = await handleApiError(err);
+        if (!isAuthError) {
+          setError('Failed to fetch computer data');
         }
-      } catch (err) {
-        console.error('Refresh error:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    // Initial load
-    refreshData();
-
-    // Set up refresh interval
-    const intervalId = setInterval(refreshData, 10000);
-
-    // Cleanup
-    return () => {
-      mounted = false;
-      clearInterval(intervalId);
-    };
+    fetchData();
+    const intervalId = setInterval(fetchData, 5000);
+    return () => clearInterval(intervalId);
   }, []);
 
+  if (loading || isLoading) return <LoadingScreen />;
   if (!isLoggedIn) return null;
   if (error) return <div className={styles.error}>{error}</div>;
 
   return (
     <>
+      <Header />
       <Head>
         <title>Available Computers</title>
         <meta name="robots" content="noindex, nofollow" />
