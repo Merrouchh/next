@@ -15,20 +15,28 @@ const ComputerBox = ({ computer, isVip }) => {
       return styles.inactive;
     }
 
-    // Parse time left
-    const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
-      ? computer.timeLeft.split(' : ')
-      : [0, 0];
-    const hours = parseInt(timeParts[0]) || 0;
-    const minutes = parseInt(timeParts[1]) || 0;
-    const totalMinutes = hours * 60 + minutes;
-
-    // If active but less than 60 minutes remaining
-    if (totalMinutes < 60) {
-      return isVip ? styles.orange : styles.warning;
+    // Check if timeLeft exists and is a string before splitting
+    const timeLeft = computer.timeLeft;
+    if (!timeLeft || typeof timeLeft !== 'string' || timeLeft === 'No Time') {
+      return styles.inactive;
     }
 
-    return styles.active;
+    try {
+      const timeParts = timeLeft.split(' : ');
+      const hours = parseInt(timeParts[0]) || 0;
+      const minutes = parseInt(timeParts[1]) || 0;
+      const totalMinutes = hours * 60 + minutes;
+
+      // If active but less than 60 minutes remaining
+      if (totalMinutes < 60) {
+        return isVip ? styles.orange : styles.warning;
+      }
+
+      return styles.active;
+    } catch (error) {
+      console.error('Error parsing time:', error);
+      return styles.inactive;
+    }
   };
 
   return (
@@ -37,7 +45,7 @@ const ComputerBox = ({ computer, isVip }) => {
         {isVip ? 'VIP PC ' : 'PC '}{computer.number}
       </div>
       <div className={styles.statusText}>
-        {computer.isActive 
+        {computer.isActive && computer.timeLeft && typeof computer.timeLeft === 'string'
           ? `Active - Time Left: ${computer.timeLeft}`
           : 'No User'}
       </div>
