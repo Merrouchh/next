@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/dashboard.module.css';
 import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera } from 'react-icons/ai';
-import { MdPlayArrow, MdPerson, MdVoiceChat } from 'react-icons/md';
+import { MdPlayArrow, MdPerson } from 'react-icons/md';
 import { 
   fetchActiveUserSessions, 
   fetchTopUsers, 
@@ -246,10 +246,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Navigation error:', error);
     }
-  };
-
-  const handleVoiceChatClick = () => {
-    router.push('/voicechat');
   };
 
   const handlePictureUpload = async (event) => {
@@ -556,18 +552,6 @@ export default function DashboardPage() {
                 Active {(Array.isArray(activeSessions) && activeSessions.length === 1) ? 'Session' : 'Sessions'}
               </div>
             </div>
-          </div>
-
-          {/* Voice Chat Card */}
-          <div 
-            className={`${styles.card} ${styles.voiceChatCard}`}
-            onClick={handleVoiceChatClick}
-          >
-            <div className={styles.cardIcon}>
-              <MdVoiceChat />
-            </div>
-            <h2>Voice Chat &rarr;</h2>
-            <p>Join a voice chat room with other users.</p>
           </div>
         </div>
       </main>
