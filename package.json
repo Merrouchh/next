@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"cd voicehcat && go run main.go\" \"ts-node --project tsconfig.server.json server.ts\"",
-    "build": "concurrently \"cd voicehcat && go build -o voicechat-server.exe\" \"next build --no-lint\"",
+    "build": "next build --no-lint",
     "start": "start.bat"
   },
   "dependencies": {
