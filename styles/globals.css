@@ -32,8 +32,6 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
 }
 
-
-
 h2 {
   font-size: 2.5rem;
   color: #FFD700;
@@ -219,4 +217,22 @@ button {
 .page-transition-exit-active {
   opacity: 0;
   transition: opacity 300ms ease-out;
+}
+
+input, textarea, select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  touch-action: manipulation; /* Prevents double-tap zoom */
+}
+
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important; /* Forces 16px minimum font size */
+  }
+  
+  select:focus,
+  textarea:focus,
+  input:focus {
+    font-size: 16px !important;
+    transform: scale(1); /* Prevents transform zoom */
+  }
 }
