@@ -1,0 +1,579 @@
+.profileMain {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 120px);
+}
+
+.profileHeader {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 46;
+}
+
+.profileTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.profileDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profileDetails h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.profileIcon {
+  font-size: 3rem;
+  color: var(--primary-color, #FFD700);
+  background: rgba(255, 215, 0, 0.1);
+  padding: 0.8rem;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.profileIcon:hover {
+  transform: scale(1.1);
+}
+
+.profileImageContainer {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ebc725;
+  background-color: #e5e7eb;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.profileImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e7eb;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.placeholderIcon {
+  width: 60px;
+  height: 60px;
+  color: #9ca3af;
+}
+
+.uploadButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  background-color: var(--primary-color, #FFD700);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
+.uploadButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.uploadButton svg {
+  font-size: 1.2rem;
+}
+
+.error {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-left: 4px solid #ff4444;
+  color: #ff4444;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 0 8px 8px 0;
+}
+
+.clipsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.clipCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.clipCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.clipContainer {
+  cursor: pointer;
+}
+
+.clipHeader {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.clipHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--primary-color, #FFD700);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.gameTag svg {
+  font-size: 0.9rem;
+}
+
+.videoWrapper {
+  position: relative;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #000;
+}
+
+.clipVideo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.actionButton, .likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover, .likeButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.likeButton {
+  color: #fff;
+}
+
+.likeButton.liked {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.likeButton span {
+  font-size: 0.9rem;
+}
+
+.deleteButton {
+  color: #ff4444;
+}
+
+.deleteButton:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.noClips {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: #888;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .profileMain {
+    padding: 1rem;
+  }
+
+  .profileTop {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profileInfo {
+    flex-direction: column;
+    text-align: center;
+    width: 100%;
+  }
+
+  .profileDetails {
+    align-items: center;
+    width: 100%;
+  }
+
+  .profileDetails h1 {
+    font-size: 1.5rem;
+  }
+
+  .uploadButton {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .clipsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .searchContainer {
+    padding: 0 1rem;
+  }
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.loading {
+  animation: shimmer 1s linear infinite;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.05) 8%,
+    rgba(255, 255, 255, 0.1) 18%,
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 1000px 100%;
+}
+
+.loadMoreContainer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.loadMoreButton {
+  background: #2563eb;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.loadMoreButton:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.loadMoreButton:active {
+  transform: translateY(0);
+}
+
+.loadingMore {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.profileImageLoading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e7eb;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(235, 199, 37, 0.3);
+  border-radius: 50%;
+  border-top-color: #ebc725;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.gamingProfiles {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.profilesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.profilesHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #FFD700;
+}
+
+.editButton {
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.editProfiles {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profileInput {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.8rem;
+  border-radius: 8px;
+}
+
+.profileInput svg {
+  font-size: 1.5rem;
+  color: #FFD700;
+}
+
+.profileInput input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  padding: 0.5rem;
+}
+
+.profileInput input:focus {
+  outline: none;
+}
+
+.saveButton {
+  background: #FFD700;
+  color: black;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.saveButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.profilesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profileItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.8rem;
+  border-radius: 8px;
+}
+
+.profileItem svg {
+  font-size: 1.5rem;
+  color: #FFD700;
+}
+
+.profileLabel {
+  color: #888;
+  min-width: 80px;
+}
+
+.profileValue {
+  flex: 1;
+  color: white;
+}
+
+.copyButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.noProfiles {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .gamingProfiles {
+    padding: 1rem;
+  }
+
+  .profileItem {
+    flex-wrap: wrap;
+  }
+
+  .profileLabel {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .profileValue {
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+}
+
+.searchContainer {
+  width: 100%;
+  max-width: 400px;
+}
+
+@media (max-width: 768px) {
+  .searchContainer {
+    padding: 0 1rem;
+  }
+}
+
+.userNotFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 2rem;
+  text-align: center;
+}
+
+.userNotFound h1 {
+  font-size: 2rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
+}
+
+.userNotFound p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.backButton {
+  background: #FFD700;
+  color: black;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+} 

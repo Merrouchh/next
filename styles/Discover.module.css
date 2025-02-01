@@ -1,0 +1,446 @@
+.pageContainer {
+  padding-top: 140px;
+  min-height: 100vh;
+  background: var(--bg-color, #0f1119);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+.fadeOut {
+  animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+/* Add smooth transitions to interactive elements */
+.clipContainer {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.clipContainer:hover {
+  transform: translateY(-2px);
+}
+
+.actionButton {
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  transform: scale(1.1);
+}
+
+/* Improve loading states */
+.loader {
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in-out forwards;
+  transition: opacity 0.3s ease;
+}
+
+.spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: white;
+  position: relative;
+  z-index: 101;
+  flex: 1;
+  text-align: center;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+  position: relative;
+  z-index: 101;
+}
+
+.backButton:hover {
+  opacity: 0.8;
+}
+
+.discoverMain {
+  padding-top: 20px;
+}
+
+.feedContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.clipContainer {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.clipContainer:hover {
+  transform: translateY(-2px);
+}
+
+.clipHeader {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.userLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 20px;
+  transition: background-color 0.2s;
+}
+
+.userLink:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gameTag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.clipVideoWrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #000;
+}
+
+.clipVideo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Add specific styles for the poster/thumbnail */
+.clipVideo[poster] {
+  object-fit: cover;
+  z-index: 1; /* Ensure thumbnail is in foreground */
+}
+
+/* Ensure proper mobile display */
+@media (max-width: 768px) {
+  .clipVideo,
+  .clipVideo[poster] {
+    object-fit: cover;
+  }
+}
+
+.clipInfo {
+  padding: 1rem;
+}
+
+.clipTitle {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.clipActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.actionButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actionButton.liked {
+  color: #ff4081;
+}
+
+.actionButton span {
+  font-size: 1rem;
+}
+
+.loader {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.spinner {
+  color: #666;
+}
+
+.noClips {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+@media (max-width: 600px) {
+  .feedContainer {
+    padding: 0.5rem;
+  }
+
+  .clipContainer {
+    border-radius: 0;
+  }
+}
+
+.clipContainer {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.clipInfo {
+  cursor: pointer;
+  padding: 1rem;
+}
+
+.clipInfo:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.clipVideoWrapper {
+  cursor: default; /* Reset cursor for video */
+}
+
+.clipVideo {
+  cursor: pointer; /* Show pointer cursor only on video */
+}
+
+.clipActions {
+  cursor: default; /* Reset cursor for actions */
+}
+
+.actionButton {
+  cursor: pointer; /* Show pointer cursor on buttons */
+}
+
+.navigationButtons {
+  padding: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.navButton:hover {
+  background: var(--primary-dark, #2563eb);
+  transform: translateY(-1px);
+}
+
+.navButton svg {
+  font-size: 20px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .pageContainer {
+    padding-top: 120px;
+  }
+
+  .discoverMain {
+    padding-top: 16px;
+  }
+
+  .feedContainer {
+    padding: 0.5rem;
+  }
+
+  .navigationButtons {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .navButton {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .header h1 {
+    font-size: 1.2rem;
+  }
+
+  .backButton {
+    padding: 0.3rem;
+  }
+}
+
+.errorMessage {
+  color: red;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 4px;
+  margin: 1rem;
+}
+
+/* Only apply animations if user hasn't requested reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .fadeIn {
+    animation: fadeIn 0.3s ease-in-out forwards;
+  }
+
+  .fadeOut {
+    animation: fadeOut 0.3s ease-in-out forwards;
+  }
+
+  .clipContainer:hover {
+    transform: translateY(-2px);
+  }
+
+  .actionButton:hover {
+    transform: scale(1.1);
+  }
+
+  /* Keep other animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fadeIn,
+  .fadeOut,
+  .clipContainer,
+  .actionButton,
+  .navButton,
+  .spinner {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

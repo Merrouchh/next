@@ -1,0 +1,39 @@
+/* Base wrapper styles */
+.wrapper {
+  min-height: 100vh;
+  transition: padding-top 0.3s ease;
+  position: relative;
+  padding-top: var(--desktop-padding, 4rem);
+}
+
+.mainContent {
+  width: 100%;
+  height: 100%;
+}
+
+/* Header padding variations */
+.singleHeaderPadding, .doubleHeaderPadding {
+  transition: padding-top 0.3s ease;
+}
+
+/* Tablet styles (768px and below) */
+@media (max-width: 768px) {
+  .wrapper {
+    padding-top: var(--tablet-padding, 3.5rem);
+  }
+}
+
+/* Mobile styles (480px and below) */
+@media (max-width: 480px) {
+  .wrapper {
+    padding-top: var(--mobile-padding, 3rem);
+  }
+}
+
+.contentLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  width: 100%;
+} 
