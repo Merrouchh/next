@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "concurrently \"cd voicehcat && go run main.go\" \"ts-node --project tsconfig.server.json server.ts\"",
     "build": "next build --no-lint",
-    "start": "start.bat"
+    "start": "next start -p 3000",
+    "start:all": "start.bat"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
