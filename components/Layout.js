@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import Head from 'next/head';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const router = useRouter();
   const { loading } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
