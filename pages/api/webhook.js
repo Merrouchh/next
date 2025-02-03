@@ -68,13 +68,4 @@ export default async function handler(req, res) {
 
   // Handle other methods
   return res.status(405).json({ error: 'Method not allowed' });
-}
-
-export async function sendWhatsAppMessage(req, res) {
-  try {
-    const result = await sendWhatsAppMessage('212656053641', 'hello_world');
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 } 
