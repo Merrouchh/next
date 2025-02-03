@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { sendWhatsAppMessage } from '../../../utils/whatsapp';
+import { sendWhatsAppMessage } from '../../utils/whatsapp';
 
 export default async function handler(req, res) {
   // Add a test endpoint
@@ -49,6 +49,13 @@ export default async function handler(req, res) {
         if (body.entry && body.entry[0].changes && body.entry[0].changes[0].value.messages) {
           const message = body.entry[0].changes[0].value.messages[0];
           console.log('Received message:', message);
+          
+          // Send a response message
+          try {
+            await sendWhatsAppMessage('212656053641', 'hello_world');
+          } catch (error) {
+            console.error('Error sending WhatsApp response:', error);
+          }
         }
         return res.status(200).json({ received: true });
       }
