@@ -18,6 +18,7 @@ import AccountPromptModal from '../components/AccountPromptModal';
 import LoginModal from '../components/LoginModal';
 import NumberDisplay from '../components/NumberDisplay';
 import { MdGames, MdLeaderboard, MdExplore } from 'react-icons/md';
+import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -99,7 +100,7 @@ export default function Home() {
   ];
 
   return (
-    <>
+    <ProtectedPageWrapper>
       <Head>
         <title>Merrouch Gaming Center</title>
         <meta name="description" content="Experience gaming at its finest with our high-end PCs, fast internet, and vibrant gaming community in Tangier." />
@@ -110,10 +111,9 @@ export default function Home() {
         <meta name="theme-color" content="#0f1119" />
       </Head>
 
-      {/* Progress Bar */}
-      <div className="progress-bar-container">
+      <div className={styles.progressBarContainer}>
         <div 
-          className="progress-bar"
+          className={styles.progressBar}
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -332,6 +332,6 @@ export default function Home() {
         onClose={() => setIsLoginModalOpen(false)} 
       />
 
-    </>
+    </ProtectedPageWrapper>
   );
 }

@@ -10,18 +10,27 @@ export const config = {
   },
 };
 
+// Add cleanup for temporary files
+const cleanupFiles = (files) => {
+  files.forEach(file => {
+    if (fs.existsSync(file)) {
+      try {
+        fs.unlinkSync(file);
+      } catch (error) {
+        console.error('Error cleaning up file:', error);
+      }
+    }
+  });
+};
+
 export default async function handler(req, res) {
+  const tempFiles = [];
   let uploadedFile = null;
 
   // Handle client disconnection
   req.on('close', () => {
-    if (uploadedFile && fs.existsSync(uploadedFile) && req.aborted) {
-      try {
-        fs.unlinkSync(uploadedFile);
-        console.log('Cleaned up cancelled upload:', uploadedFile);
-      } catch (error) {
-        console.error('Error cleaning up file:', error);
-      }
+    if (req.aborted) {
+      cleanupFiles(tempFiles);
     }
   });
 
@@ -195,12 +204,15 @@ export default async function handler(req, res) {
     // Clear the uploadedFile variable since upload was successful
     uploadedFile = null;
 
+    tempFiles.push(uploadedFile);
+    
     return res.status(200).json({
       message: 'Upload successful',
       progress: 100,
       clip: clipData,
     });
   } catch (error) {
+    cleanupFiles(tempFiles);
     // Clean up the uploaded file if there was an error
     if (uploadedFile && fs.existsSync(uploadedFile)) {
       try {

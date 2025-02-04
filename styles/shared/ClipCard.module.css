@@ -1,0 +1,274 @@
+.clipContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 100%;
+  border: 1px solid rgba(230, 207, 0, 0.1); /* Subtle gold border */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.clipContainer:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(230, 207, 0, 0.1);
+  border-color: rgba(230, 207, 0, 0.2);
+}
+
+.clipHeader {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 40px;
+  margin-bottom: 0;
+  background: linear-gradient(to bottom, rgba(230, 207, 0, 0.05), transparent);
+  border-bottom: 1px solid rgba(230, 207, 0, 0.05);
+}
+
+.clipTitle {
+  margin: 12px 16px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  height: 2.8em;
+  color: #fff;
+  font-weight: 500;
+}
+
+.userLink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #fff;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.userLink:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.gameTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(230, 207, 0, 0.1);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #e6cf00;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.gameTag:hover {
+  background: rgba(230, 207, 0, 0.15);
+}
+
+.videoWrapper {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.clipStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(230, 207, 0, 0.05);
+  margin: 0;
+}
+
+.statsContainer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.viewCount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.viewCount svg {
+  color: #e6cf00;
+  font-size: 1.2rem;
+}
+
+.likeButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(230, 207, 0, 0.1);
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.likeButton:hover {
+  background: rgba(230, 207, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.likeButton.liked {
+  background: rgba(230, 207, 0, 0.2);
+  color: #e6cf00;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.actionButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.actionButton.deleteButton {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ff4444;
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  transition: all 0.2s ease;
+}
+
+.actionButton.deleteButton:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.3);
+  transform: translateY(-2px);
+}
+
+.actionButton.deleteButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.clipActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .clipHeader {
+    padding: 0.8rem;
+  }
+
+  .clipTitle {
+    font-size: 1.1rem;
+    margin: 0.5rem 0.8rem;
+    min-height: 40px;
+  }
+
+  .clipStats {
+    margin: 0.5rem 0.8rem;
+  }
+
+  .actionButton,
+  .likeButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal h3 {
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.modal p {
+  margin-bottom: 1.5rem;
+  color: #ccc;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modalActions .deleteButton {
+  background: rgba(255, 68, 68, 0.1) !important;
+  color: #ff4444 !important;
+  border: 1px solid rgba(255, 68, 68, 0.2) !important;
+}
+
+.modalActions .deleteButton:hover {
+  background: rgba(255, 68, 68, 0.2) !important;
+  border-color: rgba(255, 68, 68, 0.3) !important;
+}
+
+.modalActions .cancelButton {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.modalActions .cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.actionButton {
+  position: relative;
+  overflow: hidden;
+}
+
+.actionButton svg {
+  font-size: 1.2rem;
+} 

@@ -10,10 +10,27 @@ export default function DashboardHeader() {
   const currentPath = router.pathname;
   const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
   const navContainerRef = useRef(null);
   const isScrolling = useRef(false);
+
+  // Center active button on mount and route change
+  useEffect(() => {
+    if (isMobile && navContainerRef.current) {
+      const container = navContainerRef.current;
+      const activeButton = container.querySelector(`.${styles.active}`);
+      
+      if (activeButton) {
+        const containerWidth = container.offsetWidth;
+        const buttonWidth = activeButton.offsetWidth;
+        const scrollLeft = activeButton.offsetLeft - (containerWidth / 2) + (buttonWidth / 2);
+        
+        container.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [currentPath, isMobile]);
 
   // Check for mobile on client-side only
   useEffect(() => {
@@ -88,65 +105,69 @@ export default function DashboardHeader() {
     const container = navContainerRef.current;
     if (!container || !isMobile) return;
 
-    let momentumID;
-    let velocityX = 0;
-    let lastX = 0;
-    let lastTime = Date.now();
+    let mounted = true;
+    let startX = 0;
+    let scrollLeft = 0;
+    let isDown = false;
 
     const handleTouchStart = (e) => {
-      isDragging.current = true;
-      isScrolling.current = false;
-      startX.current = e.touches[0].pageX - container.offsetLeft;
-      scrollLeft.current = container.scrollLeft;
-      lastX = e.touches[0].pageX;
-      lastTime = Date.now();
-      
-      cancelAnimationFrame(momentumID);
+      isDown = true;
+      startX = e.touches[0].pageX - container.offsetLeft;
+      scrollLeft = container.scrollLeft;
+      container.style.scrollBehavior = 'auto';
     };
 
     const handleTouchMove = (e) => {
-      if (!isDragging.current) return;
-      
+      if (!isDown) return;
+      e.preventDefault();
       const x = e.touches[0].pageX - container.offsetLeft;
-      const walk = (x - startX.current) * 2;
-      container.scrollLeft = scrollLeft.current - walk;
-      
-      const now = Date.now();
-      const dt = now - lastTime;
-      const dx = e.touches[0].pageX - lastX;
-      velocityX = dx / dt;
-      
-      lastX = e.touches[0].pageX;
-      lastTime = now;
-      
-      isScrolling.current = true;
+      const walk = (startX - x) * 2;
+      container.scrollLeft = scrollLeft + walk;
     };
 
     const handleTouchEnd = () => {
-      isDragging.current = false;
+      isDown = false;
+      container.style.scrollBehavior = 'smooth';
+
+      // Find the nearest button to snap to
+      const containerWidth = container.offsetWidth;
+      const buttons = container.querySelectorAll(`.${styles.navButton}`);
+      const scrollCenter = container.scrollLeft + containerWidth / 2;
       
-      const momentum = () => {
-        if (Math.abs(velocityX) > 0.1) {
-          container.scrollLeft -= velocityX * 16;
-          velocityX *= 0.95;
-          momentumID = requestAnimationFrame(momentum);
-        } else {
-          isScrolling.current = false;
+      let closestButton = null;
+      let minDistance = Infinity;
+
+      buttons.forEach(button => {
+        const buttonCenter = button.offsetLeft + button.offsetWidth / 2;
+        const distance = Math.abs(buttonCenter - scrollCenter);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestButton = button;
         }
-      };
-      
-      momentum();
+      });
+
+      if (closestButton) {
+        const targetScroll = closestButton.offsetLeft - (containerWidth - closestButton.offsetWidth) / 2;
+        container.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
     };
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      cancelAnimationFrame(momentumID);
+      if (mounted) {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
+        container.removeEventListener('touchcancel', handleTouchEnd);
+      }
+      mounted = false;
     };
   }, [isMobile]);
 
@@ -159,12 +180,23 @@ export default function DashboardHeader() {
     return () => clearTimeout(timer);
   }, [centerActiveButton]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      // Your scroll handling logic
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    
+    // Make sure to remove the listener
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   if (!isLoggedIn) return null;
 
   const navigationItems = [
     {
       path: '/dashboard',
-      label: 'My Profile',
+      label: 'Dashboard',
       icon: <AiOutlineDashboard size={20} />
     },
     {
@@ -174,7 +206,7 @@ export default function DashboardHeader() {
     },
     {
       path: `/profile/${user?.username}`,
-      label: 'My Clips',
+      label: 'Profile',
       icon: <AiOutlineVideoCamera size={20} />
     },
     {
@@ -210,13 +242,22 @@ export default function DashboardHeader() {
       <div 
         className={styles.navContainer} 
         ref={navContainerRef}
-        style={{ scrollBehavior: 'auto' }}
+        style={{ 
+          scrollBehavior: 'smooth',
+          scrollSnapType: isMobile ? 'x mandatory' : 'none',
+          WebkitOverflowScrolling: 'touch',
+          overflowX: 'auto'
+        }}
       >
         {displayItems.map((item, index) => (
           <button
             key={`${item.path}-${index}`}
             className={`${styles.navButton} ${isActive(item.path) ? styles.active : ''}`}
             onClick={(e) => handleClick(e, item)}
+            style={{
+              scrollSnapAlign: isMobile ? 'center' : 'none',
+              flexShrink: 0
+            }}
           >
             <span className={styles.icon}>{item.icon}</span>
             <span className={styles.label}>{item.label}</span>

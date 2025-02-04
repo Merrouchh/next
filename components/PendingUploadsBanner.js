@@ -7,34 +7,33 @@ const PendingUploadsBanner = ({ pendingUploads }) => {
   const previousUploadsRef = useRef({});
 
   useEffect(() => {
-    // Track status changes
+    const timeouts = new Set();
+    
     pendingUploads.forEach(upload => {
       const previousStatus = previousUploadsRef.current[upload.id]?.status;
       
-      // Only handle completion if we see a change to completed
       if (previousStatus && 
           previousStatus !== 'completed' && 
           upload.status === 'completed') {
-        handleCompleted(upload.id);
+        setCompletedUploads(prev => new Set(prev).add(upload.id));
+        
+        const timeout = setTimeout(() => {
+          setCompletedUploads(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(upload.id);
+            return newSet;
+          });
+        }, 5000);
+        
+        timeouts.add(timeout);
       }
-
-      // Update our reference of previous states
       previousUploadsRef.current[upload.id] = upload;
     });
-  }, [pendingUploads]);
 
-  // Handle completed uploads
-  const handleCompleted = (uploadId) => {
-    setCompletedUploads(prev => new Set(prev).add(uploadId));
-    // Remove from completed after 5 seconds
-    setTimeout(() => {
-      setCompletedUploads(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(uploadId);
-        return newSet;
-      });
-    }, 5000);
-  };
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [pendingUploads]);
 
   // Filter out uploads that we don't want to show
   const uploadsToShow = pendingUploads.filter(upload => {

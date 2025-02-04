@@ -9,6 +9,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
     useEffect(() => {
       if (!file) return;
   
+      let mounted = true;
       let videoUrl = null;
       const video = document.createElement('video');
   
@@ -31,6 +32,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
         video.muted = true;
   
         const generateThumbnail = () => {
+          if (!mounted) return;
           const canvas = document.createElement('canvas');
           canvas.width = width;
           canvas.height = height;
@@ -39,12 +41,16 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           try {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const thumbnail = canvas.toDataURL('image/jpeg', quality);
-            setThumbnailUrl(thumbnail);
-            if (onThumbnailGenerated) onThumbnailGenerated(thumbnail);
+            if (mounted) {
+              setThumbnailUrl(thumbnail);
+              if (onThumbnailGenerated) onThumbnailGenerated(thumbnail);
+            }
           } catch (err) {
-            console.warn('Thumbnail generation failed:', err);
-            setError('Could not generate preview');
-            if (onError) onError(err);
+            if (mounted) {
+              console.warn('Thumbnail generation failed:', err);
+              setError('Could not generate preview');
+              if (onError) onError(err);
+            }
           } finally {
             canvas.remove();
           }
@@ -52,7 +58,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
   
         // Handle metadata loaded
         video.onloadedmetadata = () => {
-          video.currentTime = 0.1; // Get frame near start
+          if (mounted) video.currentTime = 0.1;
         };
   
         // Handle seeking complete
@@ -60,9 +66,11 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
   
         // Handle errors
         video.onerror = (e) => {
-          console.warn('Video loading failed:', e);
-          setError('Preview not available');
-          if (onError) onError(e);
+          if (mounted) {
+            console.warn('Video loading failed:', e);
+            setError('Preview not available');
+            if (onError) onError(e);
+          }
           cleanup();
         };
   
@@ -71,13 +79,18 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
         video.src = videoUrl;
   
       } catch (err) {
-        console.error('Setup failed:', err);
-        setError('Could not setup preview');
-        if (onError) onError(err);
+        if (mounted) {
+          console.error('Setup failed:', err);
+          setError('Could not setup preview');
+          if (onError) onError(err);
+        }
         cleanup();
       }
   
-      return cleanup;
+      return () => {
+        mounted = false;
+        cleanup();
+      };
     }, [file, width, height, quality, onThumbnailGenerated, onError]);
   
     if (error) {

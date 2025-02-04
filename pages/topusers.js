@@ -53,29 +53,28 @@ const TopUsers = () => {
     let refreshInterval;
     
     const updateTimeLeft = () => {
+      if (!mounted) return;
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth();
       const nextMonth = new Date(year, month + 1, 1, 0, 0, 0);
       const timeDiff = nextMonth - now;
 
-      if (mounted) {
-        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+      const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
 
-        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
 
-        const monthNames = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        setCurrentMonth(monthNames[month]);
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      setCurrentMonth(monthNames[month]);
 
-        if (timeDiff <= 0) {
-          getTopUsers();
-        }
+      if (timeDiff <= 0) {
+        getTopUsers();
       }
     };
 

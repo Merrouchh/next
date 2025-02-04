@@ -1,32 +1,38 @@
 /* Base wrapper styles */
 .wrapper {
   min-height: 100vh;
-  transition: padding-top 0.3s ease;
   position: relative;
-  padding-top: var(--desktop-padding, 4rem);
 }
 
 .mainContent {
   width: 100%;
-  height: 100%;
+  position: relative;
+  z-index: 1;
 }
 
-/* Header padding variations */
-.singleHeaderPadding, .doubleHeaderPadding {
-  transition: padding-top 0.3s ease;
+/* Single header (just main header) */
+.singleHeaderPadding {
+  padding-top: var(--desktop-padding);
 }
 
-/* Tablet styles (768px and below) */
+/* Double header (main + dashboard headers) */
+.doubleHeaderPadding {
+  padding-top: var(--desktop-padding);
+}
+
+/* Tablet styles */
 @media (max-width: 768px) {
-  .wrapper {
-    padding-top: var(--tablet-padding, 3.5rem);
+  .singleHeaderPadding,
+  .doubleHeaderPadding {
+    padding-top: var(--tablet-padding);
   }
 }
 
-/* Mobile styles (480px and below) */
+/* Mobile styles */
 @media (max-width: 480px) {
-  .wrapper {
-    padding-top: var(--mobile-padding, 3rem);
+  .singleHeaderPadding,
+  .doubleHeaderPadding {
+    padding-top: var(--mobile-padding);
   }
 }
 

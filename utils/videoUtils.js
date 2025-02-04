@@ -7,6 +7,8 @@ console.log('FFprobe path:', ffprobe.path);
 ffmpeg.setFfprobePath(ffprobe.path);
 
 export const getVideoMetadata = async (filePath) => {
+  let ffprobeProcess = null;
+
   try {
     // Check if file exists first
     if (!fs.existsSync(filePath)) {
@@ -15,7 +17,7 @@ export const getVideoMetadata = async (filePath) => {
     }
 
     const metadata = await new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(filePath, (err, metadata) => {
+      ffprobeProcess = ffmpeg.ffprobe(filePath, (err, metadata) => {
         if (err) {
           console.error('FFprobe error:', err);
           reject(err);
@@ -62,5 +64,10 @@ export const getVideoMetadata = async (filePath) => {
       format: 'unknown',
       codec: 'unknown'
     };
+  } finally {
+    // Cleanup ffprobe process
+    if (ffprobeProcess && ffprobeProcess.kill) {
+      ffprobeProcess.kill();
+    }
   }
 }; 

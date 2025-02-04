@@ -6,7 +6,7 @@ import { AiOutlineSearch, AiOutlineUser } from 'react-icons/ai';
 
 const supabase = createClient();
 
-export default function UserSearch() {
+const UserSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -15,7 +15,6 @@ export default function UserSearch() {
   const router = useRouter();
 
   useEffect(() => {
-    // Close search results when clicking outside
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowResults(false);
@@ -54,12 +53,16 @@ export default function UserSearch() {
     setSearchQuery(query);
     setShowResults(true);
     
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      searchUsers(query);
+    let mounted = true;
+    const timeoutId = setTimeout(async () => {
+      if (!mounted) return;
+      await searchUsers(query);
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   };
 
   const handleSelectUser = (username) => {
@@ -104,4 +107,6 @@ export default function UserSearch() {
       )}
     </div>
   );
-} 
+};
+
+export default UserSearch; 

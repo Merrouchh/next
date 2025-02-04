@@ -215,7 +215,6 @@
 
 /* General Styles */
 .dashboardMain {
-  padding-top: 140px;
   min-height: 100vh;
   background: var(--bg-color, #0f1119);
 }
@@ -589,10 +588,6 @@
   .adminButtons {
     flex-direction: column;
     gap: 0.5rem;
-  }
-
-  .dashboardMain {
-    padding-top: 120px;
   }
 
   .refreshButton {
@@ -985,9 +980,6 @@
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-  .dashboardMain {
-    padding-top: 120px;
-  }
 
   .cardsContainer {
     padding: 1rem;

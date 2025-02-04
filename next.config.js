@@ -23,6 +23,10 @@ const nextConfig = {
     ],
     dangerouslyAllowSVG: true,
     minimumCacheTTL: 60,
+    domains: ['your-domain.com'],
+    // Add reasonable image size limits
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
   // Compiler options
@@ -34,7 +38,7 @@ const nextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config, { isServer }) => {
+  webpack: (config, { dev, isServer }) => {
     // Optimize logging
     config.infrastructureLogging = { level: 'error' };
 
@@ -72,6 +76,30 @@ const nextConfig = {
           publicPath: '/_next/',
         },
       });
+    }
+
+    // Production optimizations
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
+        minChunks: 1,
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+        cacheGroups: {
+          defaultVendors: {
+            test: /[\\/]node_modules[\\/]/,
+            priority: -10,
+            reuseExistingChunk: true,
+          },
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+        },
+      };
     }
 
     return config;
@@ -137,6 +165,32 @@ const nextConfig = {
   poweredByHeader: false,
   generateEtags: true,
   compress: true,
+
+  // Add this section
+  experimental: {
+    forceSwcTransforms: true,
+  },
+
+  // Add proper process handling
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
 };
+
+// Add proper process handling
+if (process.env.NODE_ENV === 'development') {
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM. Performing cleanup...');
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT. Performing cleanup...');
+    process.exit(0);
+  });
+}
 
 module.exports = nextConfig;

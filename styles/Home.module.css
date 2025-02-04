@@ -701,3 +701,27 @@
     padding-top: 2rem; /* Add more padding to the top */
   }
 }
+
+.progressBarContainer {
+  position: fixed;
+  top: 80px;  /* Match header height for desktop */
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 102;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.progressBar {
+  height: 100%;
+  background: #FFD700;
+  transition: width 0.2s ease;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+  .progressBarContainer {
+    top: 60px;  /* Match mobile header height */
+  }
+}

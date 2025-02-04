@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Upload.module.css';
-import { MdGamepad, MdPublic, MdLock, MdCloudUpload, MdPlayArrow } from 'react-icons/md';
+import { MdGamepad, MdPublic, MdLock, MdCloudUpload } from 'react-icons/md';
 import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useDropzone } from 'react-dropzone';
@@ -33,10 +33,8 @@ const UploadPage = () => {
   const { user, isLoggedIn, supabase } = useAuth();
   const router = useRouter();
   const xhrRef = useRef(null);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [username, setUsername] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
 
   // Fetch username from users table
   useEffect(() => {
@@ -72,7 +70,7 @@ const UploadPage = () => {
       }
     };
 
-    const handleRouteChange = (_url) => {
+    const handleRouteChange = () => {
       if (uploadStatus === 'uploading') {
         const confirm = window.confirm('Upload in progress. Are you sure you want to leave?');
         if (!confirm) {
@@ -163,24 +161,13 @@ const UploadPage = () => {
     const file = acceptedFiles[0];
     if (!file) return;
 
-    // Validate file size (100MB limit)
-    const MAX_FILE_SIZE = 100 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      alert('File size must be less than 100MB');
-      return;
-    }
-
-    setIsPreviewLoading(true);
-    setSelectedFile(file);
-    setTitle(file.name.split('.')[0]); // Set title as filename immediately
-
     // Clean up previous preview URL
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
     }
-    
-    setIsPreviewLoading(false);
+
+    setSelectedFile(file);
+    setTitle(file.name.split('.')[0]);
   }, [previewUrl]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -284,18 +271,18 @@ const UploadPage = () => {
   };
 
   useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+    const cleanup = () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      if (xhrRef.current) {
+        xhrRef.current.abort();
+      }
     };
 
-    // Initial check
-    checkIfMobile();
-
-    // Add event listener for window resize
-    window.addEventListener('resize', checkIfMobile);
-
-    // Cleanup
-    return () => window.removeEventListener('resize', checkIfMobile);
+    return () => {
+      cleanup();
+    };
   }, []);
 
   if (!isLoggedIn || !user) {
@@ -322,25 +309,14 @@ const UploadPage = () => {
             <input {...getInputProps()} />
             {selectedFile ? (
               <div className={styles.previewContainer}>
-                {isPreviewLoading ? (
-                  <div className={styles.previewLoading}>
-                    <div className={styles.spinner}></div>
-                    <p>Preparing preview...</p>
-                  </div>
-                ) : (
-                  <>
-                    {!isMobile && (
-                      <VideoThumbnail 
-                        file={selectedFile}
-                        onThumbnailGenerated={(url) => setPreviewUrl(url)}
-                        onError={(error) => console.error('Thumbnail error:', error)}
-                      />
-                    )}
-                    <p className={styles.fileName}>
-                      {selectedFile.name} ({Math.round(selectedFile.size / (1024 * 1024))}MB)
-                    </p>
-                  </>
-                )}
+                <VideoThumbnail 
+                  file={selectedFile}
+                  onThumbnailGenerated={(url) => setPreviewUrl(url)}
+                  onError={(error) => console.error('Thumbnail error:', error)}
+                />
+                <p className={styles.fileName}>
+                  {selectedFile.name} ({Math.round(selectedFile.size / (1024 * 1024))}MB)
+                </p>
               </div>
             ) : (
               <div className={styles.dropzoneContent}>

@@ -1,5 +1,4 @@
 import Footer from './Footer';
-import Header from './Header';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
@@ -11,8 +10,7 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const { loading } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
   
-  // Pages where header/footer should be hidden
-  const hideHeaderPaths = ['/login', '/register'];
+  // Pages where footer should be hidden
   const hideFooterPaths = ['/avcomputers', '/dashboard', '/voicechat', '/upload', '/register'];
 
   // Handle route changes
@@ -40,9 +38,7 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
       <Head>
         <title>{title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        {/* ... other meta tags */}
       </Head>
-      {!hideHeaderPaths.includes(router.pathname) && <Header />}
       <main className="main-content">
         {children}
       </main>

@@ -1,29 +1,5 @@
-const fetchWithRetry = async (url, options, maxRetries = 3, delay = 2000) => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await fetch(url, options);
-      
-      if (response.ok) {
-        return response;
-      }
-
-      // If it's a 522 error or other temporary failure
-      if (response.status === 522 || response.status >= 500) {
-        console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      // If it's another error, throw it immediately
-      throw new Error(`HTTP error! status: ${response.status}`);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      console.log(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retries reached');
-};
+// Remove if not used
+// const fetchWithRetry = async (url, options, maxRetries = 3, delay = 2000) => {
 
 export default async function handler(req, res) {
   const topUsersNumber = parseInt(req.query.numberOfUsers, 10) || 10;
@@ -37,12 +13,16 @@ export default async function handler(req, res) {
 
   const url = `${process.env.API_BASE_URL}/reports/topusers/${topUsersNumber}?TopUsersNumber=${topUsersNumber}&DateFrom=${encodeURIComponent(dateFrom)}&DateTo=${encodeURIComponent(dateTo)}`;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
   try {
-    const response = await fetchWithRetry(url, {
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Basic ${Buffer.from(process.env.API_AUTH).toString('base64')}`,
         'Content-Type': 'application/json'
-      }
+      },
+      signal: controller.signal
     });
 
     const data = await response.json();
@@ -57,6 +37,8 @@ export default async function handler(req, res) {
       message: 'Unable to fetch top users at the moment. Please try again later.',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

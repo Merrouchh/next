@@ -1,0 +1,551 @@
+.videoPlayerContainer {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  margin-top: 10px; /* Add consistent spacing */
+  background: #000; /* Add background color */
+  contain: content;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.videoWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  contain: content;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.videoWrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
+
+/* Update these styles */
+.videoWrapper :global(.react-player__preview) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.videoWrapper :global(.react-player__controls) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.playButton {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(230, 207, 0, 0.2);
+  border: 2px solid rgba(230, 207, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.playButton:hover {
+  background: rgba(230, 207, 0, 0.3);
+  transform: translate(-50%, -50%) scale(1.1);
+  border-color: #e6cf00;
+}
+
+.playButton svg {
+  width: 40px;
+  height: 40px;
+  color: #e6cf00;
+  margin-left: 5px; /* Offset for the play icon's shape */
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Style the ReactPlayer container */
+.videoPlayerContainer :global(.react-player) {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Style the preview/thumbnail */
+.videoPlayerContainer :global(.react-player__preview) {
+  width: 100% !important;
+  height: 100% !important;
+  background-size: contain !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-color: #000 !important;
+}
+
+/* Style the video element */
+.videoPlayerContainer :global(.react-player video) {
+  object-fit: contain;
+}
+
+/* Style the play button */
+.videoPlayerContainer :global(.react-player__play-icon) {
+  display: none !important;
+}
+
+/* Controls overlay */
+.controls {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(transparent, transparent);
+  z-index: 20;
+  pointer-events: none;
+}
+
+.statsContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.5rem;
+  border-radius: 20px;
+}
+
+.viewCount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 0 0.5rem;
+}
+
+.viewCount svg {
+  color: #FFD700;
+  font-size: 1.3rem;
+}
+
+.likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+  background: transparent;
+}
+
+.likeButton:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.likeButton.liked {
+  color: #FFD700;
+}
+
+.likeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.likeButton svg {
+  font-size: 1.3rem;
+}
+
+.likeCount {
+  font-weight: 500;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Animations */
+.likeButton, .viewCount {
+  transform: translateY(0);
+  transition: transform 0.2s ease;
+}
+
+.likeButton:hover, .viewCount:hover {
+  transform: translateY(-2px);
+}
+
+.likeButton.liked svg {
+  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+}
+
+.customControls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: 10px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.videoWrapper:hover .customControls {
+  opacity: 1;
+}
+
+.controlsBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.leftControls, .rightControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controlButton {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.controlButton:hover {
+  transform: scale(1.1);
+}
+
+.controlButton svg {
+  width: 24px;
+  height: 24px;
+}
+
+.volumeControl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.volumeSlider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.volumeSlider:hover {
+  height: 6px;
+}
+
+.progressBar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: height 0.2s ease;
+}
+
+.progressBar:hover {
+  height: 6px;
+}
+
+.bufferProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  /* Remove transition for immediate updates */
+  transition: none;
+}
+
+.progressFilled {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--primary-color, #FFD700);
+  /* Keep smooth transition for playback progress */
+  transition: width 0.1s ease;
+  z-index: 1;
+}
+
+.timeDisplay {
+  display: flex;
+  justify-content: space-between;
+  color: white;
+  font-size: 0.8rem;
+  padding: 0 5px;
+}
+
+/* Make controls always visible on mobile */
+@media (max-width: 768px) {
+  .customControls {
+    opacity: 1;
+  }
+}
+
+.errorOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+.errorOverlay button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #2196f3;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+
+.errorOverlay button:hover {
+  background: #1976d2;
+}
+
+/* Add these new styles */
+.clipTitle {
+  margin: 8px 0;
+  padding: 0 10px;
+  font-size: 1rem;
+  line-height: 1.4;
+  max-height: 2.8em; /* Allows for 2 lines of text */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  box-orient: vertical;
+  word-wrap: break-word;
+}
+
+.clipHeader {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 40px; /* Add minimum height */
+}
+
+.clipContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: #1a1a1a; /* Add container background */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+/* New loading animation */
+.spinner {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner::before,
+.spinner::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.spinner::before {
+  width: 100%;
+  height: 100%;
+  background: rgba(230, 207, 0, 0.2); /* Using your gold color */
+  animation-delay: -0.5s;
+}
+
+.spinner::after {
+  width: 75%;
+  height: 75%;
+  background: #e6cf00; /* Your gold color */
+  animation-delay: 0s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Update the loading text */
+.spinner span {
+  position: absolute;
+  font-size: 12px;
+  color: white;
+  bottom: -24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  animation: fadeInOut 1.8s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Add these styles for the delete confirmation overlay */
+.deleteConfirmation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  z-index: 100;
+  border-radius: 8px;
+}
+
+.deleteConfirmation h3 {
+  color: #fff;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.deleteConfirmation p {
+  color: #ccc;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  padding: 0 1rem;
+}
+
+.deleteActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.cancelButton {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #666;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.deleteButton {
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deleteButton:hover {
+  background: #bd2130;
+}
+
+.deleteButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.deletingState {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 101;
+  border-radius: 8px;
+} 

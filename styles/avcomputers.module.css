@@ -29,7 +29,7 @@
   border-radius: 10px;
   padding: 1.5rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease-in-out;
   cursor: pointer;
   min-height: 120px;
   display: flex;
@@ -177,4 +177,23 @@
   .statusText {
     color: #a0a0a0;
   }
+}
+
+@keyframes updatePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+  }
+}
+
+.updated {
+  animation: updatePulse 1s ease-out;
 }

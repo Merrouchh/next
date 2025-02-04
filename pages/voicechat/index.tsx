@@ -1,11 +1,9 @@
 import Head from 'next/head';
-import { useRouter } from 'next/router';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import styles from '../../styles/VoiceChat.module.css';
 import { useEffect, useRef } from 'react';
 
 export default function VoiceChatPage() {
-  const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {

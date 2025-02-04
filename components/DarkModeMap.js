@@ -10,23 +10,20 @@ const DarkModeMap = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    let mounted = true;
+    let initTimer;
 
     const initializeMap = async () => {
       try {
-        if (!mapRef.current) {
-          console.error('Map container not found');
-          return;
-        }
+        if (!mapRef.current || !mounted) return;
 
         if (isInitialized.current) return;
 
         const L = (await import('leaflet')).default;
         await import('leaflet/dist/leaflet.css');
 
-        if (!mapRef.current) {
-          console.error('Map container lost after initialization');
-          return;
-        }
+        if (!mapRef.current || !mounted) return;
 
         isInitialized.current = true;
         
@@ -70,15 +67,18 @@ const DarkModeMap = () => {
         }, 250);
 
       } catch (error) {
-        console.error('Map initialization error:', error);
-        setIsLoading(false);
+        if (mounted) {
+          console.error('Map initialization error:', error);
+          setIsLoading(false);
+        }
       }
     };
 
-    const timer = setTimeout(initializeMap, 100);
+    initTimer = setTimeout(initializeMap, 100);
 
     return () => {
-      clearTimeout(timer);
+      mounted = false;
+      clearTimeout(initTimer);
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { fetchActiveUserSessions, fetchUserById, fetchUserBalance } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,10 +6,9 @@ import Head from 'next/head';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import { createClient } from '../utils/supabase/component';
 
 // Computer component
-const ComputerBox = ({ computer, isVip }) => {
+const ComputerBox = ({ computer, isVip, lastUpdate }) => {
   const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
     ? computer.timeLeft.split(' : ') 
     : [0, 0];
@@ -24,8 +23,18 @@ const ComputerBox = ({ computer, isVip }) => {
       : styles.active
     : styles.inactive;
 
+  const lastUpdateTime = lastUpdate[computer.id];
+  const isRecentlyUpdated = lastUpdateTime && Date.now() - lastUpdateTime < 1000;
+
   return (
-    <div key={computer.id} className={`${boxClass} ${activeClass}`}>
+    <div 
+      key={computer.id} 
+      className={`
+        ${boxClass} 
+        ${activeClass}
+        ${isRecentlyUpdated ? styles.updated : ''}
+      `}
+    >
       <div className={styles.pcNumber}>
         {isVip ? 'VIP PC' : 'PC'}{computer.number}
       </div>
@@ -39,7 +48,7 @@ const ComputerBox = ({ computer, isVip }) => {
 };
 
 // VIP Computers section
-const VIPComputers = ({ computers }) => {
+const VIPComputers = ({ computers, lastUpdate }) => {
   const vipContainerRef = useRef(null);
   const initialScrollDone = useRef(false);
 
@@ -62,7 +71,12 @@ const VIPComputers = ({ computers }) => {
       <div className={styles.vipSection}>
         <div ref={vipContainerRef} className={styles.vipComputers}>
           {computers.map(computer => (
-            <ComputerBox key={computer.id} computer={computer} isVip={true} />
+            <ComputerBox 
+              key={computer.id} 
+              computer={computer} 
+              isVip={true}
+              lastUpdate={lastUpdate}
+            />
           ))}
         </div>
       </div>
@@ -72,133 +86,164 @@ const VIPComputers = ({ computers }) => {
 
 // Main component
 const AvailableComputers = () => {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading, user } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const [lastUpdate, setLastUpdate] = useState({});
+  const prevComputers = useRef({ normal: [], vip: [] });
+
+  // Define computersList inside the component
+  const computersList = {
+    normal: [
+      { number: 1, id: 26 }, { number: 2, id: 12 },
+      { number: 3, id: 8 }, { number: 4, id: 5 },
+      { number: 5, id: 17 }, { number: 6, id: 11 },
+      { number: 7, id: 16 }, { number: 8, id: 14 }
+    ],
+    vip: [
+      { number: 9, id: 21 }, { number: 10, id: 22 },
+      { number: 11, id: 25 }, { number: 12, id: 20 },
+      { number: 13, id: 24 }, { number: 14, id: 23 }
+    ]
+  };
 
   // Auth check
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/');
-      }
-    };
-    
-    checkAuth();
-  }, [router]);
-
-  // Auth state listener
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        router.push('/');
-      }
-    });
-
-    return () => subscription?.unsubscribe();
-  }, [router]);
-
-  // Add session check and API error handling
-  const handleApiError = async (error) => {
-    if (error.message === 'Auth session missing!' || error.status === 401) {
-      const { data: { session }, error: refreshError } = await supabase.auth.getSession();
-      
-      if (refreshError || !session) {
-        router.push('/');
-        return true;
-      }
+    if (!loading && !isLoggedIn) {
+      router.push('/');
     }
-    return false;
-  };
+  }, [isLoggedIn, loading, router]);
+
+  const updateSingleComputer = useCallback((computer, newData) => {
+    setComputers(prev => {
+      const section = computer.number <= 8 ? 'normal' : 'vip';
+      const newComputers = {
+        ...prev,
+        [section]: prev[section].map(pc => 
+          pc.id === computer.id ? { ...pc, ...newData } : pc
+        )
+      };
+      return newComputers;
+    });
+  }, []);
 
   // Data fetching
   useEffect(() => {
-    const computersList = {
-      normal: [
-        { number: 1, id: 26 }, { number: 2, id: 12 },
-        { number: 3, id: 8 }, { number: 4, id: 5 },
-        { number: 5, id: 17 }, { number: 6, id: 11 },
-        { number: 7, id: 16 }, { number: 8, id: 14 }
-      ],
-      vip: [
-        { number: 9, id: 21 }, { number: 10, id: 22 },
-        { number: 11, id: 25 }, { number: 12, id: 20 },
-        { number: 13, id: 24 }, { number: 14, id: 23 }
-      ]
-    };
+    let mounted = true;
+    let intervalId;
 
-    const fetchData = async () => {
+    const fetchComputerStatus = async (computer) => {
       try {
         const activeSessions = await fetchActiveUserSessions();
-        const updateComputers = async (list) => {
-          return Promise.all(list.map(async (computer) => {
-            const session = activeSessions.find(s => s.hostId === computer.id);
-            if (!session) {
-              return { 
-                ...computer, 
-                isActive: false, 
-                timeLeft: 'No Time' 
-              };
-            }
+        const session = activeSessions.find(s => s.hostId === computer.id);
 
-            try {
-              const user = await fetchUserById(session.userId);
-              if (!user) {
-                return {
-                  ...computer,
-                  isActive: true,
-                  timeLeft: 'No Time'
-                };
-              }
-
-              const balance = await fetchUserBalance(user.id);
-              return {
-                ...computer,
-                isActive: true,
-                timeLeft: typeof balance === 'string' ? balance : balance.balance || 'No Time'
-              };
-            } catch (error) {
-              return {
-                ...computer,
-                isActive: true,
-                timeLeft: 'No Time'
-              };
-            }
-          }));
+        // Check if status has changed
+        const currentStatus = {
+          isActive: !!session,
+          timeLeft: 'No Time'
         };
 
-        const [normalComputers, vipComputers] = await Promise.all([
-          updateComputers(computersList.normal),
-          updateComputers(computersList.vip)
-        ]);
-
-        setComputers({ 
-          normal: normalComputers, 
-          vip: vipComputers 
-        });
-        setError(null);
-      } catch (err) {
-        const isAuthError = await handleApiError(err);
-        if (!isAuthError) {
-          setError('Failed to fetch computer data');
+        if (session) {
+          const userData = await fetchUserById(session.userId);
+          if (userData) {
+            const balance = await fetchUserBalance(userData.id);
+            currentStatus.timeLeft = typeof balance === 'string' ? balance : balance.balance || 'No Time';
+          }
         }
-      } finally {
-        setIsLoading(false);
+
+        // Compare with previous state
+        const prevState = prevComputers.current[computer.number <= 8 ? 'normal' : 'vip']
+          .find(pc => pc.id === computer.id);
+
+        if (!prevState || 
+            prevState.isActive !== currentStatus.isActive || 
+            prevState.timeLeft !== currentStatus.timeLeft) {
+          if (mounted) {
+            updateSingleComputer(computer, currentStatus);
+            setLastUpdate(prev => ({ ...prev, [computer.id]: Date.now() }));
+          }
+        }
+
+      } catch (error) {
+        console.error(`Error updating computer ${computer.number}:`, error);
       }
     };
 
-    fetchData();
-    const intervalId = setInterval(fetchData, 5000);
-    return () => clearInterval(intervalId);
-  }, []);
+    const fetchAllComputers = async () => {
+      if (!isLoggedIn || !user) return;
 
-  if (loading || isLoading) return <LoadingScreen />;
-  if (!isLoggedIn) return null;
-  if (error) return <div className={styles.error}>{error}</div>;
+      try {
+        // Fetch initial state if computers are empty
+        if (!computers.normal.length && !computers.vip.length) {
+          setIsLoading(true);
+          const initialComputers = {
+            normal: computersList.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
+            vip: computersList.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
+          };
+          if (mounted) {
+            setComputers(initialComputers);
+            prevComputers.current = initialComputers;
+          }
+        }
+
+        // Update computers one by one
+        for (const computer of [...computersList.normal, ...computersList.vip]) {
+          await fetchComputerStatus(computer);
+        }
+
+        if (mounted) {
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Error fetching computer data:', err);
+        if (mounted) {
+          setError('Unable to fetch computer data. Please try again.');
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (isLoggedIn && user) {
+      fetchAllComputers();
+      intervalId = setInterval(fetchAllComputers, 5000);
+    }
+
+    return () => {
+      mounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isLoggedIn, user, updateSingleComputer, computers.normal.length, computers.vip.length]);
+
+  if (loading || isLoading) {
+    return <LoadingScreen />;
+  }
+
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  if (error) {
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.error}>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className={styles.retryButton}
+          >
+            Retry
+          </button>
+        </div>
+      </ProtectedPageWrapper>
+    );
+  }
 
   return (
     <ProtectedPageWrapper>
@@ -210,12 +255,20 @@ const AvailableComputers = () => {
         <h2 className={styles.sectionHeading}>Normal Computers</h2>
         <div className={styles.computerGrid}>
           {computers.normal.map(computer => (
-            <ComputerBox key={computer.id} computer={computer} isVip={false} />
+            <ComputerBox 
+              key={computer.id} 
+              computer={computer} 
+              isVip={false}
+              lastUpdate={lastUpdate}
+            />
           ))}
         </div>
 
         <h2 className={styles.sectionHeading}>VIP PCs</h2>
-        <VIPComputers computers={computers.vip} />
+        <VIPComputers 
+          computers={computers.vip} 
+          lastUpdate={lastUpdate}
+        />
       </main>
     </ProtectedPageWrapper>
   );

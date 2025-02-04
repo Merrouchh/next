@@ -7,15 +7,15 @@ export const ROUTE_CONFIG = {
     requireAuth: false,
     mobileTopPadding: {
       loggedIn: '3rem',
-      loggedOut: '3rem'
+      loggedOut: '2rem'
     },
     tabletTopPadding: {
       loggedIn: '3.5rem',
-      loggedOut: '3.5rem'
+      loggedOut: '2rem'
     },
     desktopTopPadding: {
       loggedIn: '4rem',
-      loggedOut: '4rem'
+      loggedOut: '2rem'
     }
   },
 
@@ -24,16 +24,16 @@ export const ROUTE_CONFIG = {
     singleHeader: false,
     requireAuth: false,
     mobileTopPadding: {
-      loggedIn: '8rem',
-      loggedOut: '3rem'
+      loggedIn: '6rem',
+      loggedOut: '3.5rem'
     },
     tabletTopPadding: {
-      loggedIn: '8rem',
+      loggedIn: '6rem',
       loggedOut: '3.5rem'
     },
     desktopTopPadding: {
-      loggedIn: '8rem',
-      loggedOut: '4rem'
+      loggedIn: '9rem',
+      loggedOut: '5rem'
     }
   },
 
@@ -42,16 +42,16 @@ export const ROUTE_CONFIG = {
     singleHeader: false,
     requireAuth: true,
     mobileTopPadding: {
-      loggedIn: '4rem',
-      loggedOut: '3rem'
+      loggedIn: '9rem',  // Mobile: main header (60px) + dashboard header (60px)
+      loggedOut: '5rem'   // Just main header
     },
     tabletTopPadding: {
-      loggedIn: '4rem',
-      loggedOut: '3.5rem'
+      loggedIn: '9rem',  // Tablet/Desktop: main header (80px) + dashboard header (70px)
+      loggedOut: '5rem'   // Just main header
     },
     desktopTopPadding: {
-      loggedIn: '3rem',
-      loggedOut: '4rem'
+      loggedIn: '12rem',   // Your custom value for desktop
+      loggedOut: '5rem'   // Just main header
     }
   },
 
@@ -91,24 +91,6 @@ export const ROUTE_CONFIG = {
     }
   },
 
-  '/voicechat': {
-    public: false,
-    singleHeader: true,
-    requireAuth: true,
-    mobileTopPadding: {
-      loggedIn: '3rem',
-      loggedOut: '3rem'
-    },
-    tabletTopPadding: {
-      loggedIn: '3.5rem',
-      loggedOut: '3.5rem'
-    },
-    desktopTopPadding: {
-      loggedIn: '4rem',
-      loggedOut: '4rem'
-    }
-  },
-
   // Default configuration
   default: {
     public: true,
@@ -141,16 +123,16 @@ export const getRouteConfig = (pathname) => {
       singleHeader: false,
       requireAuth: false,
       mobileTopPadding: {
-        loggedIn: '12rem',
-        loggedOut: '6rem'
+        loggedIn: '10rem',  // Mobile: main header (60px) + dashboard header (60px)
+        loggedOut: '5rem'   // Just main header
       },
       tabletTopPadding: {
-        loggedIn: '12rem',
-        loggedOut: '6rem'
+        loggedIn: '9rem',  // Tablet/Desktop: main header (80px) + dashboard header (70px)
+        loggedOut: '5rem'   // Just main header
       },
       desktopTopPadding: {
-        loggedIn: '8rem',
-        loggedOut: '4rem'
+        loggedIn: '10rem',  // Desktop: main header (80px) + dashboard header (70px)
+        loggedOut: '8rem'   // Just main header
       }
     };
   }
@@ -160,16 +142,16 @@ export const getRouteConfig = (pathname) => {
       ...ROUTE_CONFIG.default,
       singleHeader: true,
       mobileTopPadding: {
-        loggedIn: '3rem',
-        loggedOut: '3rem'
-      },
-      tabletTopPadding: {
         loggedIn: '3.5rem',
         loggedOut: '3.5rem'
       },
-      desktopTopPadding: {
+      tabletTopPadding: {
         loggedIn: '4rem',
         loggedOut: '4rem'
+      },
+      desktopTopPadding: {
+        loggedIn: '4.5rem',
+        loggedOut: '4.5rem'
       }
     };
   }

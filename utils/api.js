@@ -300,6 +300,9 @@ export const fetchTopClipOfWeek = async (supabase) => {
   }
 };
 
+// Keep track of created blob URLs
+const blobUrls = new Set();
+
 export const fetchUserPicture = async (gizmoId) => {
   try {
     const response = await fetch(`/api/users/${gizmoId}/picture`);
@@ -319,12 +322,28 @@ export const fetchUserPicture = async (gizmoId) => {
     // Create a blob URL directly from the response
     const blob = await response.blob();
     const imageUrl = URL.createObjectURL(blob);
+    
+    // Track this URL for cleanup
+    blobUrls.add(imageUrl);
+    
     return imageUrl;
 
   } catch (error) {
     console.error('Error fetching user picture:', error);
     return null;
   }
+};
+
+// Add cleanup function
+export const cleanupBlobUrls = () => {
+  blobUrls.forEach(url => {
+    try {
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error revoking blob URL:', error);
+    }
+  });
+  blobUrls.clear();
 };
 
 export const uploadUserPicture = async (gizmoId, file) => {
@@ -415,4 +434,16 @@ const resizeImage = async (file, { maxWidth, maxHeight, quality }) => {
       };
     };
   });
+};
+
+// Add this function to get client IP
+export const getClientIP = async () => {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.error('Error getting IP:', error);
+    return '0.0.0.0'; // fallback IP
+  }
 };

@@ -1,5 +1,4 @@
 .pageContainer {
-  padding-top: 140px;
   min-height: 100vh;
   background: var(--bg-color, #0f1119);
 }
@@ -53,19 +52,20 @@
 
 /* Improve loading states */
 .loader {
-  opacity: 0;
-  animation: fadeIn 0.3s ease-in-out forwards;
-  transition: opacity 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
 }
 
 .spinner {
-  display: inline-block;
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(230, 207, 0, 0.2);
   border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
+  border-top-color: #e6cf00;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -120,16 +120,18 @@
 }
 
 .discoverMain {
-  padding-top: 20px;
+  min-height: 100vh;
+  background: #0f0f0f;
+  padding: 0 1rem 2rem 1rem;
 }
 
 .feedContainer {
+  max-width: 800px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 1rem;
+  gap: 2rem;
+  padding-top: 2rem;
 }
 
 .clipContainer {
@@ -143,235 +145,263 @@
   transform: translateY(-2px);
 }
 
-.clipHeader {
+.clipInfo {
   padding: 1rem;
+}
+
+.clipHeader {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .userLink {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--primary-color, #3b82f6);
+  text-decoration: none;
+  font-weight: 500;
   background: none;
   border: none;
-  color: white;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 20px;
-  transition: background-color 0.2s;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .userLink:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
 }
 
 .gameTag {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.9rem;
-}
-
-.clipVideoWrapper {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio */
-  background: #000;
-}
-
-.clipVideo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* Add specific styles for the poster/thumbnail */
-.clipVideo[poster] {
-  object-fit: cover;
-  z-index: 1; /* Ensure thumbnail is in foreground */
-}
-
-/* Ensure proper mobile display */
-@media (max-width: 768px) {
-  .clipVideo,
-  .clipVideo[poster] {
-    object-fit: cover;
-  }
-}
-
-.clipInfo {
-  padding: 1rem;
+  color: #a0a0a0;
 }
 
 .clipTitle {
-  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.clipVideoWrapper {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.clipStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.statsContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.viewCount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
   font-size: 1.1rem;
+}
+
+.viewCount svg {
+  color: #FFD700;
+  font-size: 1.3rem;
+}
+
+.likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+}
+
+.likeButton:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+.likeButton.liked {
+  color: #FFD700;
+}
+
+.likeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .clipActions {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .actionButton {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
   transition: all 0.2s;
-}
-
-.actionButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.actionButton.liked {
-  color: #ff4081;
-}
-
-.actionButton span {
   font-size: 1rem;
 }
 
-.loader {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
+.actionButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
-.loading {
+/* Navigation buttons */
+.navigationButtons {
+  margin: 2rem auto 1.5rem;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.spinner {
-  color: #666;
-}
-
-.noClips {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-}
-
-@media (max-width: 600px) {
-  .feedContainer {
-    padding: 0.5rem;
-  }
-
-  .clipContainer {
-    border-radius: 0;
-  }
-}
-
-.clipContainer {
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.clipInfo {
-  cursor: pointer;
-  padding: 1rem;
-}
-
-.clipInfo:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.clipVideoWrapper {
-  cursor: default; /* Reset cursor for video */
-}
-
-.clipVideo {
-  cursor: pointer; /* Show pointer cursor only on video */
-}
-
-.clipActions {
-  cursor: default; /* Reset cursor for actions */
-}
-
-.actionButton {
-  cursor: pointer; /* Show pointer cursor on buttons */
-}
-
-.navigationButtons {
-  padding: 20px;
-  display: flex;
-  gap: 12px;
+  max-width: 800px;
+  padding: 0 1rem;
 }
 
 .navButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
-  background: var(--primary-color, #3b82f6);
   color: white;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
   transition: all 0.2s;
 }
 
 .navButton:hover {
-  background: var(--primary-dark, #2563eb);
+  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
-.navButton svg {
-  font-size: 20px;
+.myClipsButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.5rem;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-/* Mobile adjustments */
+.myClipsButton:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+}
+
+.backIcon {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.myClipsButton:hover .backIcon {
+  transform: translateX(-3px);
+}
+
+/* Loading spinner */
+.loader {
+  text-align: center;
+  padding: 2rem;
+  color: #fff;
+}
+
+.spinner {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
-  .pageContainer {
-    padding-top: 120px;
-  }
-
   .discoverMain {
-    padding-top: 16px;
-  }
-
-  .feedContainer {
-    padding: 0.5rem;
+    padding: 0 0.5rem 1rem 0.5rem;
   }
 
   .navigationButtons {
-    padding: 12px;
-    margin-bottom: 8px;
+    margin: 1.5rem auto 1rem;
+    padding: 0 0.75rem;
   }
 
-  .navButton {
-    padding: 8px 16px;
-    font-size: 14px;
+  .clipContainer {
+    margin-bottom: 1rem;
   }
 
-  .header h1 {
-    font-size: 1.2rem;
+  .clipHeader {
+    flex-wrap: wrap;
   }
 
-  .backButton {
-    padding: 0.3rem;
+  .clipTitle {
+    font-size: 1.1rem;
+  }
+
+  .actionButton,
+  .likeButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .clipWrapper {
+    margin-bottom: 1.5rem;
+  }
+
+  .myClipsButton {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.95rem;
+  }
+
+  .feedContainer {
+    padding-top: 1.5rem;
+  }
+
+  .clipWrapper:first-child {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .feedContainer {
+    padding-top: 3rem;
+  }
+
+  .clipWrapper:first-child {
+    margin-top: 1.5rem;
   }
 }
 
@@ -443,4 +473,13 @@
     transition: none !important;
     transform: none !important;
   }
+}
+
+.clipWrapper {
+  margin-bottom: 2rem;
+}
+
+/* Add specific padding for the first clip */
+.clipWrapper:first-child {
+  margin-top: 1rem;
 }

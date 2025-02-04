@@ -1,6 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import httpProxy from 'http-proxy';
-import type { ServerResponse } from 'http';
 
 const proxy = httpProxy.createProxyServer({
   ws: true,
@@ -12,7 +10,7 @@ const proxy = httpProxy.createProxyServer({
 });
 
 // Better error handling
-proxy.on('error', (err, req, res: ServerResponse | any) => {
+proxy.on('error', (err, req, res) => {
   console.error('Proxy error:', err);
   // Check if res is a ServerResponse (HTTP) and not a Socket (WebSocket)
   if ('writeHead' in res) {
@@ -21,7 +19,7 @@ proxy.on('error', (err, req, res: ServerResponse | any) => {
   }
 });
 
-proxy.on('proxyReqWs', (proxyReq, req, socket, options, head) => {
+proxy.on('proxyReqWs', (proxyReq, req, socket) => {
   console.log('WebSocket connecting to:', proxyReq.path);
   socket.on('error', (err) => {
     console.error('Socket error:', err);
@@ -35,7 +33,7 @@ export const config = {
   },
 };
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req: any, res: any) {
   if (req.url) {
     req.url = req.url.replace('/api', '');
   }
@@ -51,7 +49,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   });
 }
 
-export function upgradeHandler(req: any, socket: any, head: any) {
+export function upgradeHandler(req: any, socket: any, head: Buffer) {
   if (req.url) {
     req.url = req.url.replace('/api', '');
   }

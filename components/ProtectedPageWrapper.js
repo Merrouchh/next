@@ -6,8 +6,9 @@ import { getRouteConfig } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import DashboardHeader from './DashboardHeader';
+import monitoring from '../utils/monitoring';
 
-export default function ProtectedPageWrapper({ children }) {
+const ProtectedPageWrapper = ({ children }) => {
   const { isLoggedIn, loading: authLoading, userData } = useAuth();
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -28,6 +29,7 @@ export default function ProtectedPageWrapper({ children }) {
     router.events.on('routeChangeComplete', handleComplete);
     router.events.on('routeChangeError', handleError);
 
+    // Proper cleanup
     return () => {
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
@@ -41,6 +43,11 @@ export default function ProtectedPageWrapper({ children }) {
       router.replace('/');
     }
   }, [isLoggedIn, authLoading, router, routeConfig]);
+
+  useEffect(() => {
+    const pagePath = window.location.pathname;
+    monitoring.logPageView(pagePath, userData?.id);
+  }, [userData]);
 
   // Only show full-page loading when actually navigating between pages
   if (isNavigating) {
@@ -71,4 +78,6 @@ export default function ProtectedPageWrapper({ children }) {
       </main>
     </div>
   );
-} 
+}
+
+export default ProtectedPageWrapper;

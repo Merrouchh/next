@@ -13,13 +13,23 @@ if (process.env.NODE_ENV === 'production') {
 
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
+    let registration = null;
+
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(error => {
+      window.addEventListener('load', async () => {
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js');
+        } catch (error) {
           console.error('PWA: Service Worker registration failed:', error);
-        });
+        }
       });
     }
+
+    return () => {
+      if (registration) {
+        registration.unregister();
+      }
+    };
   }, []);
 
   return (
