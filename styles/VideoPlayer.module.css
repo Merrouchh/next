@@ -9,7 +9,7 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-  touch-action: pan-y pinch-zoom; /* Allow vertical scrolling and pinch zoom */
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -23,6 +23,7 @@
   contain: content;
   will-change: transform;
   transform: translateZ(0);
+  touch-action: pan-y pinch-zoom;
 }
 
 .videoWrapper video {

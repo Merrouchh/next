@@ -427,15 +427,20 @@ const VideoPlayer = ({
       return;
     }
 
-    // If controls are hidden, show them
-    if (!showControls) {
-      setShowControls(true);
-    } else {
-      // If controls are visible and video is playing, hide them immediately
-      if (isPlaying) {
-        setShowControls(false);
+    // Toggle play/pause when clicking the video area
+    if (!isPlaying) {
+      setIsPlaying(true);
+      setShowThumbnail(false);
+      if (onPlay) {
+        onPlay();
       }
+    } else {
+      setIsPlaying(false);
+      setShowThumbnail(true);
     }
+
+    // Toggle controls visibility
+    setShowControls(prev => !prev);
   };
 
   const handleTouchStart = (e) => {
@@ -462,7 +467,6 @@ const VideoPlayer = ({
   const handleTouchEnd = (e) => {
     // Only handle tap if it wasn't a scroll attempt
     if (!isTouchMove) {
-      e.preventDefault();
       handleVideoContainerClick(e);
     }
     
@@ -818,7 +822,10 @@ const VideoPlayer = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className={styles.videoWrapper}>
+        <div 
+          className={styles.videoWrapper}
+          style={{ touchAction: 'pan-y pinch-zoom' }}
+        >
           {isLoading && !videoError && (
             <div className={styles.loadingOverlay}>
               <LoadingClip />
