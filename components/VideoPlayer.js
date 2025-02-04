@@ -51,8 +51,6 @@ const VideoPlayer = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const bufferRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
-  const [isInViewport, setIsInViewport] = useState(false);
 
   const getVideoUrl = () => {
     if (clip?.url) return clip.url;
@@ -410,72 +408,23 @@ const VideoPlayer = ({
     }
   };
 
-  const handleVideoContainerClick = (e) => {
-    // Don't handle click if user is clicking controls
-    if (e.target.closest(`.${styles.customControls}`)) {
-      return;
-    }
-
-    // Show controls on any tap/click
-    setShowControls(true);
-    setIsUserInteracting(true);
-
-    // If controls are already visible, toggle play/pause
-    if (showControls && !e.target.closest(`.${styles.playButton}`)) {
-      handlePlayPause();
-    }
+  const handleVideoContainerClick = () => {
+    setShowControls(prev => !prev);
   };
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      {
-        threshold: 0.5 // Trigger when 50% of the video is visible
-      }
-    );
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
-    }
-
-    return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     let timeout;
-    
-    // Only auto-hide controls if:
-    // 1. Video is playing
-    // 2. Controls are showing
-    // 3. User isn't interacting
-    // 4. Video is in viewport
-    if (isPlaying && showControls && !isUserInteracting && isInViewport) {
+    if (showControls && isPlaying) {
       timeout = setTimeout(() => {
         setShowControls(false);
-      }, 3000);
+      }, 3000); // Hide controls after 3 seconds of inactivity
     }
-
-    // Reset user interaction after a brief delay
-    if (isUserInteracting) {
-      const interactionTimeout = setTimeout(() => {
-        setIsUserInteracting(false);
-      }, 1000);
-      
-      return () => clearTimeout(interactionTimeout);
-    }
-
     return () => {
       if (timeout) {
         clearTimeout(timeout);
       }
     };
-  }, [isPlaying, showControls, isUserInteracting, isInViewport]);
+  }, [showControls, isPlaying]);
 
   const handleError = async (error) => {
     await monitoring.logError(error, {
@@ -836,10 +785,7 @@ const VideoPlayer = ({
             />
           )}
           
-          <div 
-            className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}>
             <div 
               className={styles.progressBar} 
               ref={progressRef}

@@ -214,7 +214,6 @@
   padding: 10px;
   opacity: 1;
   transition: opacity 0.3s ease-in-out;
-  z-index: 10;
 }
 
 .videoWrapper:hover .customControls {
@@ -328,44 +327,8 @@
 
 /* Make controls always visible on mobile */
 @media (max-width: 768px) {
-  .controlButton {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 10px;
-  }
-
-  .volumeControl {
-    display: none;
-  }
-
-  /* Remove the always-visible controls for mobile */
   .customControls {
     opacity: 1;
-    transition: opacity 0.3s ease-in-out;
-  }
-
-  /* Ensure controls can be hidden on mobile */
-  .customControls.hidden {
-    opacity: 0;
-    pointer-events: none;
-  }
-}
-
-/* Add touch-specific media query */
-@media (hover: none) {
-  /* Touch devices */
-  .videoPlayerContainer {
-    touch-action: manipulation;
-  }
-
-  .customControls {
-    opacity: 1;
-    transition: opacity 0.3s ease-in-out;
-  }
-
-  .customControls.hidden {
-    opacity: 0;
-    pointer-events: none;
   }
 }
 
@@ -599,5 +562,18 @@
   .videoPlayerContainer:hover .customControls.hidden {
     opacity: 1;
     pointer-events: auto;
+  }
+}
+
+/* Improve touch targets for mobile */
+@media (max-width: 768px) {
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .volumeControl {
+    display: none; /* Optional: hide volume control on mobile as it's controlled by device buttons */
   }
 } 
