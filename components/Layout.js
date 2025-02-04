@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import Head from 'next/head';
+import { VideoProvider } from '../context/VideoContext';
 
 const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const router = useRouter();
@@ -34,16 +35,18 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   }
 
   return (
-    <div className={`layout ${isTransitioning ? 'transitioning' : ''}`}>
-      <Head>
-        <title>{title}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-      </Head>
-      <main className="main-content">
-        {children}
-      </main>
-      {!hideFooterPaths.includes(router.pathname) && <Footer />}
-    </div>
+    <VideoProvider>
+      <div className={`layout ${isTransitioning ? 'transitioning' : ''}`}>
+        <Head>
+          <title>{title}</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        </Head>
+        <main className="main-content">
+          {children}
+        </main>
+        {!hideFooterPaths.includes(router.pathname) && <Footer />}
+      </div>
+    </VideoProvider>
   );
 };
 

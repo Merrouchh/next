@@ -1,3 +1,64 @@
+.videoPlayerWrapper {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* VidStack theme customization */
+.videoPlayerWrapper :global(.vds-video-layout) {
+  --video-brand: #e6cf00;
+  --video-brand-opacity: 0.8;
+  --video-focus-ring: #e6cf00;
+  
+  /* Controls */
+  --video-controls-color: #fff;
+  --video-controls-bg: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  --video-controls-border-radius: 8px;
+  
+  /* Slider */
+  --video-slider-track-color: rgba(255, 255, 255, 0.2);
+  --video-slider-track-focus-color: #e6cf00;
+  --video-slider-thumb-color: #e6cf00;
+  
+  /* Buttons */
+  --video-button-hover-bg: rgba(230, 207, 0, 0.2);
+  --video-button-active-bg: rgba(230, 207, 0, 0.3);
+}
+
+/* Mobile optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .videoPlayerWrapper :global(.vds-video-layout) {
+    --video-controls-padding: 15px;
+    --video-button-size: 44px;
+    --video-slider-height: 12px;
+    --video-slider-thumb-size: 16px;
+  }
+}
+
+.videoPlayerWrapper :global(.vds-plyr) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.videoPlayerWrapper :global(.vds-plyr-ui) {
+  --plyr-color-main: #e6cf00;
+}
+
+.videoPlayerWrapper :global(.vds-control-group) {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.videoPlayerWrapper :global(.vds-time-slider) {
+  --slider-track-color: rgba(255, 255, 255, 0.2);
+  --slider-progress-color: #e6cf00;
+}
+
+.videoPlayerWrapper :global(.vds-button:hover) {
+  --button-hover-bg: rgba(230, 207, 0, 0.8);
+}
+
 .videoPlayerContainer {
   position: relative;
   width: 100%;
@@ -14,8 +75,7 @@
   width: 100% !important;
   height: 100% !important;
   background: #000;
-  cursor: pointer;
-  touch-action: manipulation;
+  z-index: 1;
 }
 
 .videoWrapper video {
@@ -210,50 +270,76 @@
   filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
 }
 
+/* Update control visibility transitions */
 .customControls {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
   padding: 10px;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: all 0.3s ease;
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
   z-index: 2;
 }
 
-.hideControls .customControls,
 .hidden {
   opacity: 0;
   transform: translateY(100%);
   pointer-events: none;
 }
 
-/* Update mobile styles */
+/* Mobile-specific styles */
 @media (hover: none) and (pointer: coarse) {
+  .videoWrapper {
+    cursor: none;
+  }
+
   .customControls {
     padding: 15px;
   }
 
+  /* Larger touch targets for mobile */
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  /* Larger progress bar for mobile */
   .progressBar {
-    height: 5px; /* Slightly larger for mobile */
+    height: 8px;
   }
 
-  .progressBar:hover {
-    height: 7px;
+  /* Hide volume slider on mobile */
+  .volumeControl .volumeSlider {
+    display: none;
+  }
+}
+
+/* Show cursor when moving on desktop */
+@media (hover: hover) {
+  .videoWrapper:hover {
+    cursor: default;
   }
 
-  /* Ensure controls are visible when active */
-  .customControls:not(.hidden) {
-    opacity: 1;
-    transform: translateY(0);
+  .videoWrapper.hideControls {
+    cursor: none;
   }
 }
 
 /* Add transition for progress bar */
 .progressBar {
-  transition: opacity 0.3s ease;
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: height 0.2s ease;
+  margin-bottom: 10px;
+  touch-action: none; /* Prevent scrolling while dragging on mobile */
 }
 
 .hideControls .progressBar {
@@ -323,17 +409,12 @@
   height: 6px;
 }
 
-.progressBar {
-  position: relative;
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-  transition: height 0.2s ease;
-}
-
 .progressBar:hover {
   height: 6px;
+}
+
+.progressBar:hover .progressHandle {
+  transform: scale(1);
 }
 
 .bufferProgress {
@@ -342,8 +423,7 @@
   left: 0;
   height: 100%;
   background: rgba(255, 255, 255, 0.3);
-  /* Remove transition for immediate updates */
-  transition: none;
+  pointer-events: none;
 }
 
 .progressFilled {
@@ -352,9 +432,28 @@
   left: 0;
   height: 100%;
   background: var(--primary-color, #FFD700);
-  /* Keep smooth transition for playback progress */
-  transition: width 0.1s ease;
-  z-index: 1;
+  pointer-events: none;
+}
+
+.progressHandle {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  background: #FFD700;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease, width 0.2s ease, height 0.2s ease;
+  pointer-events: none;
+}
+
+/* Show handle when hovering progress bar or while dragging */
+.progressBar:hover .progressHandle,
+.progressHandle.dragging {
+  transform: translate(-50%, -50%) scale(1.2);
+  width: 16px;
+  height: 16px;
 }
 
 .timeDisplay {
@@ -454,51 +553,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 3;
 }
 
 /* New loading animation */
 .spinner {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.spinner::before,
-.spinner::after {
-  content: '';
-  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
-  animation: pulse 1.8s ease-in-out infinite;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
 }
 
-.spinner::before {
-  width: 100%;
-  height: 100%;
-  background: rgba(230, 207, 0, 0.2); /* Using your gold color */
-  animation-delay: -0.5s;
-}
-
-.spinner::after {
-  width: 75%;
-  height: 75%;
-  background: #e6cf00; /* Your gold color */
-  animation-delay: 0s;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0;
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Update the loading text */
@@ -607,21 +677,19 @@
 .videoPlayerContainer:-webkit-full-screen,
 .videoPlayerContainer:-moz-full-screen,
 .videoPlayerContainer:-ms-fullscreen {
-  width: 100vw !important;
+  padding-top: 0;
   height: 100vh !important;
-  background: #000;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .videoPlayerContainer:fullscreen .videoWrapper,
 .videoPlayerContainer:-webkit-full-screen .videoWrapper,
 .videoPlayerContainer:-moz-full-screen .videoWrapper,
 .videoPlayerContainer:-ms-fullscreen .videoWrapper {
-  width: 100% !important;
-  height: 100% !important;
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 
 /* Add these styles for fullscreen */
@@ -687,4 +755,41 @@
   .customControls {
     z-index: 2147483647; /* Ensure controls are always on top */
   }
+
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  .progressBar {
+    height: 12px;
+  }
+
+  .progressHandle {
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .progressBar:active .progressHandle {
+    transform: translate(-50%, -50%) scale(1.3);
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.video-player-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+}
+
+.video-player-wrapper video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
 } 
