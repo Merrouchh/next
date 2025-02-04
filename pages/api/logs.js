@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import createServerSupabaseClient from '../../utils/supabase/api';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -9,44 +10,43 @@ export default async function handler(req, res) {
     let fileHandle = null;
 
     try {
-        const { logs } = req.body;
-        if (!Array.isArray(logs)) {
-            return res.status(400).json({ message: 'Invalid logs format' });
+        // Verify admin access
+        const supabase = createServerSupabaseClient(req, res);
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const logPath = path.join(process.cwd(), 'logs');
-        const today = new Date().toISOString().split('T')[0];
-        const logFile = path.join(logPath, `${today}.log`);
+        // Check if user is admin (you should have an admin flag in your users table)
+        const { data: userData } = await supabase
+            .from('users')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
 
-        // Ensure directory exists
-        if (!fs.existsSync(logPath)) {
-            fs.mkdirSync(logPath, { recursive: true });
+        if (!userData?.is_admin) {
+            return res.status(403).json({ error: 'Forbidden' });
         }
 
-        // Add size check before writing
-        const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB
+        // Get recent logs from your server
+        // This assumes you're storing logs in a file, adjust as needed
+        const logs = {
+            uploadLogs: global.uploadLogs || [],  // We'll store logs in memory temporarily
+            systemInfo: {
+                platform: process.platform,
+                nodeVersion: process.version,
+                memory: process.memoryUsage(),
+                cwd: process.cwd(),
+                uptime: process.uptime()
+            },
+            environment: process.env.NODE_ENV,
+            timestamp: new Date().toISOString()
+        };
 
-        try {
-            const stats = await fs.promises.stat(logFile);
-            if (stats.size > MAX_LOG_SIZE) {
-                const newFile = logFile.replace('.log', `.${Date.now()}.log`);
-                await fs.promises.rename(logFile, newFile);
-            }
-        } catch (error) {
-            // File doesn't exist yet, that's ok
-        }
-
-        // Write logs
-        fileHandle = await fs.promises.open(logFile, 'a');
-        await fileHandle.appendFile(logs.join(''));
-
-        res.status(200).json({ message: 'Logs saved successfully' });
+        return res.status(200).json(logs);
     } catch (error) {
-        console.error('Error saving logs:', error);
-        res.status(500).json({ message: 'Error saving logs' });
-    } finally {
-        if (fileHandle) {
-            await fileHandle.close();
-        }
+        console.error('Error fetching logs:', error);
+        return res.status(500).json({ error: 'Failed to fetch logs' });
     }
 } 

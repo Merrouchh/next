@@ -10,33 +10,87 @@ export const config = {
   },
 };
 
-// Add better error logging
+if (!global.uploadLogs) {
+  global.uploadLogs = [];
+}
+
+const addLog = (type, message, details = {}) => {
+  const log = {
+    type,
+    message,
+    details,
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log(`[${type}]`, message, details);
+  
+  // Keep only last 100 logs
+  global.uploadLogs = [log, ...global.uploadLogs.slice(0, 99)];
+  
+  return log;
+};
+
+// Add more detailed error logging
 const logError = (error, context) => {
-  console.error(`Upload Error [${context}]:`, {
+  const errorDetails = {
+    context,
     message: error.message,
     stack: error.stack,
     code: error.code,
-    details: error.details
-  });
+    details: error.details,
+    time: new Date().toISOString(),
+    // Add system info
+    systemInfo: {
+      platform: process.platform,
+      nodeVersion: process.version,
+      memory: process.memoryUsage(),
+      cwd: process.cwd()
+    }
+  };
+  
+  addLog('ERROR', `Upload Error [${context}]`, errorDetails);
+  return errorDetails;
 };
 
-// Add directory permissions check
+// Add more robust directory check
 const checkDirectoryPermissions = async (dir) => {
   try {
-    // Check if directory exists
-    if (!fs.existsSync(dir)) {
-      await fs.promises.mkdir(dir, { recursive: true, mode: 0o755 });
+    // Get absolute path
+    const absolutePath = path.resolve(dir);
+    addLog('INFO', 'Checking directory permissions for:', absolutePath);
+
+    // Check if directory exists and create if not
+    if (!fs.existsSync(absolutePath)) {
+      addLog('INFO', 'Directory does not exist, creating...');
+      await fs.promises.mkdir(absolutePath, { recursive: true, mode: 0o755 });
     }
-    
-    // Test write permissions
-    const testFile = path.join(dir, '.test-write-permission');
-    await fs.promises.writeFile(testFile, '');
+
+    // Check directory stats
+    const stats = await fs.promises.stat(absolutePath);
+    addLog('INFO', 'Directory stats:', {
+      isDirectory: stats.isDirectory(),
+      mode: stats.mode.toString(8),
+      uid: stats.uid,
+      gid: stats.gid
+    });
+
+    // Test write permissions with more details
+    const testFile = path.join(absolutePath, '.test-write-permission');
+    await fs.promises.writeFile(testFile, 'test');
     await fs.promises.unlink(testFile);
-    
-    return true;
+
+    return {
+      success: true,
+      path: absolutePath,
+      stats: stats
+    };
   } catch (error) {
-    logError(error, 'Directory Permissions');
-    return false;
+    const errorDetails = logError(error, 'Directory Permissions');
+    return {
+      success: false,
+      error: errorDetails,
+      path: dir
+    };
   }
 };
 
@@ -57,8 +111,7 @@ export default async function handler(req, res) {
   const tempFiles = [];
   let uploadedFile = null;
 
-  // Add request logging
-  console.log('Upload request received:', {
+  addLog('INFO', 'Upload request received', {
     method: req.method,
     contentType: req.headers['content-type'],
     contentLength: req.headers['content-length']
@@ -100,22 +153,40 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Failed to fetch user data' });
     }
 
-    // Check upload directory
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
-    const hasPermissions = await checkDirectoryPermissions(uploadDir);
+    // Log request details
+    addLog('INFO', 'Upload request details:', {
+      method: req.method,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'content-length': req.headers['content-length']
+      },
+      url: req.url,
+      query: req.query
+    });
+
+    // Check directory permissions with more detail
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    addLog('INFO', 'Checking directory permissions', { dir: uploadDir });
+    const dirCheck = await checkDirectoryPermissions(uploadDir);
+    addLog('INFO', 'Directory check result', dirCheck);
     
-    if (!hasPermissions) {
+    if (!dirCheck.success) {
       return res.status(500).json({ 
-        error: 'Server configuration error: Upload directory not writable',
-        details: uploadDir
+        error: 'Server configuration error',
+        details: {
+          message: 'Upload directory not writable',
+          path: dirCheck.path,
+          error: dirCheck.error
+        }
       });
     }
 
-    // Configure formidable with better error handling
+    // Configure formidable with more options
     const form = formidable({
-      uploadDir,
+      uploadDir: dirCheck.path,
       keepExtensions: true,
       maxFileSize: 100 * 1024 * 1024, // 100MB
+      multiples: false,
       filename: (name, ext, part) => {
         const timestamp = Date.now();
         const safeFilename = part.originalFilename
@@ -123,12 +194,16 @@ export default async function handler(req, res) {
           .toLowerCase();
         return `${timestamp}-${safeFilename}`;
       },
+      filter: (part) => {
+        // Only accept video files
+        return part.mimetype?.includes('video/');
+      }
     });
 
     // Add detailed upload progress logging
     form.on('progress', (bytesReceived, bytesExpected) => {
       const progress = Math.floor((bytesReceived * 100) / bytesExpected);
-      console.log(`Upload progress: ${progress}% (${bytesReceived}/${bytesExpected} bytes)`);
+      addLog('INFO', 'Upload progress:', { progress: `${progress}% (${bytesReceived}/${bytesExpected} bytes)` });
     });
 
     // Track upload errors
@@ -187,7 +262,7 @@ export default async function handler(req, res) {
 
     try {
       videoMetadata = await getVideoMetadata(file.filepath);
-      console.log('Video metadata:', videoMetadata);
+      addLog('INFO', 'Video metadata:', videoMetadata);
     } catch (error) {
       logError(error, 'Video Metadata');
       // Continue with default metadata
@@ -241,15 +316,18 @@ export default async function handler(req, res) {
       clip: clipData,
     });
   } catch (error) {
-    logError(error, 'Main Handler');
+    const errorDetails = logError(error, 'Main Handler');
     
     // Clean up files
     cleanupFiles([...tempFiles, uploadedFile].filter(Boolean));
 
+    // Send detailed error response
+    addLog('ERROR', 'Upload failed', errorDetails);
     return res.status(500).json({ 
-      error: error.message || 'Upload failed',
+      error: 'Upload failed',
+      message: error.message,
       details: process.env.NODE_ENV === 'development' ? {
-        stack: error.stack,
+        ...errorDetails,
         path: uploadedFile
       } : undefined
     });
