@@ -50,6 +50,9 @@ const VideoPlayer = ({
   const viewCountTimeout = useRef(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const bufferRef = useRef(null);
+  const [showControls, setShowControls] = useState(true);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(false);
 
   const getVideoUrl = () => {
     if (clip?.url) return clip.url;
@@ -377,13 +380,102 @@ const VideoPlayer = ({
     }
   };
 
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
-    } else {
-      document.exitFullscreen();
+  const toggleFullScreen = async () => {
+    try {
+      const videoContainer = containerRef.current;
+      
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (videoContainer.requestFullscreen) {
+          await videoContainer.requestFullscreen();
+        } else if (videoContainer.webkitRequestFullscreen) {
+          await videoContainer.webkitRequestFullscreen();
+        } else if (videoContainer.mozRequestFullScreen) {
+          await videoContainer.mozRequestFullScreen();
+        } else if (videoContainer.msRequestFullscreen) {
+          await videoContainer.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
     }
   };
+
+  const handleVideoContainerClick = (e) => {
+    // Don't handle click if user is clicking controls
+    if (e.target.closest(`.${styles.customControls}`)) {
+      return;
+    }
+
+    // Show controls on any tap/click
+    setShowControls(true);
+    setIsUserInteracting(true);
+
+    // If controls are already visible, toggle play/pause
+    if (showControls && !e.target.closest(`.${styles.playButton}`)) {
+      handlePlayPause();
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting);
+      },
+      {
+        threshold: 0.5 // Trigger when 50% of the video is visible
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let timeout;
+    
+    // Only auto-hide controls if:
+    // 1. Video is playing
+    // 2. Controls are showing
+    // 3. User isn't interacting
+    // 4. Video is in viewport
+    if (isPlaying && showControls && !isUserInteracting && isInViewport) {
+      timeout = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+
+    // Reset user interaction after a brief delay
+    if (isUserInteracting) {
+      const interactionTimeout = setTimeout(() => {
+        setIsUserInteracting(false);
+      }, 1000);
+      
+      return () => clearTimeout(interactionTimeout);
+    }
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [isPlaying, showControls, isUserInteracting, isInViewport]);
 
   const handleError = async (error) => {
     await monitoring.logError(error, {
@@ -682,15 +774,12 @@ const VideoPlayer = ({
 
       {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
 
-      <div className={styles.videoPlayerContainer} ref={containerRef}>
-        <div 
-          className={styles.videoWrapper} 
-          ref={containerRef}
-          style={{
-            contain: 'content',
-            willChange: 'transform',
-          }}
-        >
+      <div 
+        className={styles.videoPlayerContainer} 
+        ref={containerRef}
+        onClick={handleVideoContainerClick}
+      >
+        <div className={styles.videoWrapper}>
           {isLoading && !videoError && (
             <div className={styles.loadingOverlay}>
               <LoadingClip />
@@ -747,7 +836,10 @@ const VideoPlayer = ({
             />
           )}
           
-          <div className={styles.customControls}>
+          <div 
+            className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div 
               className={styles.progressBar} 
               ref={progressRef}

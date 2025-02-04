@@ -9,6 +9,8 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .videoWrapper {
@@ -210,8 +212,9 @@
   right: 0;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
   padding: 10px;
-  opacity: 0;
-  transition: opacity 0.3s;
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 10;
 }
 
 .videoWrapper:hover .customControls {
@@ -325,8 +328,44 @@
 
 /* Make controls always visible on mobile */
 @media (max-width: 768px) {
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+
+  .volumeControl {
+    display: none;
+  }
+
+  /* Remove the always-visible controls for mobile */
   .customControls {
     opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  /* Ensure controls can be hidden on mobile */
+  .customControls.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Add touch-specific media query */
+@media (hover: none) {
+  /* Touch devices */
+  .videoPlayerContainer {
+    touch-action: manipulation;
+  }
+
+  .customControls {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .customControls.hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -548,4 +587,17 @@
   color: #fff;
   z-index: 101;
   border-radius: 8px;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ensure controls are visible when hovering on desktop */
+@media (hover: hover) {
+  .videoPlayerContainer:hover .customControls.hidden {
+    opacity: 1;
+    pointer-events: auto;
+  }
 } 
