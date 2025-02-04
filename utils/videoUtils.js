@@ -47,7 +47,7 @@ export const getVideoMetadata = async (filePath) => {
     }
 
     return {
-      duration: parseFloat(data.format.duration || '0'),
+      duration: Math.round(parseFloat(data.format.duration || '0')),
       resolution: `${videoStream.width || 1280}x${videoStream.height || 720}`,
       format: data.format.format_name || 'unknown',
       codec: videoStream.codec_name || 'unknown'
