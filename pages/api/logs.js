@@ -1,13 +1,9 @@
-import fs from 'fs';
-import path from 'path';
 import createServerSupabaseClient from '../../utils/supabase/api';
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
+    if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
-
-    let fileHandle = null;
 
     try {
         // Verify admin access
@@ -18,7 +14,7 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Check if user is admin (you should have an admin flag in your users table)
+        // Check if user is admin
         const { data: userData } = await supabase
             .from('users')
             .select('is_admin')
@@ -30,9 +26,8 @@ export default async function handler(req, res) {
         }
 
         // Get recent logs from your server
-        // This assumes you're storing logs in a file, adjust as needed
         const logs = {
-            uploadLogs: global.uploadLogs || [],  // We'll store logs in memory temporarily
+            uploadLogs: global.uploadLogs || [],
             systemInfo: {
                 platform: process.platform,
                 nodeVersion: process.version,
