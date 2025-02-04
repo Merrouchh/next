@@ -599,4 +599,147 @@
   .volumeControl {
     display: none; /* Optional: hide volume control on mobile as it's controlled by device buttons */
   }
+}
+
+/* Add these new styles */
+.topControls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(rgba(0, 0, 0, 0.7), transparent);
+  transition: opacity 0.3s ease;
+}
+
+.gameInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.qualitySelector {
+  position: relative;
+}
+
+.qualityButton {
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s ease;
+}
+
+.qualityButton:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.progressBarContainer {
+  position: relative;
+  padding: 1rem;
+}
+
+.progressHandle {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: #FFD700;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.progressBar:hover .progressHandle {
+  opacity: 1;
+}
+
+.gameInfoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.gameInfoOverlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gameInfoContent {
+  max-width: 80%;
+  text-align: center;
+  color: #fff;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px;
+  }
+
+  .progressBar {
+    height: 8px;
+  }
+
+  .progressHandle {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gameInfo {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .qualityButton {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .bottomControls {
+    padding: 1rem;
+  }
+}
+
+/* Fullscreen styles */
+.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: #000;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding-top: 0 !important;
 } 

@@ -3,6 +3,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { MdPerson, MdGames, MdFavorite, MdFavoriteBorder, MdShare, MdVisibility, MdPlayArrow, MdPause, MdVolumeUp, MdVolumeOff, MdFullscreen, MdDelete, MdPublic, MdLock } from 'react-icons/md';
 import { BsFillPlayFill } from 'react-icons/bs';
+import { FaGamepad, FaExpand, FaCompress } from 'react-icons/fa';
+import { BiFullscreen } from 'react-icons/bi';
 import { getVisitorId } from '../utils/visitor-id';
 import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/shared/ClipCard.module.css';
@@ -53,6 +55,11 @@ const VideoPlayer = ({
   const [showControls, setShowControls] = useState(true);
   const touchStartRef = useRef({ x: 0, y: 0 });
   const [isTouchMove, setIsTouchMove] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showGameInfo, setShowGameInfo] = useState(false);
+  const [quality, setQuality] = useState('auto');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const controlsTimerRef = useRef(null);
 
   const getVideoUrl = () => {
     if (clip?.url) return clip.url;
@@ -382,8 +389,8 @@ const VideoPlayer = ({
 
   const toggleFullScreen = async () => {
     try {
-      const videoContainer = containerRef.current;
-      const video = videoContainer.querySelector('video');
+      const container = containerRef.current;
+      const video = container.querySelector('video');
       
       // Try video element first for better mobile support
       if (video) {
@@ -792,6 +799,64 @@ const VideoPlayer = ({
     }
   };
 
+  const handleVideoClick = (e) => {
+    // Prevent handling if clicking controls
+    if (
+      e.target.closest(`.${styles.controlButton}`) ||
+      e.target.closest(`.${styles.progressBar}`) ||
+      e.target.closest(`.${styles.volumeControl}`) ||
+      e.target.closest(`.${styles.qualitySelector}`)
+    ) {
+      return;
+    }
+
+    // Toggle play/pause
+    if (!isPlaying) {
+      setIsPlaying(true);
+      setShowThumbnail(false);
+      if (onPlay) onPlay();
+    } else {
+      setIsPlaying(false);
+    }
+
+    // Always show controls on click
+    setShowControls(true);
+    startControlsTimer();
+  };
+
+  const startControlsTimer = () => {
+    if (controlsTimerRef.current) {
+      clearTimeout(controlsTimerRef.current);
+    }
+    
+    if (isPlaying) {
+      controlsTimerRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+  };
+
+  const QualitySelector = () => (
+    <div className={styles.qualitySelector}>
+      <button 
+        onClick={() => setQuality(quality === 'auto' ? 'high' : 'auto')}
+        className={styles.qualityButton}
+      >
+        {quality === 'auto' ? 'AUTO' : 'HD'}
+      </button>
+    </div>
+  );
+
+  const GameInfoOverlay = () => (
+    <div className={`${styles.gameInfo} ${showGameInfo ? styles.show : ''}`}>
+      <div className={styles.gameInfoContent}>
+        <h3>{clip.game}</h3>
+        <p>Captured by: {clip.username}</p>
+        {clip.description && <p>{clip.description}</p>}
+      </div>
+    </div>
+  );
+
   return (
     <div className={clipStyles.clipContainer}>
       {showHeader && (
@@ -815,9 +880,9 @@ const VideoPlayer = ({
       {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
 
       <div 
-        className={styles.videoPlayerContainer} 
+        className={`${styles.videoPlayerContainer} ${isFullscreen ? styles.fullscreen : ''}`}
         ref={containerRef}
-        onClick={handleVideoContainerClick}
+        onClick={handleVideoClick}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -883,55 +948,36 @@ const VideoPlayer = ({
           )}
           
           <div className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}>
-            <div 
-              className={styles.progressBar} 
-              ref={progressRef}
-              onClick={handleProgressClick}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                setIsSeeking(true);
-                handleProgressDrag(e);
-              }}
-              onMouseMove={(e) => {
-                e.stopPropagation();
-                if (isSeeking) {
-                  handleProgressDrag(e);
-                }
-              }}
-              onMouseUp={(e) => {
-                e.stopPropagation();
-                if (isSeeking) {
-                  setIsSeeking(false);
-                  if (isPlaying) {
-                    setShowThumbnail(false);
-                  }
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.stopPropagation();
-                if (isSeeking) {
-                  setIsSeeking(false);
-                  if (isPlaying) {
-                    setShowThumbnail(false);
-                  }
-                }
-              }}
-            >
-              <div 
-                className={styles.bufferProgress}
-                ref={bufferRef}
-              />
-              <div 
-                className={styles.progressFilled}
-                style={{ width: `${progress}%` }}
-              />
+            <div className={styles.topControls}>
+              <div className={styles.gameInfo}>
+                <FaGamepad />
+                <span>{clip.game}</span>
+              </div>
+              <QualitySelector />
             </div>
 
-            <div className={styles.controlsBottom}>
+            <div className={styles.progressBarContainer}>
+              <div className={styles.progressBar} ref={progressRef}>
+                <div className={styles.bufferProgress} ref={bufferRef} />
+                <div 
+                  className={styles.progressFilled}
+                  style={{ width: `${progress}%` }}
+                />
+                <div className={styles.progressHandle} style={{ left: `${progress}%` }} />
+              </div>
+              <div className={styles.timeDisplay}>
+                <span>{formatTime(duration * (progress / 100))}</span>
+                <span>/</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            <div className={styles.bottomControls}>
               <div className={styles.leftControls}>
                 <button 
                   className={styles.controlButton}
                   onClick={handlePlayPause}
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? <MdPause /> : <MdPlayArrow />}
                 </button>
@@ -940,38 +986,44 @@ const VideoPlayer = ({
                   <button 
                     className={styles.controlButton}
                     onClick={toggleMute}
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
-                    {isMuted || volume === 0 ? <MdVolumeOff /> : <MdVolumeUp />}
+                    {isMuted ? <MdVolumeOff /> : <MdVolumeUp />}
                   </button>
                   <input
                     type="range"
                     min={0}
                     max={1}
                     step={0.1}
-                    value={volume}
+                    value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
                     className={styles.volumeSlider}
+                    aria-label="Volume"
                   />
-                </div>
-
-                <div className={styles.timeDisplay}>
-                  <span>{formatTime(duration * (progress / 100))}</span>
-                  <span> / </span>
-                  <span>{formatTime(duration)}</span>
                 </div>
               </div>
 
               <div className={styles.rightControls}>
-                <button 
+                <button
+                  className={`${styles.controlButton} ${styles.qualityButton}`}
+                  onClick={() => setShowGameInfo(!showGameInfo)}
+                  aria-label="Game Info"
+                >
+                  <FaGamepad />
+                </button>
+                <button
                   className={styles.controlButton}
                   onClick={toggleFullScreen}
+                  aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                 >
-                  <MdFullscreen />
+                  {isFullscreen ? <FaCompress /> : <FaExpand />}
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        <GameInfoOverlay />
       </div>
 
       {showActions && (
