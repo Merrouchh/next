@@ -10,6 +10,36 @@ export const config = {
   },
 };
 
+// Add better error logging
+const logError = (error, context) => {
+  console.error(`Upload Error [${context}]:`, {
+    message: error.message,
+    stack: error.stack,
+    code: error.code,
+    details: error.details
+  });
+};
+
+// Add directory permissions check
+const checkDirectoryPermissions = async (dir) => {
+  try {
+    // Check if directory exists
+    if (!fs.existsSync(dir)) {
+      await fs.promises.mkdir(dir, { recursive: true, mode: 0o755 });
+    }
+    
+    // Test write permissions
+    const testFile = path.join(dir, '.test-write-permission');
+    await fs.promises.writeFile(testFile, '');
+    await fs.promises.unlink(testFile);
+    
+    return true;
+  } catch (error) {
+    logError(error, 'Directory Permissions');
+    return false;
+  }
+};
+
 // Add cleanup for temporary files
 const cleanupFiles = (files) => {
   files.forEach(file => {
@@ -27,6 +57,13 @@ export default async function handler(req, res) {
   const tempFiles = [];
   let uploadedFile = null;
 
+  // Add request logging
+  console.log('Upload request received:', {
+    method: req.method,
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length']
+  });
+
   // Handle client disconnection
   req.on('close', () => {
     if (req.aborted) {
@@ -39,12 +76,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get authenticated user from Supabase
     const supabase = createServerSupabaseClient(req, res);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError) {
-      console.error('Auth error:', authError);
+      logError(authError, 'Authentication');
       return res.status(401).json({ error: 'Authentication failed' });
     }
 
@@ -52,7 +88,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Get user's username from the users table
+    // Get user data
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('username')
@@ -60,51 +96,52 @@ export default async function handler(req, res) {
       .single();
 
     if (userError) {
-      console.error('User data error:', userError);
+      logError(userError, 'User Data Fetch');
       return res.status(400).json({ error: 'Failed to fetch user data' });
     }
 
-    if (!userData) {
-      return res.status(400).json({ error: 'User profile not found' });
-    }
-
-    // Ensure upload directory exists
+    // Check upload directory
     const uploadDir = path.join(process.cwd(), 'public/uploads');
-    if (!fs.existsSync(uploadDir)) {
-      try {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      } catch (error) {
-        console.error('Directory creation error:', error);
-        return res.status(500).json({ error: 'Failed to create upload directory' });
-      }
+    const hasPermissions = await checkDirectoryPermissions(uploadDir);
+    
+    if (!hasPermissions) {
+      return res.status(500).json({ 
+        error: 'Server configuration error: Upload directory not writable',
+        details: uploadDir
+      });
     }
 
+    // Configure formidable with better error handling
     const form = formidable({
       uploadDir,
       keepExtensions: true,
       maxFileSize: 100 * 1024 * 1024, // 100MB
       filename: (name, ext, part) => {
-        // Generate unique filename
-        return `${Date.now()}-${part.originalFilename}`;
+        const timestamp = Date.now();
+        const safeFilename = part.originalFilename
+          .replace(/[^a-zA-Z0-9]/g, '_')
+          .toLowerCase();
+        return `${timestamp}-${safeFilename}`;
       },
     });
 
-    let uploadProgress = 0;
+    // Add detailed upload progress logging
     form.on('progress', (bytesReceived, bytesExpected) => {
-      uploadProgress = Math.floor((bytesReceived * 100) / bytesExpected);
-      console.log(`Upload progress: ${uploadProgress}%`);
+      const progress = Math.floor((bytesReceived * 100) / bytesExpected);
+      console.log(`Upload progress: ${progress}% (${bytesReceived}/${bytesExpected} bytes)`);
     });
 
-    // Track the file being uploaded
-    form.on('fileBegin', (formName, file) => {
-      uploadedFile = file.filepath;
+    // Track upload errors
+    form.on('error', error => {
+      logError(error, 'Form Upload');
     });
 
+    // Parse form with better error handling
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
-          console.error('Form parse error:', err);
-          reject(new Error('Failed to parse upload form'));
+          logError(err, 'Form Parse');
+          reject(new Error(`Failed to parse upload form: ${err.message}`));
         } else if (!files.file || !files.file[0]) {
           reject(new Error('No file uploaded'));
         } else {
@@ -114,71 +151,63 @@ export default async function handler(req, res) {
     });
 
     const file = files.file[0];
-    uploadedFile = file.filepath; // Update the filepath
-    
-    // Parse metadata JSON string
-    let { metadata: metadataString } = fields;
-    let { title, game, visibility } = {};
-    
+    uploadedFile = file.filepath;
+
+    // Verify file exists and is readable
     try {
-      const parsedMetadata = JSON.parse(metadataString);
-      title = parsedMetadata.title;
-      game = parsedMetadata.game;
-      visibility = parsedMetadata.visibility;
+      await fs.promises.access(file.filepath, fs.constants.R_OK);
     } catch (error) {
-      console.error('Error parsing metadata:', error);
-      throw new Error('Invalid metadata format');
+      logError(error, 'File Access');
+      throw new Error(`Cannot access uploaded file: ${error.message}`);
     }
 
-    // Validate required fields
-    if (!title || !game || !visibility) {
-      throw new Error('Missing required fields');
-    }
-
-    // Get video metadata (duration and resolution)
-    let metadata;
+    // Parse metadata with better error handling
+    let metadata = {};
     try {
-      console.log('Attempting to get metadata for:', file.filepath);
-      metadata = await getVideoMetadata(file.filepath);
-      console.log('Successfully got metadata:', metadata);
-    } catch (metadataError) {
-      console.error('Metadata extraction failed:', metadataError);
-      metadata = {
-        duration: 0,
-        resolution: '1280x720',
-        format: 'unknown',
-        codec: 'unknown'
-      };
+      const { metadata: metadataString } = fields;
+      const parsedMetadata = JSON.parse(metadataString);
+      
+      if (!parsedMetadata.title || !parsedMetadata.game || !parsedMetadata.visibility) {
+        throw new Error('Missing required metadata fields');
+      }
+      
+      metadata = parsedMetadata;
+    } catch (error) {
+      logError(error, 'Metadata Parse');
+      throw new Error(`Invalid metadata format: ${error.message}`);
     }
 
-    // Ensure metadata has required properties
-    if (!metadata || typeof metadata !== 'object') {
-      console.warn('Invalid metadata object, using defaults');
-      metadata = {
-        duration: 0,
-        resolution: '1280x720',
-        format: 'unknown',
-        codec: 'unknown'
-      };
+    // Get video metadata with fallback
+    let videoMetadata = {
+      duration: 0,
+      resolution: '1280x720',
+      format: 'unknown',
+      codec: 'unknown'
+    };
+
+    try {
+      videoMetadata = await getVideoMetadata(file.filepath);
+      console.log('Video metadata:', videoMetadata);
+    } catch (error) {
+      logError(error, 'Video Metadata');
+      // Continue with default metadata
     }
 
-    // Store metadata in Supabase
+    // Insert into database with better error handling
     const insertData = {
       user_id: user.id,
       file_name: file.originalFilename,
       file_path: file.filepath.replace(process.cwd(), ''),
       username: userData.username,
-      title,
-      game,
-      visibility,
+      title: metadata.title,
+      game: metadata.game,
+      visibility: metadata.visibility,
       status: 'uploaded',
-      duration: metadata.duration || 0,
-      resolution: metadata.resolution || '1280x720'
+      duration: videoMetadata.duration || 0,
+      resolution: videoMetadata.resolution || '1280x720',
+      format: videoMetadata.format || 'unknown',
+      codec: videoMetadata.codec || 'unknown'
     };
-
-    // Add optional fields if they exist in the schema
-    if (metadata.format) insertData.format = metadata.format;
-    if (metadata.codec) insertData.codec = metadata.codec;
 
     const { data: clipData, error: dbError } = await supabase
       .from('media_clips')
@@ -187,8 +216,8 @@ export default async function handler(req, res) {
       .single();
 
     if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error('Failed to save to database');
+      logError(dbError, 'Database Insert');
+      throw new Error(`Failed to save to database: ${dbError.message}`);
     }
 
     // Clean up old files (optional)
@@ -212,21 +241,17 @@ export default async function handler(req, res) {
       clip: clipData,
     });
   } catch (error) {
-    cleanupFiles(tempFiles);
-    // Clean up the uploaded file if there was an error
-    if (uploadedFile && fs.existsSync(uploadedFile)) {
-      try {
-        fs.unlinkSync(uploadedFile);
-        console.log('Cleaned up failed upload:', uploadedFile);
-      } catch (cleanupError) {
-        console.error('Error cleaning up file:', cleanupError);
-      }
-    }
+    logError(error, 'Main Handler');
+    
+    // Clean up files
+    cleanupFiles([...tempFiles, uploadedFile].filter(Boolean));
 
-    console.error('Upload error:', error);
     return res.status(500).json({ 
       error: error.message || 'Upload failed',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === 'development' ? {
+        stack: error.stack,
+        path: uploadedFile
+      } : undefined
     });
   }
 } 
