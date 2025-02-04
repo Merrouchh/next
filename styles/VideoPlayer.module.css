@@ -9,7 +9,7 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-  touch-action: manipulation;
+  touch-action: none; /* Prevent default touch behaviors */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -327,8 +327,31 @@
 
 /* Make controls always visible on mobile */
 @media (max-width: 768px) {
+  .controlButton {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    /* Prevent control buttons from triggering container click */
+    position: relative;
+    z-index: 2;
+  }
+
+  .progressBar {
+    height: 8px; /* Larger touch target for mobile */
+  }
+
+  .progressBar:hover {
+    height: 8px; /* Keep consistent height on mobile */
+  }
+
   .customControls {
-    opacity: 1;
+    /* Ensure controls are more visible on mobile */
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 15px 10px; /* Larger padding for better touch targets */
+  }
+
+  .controlsBottom {
+    margin-top: 15px; /* More space for controls on mobile */
   }
 }
 
@@ -567,12 +590,6 @@
 
 /* Improve touch targets for mobile */
 @media (max-width: 768px) {
-  .controlButton {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 10px;
-  }
-
   .volumeControl {
     display: none; /* Optional: hide volume control on mobile as it's controlled by device buttons */
   }

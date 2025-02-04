@@ -381,26 +381,33 @@ const VideoPlayer = ({
   const toggleFullScreen = async () => {
     try {
       const videoContainer = containerRef.current;
+      const video = videoContainer.querySelector('video');
       
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (videoContainer.requestFullscreen) {
-          await videoContainer.requestFullscreen();
-        } else if (videoContainer.webkitRequestFullscreen) {
-          await videoContainer.webkitRequestFullscreen();
-        } else if (videoContainer.mozRequestFullScreen) {
-          await videoContainer.mozRequestFullScreen();
-        } else if (videoContainer.msRequestFullscreen) {
-          await videoContainer.msRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          await document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          await document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-          await document.msExitFullscreen();
+      // Try video element first for better mobile support
+      if (video) {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (video.requestFullscreen) {
+            await video.requestFullscreen();
+          } else if (video.webkitRequestFullscreen) {
+            await video.webkitRequestFullscreen();
+          } else if (video.mozRequestFullScreen) {
+            await video.mozRequestFullScreen();
+          } else if (video.msRequestFullscreen) {
+            await video.msRequestFullscreen();
+          } else if (video.webkitEnterFullscreen) {
+            // iOS Safari
+            await video.webkitEnterFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
         }
       }
     } catch (error) {
@@ -408,7 +415,15 @@ const VideoPlayer = ({
     }
   };
 
-  const handleVideoContainerClick = () => {
+  const handleVideoContainerClick = (e) => {
+    // Prevent click handling if clicking on a control button or progress bar
+    if (
+      e.target.closest(`.${styles.controlButton}`) ||
+      e.target.closest(`.${styles.progressBar}`) ||
+      e.target.closest(`.${styles.volumeControl}`)
+    ) {
+      return;
+    }
     setShowControls(prev => !prev);
   };
 
@@ -419,9 +434,35 @@ const VideoPlayer = ({
         setShowControls(false);
       }, 3000); // Hide controls after 3 seconds of inactivity
     }
+
+    // Add touch event listeners for mobile
+    const handleTouchStart = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (isPlaying) {
+        timeout = setTimeout(() => {
+          setShowControls(false);
+        }, 3000);
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('touchstart', handleTouchStart);
+      container.addEventListener('touchend', handleTouchEnd);
+    }
+
     return () => {
       if (timeout) {
         clearTimeout(timeout);
+      }
+      if (container) {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchend', handleTouchEnd);
       }
     };
   }, [showControls, isPlaying]);
@@ -727,6 +768,7 @@ const VideoPlayer = ({
         className={styles.videoPlayerContainer} 
         ref={containerRef}
         onClick={handleVideoContainerClick}
+        onTouchStart={(e) => e.preventDefault()}
       >
         <div className={styles.videoWrapper}>
           {isLoading && !videoError && (
