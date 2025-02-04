@@ -424,26 +424,38 @@ const VideoPlayer = ({
     ) {
       return;
     }
-    setShowControls(prev => !prev);
+
+    // If controls are hidden, show them
+    if (!showControls) {
+      setShowControls(true);
+    } else {
+      // If controls are visible and video is playing, hide them immediately
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }
   };
 
   useEffect(() => {
     let timeout;
+    
+    // Only start the auto-hide timer if the video is playing and controls are visible
     if (showControls && isPlaying) {
       timeout = setTimeout(() => {
         setShowControls(false);
-      }, 3000); // Hide controls after 3 seconds of inactivity
+      }, 3000);
     }
 
-    // Add touch event listeners for mobile
     const handleTouchStart = () => {
+      // Clear any existing timeout when touching the video
       if (timeout) {
         clearTimeout(timeout);
       }
     };
 
     const handleTouchEnd = () => {
-      if (isPlaying) {
+      // Only restart the timeout if the video is playing and controls are visible
+      if (isPlaying && showControls) {
         timeout = setTimeout(() => {
           setShowControls(false);
         }, 3000);
