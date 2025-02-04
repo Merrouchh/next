@@ -28,6 +28,38 @@ export async function getServerSideProps() {
   };
 }
 
+// Add helper function before ActiveSessionsCard
+const formatSessionCount = (activeCount) => {
+  const totalCapacity = 14;
+  return `${activeCount}/${totalCapacity}`;
+};
+
+// Modify the Active Sessions Card in the return statement
+const ActiveSessionsCard = ({ activeSessions, router }) => (
+  <div 
+    className={`${styles.statCard} ${styles.smallCard}`} 
+    role="button"
+    onClick={() => router.push('/avcomputers?from=dashboard')}
+    style={{ cursor: 'pointer' }}
+    aria-label="View active computers"
+  >
+    <div className={styles.statHeader}>
+      <div className={styles.statIcon}>
+        <AiOutlineDesktop size={24} />
+      </div>
+      <h3 id="active-sessions-section" className={styles.statTitle}>Active Sessions</h3>
+    </div>
+    <div className={styles.sessionStats}>
+      <div className={styles.sessionNumber}>
+        {Array.isArray(activeSessions) ? formatSessionCount(activeSessions.length) : '0/14'}
+      </div>
+      <div className={styles.sessionLabel}>
+        Active {(Array.isArray(activeSessions) && activeSessions.length === 1) ? 'Session' : 'Sessions'}
+      </div>
+    </div>
+  </div>
+);
+
 // For the component itself
 export default function DashboardPage() {
   const router = useRouter();
@@ -175,6 +207,41 @@ export default function DashboardPage() {
     };
   }, [user, supabase]);
 
+  // Add real-time update for active sessions
+  useEffect(() => {
+    let mounted = true;
+    let intervalId;
+
+    const updateActiveSessions = async () => {
+      try {
+        const sessions = await fetchActiveUserSessions();
+        if (mounted) {
+          setPageState(prev => ({
+            ...prev,
+            data: {
+              ...prev.data,
+              activeSessions: sessions
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching active sessions:', error);
+      }
+    };
+
+    if (isLoggedIn && user) {
+      updateActiveSessions();
+      intervalId = setInterval(updateActiveSessions, 5000); // Update every 5 seconds
+    }
+
+    return () => {
+      mounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isLoggedIn, user]);
+
   // Update loading check
   if (loading || pageState.loading) {
     return <LoadingScreen message="Loading dashboard..." />;
@@ -186,7 +253,7 @@ export default function DashboardPage() {
   }
 
   // Destructure page state for easier access
-  const { activeSessions, topUsers, userPoints } = pageState.data;
+  const { topUsers, userPoints } = pageState.data;
 
   // Add this helper function at the top level of your component
   const getMedalEmoji = (index) => {
@@ -204,12 +271,6 @@ export default function DashboardPage() {
 
   const getPointsColor = (points) => {
     return points <= 72 ? styles.lowPoints : styles.highPoints;
-  };
-
-  // Add this helper function
-  const formatSessionCount = (activeCount) => {
-    const totalCapacity = 14;
-    return `${activeCount}/${totalCapacity}`;
   };
 
   // Update button click handlers to prevent default and use async/await
@@ -537,22 +598,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Active Sessions Card */}
-          <div className={`${styles.statCard} ${styles.smallCard}`} role="region" aria-labelledby="active-sessions-section">
-            <div className={styles.statHeader}>
-              <div className={styles.statIcon}>
-                <AiOutlineDesktop size={24} />
-              </div>
-              <h3 id="active-sessions-section" className={styles.statTitle}>Active Sessions</h3>
-            </div>
-            <div className={styles.sessionStats}>
-              <div className={styles.sessionNumber}>
-                {Array.isArray(activeSessions) ? formatSessionCount(activeSessions.length) : '0/14'}
-              </div>
-              <div className={styles.sessionLabel}>
-                Active {(Array.isArray(activeSessions) && activeSessions.length === 1) ? 'Session' : 'Sessions'}
-              </div>
-            </div>
-          </div>
+          <ActiveSessionsCard 
+            activeSessions={pageState.data.activeSessions} 
+            router={router}
+          />
         </div>
       </main>
     </ProtectedPageWrapper>

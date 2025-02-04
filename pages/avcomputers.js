@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchActiveUserSessions, fetchUserById, fetchUserBalance } from '../utils/api';
+import { fetchActiveUserSessions, fetchUserBalance } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
@@ -8,7 +8,7 @@ import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 
 // Computer component
-const ComputerBox = ({ computer, isVip, lastUpdate }) => {
+const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
   const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
     ? computer.timeLeft.split(' : ') 
     : [0, 0];
@@ -33,6 +33,7 @@ const ComputerBox = ({ computer, isVip, lastUpdate }) => {
         ${boxClass} 
         ${activeClass}
         ${isRecentlyUpdated ? styles.updated : ''}
+        ${highlightActive && computer.isActive ? styles.highlight : ''}
       `}
     >
       <div className={styles.pcNumber}>
@@ -48,7 +49,7 @@ const ComputerBox = ({ computer, isVip, lastUpdate }) => {
 };
 
 // VIP Computers section
-const VIPComputers = ({ computers, lastUpdate }) => {
+const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
   const vipContainerRef = useRef(null);
   const initialScrollDone = useRef(false);
 
@@ -76,6 +77,7 @@ const VIPComputers = ({ computers, lastUpdate }) => {
               computer={computer} 
               isVip={true}
               lastUpdate={lastUpdate}
+              highlightActive={highlightActive}
             />
           ))}
         </div>
@@ -93,6 +95,7 @@ const AvailableComputers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState({});
   const prevComputers = useRef({ normal: [], vip: [] });
+  const [highlightActive, setHighlightActive] = useState(false);
 
   // Define computersList inside the component
   const computersList = {
@@ -109,7 +112,20 @@ const AvailableComputers = () => {
     ]
   };
 
-  // Auth check
+  // Initialize computers state immediately
+  useEffect(() => {
+    if (!computers.normal.length && !computers.vip.length) {
+      const initialComputers = {
+        normal: computersList.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
+        vip: computersList.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
+      };
+      setComputers(initialComputers);
+      prevComputers.current = initialComputers;
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Separate effect for auth check
   useEffect(() => {
     if (!loading && !isLoggedIn) {
       router.push('/');
@@ -129,7 +145,7 @@ const AvailableComputers = () => {
     });
   }, []);
 
-  // Data fetching
+  // Optimize data fetching
   useEffect(() => {
     let mounted = true;
     let intervalId;
@@ -138,33 +154,32 @@ const AvailableComputers = () => {
       try {
         const activeSessions = await fetchActiveUserSessions();
         const session = activeSessions.find(s => s.hostId === computer.id);
+        
+        if (!mounted) return;
 
-        // Check if status has changed
+        // Always update the status, regardless of previous state
         const currentStatus = {
-          isActive: !!session,
-          timeLeft: 'No Time'
+          isActive: false,
+          timeLeft: 'No Time',
+          userId: null
         };
 
         if (session) {
-          const userData = await fetchUserById(session.userId);
-          if (userData) {
-            const balance = await fetchUserBalance(userData.id);
-            currentStatus.timeLeft = typeof balance === 'string' ? balance : balance.balance || 'No Time';
-          }
+          currentStatus.isActive = true;
+          currentStatus.userId = session.userId;
+          const balance = await fetchUserBalance(session.userId);
+          currentStatus.timeLeft = typeof balance === 'string' ? balance : balance.balance || 'No Time';
         }
 
-        // Compare with previous state
-        const prevState = prevComputers.current[computer.number <= 8 ? 'normal' : 'vip']
-          .find(pc => pc.id === computer.id);
-
-        if (!prevState || 
-            prevState.isActive !== currentStatus.isActive || 
-            prevState.timeLeft !== currentStatus.timeLeft) {
-          if (mounted) {
-            updateSingleComputer(computer, currentStatus);
-            setLastUpdate(prev => ({ ...prev, [computer.id]: Date.now() }));
-          }
-        }
+        // Update state regardless of previous state to ensure disconnections are reflected
+        updateSingleComputer(computer, currentStatus);
+        setLastUpdate(prev => ({ ...prev, [computer.id]: Date.now() }));
+        
+        // Update prevComputers ref to track changes
+        const section = computer.number <= 8 ? 'normal' : 'vip';
+        prevComputers.current[section] = prevComputers.current[section].map(pc =>
+          pc.id === computer.id ? { ...pc, ...currentStatus } : pc
+        );
 
       } catch (error) {
         console.error(`Error updating computer ${computer.number}:`, error);
@@ -175,36 +190,16 @@ const AvailableComputers = () => {
       if (!isLoggedIn || !user) return;
 
       try {
-        // Fetch initial state if computers are empty
-        if (!computers.normal.length && !computers.vip.length) {
-          setIsLoading(true);
-          const initialComputers = {
-            normal: computersList.normal.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' })),
-            vip: computersList.vip.map(pc => ({ ...pc, isActive: false, timeLeft: 'No Time' }))
-          };
-          if (mounted) {
-            setComputers(initialComputers);
-            prevComputers.current = initialComputers;
-          }
-        }
+        // Fetch all computers in parallel
+        await Promise.all([
+          ...computersList.normal,
+          ...computersList.vip
+        ].map(computer => fetchComputerStatus(computer)));
 
-        // Update computers one by one
-        for (const computer of [...computersList.normal, ...computersList.vip]) {
-          await fetchComputerStatus(computer);
-        }
-
-        if (mounted) {
-          setError(null);
-        }
+        if (mounted) setError(null);
       } catch (err) {
         console.error('Error fetching computer data:', err);
-        if (mounted) {
-          setError('Unable to fetch computer data. Please try again.');
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+        if (mounted) setError('Unable to fetch computer data. Please try again.');
       }
     };
 
@@ -219,7 +214,15 @@ const AvailableComputers = () => {
         clearInterval(intervalId);
       }
     };
-  }, [isLoggedIn, user, updateSingleComputer, computers.normal.length, computers.vip.length]);
+  }, [isLoggedIn, user, updateSingleComputer]);
+
+  // Add effect to handle highlighting
+  useEffect(() => {
+    if (router.query.from === 'dashboard') {
+      setHighlightActive(true);
+      setTimeout(() => setHighlightActive(false), 2000); // Remove highlight after 2 seconds
+    }
+  }, [router.query]);
 
   if (loading || isLoading) {
     return <LoadingScreen />;
@@ -260,6 +263,7 @@ const AvailableComputers = () => {
               computer={computer} 
               isVip={false}
               lastUpdate={lastUpdate}
+              highlightActive={highlightActive}
             />
           ))}
         </div>
@@ -268,6 +272,7 @@ const AvailableComputers = () => {
         <VIPComputers 
           computers={computers.vip} 
           lastUpdate={lastUpdate}
+          highlightActive={highlightActive}
         />
       </main>
     </ProtectedPageWrapper>
