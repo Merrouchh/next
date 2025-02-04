@@ -10,90 +10,6 @@ export const config = {
   },
 };
 
-if (!global.uploadLogs) {
-  global.uploadLogs = [];
-}
-
-const addLog = (type, message, details = {}) => {
-  const log = {
-    type,
-    message,
-    details,
-    timestamp: new Date().toISOString()
-  };
-  
-  console.log(`[${type}]`, message, details);
-  
-  // Keep only last 100 logs
-  global.uploadLogs = [log, ...global.uploadLogs.slice(0, 99)];
-  
-  return log;
-};
-
-// Add more detailed error logging
-const logError = (error, context) => {
-  const errorDetails = {
-    context,
-    message: error.message,
-    stack: error.stack,
-    code: error.code,
-    details: error.details,
-    time: new Date().toISOString(),
-    // Add system info
-    systemInfo: {
-      platform: process.platform,
-      nodeVersion: process.version,
-      memory: process.memoryUsage(),
-      cwd: process.cwd()
-    }
-  };
-  
-  addLog('ERROR', `Upload Error [${context}]`, errorDetails);
-  return errorDetails;
-};
-
-// Add more robust directory check
-const checkDirectoryPermissions = async (dir) => {
-  try {
-    // Get absolute path
-    const absolutePath = path.resolve(dir);
-    addLog('INFO', 'Checking directory permissions for:', absolutePath);
-
-    // Check if directory exists and create if not
-    if (!fs.existsSync(absolutePath)) {
-      addLog('INFO', 'Directory does not exist, creating...');
-      await fs.promises.mkdir(absolutePath, { recursive: true, mode: 0o755 });
-    }
-
-    // Check directory stats
-    const stats = await fs.promises.stat(absolutePath);
-    addLog('INFO', 'Directory stats:', {
-      isDirectory: stats.isDirectory(),
-      mode: stats.mode.toString(8),
-      uid: stats.uid,
-      gid: stats.gid
-    });
-
-    // Test write permissions with more details
-    const testFile = path.join(absolutePath, '.test-write-permission');
-    await fs.promises.writeFile(testFile, 'test');
-    await fs.promises.unlink(testFile);
-
-    return {
-      success: true,
-      path: absolutePath,
-      stats: stats
-    };
-  } catch (error) {
-    const errorDetails = logError(error, 'Directory Permissions');
-    return {
-      success: false,
-      error: errorDetails,
-      path: dir
-    };
-  }
-};
-
 // Add cleanup for temporary files
 const cleanupFiles = (files) => {
   files.forEach(file => {
@@ -111,32 +27,6 @@ export default async function handler(req, res) {
   const tempFiles = [];
   let uploadedFile = null;
 
-  // Add specific error response helper
-  const sendError = (status, message, details = {}) => {
-    const error = {
-      error: message,
-      timestamp: new Date().toISOString(),
-      details: {
-        ...details,
-        uploadDir: path.join(process.cwd(), 'public', 'uploads'),
-        method: req.method,
-        contentType: req.headers['content-type'],
-        contentLength: req.headers['content-length']
-      }
-    };
-    
-    // Always log the error
-    addLog('ERROR', message, error);
-    
-    return res.status(status).json(error);
-  };
-
-  addLog('INFO', 'Upload request received', {
-    method: req.method,
-    contentType: req.headers['content-type'],
-    contentLength: req.headers['content-length']
-  });
-
   // Handle client disconnection
   req.on('close', () => {
     if (req.aborted) {
@@ -144,24 +34,17 @@ export default async function handler(req, res) {
     }
   });
 
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    if (req.method !== 'POST') {
-      return sendError(405, 'Method not allowed');
-    }
-
-    // Check content type
-    if (!req.headers['content-type']?.includes('multipart/form-data')) {
-      return sendError(400, 'Invalid content type', { 
-        expected: 'multipart/form-data',
-        received: req.headers['content-type'] 
-      });
-    }
-
+    // Get authenticated user from Supabase
     const supabase = createServerSupabaseClient(req, res);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError) {
-      logError(authError, 'Authentication');
+      console.error('Auth error:', authError);
       return res.status(401).json({ error: 'Authentication failed' });
     }
 
@@ -169,7 +52,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Get user data
+    // Get user's username from the users table
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('username')
@@ -177,143 +60,125 @@ export default async function handler(req, res) {
       .single();
 
     if (userError) {
-      logError(userError, 'User Data Fetch');
+      console.error('User data error:', userError);
       return res.status(400).json({ error: 'Failed to fetch user data' });
     }
 
-    // Log request details
-    addLog('INFO', 'Upload request details:', {
-      method: req.method,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'content-length': req.headers['content-length']
-      },
-      url: req.url,
-      query: req.query
-    });
-
-    // Add more specific error checks for directory
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    const dirCheck = await checkDirectoryPermissions(uploadDir);
-    
-    if (!dirCheck.success) {
-      return sendError(500, 'Upload directory error', {
-        path: dirCheck.path,
-        error: dirCheck.error,
-        stats: dirCheck.stats
-      });
+    if (!userData) {
+      return res.status(400).json({ error: 'User profile not found' });
     }
 
-    // Configure formidable with more options
+    // Ensure upload directory exists
+    const uploadDir = path.join(process.cwd(), 'public/uploads');
+    if (!fs.existsSync(uploadDir)) {
+      try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      } catch (error) {
+        console.error('Directory creation error:', error);
+        return res.status(500).json({ error: 'Failed to create upload directory' });
+      }
+    }
+
     const form = formidable({
-      uploadDir: dirCheck.path,
+      uploadDir,
       keepExtensions: true,
       maxFileSize: 100 * 1024 * 1024, // 100MB
-      multiples: false,
       filename: (name, ext, part) => {
-        const timestamp = Date.now();
-        const safeFilename = part.originalFilename
-          .replace(/[^a-zA-Z0-9]/g, '_')
-          .toLowerCase();
-        return `${timestamp}-${safeFilename}`;
+        // Generate unique filename
+        return `${Date.now()}-${part.originalFilename}`;
       },
-      filter: (part) => {
-        // Only accept video files
-        return part.mimetype?.includes('video/');
-      }
     });
 
-    // Add detailed upload progress logging
+    let uploadProgress = 0;
     form.on('progress', (bytesReceived, bytesExpected) => {
-      const progress = Math.floor((bytesReceived * 100) / bytesExpected);
-      addLog('INFO', 'Upload progress:', { progress: `${progress}% (${bytesReceived}/${bytesExpected} bytes)` });
+      uploadProgress = Math.floor((bytesReceived * 100) / bytesExpected);
+      console.log(`Upload progress: ${uploadProgress}%`);
     });
 
-    // Track upload errors
-    form.on('error', error => {
-      logError(error, 'Form Upload');
+    // Track the file being uploaded
+    form.on('fileBegin', (formName, file) => {
+      uploadedFile = file.filepath;
     });
 
-    // Add more specific error handling for form parsing
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
-          reject({
-            message: 'Form parse error',
-            details: err.message,
-            code: err.code
-          });
+          console.error('Form parse error:', err);
+          reject(new Error('Failed to parse upload form'));
         } else if (!files.file || !files.file[0]) {
-          reject({
-            message: 'No file uploaded',
-            details: 'File field is missing or empty'
-          });
+          reject(new Error('No file uploaded'));
         } else {
           resolve([fields, files]);
         }
       });
-    }).catch(error => {
-      throw error; // This will be caught by the outer try-catch
     });
 
     const file = files.file[0];
-    uploadedFile = file.filepath;
-
-    // Verify file exists and is readable
+    uploadedFile = file.filepath; // Update the filepath
+    
+    // Parse metadata JSON string
+    let { metadata: metadataString } = fields;
+    let { title, game, visibility } = {};
+    
     try {
-      await fs.promises.access(file.filepath, fs.constants.R_OK);
-    } catch (error) {
-      logError(error, 'File Access');
-      throw new Error(`Cannot access uploaded file: ${error.message}`);
-    }
-
-    // Parse metadata with better error handling
-    let metadata = {};
-    try {
-      const { metadata: metadataString } = fields;
       const parsedMetadata = JSON.parse(metadataString);
-      
-      if (!parsedMetadata.title || !parsedMetadata.game || !parsedMetadata.visibility) {
-        throw new Error('Missing required metadata fields');
-      }
-      
-      metadata = parsedMetadata;
+      title = parsedMetadata.title;
+      game = parsedMetadata.game;
+      visibility = parsedMetadata.visibility;
     } catch (error) {
-      logError(error, 'Metadata Parse');
-      throw new Error(`Invalid metadata format: ${error.message}`);
+      console.error('Error parsing metadata:', error);
+      throw new Error('Invalid metadata format');
     }
 
-    // Get video metadata with fallback
-    let videoMetadata = {
-      duration: 0,
-      resolution: '1280x720',
-      format: 'unknown',
-      codec: 'unknown'
-    };
+    // Validate required fields
+    if (!title || !game || !visibility) {
+      throw new Error('Missing required fields');
+    }
 
+    // Get video metadata (duration and resolution)
+    let metadata;
     try {
-      videoMetadata = await getVideoMetadata(file.filepath);
-      addLog('INFO', 'Video metadata:', videoMetadata);
-    } catch (error) {
-      logError(error, 'Video Metadata');
-      // Continue with default metadata
+      console.log('Attempting to get metadata for:', file.filepath);
+      metadata = await getVideoMetadata(file.filepath);
+      console.log('Successfully got metadata:', metadata);
+    } catch (metadataError) {
+      console.error('Metadata extraction failed:', metadataError);
+      metadata = {
+        duration: 0,
+        resolution: '1280x720',
+        format: 'unknown',
+        codec: 'unknown'
+      };
     }
 
-    // Insert into database with better error handling
+    // Ensure metadata has required properties
+    if (!metadata || typeof metadata !== 'object') {
+      console.warn('Invalid metadata object, using defaults');
+      metadata = {
+        duration: 0,
+        resolution: '1280x720',
+        format: 'unknown',
+        codec: 'unknown'
+      };
+    }
+
+    // Store metadata in Supabase
     const insertData = {
       user_id: user.id,
       file_name: file.originalFilename,
       file_path: file.filepath.replace(process.cwd(), ''),
       username: userData.username,
-      title: metadata.title,
-      game: metadata.game,
-      visibility: metadata.visibility,
+      title,
+      game,
+      visibility,
       status: 'uploaded',
-      duration: videoMetadata.duration || 0,
-      resolution: videoMetadata.resolution || '1280x720',
-      format: videoMetadata.format || 'unknown',
-      codec: videoMetadata.codec || 'unknown'
+      duration: metadata.duration || 0,
+      resolution: metadata.resolution || '1280x720'
     };
+
+    // Add optional fields if they exist in the schema
+    if (metadata.format) insertData.format = metadata.format;
+    if (metadata.codec) insertData.codec = metadata.codec;
 
     const { data: clipData, error: dbError } = await supabase
       .from('media_clips')
@@ -322,8 +187,8 @@ export default async function handler(req, res) {
       .single();
 
     if (dbError) {
-      logError(dbError, 'Database Insert');
-      throw new Error(`Failed to save to database: ${dbError.message}`);
+      console.error('Database error:', dbError);
+      throw new Error('Failed to save to database');
     }
 
     // Clean up old files (optional)
@@ -347,6 +212,21 @@ export default async function handler(req, res) {
       clip: clipData,
     });
   } catch (error) {
-    return sendError(500, error.message || 'Upload failed', error.details || {});
+    cleanupFiles(tempFiles);
+    // Clean up the uploaded file if there was an error
+    if (uploadedFile && fs.existsSync(uploadedFile)) {
+      try {
+        fs.unlinkSync(uploadedFile);
+        console.log('Cleaned up failed upload:', uploadedFile);
+      } catch (cleanupError) {
+        console.error('Error cleaning up file:', cleanupError);
+      }
+    }
+
+    console.error('Upload error:', error);
+    return res.status(500).json({ 
+      error: error.message || 'Upload failed',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 } 
