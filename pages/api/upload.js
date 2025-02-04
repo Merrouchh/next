@@ -68,24 +68,43 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'User profile not found' });
     }
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
-    if (!fs.existsSync(uploadDir)) {
-      try {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      } catch (error) {
-        console.error('Directory creation error:', error);
-        return res.status(500).json({ error: 'Failed to create upload directory' });
+    // Ensure upload directory exists with proper permissions
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { 
+          recursive: true, 
+          mode: 0o755 // This sets proper Unix permissions
+        });
       }
+      
+      // Test write permissions
+      const testFile = path.join(uploadDir, '.test-' + Date.now());
+      fs.writeFileSync(testFile, '');
+      fs.unlinkSync(testFile);
+    } catch (error) {
+      console.error('Directory error:', error);
+      return res.status(500).json({ 
+        error: 'Upload directory error',
+        details: {
+          path: uploadDir,
+          error: error.message,
+          code: error.code
+        }
+      });
     }
 
+    // Configure formidable with the verified directory
     const form = formidable({
       uploadDir,
       keepExtensions: true,
       maxFileSize: 100 * 1024 * 1024, // 100MB
       filename: (name, ext, part) => {
-        // Generate unique filename
-        return `${Date.now()}-${part.originalFilename}`;
+        const timestamp = Date.now();
+        const safeFilename = part.originalFilename
+          .replace(/[^a-zA-Z0-9]/g, '_')
+          .toLowerCase();
+        return `${timestamp}-${safeFilename}`;
       },
     });
 
@@ -139,10 +158,13 @@ export default async function handler(req, res) {
     let metadata;
     try {
       console.log('Attempting to get metadata for:', file.filepath);
-      metadata = await getVideoMetadata(file.filepath);
+      // Use path.resolve to get absolute path in a cross-platform way
+      const absolutePath = path.resolve(file.filepath);
+      metadata = await getVideoMetadata(absolutePath);
       console.log('Successfully got metadata:', metadata);
     } catch (metadataError) {
       console.error('Metadata extraction failed:', metadataError);
+      // Continue with default metadata if extraction fails
       metadata = {
         duration: 0,
         resolution: '1280x720',
@@ -166,7 +188,11 @@ export default async function handler(req, res) {
     const insertData = {
       user_id: user.id,
       file_name: file.originalFilename,
-      file_path: file.filepath.replace(process.cwd(), ''),
+      // Use path.relative to get platform-independent path
+      file_path: path.relative(
+        process.cwd(), 
+        file.filepath
+      ).split(path.sep).join('/'), // Convert to forward slashes
       username: userData.username,
       title,
       game,
