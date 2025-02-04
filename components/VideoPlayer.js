@@ -51,6 +51,8 @@ const VideoPlayer = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const bufferRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const [isTouchMove, setIsTouchMove] = useState(false);
 
   const getVideoUrl = () => {
     if (clip?.url) return clip.url;
@@ -436,6 +438,38 @@ const VideoPlayer = ({
     }
   };
 
+  const handleTouchStart = (e) => {
+    // Store initial touch position
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    };
+    setIsTouchMove(false);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStartRef.current) return;
+    
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
+    const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
+    
+    // If vertical movement is greater than horizontal, it's likely a scroll
+    if (deltaY > deltaX && deltaY > 10) {
+      setIsTouchMove(true);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    // Only handle tap if it wasn't a scroll attempt
+    if (!isTouchMove) {
+      e.preventDefault();
+      handleVideoContainerClick(e);
+    }
+    
+    touchStartRef.current = null;
+    setIsTouchMove(false);
+  };
+
   useEffect(() => {
     let timeout;
     
@@ -780,7 +814,9 @@ const VideoPlayer = ({
         className={styles.videoPlayerContainer} 
         ref={containerRef}
         onClick={handleVideoContainerClick}
-        onTouchStart={(e) => e.preventDefault()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className={styles.videoWrapper}>
           {isLoading && !videoError && (
