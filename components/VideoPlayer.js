@@ -3,8 +3,6 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { MdPerson, MdGames, MdFavorite, MdFavoriteBorder, MdShare, MdVisibility, MdPlayArrow, MdPause, MdVolumeUp, MdVolumeOff, MdFullscreen, MdDelete, MdPublic, MdLock } from 'react-icons/md';
 import { BsFillPlayFill } from 'react-icons/bs';
-import { FaGamepad, FaExpand, FaCompress } from 'react-icons/fa';
-import { BiFullscreen } from 'react-icons/bi';
 import { getVisitorId } from '../utils/visitor-id';
 import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/shared/ClipCard.module.css';
@@ -53,13 +51,65 @@ const VideoPlayer = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const bufferRef = useRef(null);
   const [showControls, setShowControls] = useState(true);
-  const touchStartRef = useRef({ x: 0, y: 0 });
-  const [isTouchMove, setIsTouchMove] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showGameInfo, setShowGameInfo] = useState(false);
-  const [quality, setQuality] = useState('auto');
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const controlsTimerRef = useRef(null);
+  const controlsTimeoutRef = useRef(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+
+  const hideControlsWithDelay = useCallback(() => {
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
+  }, [isPlaying]);
+
+  const handlePlayPause = useCallback(() => {
+    setIsPlaying(prev => !prev);
+    setShowThumbnail(false);
+    setShowControls(true);
+    if (!isPlaying) {
+      hideControlsWithDelay();
+    }
+  }, [isPlaying, hideControlsWithDelay]);
+
+  const handleVideoTouch = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!showControls) {
+      setShowControls(true);
+      hideControlsWithDelay();
+    } else {
+      handlePlayPause();
+    }
+  }, [showControls, hideControlsWithDelay, handlePlayPause]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFullscreen = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+      
+      setShowControls(true);
+      hideControlsWithDelay();
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, [hideControlsWithDelay]);
 
   const getVideoUrl = () => {
     if (clip?.url) return clip.url;
@@ -267,7 +317,6 @@ const VideoPlayer = ({
   const handlePause = () => {
     if (!isSeeking) {
       setIsPlaying(false);
-      setShowThumbnail(true);
     }
   };
 
@@ -306,9 +355,33 @@ const VideoPlayer = ({
       videoElement.autoplay = false;
       videoElement.playsInline = true;
       
-      if (videoElement.buffered && videoElement.duration) {
-        const bufferTarget = Math.min(30, videoElement.duration);
-        videoElement.preload = bufferTarget;
+      // Set maximum buffer size
+      if ('buffered' in videoElement) {
+        try {
+          const bufferSize = 300; // 5 minutes
+          if (videoElement.duration) {
+            videoElement.preload = Math.min(bufferSize, videoElement.duration);
+          }
+        } catch (err) {
+          console.error('Error setting buffer size:', err);
+        }
+      }
+
+      // Set larger playback buffer
+      if ('mediaSource' in window) {
+        try {
+          videoElement.bufferSize = 500 * 1000 * 1000; // 500MB buffer
+        } catch (err) {
+          console.error('Error setting media source buffer:', err);
+        }
+      }
+
+      // Enable hardware acceleration
+      try {
+        videoElement.style.transform = 'translateZ(0)';
+        videoElement.style.willChange = 'transform';
+      } catch (err) {
+        console.error('Error enabling hardware acceleration:', err);
       }
 
       setPlayer(videoElement);
@@ -387,142 +460,49 @@ const VideoPlayer = ({
     }
   };
 
-  const toggleFullScreen = async () => {
+  const toggleFullScreen = useCallback(async () => {
     try {
+      const videoElement = document.querySelector('video');
       const container = containerRef.current;
-      const video = container.querySelector('video');
       
-      // Try video element first for better mobile support
-      if (video) {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-          if (video.requestFullscreen) {
-            await video.requestFullscreen();
-          } else if (video.webkitRequestFullscreen) {
-            await video.webkitRequestFullscreen();
-          } else if (video.mozRequestFullScreen) {
-            await video.mozRequestFullScreen();
-          } else if (video.msRequestFullscreen) {
-            await video.msRequestFullscreen();
-          } else if (video.webkitEnterFullscreen) {
-            // iOS Safari
-            await video.webkitEnterFullscreen();
-          }
-        } else {
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) {
-            await document.webkitExitFullscreen();
-          } else if (document.mozCancelFullScreen) {
-            await document.mozCancelFullScreen();
-          } else if (document.msExitFullscreen) {
-            await document.msExitFullscreen();
-          }
+      if (!videoElement || !container) return;
+
+      // Check if we're in fullscreen mode
+      const isFullscreen = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+
+      if (!isFullscreen) {
+        // Enter fullscreen
+        if (videoElement.webkitEnterFullscreen) {
+          // iOS Safari
+          await videoElement.webkitEnterFullscreen();
+        } else if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          await container.webkitRequestFullscreen();
+        } else if (container.mozRequestFullScreen) {
+          await container.mozRequestFullScreen();
+        } else if (container.msRequestFullscreen) {
+          await container.msRequestFullscreen();
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
         }
       }
     } catch (error) {
-      console.error('Error toggling fullscreen:', error);
+      console.error('Fullscreen error:', error);
     }
-  };
-
-  const handleVideoContainerClick = (e) => {
-    // Prevent click handling if clicking on a control button or progress bar
-    if (
-      e.target.closest(`.${styles.controlButton}`) ||
-      e.target.closest(`.${styles.progressBar}`) ||
-      e.target.closest(`.${styles.volumeControl}`)
-    ) {
-      return;
-    }
-
-    // Toggle play/pause when clicking the video area
-    if (!isPlaying) {
-      setIsPlaying(true);
-      setShowThumbnail(false);
-      if (onPlay) {
-        onPlay();
-      }
-    } else {
-      setIsPlaying(false);
-      setShowThumbnail(true);
-    }
-
-    // Toggle controls visibility
-    setShowControls(prev => !prev);
-  };
-
-  const handleTouchStart = (e) => {
-    // Store initial touch position
-    touchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY
-    };
-    setIsTouchMove(false);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!touchStartRef.current) return;
-    
-    const deltaY = Math.abs(e.touches[0].clientY - touchStartRef.current.y);
-    const deltaX = Math.abs(e.touches[0].clientX - touchStartRef.current.x);
-    
-    // If vertical movement is greater than horizontal, it's likely a scroll
-    if (deltaY > deltaX && deltaY > 10) {
-      setIsTouchMove(true);
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    // Only handle tap if it wasn't a scroll attempt
-    if (!isTouchMove) {
-      handleVideoContainerClick(e);
-    }
-    
-    touchStartRef.current = null;
-    setIsTouchMove(false);
-  };
-
-  useEffect(() => {
-    let timeout;
-    
-    // Only start the auto-hide timer if the video is playing and controls are visible
-    if (showControls && isPlaying) {
-      timeout = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-    }
-
-    const handleTouchStart = () => {
-      // Clear any existing timeout when touching the video
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-
-    const handleTouchEnd = () => {
-      // Only restart the timeout if the video is playing and controls are visible
-      if (isPlaying && showControls) {
-        timeout = setTimeout(() => {
-          setShowControls(false);
-        }, 3000);
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('touchstart', handleTouchStart);
-      container.addEventListener('touchend', handleTouchEnd);
-    }
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      if (container) {
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchend', handleTouchEnd);
-      }
-    };
-  }, [showControls, isPlaying]);
+  }, []);
 
   const handleError = async (error) => {
     await monitoring.logError(error, {
@@ -714,19 +694,6 @@ const VideoPlayer = ({
     }
   };
 
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      setShowThumbnail(true);
-    } else {
-      setIsPlaying(true);
-      setShowThumbnail(false);
-      if (onPlay) {
-        onPlay();
-      }
-    }
-  };
-
   const renderDeleteConfirmation = () => {
     if (!showDeleteConfirm) return null;
 
@@ -765,11 +732,11 @@ const VideoPlayer = ({
   };
 
   const handleBuffer = () => {
-    // This method is no longer used in the new version
+    setIsBuffering(true);
   };
 
   const handleBufferEnd = () => {
-    // This method is no longer used in the new version
+    setIsBuffering(false);
   };
 
   const playerConfig = {
@@ -778,84 +745,142 @@ const VideoPlayer = ({
         preload: "auto",
         controlsList: "nodownload",
         playsInline: true,
+        webkitPlaysInline: true,
         autoPlay: false,
+        fetchPriority: "high",
+        importance: "high",
+        loading: "eager",
+        style: {
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain'
+        }
       },
       forceVideo: true,
       hlsOptions: {
         enableWorker: true,
         startLevel: -1,
-        debug: false,
-        maxBufferLength: 15,
-        maxMaxBufferLength: 30,
-        maxBufferSize: 30 * 1000 * 1000,
-        backBufferLength: 10,
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 3,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 3,
-        capLevelToPlayerSize: true,
-        smoothQualityChange: true
+        maxBufferLength: 180, // 3 minutes
+        maxMaxBufferLength: 300, // 5 minutes
+        maxBufferSize: 250 * 1000 * 1000, // 250MB (Adjusted)
+        backBufferLength: 180,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 30000,
+        levelLoadingTimeOut: 30000,
+        fragLoadingMaxRetry: 10,
+        manifestLoadingMaxRetry: 10,
+        levelLoadingMaxRetry: 10,
+        autoStartLoad: true,
+        startFragPrefetch: true,
+        lowLatencyMode: false,
+        progressive: true,
+        testBandwidth: true,
+        abrEwmaDefaultEstimate: 1000000, // 1Mbps initial estimate
+        abrBandWidthFactor: 0.9,
+        abrBandWidthUpFactor: 0.7,
+        abrMaxWithRealBitrate: true,
+        maxLoadingDelay: 2, // Kept only one instance
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 10,
+        enableWebVTT: false,
+        enableIMSC1: false,
+        enableCEA708Captions: false,
+        stretchShortVideoTrack: true,
+        maxAudioFramesDrift: 1,
+        forceKeyFrameOnDiscontinuity: false, // Changed for stability
+        abrEwmaFastLive: 3,
+        abrEwmaSlowLive: 9,
+        abrEwmaFastVoD: 3,
+        abrEwmaSlowVoD: 9,
+        maxStarvationDelay: 4
       }
     }
   };
 
-  const handleVideoClick = (e) => {
-    // Prevent handling if clicking controls
-    if (
-      e.target.closest(`.${styles.controlButton}`) ||
-      e.target.closest(`.${styles.progressBar}`) ||
-      e.target.closest(`.${styles.volumeControl}`) ||
-      e.target.closest(`.${styles.qualitySelector}`)
-    ) {
-      return;
-    }
-
-    // Toggle play/pause
-    if (!isPlaying) {
-      setIsPlaying(true);
-      setShowThumbnail(false);
-      if (onPlay) onPlay();
-    } else {
-      setIsPlaying(false);
-    }
-
-    // Always show controls on click
-    setShowControls(true);
-    startControlsTimer();
-  };
-
-  const startControlsTimer = () => {
-    if (controlsTimerRef.current) {
-      clearTimeout(controlsTimerRef.current);
-    }
-    
+  // Add this effect to handle auto-hiding controls when playing
+  useEffect(() => {
     if (isPlaying) {
-      controlsTimerRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
+      hideControlsWithDelay();
+    } else {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
     }
-  };
+  }, [isPlaying, hideControlsWithDelay]);
 
-  const QualitySelector = () => (
-    <div className={styles.qualitySelector}>
-      <button 
-        onClick={() => setQuality(quality === 'auto' ? 'high' : 'auto')}
-        className={styles.qualityButton}
-      >
-        {quality === 'auto' ? 'AUTO' : 'HD'}
-      </button>
-    </div>
-  );
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const GameInfoOverlay = () => (
-    <div className={`${styles.gameInfo} ${showGameInfo ? styles.show : ''}`}>
-      <div className={styles.gameInfoContent}>
-        <h3>{clip.game}</h3>
-        <p>Captured by: {clip.username}</p>
-        {clip.description && <p>{clip.description}</p>}
-      </div>
-    </div>
-  );
+  // Add this effect to preload the next chunk when near the end
+  useEffect(() => {
+    if (player && duration) {
+      const preloadThreshold = 0.6; // Start preloading earlier, at 60%
+      const currentTime = (progress / 100) * duration;
+      
+      if (currentTime / duration > preloadThreshold) {
+        try {
+          const nextTime = Math.min(currentTime + 60, duration); // Preload next minute
+          if (player.buffered && player.buffered.length) {
+            const bufferedEnd = player.buffered.end(player.buffered.length - 1);
+            if (nextTime > bufferedEnd) {
+              player.preload = "auto";
+              // Try to force preload of next chunk
+              const timeToPreload = Math.min(nextTime + 30, duration);
+              player.currentTime = timeToPreload;
+              player.currentTime = currentTime;
+            }
+          }
+        } catch (err) {
+          console.error('Error preloading next chunk:', err);
+        }
+      }
+    }
+  }, [progress, duration, player]);
+
+  // Add this function to preload videos
+  const preloadVideo = useCallback(async (url) => {
+    try {
+      // Add preload link
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'video';
+      link.href = url;
+      link.importance = 'high';
+      document.head.appendChild(link);
+
+      // Prefetch video data
+      const response = await fetch(url, {
+        method: 'HEAD',
+        importance: 'high',
+        priority: 'high'
+      });
+
+      // If video is not too large, preload it entirely
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) < 100 * 1024 * 1024) { // Less than 100MB
+        fetch(url, {
+          importance: 'high',
+          priority: 'high'
+        });
+      }
+    } catch (err) {
+      console.error('Error preloading video:', err);
+    }
+  }, []);
+
+  // Add this effect to preload the video when component mounts
+  useEffect(() => {
+    if (videoUrl) {
+      preloadVideo(videoUrl);
+    }
+  }, [videoUrl, preloadVideo]);
 
   return (
     <div className={clipStyles.clipContainer}>
@@ -879,17 +904,16 @@ const VideoPlayer = ({
 
       {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
 
-      <div 
-        className={`${styles.videoPlayerContainer} ${isFullscreen ? styles.fullscreen : ''}`}
-        ref={containerRef}
-        onClick={handleVideoClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className={styles.videoPlayerContainer} ref={containerRef}>
         <div 
-          className={styles.videoWrapper}
-          style={{ touchAction: 'pan-y pinch-zoom' }}
+          className={`${styles.videoWrapper} ${!showControls ? styles.hideControls : ''}`}
+          onClick={handleVideoTouch}
+          onMouseMove={() => {
+            if (isPlaying) {
+              setShowControls(true);
+              hideControlsWithDelay();
+            }
+          }}
         >
           {isLoading && !videoError && (
             <div className={styles.loadingOverlay}>
@@ -920,64 +944,90 @@ const VideoPlayer = ({
               onPlay={handlePlay}
               onPause={handlePause}
               config={playerConfig}
-              progressInterval={500}
+              progressInterval={1000}
               light={showThumbnail ? thumbnailUrl : false}
               fallback={<LoadingClip />}
               pip={false}
-              stopOnUnmount={true}
+              stopOnUnmount={false}
               volume={isMuted ? 0 : volume}
               muted={isMuted}
               playbackRate={1}
-              playIcon={
-                <button 
-                  className={styles.playButton}
-                  onClick={handlePlayPause}
-                >
-                  <BsFillPlayFill />
-                </button>
-              }
-              onClickPreview={handleClickPreview}
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                contain: 'content',
-                willChange: 'transform',
+                width: '100%',
+                height: '100%',
               }}
             />
           )}
           
-          <div className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}>
-            <div className={styles.topControls}>
-              <div className={styles.gameInfo}>
-                <FaGamepad />
-                <span>{clip.game}</span>
-              </div>
-              <QualitySelector />
+          <div 
+            className={`${styles.customControls} ${!showControls ? styles.hidden : ''}`}
+            onClick={(e) => e.stopPropagation()}
+            onMouseEnter={() => {
+              if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+              }
+            }}
+            onMouseLeave={() => {
+              if (isPlaying) {
+                hideControlsWithDelay();
+              }
+            }}
+          >
+            <div 
+              className={styles.progressBar} 
+              ref={progressRef}
+              onClick={handleProgressClick}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                setIsSeeking(true);
+                handleProgressDrag(e);
+              }}
+              onMouseMove={(e) => {
+                e.stopPropagation();
+                if (isSeeking) {
+                  handleProgressDrag(e);
+                }
+              }}
+              onMouseUp={(e) => {
+                e.stopPropagation();
+                if (isSeeking) {
+                  setIsSeeking(false);
+                  if (isPlaying) {
+                    setShowThumbnail(false);
+                  }
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.stopPropagation();
+                if (isSeeking) {
+                  setIsSeeking(false);
+                  if (isPlaying) {
+                    setShowThumbnail(false);
+                  }
+                }
+              }}
+            >
+              <div 
+                className={styles.bufferProgress}
+                ref={bufferRef}
+              />
+              <div 
+                className={styles.progressFilled}
+                style={{ width: `${progress}%` }}
+              />
             </div>
 
-            <div className={styles.progressBarContainer}>
-              <div className={styles.progressBar} ref={progressRef}>
-                <div className={styles.bufferProgress} ref={bufferRef} />
-                <div 
-                  className={styles.progressFilled}
-                  style={{ width: `${progress}%` }}
-                />
-                <div className={styles.progressHandle} style={{ left: `${progress}%` }} />
-              </div>
-              <div className={styles.timeDisplay}>
-                <span>{formatTime(duration * (progress / 100))}</span>
-                <span>/</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            <div className={styles.bottomControls}>
+            <div className={styles.controlsBottom}>
               <div className={styles.leftControls}>
                 <button 
                   className={styles.controlButton}
-                  onClick={handlePlayPause}
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayPause();
+                  }}
                 >
                   {isPlaying ? <MdPause /> : <MdPlayArrow />}
                 </button>
@@ -986,44 +1036,42 @@ const VideoPlayer = ({
                   <button 
                     className={styles.controlButton}
                     onClick={toggleMute}
-                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
-                    {isMuted ? <MdVolumeOff /> : <MdVolumeUp />}
+                    {isMuted || volume === 0 ? <MdVolumeOff /> : <MdVolumeUp />}
                   </button>
                   <input
                     type="range"
                     min={0}
                     max={1}
                     step={0.1}
-                    value={isMuted ? 0 : volume}
+                    value={volume}
                     onChange={handleVolumeChange}
                     className={styles.volumeSlider}
-                    aria-label="Volume"
                   />
+                </div>
+
+                <div className={styles.timeDisplay}>
+                  <span>{formatTime(duration * (progress / 100))}</span>
+                  <span> / </span>
+                  <span>{formatTime(duration)}</span>
                 </div>
               </div>
 
               <div className={styles.rightControls}>
-                <button
-                  className={`${styles.controlButton} ${styles.qualityButton}`}
-                  onClick={() => setShowGameInfo(!showGameInfo)}
-                  aria-label="Game Info"
-                >
-                  <FaGamepad />
-                </button>
-                <button
+                <button 
                   className={styles.controlButton}
-                  onClick={toggleFullScreen}
-                  aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleFullScreen();
+                  }}
                 >
-                  {isFullscreen ? <FaCompress /> : <FaExpand />}
+                  <MdFullscreen />
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        <GameInfoOverlay />
       </div>
 
       {showActions && (
