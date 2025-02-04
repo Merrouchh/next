@@ -355,10 +355,11 @@ const VideoPlayer = ({
       videoElement.autoplay = false;
       videoElement.playsInline = true;
       
-      // Set maximum buffer size
+      // Set buffer size
       if ('buffered' in videoElement) {
         try {
-          const bufferSize = 300; // 5 minutes
+          // Request a larger buffer size
+          const bufferSize = 60; // seconds
           if (videoElement.duration) {
             videoElement.preload = Math.min(bufferSize, videoElement.duration);
           }
@@ -367,21 +368,13 @@ const VideoPlayer = ({
         }
       }
 
-      // Set larger playback buffer
+      // Set playback buffer
       if ('mediaSource' in window) {
         try {
-          videoElement.bufferSize = 500 * 1000 * 1000; // 500MB buffer
+          videoElement.bufferSize = 60 * 1000 * 1000; // 60MB buffer
         } catch (err) {
           console.error('Error setting media source buffer:', err);
         }
-      }
-
-      // Enable hardware acceleration
-      try {
-        videoElement.style.transform = 'translateZ(0)';
-        videoElement.style.willChange = 'transform';
-      } catch (err) {
-        console.error('Error enabling hardware acceleration:', err);
       }
 
       setPlayer(videoElement);
@@ -747,9 +740,6 @@ const VideoPlayer = ({
         playsInline: true,
         webkitPlaysInline: true,
         autoPlay: false,
-        fetchPriority: "high",
-        importance: "high",
-        loading: "eager",
         style: {
           width: '100%',
           height: '100%',
@@ -760,39 +750,20 @@ const VideoPlayer = ({
       hlsOptions: {
         enableWorker: true,
         startLevel: -1,
-        maxBufferLength: 180, // 3 minutes
-        maxMaxBufferLength: 300, // 5 minutes
-        maxBufferSize: 250 * 1000 * 1000, // 250MB (Adjusted)
-        backBufferLength: 180,
-        fragLoadingTimeOut: 30000,
-        manifestLoadingTimeOut: 30000,
-        levelLoadingTimeOut: 30000,
-        fragLoadingMaxRetry: 10,
-        manifestLoadingMaxRetry: 10,
-        levelLoadingMaxRetry: 10,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000, // 60MB
+        backBufferLength: 30,
+        fragLoadingTimeOut: 20000,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 6,
+        levelLoadingMaxRetry: 6,
         autoStartLoad: true,
         startFragPrefetch: true,
         lowLatencyMode: false,
-        progressive: true,
-        testBandwidth: true,
-        abrEwmaDefaultEstimate: 1000000, // 1Mbps initial estimate
-        abrBandWidthFactor: 0.9,
-        abrBandWidthUpFactor: 0.7,
-        abrMaxWithRealBitrate: true,
-        maxLoadingDelay: 2, // Kept only one instance
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 10,
-        enableWebVTT: false,
-        enableIMSC1: false,
-        enableCEA708Captions: false,
-        stretchShortVideoTrack: true,
-        maxAudioFramesDrift: 1,
-        forceKeyFrameOnDiscontinuity: false, // Changed for stability
-        abrEwmaFastLive: 3,
-        abrEwmaSlowLive: 9,
-        abrEwmaFastVoD: 3,
-        abrEwmaSlowVoD: 9,
-        maxStarvationDelay: 4
+        progressive: true
       }
     }
   };
@@ -817,70 +788,6 @@ const VideoPlayer = ({
       }
     };
   }, []);
-
-  // Add this effect to preload the next chunk when near the end
-  useEffect(() => {
-    if (player && duration) {
-      const preloadThreshold = 0.6; // Start preloading earlier, at 60%
-      const currentTime = (progress / 100) * duration;
-      
-      if (currentTime / duration > preloadThreshold) {
-        try {
-          const nextTime = Math.min(currentTime + 60, duration); // Preload next minute
-          if (player.buffered && player.buffered.length) {
-            const bufferedEnd = player.buffered.end(player.buffered.length - 1);
-            if (nextTime > bufferedEnd) {
-              player.preload = "auto";
-              // Try to force preload of next chunk
-              const timeToPreload = Math.min(nextTime + 30, duration);
-              player.currentTime = timeToPreload;
-              player.currentTime = currentTime;
-            }
-          }
-        } catch (err) {
-          console.error('Error preloading next chunk:', err);
-        }
-      }
-    }
-  }, [progress, duration, player]);
-
-  // Add this function to preload videos
-  const preloadVideo = useCallback(async (url) => {
-    try {
-      // Add preload link
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'video';
-      link.href = url;
-      link.importance = 'high';
-      document.head.appendChild(link);
-
-      // Prefetch video data
-      const response = await fetch(url, {
-        method: 'HEAD',
-        importance: 'high',
-        priority: 'high'
-      });
-
-      // If video is not too large, preload it entirely
-      const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) < 100 * 1024 * 1024) { // Less than 100MB
-        fetch(url, {
-          importance: 'high',
-          priority: 'high'
-        });
-      }
-    } catch (err) {
-      console.error('Error preloading video:', err);
-    }
-  }, []);
-
-  // Add this effect to preload the video when component mounts
-  useEffect(() => {
-    if (videoUrl) {
-      preloadVideo(videoUrl);
-    }
-  }, [videoUrl, preloadVideo]);
 
   return (
     <div className={clipStyles.clipContainer}>
