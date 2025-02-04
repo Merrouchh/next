@@ -23,7 +23,7 @@ const nextConfig = {
     ],
     dangerouslyAllowSVG: true,
     minimumCacheTTL: 60,
-    domains: ['your-domain.com'],
+    domains: ['merrouchgaming.com'],
     // Add reasonable image size limits
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],

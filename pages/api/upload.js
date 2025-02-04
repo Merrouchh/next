@@ -111,6 +111,26 @@ export default async function handler(req, res) {
   const tempFiles = [];
   let uploadedFile = null;
 
+  // Add specific error response helper
+  const sendError = (status, message, details = {}) => {
+    const error = {
+      error: message,
+      timestamp: new Date().toISOString(),
+      details: {
+        ...details,
+        uploadDir: path.join(process.cwd(), 'public', 'uploads'),
+        method: req.method,
+        contentType: req.headers['content-type'],
+        contentLength: req.headers['content-length']
+      }
+    };
+    
+    // Always log the error
+    addLog('ERROR', message, error);
+    
+    return res.status(status).json(error);
+  };
+
   addLog('INFO', 'Upload request received', {
     method: req.method,
     contentType: req.headers['content-type'],
@@ -124,11 +144,19 @@ export default async function handler(req, res) {
     }
   });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
+    if (req.method !== 'POST') {
+      return sendError(405, 'Method not allowed');
+    }
+
+    // Check content type
+    if (!req.headers['content-type']?.includes('multipart/form-data')) {
+      return sendError(400, 'Invalid content type', { 
+        expected: 'multipart/form-data',
+        received: req.headers['content-type'] 
+      });
+    }
+
     const supabase = createServerSupabaseClient(req, res);
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -164,20 +192,15 @@ export default async function handler(req, res) {
       query: req.query
     });
 
-    // Check directory permissions with more detail
+    // Add more specific error checks for directory
     const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    addLog('INFO', 'Checking directory permissions', { dir: uploadDir });
     const dirCheck = await checkDirectoryPermissions(uploadDir);
-    addLog('INFO', 'Directory check result', dirCheck);
     
     if (!dirCheck.success) {
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        details: {
-          message: 'Upload directory not writable',
-          path: dirCheck.path,
-          error: dirCheck.error
-        }
+      return sendError(500, 'Upload directory error', {
+        path: dirCheck.path,
+        error: dirCheck.error,
+        stats: dirCheck.stats
       });
     }
 
@@ -211,18 +234,26 @@ export default async function handler(req, res) {
       logError(error, 'Form Upload');
     });
 
-    // Parse form with better error handling
+    // Add more specific error handling for form parsing
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) {
-          logError(err, 'Form Parse');
-          reject(new Error(`Failed to parse upload form: ${err.message}`));
+          reject({
+            message: 'Form parse error',
+            details: err.message,
+            code: err.code
+          });
         } else if (!files.file || !files.file[0]) {
-          reject(new Error('No file uploaded'));
+          reject({
+            message: 'No file uploaded',
+            details: 'File field is missing or empty'
+          });
         } else {
           resolve([fields, files]);
         }
       });
+    }).catch(error => {
+      throw error; // This will be caught by the outer try-catch
     });
 
     const file = files.file[0];
@@ -316,20 +347,6 @@ export default async function handler(req, res) {
       clip: clipData,
     });
   } catch (error) {
-    const errorDetails = logError(error, 'Main Handler');
-    
-    // Clean up files
-    cleanupFiles([...tempFiles, uploadedFile].filter(Boolean));
-
-    // Send detailed error response
-    addLog('ERROR', 'Upload failed', errorDetails);
-    return res.status(500).json({ 
-      error: 'Upload failed',
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? {
-        ...errorDetails,
-        path: uploadedFile
-      } : undefined
-    });
+    return sendError(500, error.message || 'Upload failed', error.details || {});
   }
 } 
