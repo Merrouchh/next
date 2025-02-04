@@ -1,60 +1,57 @@
-import ffmpeg from 'fluent-ffmpeg';
-import ffprobe from '@ffprobe-installer/ffprobe';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import fs from 'fs';
 
-// Log ffprobe path for debugging
-console.log('FFprobe path:', ffprobe.path);
-ffmpeg.setFfprobePath(ffprobe.path);
+const execAsync = promisify(exec);
+
+// Function to check if ffprobe is installed
+const checkFfprobe = async () => {
+  try {
+    await execAsync('ffprobe -version');
+    return true;
+  } catch (error) {
+    console.error('ffprobe not found:', error.message);
+    return false;
+  }
+};
 
 export const getVideoMetadata = async (filePath) => {
-  let ffprobeProcess = null;
-
   try {
-    // Check if file exists first
+    // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.error('File does not exist:', filePath);
       throw new Error('File not found');
     }
 
-    const metadata = await new Promise((resolve, reject) => {
-      ffprobeProcess = ffmpeg.ffprobe(filePath, (err, metadata) => {
-        if (err) {
-          console.error('FFprobe error:', err);
-          reject(err);
-          return;
-        }
+    // Check if ffprobe is available
+    const ffprobeAvailable = await checkFfprobe();
+    if (!ffprobeAvailable) {
+      console.warn('ffprobe not available, returning default metadata');
+      return {
+        duration: 0,
+        resolution: '1280x720',
+        format: 'unknown',
+        codec: 'unknown'
+      };
+    }
 
-        console.log('Raw metadata:', JSON.stringify(metadata, null, 2));
+    // Use ffprobe to get metadata
+    const command = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
+    const { stdout } = await execAsync(command);
+    const data = JSON.parse(stdout);
 
-        const videoStream = metadata.streams.find(stream => stream.codec_type === 'video');
-        if (!videoStream) {
-          console.warn('No video stream found in:', metadata.streams);
-          reject(new Error('No video stream found'));
-          return;
-        }
+    // Extract relevant metadata
+    const videoStream = data.streams.find(stream => stream.codec_type === 'video');
+    
+    if (!videoStream) {
+      throw new Error('No video stream found');
+    }
 
-        console.log('Video stream:', JSON.stringify(videoStream, null, 2));
-
-        const duration = metadata.format.duration 
-          ? Math.round(metadata.format.duration)
-          : Math.round(videoStream.duration || 0);
-
-        const width = videoStream.width || 1280;
-        const height = videoStream.height || 720;
-
-        const result = {
-          duration,
-          resolution: `${width}x${height}`,
-          format: metadata.format.format_name,
-          codec: videoStream.codec_name
-        };
-
-        console.log('Extracted metadata:', result);
-        resolve(result);
-      });
-    });
-
-    return metadata;
+    return {
+      duration: parseFloat(data.format.duration || '0'),
+      resolution: `${videoStream.width || 1280}x${videoStream.height || 720}`,
+      format: data.format.format_name || 'unknown',
+      codec: videoStream.codec_name || 'unknown'
+    };
   } catch (error) {
     console.error('Video metadata extraction error:', error);
     // Return default values if metadata extraction fails
@@ -64,10 +61,5 @@ export const getVideoMetadata = async (filePath) => {
       format: 'unknown',
       codec: 'unknown'
     };
-  } finally {
-    // Cleanup ffprobe process
-    if (ffprobeProcess && ffprobeProcess.kill) {
-      ffprobeProcess.kill();
-    }
   }
 }; 
