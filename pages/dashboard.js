@@ -34,6 +34,38 @@ const formatSessionCount = (activeCount) => {
   return `${activeCount}/${totalCapacity}`;
 };
 
+// Add this constant at the top of the file
+const API_TIMEOUT = 10000; // 10 seconds timeout
+
+// Add this helper function
+const timeoutPromise = (promise, ms) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    )
+  ]);
+};
+
+// Add this near the top of the file
+const LoadingState = ({ error }) => (
+  <div className={styles.loadingState}>
+    {error ? (
+      <div className={styles.errorMessage}>
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className={styles.retryButton}
+        >
+          Retry
+        </button>
+      </div>
+    ) : (
+      <LoadingScreen message="Loading dashboard..." />
+    )}
+  </div>
+);
+
 // Modify the Active Sessions Card in the return statement
 const ActiveSessionsCard = ({ activeSessions, router }) => (
   <div 
@@ -84,45 +116,72 @@ export default function DashboardPage() {
     let mounted = true;
     
     try {
-      // First get the gizmo ID
-      console.log(`Fetching Gizmo ID for user: ${user.username}`);
-      const { gizmoId } = await fetchGizmoId(user.username);
-      console.log(`Fetched Gizmo ID: ${gizmoId}`);
+      setPageState(prev => ({
+        ...prev,
+        loading: true,
+        error: null
+      }));
 
+      // First get the gizmo ID with timeout
+      const gizmoIdPromise = timeoutPromise(
+        fetchGizmoId(user.username),
+        API_TIMEOUT
+      );
+
+      const { gizmoId } = await gizmoIdPromise;
+      
       if (!gizmoId) {
         throw new Error('No Gizmo ID found');
       }
 
-      // Then fetch all data with the gizmo ID
+      // Fetch all data in parallel with timeouts
+      const promises = [
+        timeoutPromise(fetchActiveUserSessions(), API_TIMEOUT),
+        timeoutPromise(fetchTopUsers(5), API_TIMEOUT),
+        timeoutPromise(fetchUserPoints(gizmoId), API_TIMEOUT),
+        timeoutPromise(fetchUserTimeInfo(gizmoId), API_TIMEOUT),
+        timeoutPromise(fetchUserBalanceWithDebt(gizmoId), API_TIMEOUT),
+        timeoutPromise(fetchUserPicture(gizmoId), API_TIMEOUT)
+      ];
+
+      // Use Promise.allSettled instead of Promise.all to handle partial failures
+      const results = await Promise.allSettled(promises);
+      
       const [
-        sessionsData,
-        topUsersData,
-        pointsData,
-        timeInfo,
-        balanceInfo,
-        userPicture
-      ] = await Promise.all([
-        fetchActiveUserSessions(),
-        fetchTopUsers(5), // Add limit parameter back
-        fetchUserPoints(gizmoId),
-        fetchUserTimeInfo(gizmoId),
-        fetchUserBalanceWithDebt(gizmoId),
-        fetchUserPicture(gizmoId)
-      ]);
+        sessionsResult,
+        topUsersResult,
+        pointsResult,
+        timeInfoResult,
+        balanceInfoResult,
+        userPictureResult
+      ] = results;
 
       if (mounted) {
         setPageState({
           loading: false,
           error: null,
           data: {
-            activeSessions: sessionsData,
-            topUsers: topUsersData,
-            userPoints: pointsData?.points || 0,
-            timeInfo: timeInfo || null,
-            balanceInfo: balanceInfo || null,
-            userPicture: userPicture
+            activeSessions: sessionsResult.status === 'fulfilled' ? sessionsResult.value : [],
+            topUsers: topUsersResult.status === 'fulfilled' ? topUsersResult.value : [],
+            userPoints: pointsResult.status === 'fulfilled' ? pointsResult.value?.points || 0 : 0,
+            timeInfo: timeInfoResult.status === 'fulfilled' ? timeInfoResult.value : null,
+            balanceInfo: balanceInfoResult.status === 'fulfilled' ? balanceInfoResult.value : null,
+            userPicture: userPictureResult.status === 'fulfilled' ? userPictureResult.value : null
           }
         });
+
+        // Check if any critical data failed to load
+        const criticalFailures = [sessionsResult, pointsResult, timeInfoResult]
+          .filter(result => result.status === 'rejected');
+        
+        if (criticalFailures.length > 0) {
+          console.error('Some critical data failed to load:', 
+            criticalFailures.map(f => f.reason));
+          setPageState(prev => ({
+            ...prev,
+            error: 'Some data failed to load. Please refresh the page.'
+          }));
+        }
       }
     } catch (error) {
       console.error('Error initializing dashboard:', error);
@@ -130,7 +189,9 @@ export default function DashboardPage() {
         setPageState(prev => ({
           ...prev,
           loading: false,
-          error: 'Failed to load dashboard data'
+          error: error.message === 'Request timed out' 
+            ? 'Dashboard is taking too long to load. Please refresh.'
+            : 'Failed to load dashboard data'
         }));
       }
     }
@@ -244,7 +305,7 @@ export default function DashboardPage() {
 
   // Update loading check
   if (loading || pageState.loading) {
-    return <LoadingScreen message="Loading dashboard..." />;
+    return <LoadingState error={pageState.error} />;
   }
 
   // Add immediate return if not authenticated
