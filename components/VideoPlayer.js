@@ -6,7 +6,11 @@ import {
   MdFavorite, 
   MdFavoriteBorder, 
   MdVisibility,
-  MdScreenRotation
+  MdDelete,
+  MdPublic,
+  MdLock,
+  MdShare,
+  MdContentCopy
 } from 'react-icons/md';
 import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/ClipCard.module.css';
@@ -17,7 +21,8 @@ import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
-import orientation from 'o9n';
+import { supabase } from '../utils/supabase/client';
+import DeleteClipModal from './DeleteClipModal';
 
 const VideoPlayer = ({ 
   clip,
@@ -25,7 +30,10 @@ const VideoPlayer = ({
   onViewCountUpdate,
   onPlay,
   showActions = true,
-  showHeader = true
+  showHeader = true,
+  isOwner = false,
+  onClipDelete,
+  onClipUpdate
 }) => {
   const router = useRouter();
   const { currentPlayingId, setCurrentPlayingId } = useVideo();
@@ -39,7 +47,8 @@ const VideoPlayer = ({
   const likesButtonRef = useRef(null);
   const [modalTriggerRect, setModalTriggerRect] = useState(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
-  const [isRotated, setIsRotated] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCopyTooltip, setShowCopyTooltip] = useState(false);
 
   const {
     liked,
@@ -225,90 +234,77 @@ const VideoPlayer = ({
     };
   }, [clip.id]);
 
-  // Add handler for rotation and fullscreen
-  const handleRotateFullscreen = async () => {
-    if (!playerRef.current) return;
+  const handleDelete = async () => {
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
     try {
-      // Try to lock orientation first before entering fullscreen
-      try {
-        // Force landscape-primary orientation
-        await orientation.lock('landscape-primary');
-        setIsRotated(true);
-      } catch (orientationError) {
-        console.log('Orientation lock not supported or denied:', orientationError);
-        
-        // Try alternative method for iOS Safari
-        if (window.screen && window.screen.orientation) {
-          try {
-            await window.screen.orientation.lock('landscape-primary');
-          } catch (iosError) {
-            console.log('iOS orientation lock failed:', iosError);
-          }
-        }
-      }
+      const { error } = await supabase
+        .from('clips')
+        .delete()
+        .eq('id', clip.id);
 
-      // Then enter fullscreen after a small delay to allow orientation to change
-      setTimeout(async () => {
-        try {
-          await playerRef.current.enterFullscreen();
-        } catch (fsError) {
-          console.error('Fullscreen error:', fsError);
-        }
-      }, 100);
-
+      if (error) throw error;
+      onClipDelete?.(clip.id);
     } catch (error) {
-      console.error('Rotation/Fullscreen error:', error);
-      // If everything fails, just try fullscreen
-      try {
-        await playerRef.current.enterFullscreen();
-      } catch (fsError) {
-        console.error('Fullscreen fallback error:', fsError);
-      }
+      console.error('Error deleting clip:', error);
+      alert('Failed to delete clip');
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
-  // Update fullscreen change listener to handle exit
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        // Release orientation lock when exiting fullscreen
-        try {
-          orientation.unlock();
-          setIsRotated(false);
-        } catch (error) {
-          console.log('Orientation unlock error:', error);
-        }
-      }
-    };
-
-    // Listen for orientation changes using the standard API when available
-    const handleOrientationChange = () => {
-      if (screen.orientation) {
-        console.log('Orientation changed:', screen.orientation.type, screen.orientation.angle);
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
+  const handleVisibilityToggle = async () => {
+    const newVisibility = clip.visibility === 'public' ? 'private' : 'public';
     
-    // Only add orientation listener if the API is available
-    if (screen.orientation) {
-      screen.orientation.addEventListener('change', handleOrientationChange);
-    }
+    try {
+      const { data, error } = await supabase
+        .from('clips')
+        .update({ visibility: newVisibility })
+        .eq('id', clip.id)
+        .select()
+        .single();
 
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      if (screen.orientation) {
-        screen.orientation.removeEventListener('change', handleOrientationChange);
+      if (error) throw error;
+      onClipUpdate?.(data);
+    } catch (error) {
+      console.error('Error updating clip visibility:', error);
+      alert('Failed to update clip visibility');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/clip/${clip.id}`;
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: clip.title,
+          text: `Check out this clip by ${clip.username}`,
+          url: shareUrl
+        });
+      } else {
+        // Fallback to copying the link
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
       }
-      // Cleanup orientation lock when component unmounts
-      try {
-        orientation.unlock();
-      } catch (error) {
-        console.log('Orientation unlock cleanup error:', error);
-      }
-    };
-  }, []);
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const clipUrl = `${window.location.origin}/clip/${clip.id}`;
+      await navigator.clipboard.writeText(clipUrl);
+      setShowCopyTooltip(true);
+      setTimeout(() => setShowCopyTooltip(false), 2000);
+    } catch (error) {
+      console.error('Error copying link:', error);
+      alert('Failed to copy clip link');
+    }
+  };
 
   return (
     <>
@@ -333,11 +329,7 @@ const VideoPlayer = ({
 
         {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
 
-        <div 
-          className={styles.videoPlayerWrapper} 
-          data-playing={isPlaying}
-          data-rotated={isRotated}
-        >
+        <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
           <MediaPlayer
                 ref={playerRef}
             load="visible"
@@ -408,20 +400,52 @@ const VideoPlayer = ({
               </div>
             )}
           </MediaPlayer>
-          
-          {/* Add rotate button for mobile */}
-          <button
-            className={styles.rotateButton}
-            onClick={handleRotateFullscreen}
-            title="Rotate and fullscreen"
-          >
-            <MdScreenRotation />
-          </button>
         </div>
 
         {showActions && (
           <div className={clipStyles.clipStats}>
             <div className={clipStyles.statsContainer}>
+              <div className={clipStyles.actionButtons}>
+                {isOwner && (
+                  <div className={clipStyles.ownerActions}>
+                    <button
+                      onClick={handleDelete}
+                      className={clipStyles.actionButton}
+                      title="Delete clip"
+                    >
+                      <MdDelete />
+                    </button>
+                    <button
+                      onClick={handleVisibilityToggle}
+                      className={clipStyles.actionButton}
+                      title={`Make ${clip.visibility === 'public' ? 'private' : 'public'}`}
+                    >
+                      {clip.visibility === 'public' ? <MdPublic /> : <MdLock />}
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={handleShare}
+                  className={clipStyles.actionButton}
+                  title="Share clip"
+                >
+                  <MdShare />
+                </button>
+                <div className={clipStyles.copyIdWrapper}>
+                  <button
+                    onClick={handleCopyLink}
+                    className={clipStyles.actionButton}
+                    title="Copy clip link"
+                  >
+                    <MdContentCopy />
+                  </button>
+                  {showCopyTooltip && (
+                    <div className={clipStyles.copyTooltip}>
+                      Link copied!
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className={clipStyles.viewCount}>
                 <MdVisibility />
                 <span>{clip.views_count || 0}</span>
@@ -455,6 +479,12 @@ const VideoPlayer = ({
           </div>
         )}
       </div>
+
+      <DeleteClipModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+      />
 
       <LikesModal
         isOpen={showLikesModal}

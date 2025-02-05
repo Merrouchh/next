@@ -197,9 +197,9 @@
 .statsContainer {
   display: flex;
   align-items: center;
-  gap: 24px;
-  width: 100%;
   justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
 }
 
 .viewCount {
@@ -409,9 +409,132 @@
 .likeContainer {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   padding: 0;
   border-radius: 20px;
   transition: all 0.2s ease;
   background: transparent;
+}
+
+.ownerActions {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionButton:hover {
+  color: white;
+  transform: scale(1.1);
+}
+
+.actionButton[title*="Delete"]:hover {
+  color: #ff4444;
+}
+
+.actionButton[title*="public"] {
+  color: #4CAF50;
+}
+
+.actionButton[title*="private"] {
+  color: #FFC107;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copyIdWrapper {
+  position: relative;
+}
+
+.copyTooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+.copyTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionButton:hover {
+  color: white;
+  transform: scale(1.1);
+}
+
+.actionButton[title*="Share"]:hover {
+  color: #4CAF50;
+}
+
+.actionButton[title*="Copy"]:hover {
+  color: #2196F3;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Update existing statsContainer to accommodate new buttons */
+.statsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+}
+
+/* Make sure view count stays on the right */
+.viewCount {
+  margin-left: auto;
 } 
