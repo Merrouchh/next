@@ -147,42 +147,50 @@ async function processVideo(clipData) {
       fs.mkdirSync(hlsOutputDir);
     }
 
+    // First pass: Create 720p version
     await new Promise((resolve, reject) => {
       ffmpeg(tempFilePath)
         .outputOptions([
-          '-c:v libx264',        // Video codec
-          '-c:a aac',            // Audio codec
-          '-hls_time 10',        // 10 second segments
-          '-hls_list_size 0',    // Keep all segments
-          '-hls_segment_filename', `${hlsOutputDir}/segment_%03d.ts`,
-          '-f hls',              // HLS format
+          '-c:v libx264',          // Video codec
+          '-c:a aac',              // Audio codec
+          '-hls_time 6',           // 6 second segments
+          '-hls_list_size 0',      // Keep all segments
+          '-hls_segment_filename', `${hlsOutputDir}/720p_%03d.ts`,
+          '-f hls',                // HLS format
           '-hls_playlist_type vod', // Video on demand
-          '-master_pl_name master.m3u8',
-          // Multiple quality variants
-          '-var_stream_map', 'v:0,a:0,name:720p v:1,a:1,name:480p v:2,a:2,name:360p',
-          // Different quality streams
-          '-map 0:v', '-map 0:a', '-map 0:v', '-map 0:a', '-map 0:v', '-map 0:a',
-          '-b:v:0 2800k', '-b:v:1 1400k', '-b:v:2 800k',
-          '-filter:v:0', 'scale=-2:720', 
-          '-filter:v:1', 'scale=-2:480',
-          '-filter:v:2', 'scale=-2:360',
-          '-preset slow',        // Better compression
-          '-profile:v high',     // High profile for better quality
-          '-crf 23',            // Quality setting (lower = better)
-          '-movflags +faststart' // Enable fast start
+          '-vf scale=-2:720',      // Scale to 720p
+          '-b:v 2800k',            // Video bitrate
+          '-profile:v main',       // More compatible profile
+          '-preset fast',          // Faster encoding
+          '-crf 23',              // Quality (lower = better)
+          '-maxrate 2996k',        // Maximum bitrate
+          '-bufsize 4200k',        // Buffer size
+          '-movflags +faststart',  // Fast start
+          '-y'                     // Overwrite output
         ])
-        .output(`${hlsOutputDir}/playlist.m3u8`)
+        .output(`${hlsOutputDir}/720p.m3u8`)
         .on('progress', (progress) => {
           const now = Date.now();
           if (now - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
-            logger.info(`HLS Processing: ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
+            logger.info(`HLS Processing (720p): ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
             lastProgressLog = now;
           }
         })
         .on('end', resolve)
-        .on('error', reject)
+        .on('error', (err) => {
+          logger.error('FFmpeg 720p error:', err);
+          reject(err);
+        })
         .run();
     });
+
+    // Create master playlist
+    const masterPlaylist = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
+720p.m3u8`;
+
+    fs.writeFileSync(path.join(hlsOutputDir, 'master.m3u8'), masterPlaylist);
 
     // Upload HLS files to Supabase storage
     const hlsFiles = fs.readdirSync(hlsOutputDir);
@@ -203,6 +211,7 @@ async function processVideo(clipData) {
         });
 
       if (uploadError) throw new Error(`Failed to upload HLS file ${file}: ${uploadError.message}`);
+      logger.info(`Uploaded ${file} successfully`);
     }
 
     // Insert into clips table with HLS path
@@ -210,8 +219,8 @@ async function processVideo(clipData) {
       .from('clips')
       .insert({
         user_id: clipData.user_id,
-        file_name: `${clipData.id}_${timestamp}/playlist.m3u8`,
-        file_path: `${hlsBasePath}/playlist.m3u8`,
+        file_name: `${clipData.id}_${timestamp}/master.m3u8`,
+        file_path: `${hlsBasePath}/master.m3u8`,
         username: clipData.username,
         title: clipData.title,
         game: clipData.game,
