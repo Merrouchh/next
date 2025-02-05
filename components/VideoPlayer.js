@@ -16,19 +16,18 @@ import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/ClipCard.module.css';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
-import { updateLike, checkLikeStatus, getLikesByClipId } from '../utils/supabase/clips';
+import { checkLikeStatus } from '../utils/supabase/clips';
 import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
 import { supabase } from '../utils/supabase/client';
 import DeleteClipModal from './DeleteClipModal';
-import { isHLSProvider, isHTMLVideoElement } from '@vidstack/react';
+import { isHLSProvider } from '@vidstack/react';
 
 const VideoPlayer = ({ 
   clip,
   user,
-  onViewCountUpdate,
   onPlay,
   showActions = true,
   showHeader = true,
@@ -44,7 +43,6 @@ const VideoPlayer = ({
   const [error, setError] = useState(null);
   const [canPlay, setCanPlay] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const likesButtonRef = useRef(null);
   const [modalTriggerRect, setModalTriggerRect] = useState(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
@@ -52,17 +50,13 @@ const VideoPlayer = ({
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [currentQuality, setCurrentQuality] = useState(null);
   const [isHLS, setIsHLS] = useState(false);
-  const [hlsError, setHlsError] = useState(null);
-  const [hlsLevels, setHlsLevels] = useState([]);
 
   const {
     liked,
     setLiked,
     likesCount,
-    setLikesCount,
     isUpdatingLike,
     likesList,
-    setLikesList,
     handleLike,
     fetchLikes
   } = useLikes(false, clip.likes_count || 0);
@@ -333,7 +327,6 @@ const VideoPlayer = ({
 
   const handleHlsManifestLoaded = useCallback((event) => {
     if (event.detail?.levels?.length > 0) {
-      setHlsLevels(event.detail.levels);
       console.log('Available quality levels:', event.detail.levels);
     }
   }, []);
@@ -346,7 +339,7 @@ const VideoPlayer = ({
   const handleHlsError = useCallback((event) => {
     console.error('HLS Error:', event);
     const { type, details, fatal } = event.detail;
-    setHlsError({ type, details, fatal });
+    setError('Playback error: ' + (details || 'Unknown error'));
   }, []);
 
   // Add back view tracking
