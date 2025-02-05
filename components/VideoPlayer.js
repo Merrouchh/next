@@ -21,7 +21,7 @@ import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
-import { supabase } from '../utils/supabase/client';
+import { createClient } from '../utils/supabase/component';
 import DeleteClipModal from './DeleteClipModal';
 import { isHLSProvider } from '@vidstack/react';
 
@@ -50,6 +50,9 @@ const VideoPlayer = ({
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [currentQuality, setCurrentQuality] = useState(null);
   const [isHLS, setIsHLS] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const lastSeekTime = useRef(0);
 
   const {
     liked,
@@ -152,47 +155,6 @@ const VideoPlayer = ({
     }
   };
 
-  useEffect(() => {
-    const handleKeyPress = async (e) => {
-      if (!playerRef.current) return;
-      
-      switch(e.key.toLowerCase()) {
-        case ' ':
-        case 'k':
-          e.preventDefault();
-          try {
-            if (isPlaying) {
-              playerRef.current.pause();
-            } else if (canPlay) {
-              await playerRef.current.play();
-            }
-          } catch (error) {
-            console.error('Playback control error:', error);
-          }
-          break;
-        case 'm':
-          e.preventDefault();
-          playerRef.current.muted = !playerRef.current.muted;
-          break;
-        case 'f':
-          e.preventDefault();
-          playerRef.current.requestFullscreen();
-          break;
-        case 'i':
-          e.preventDefault();
-          if (document.pictureInPictureElement) {
-            document.exitPictureInPicture();
-          } else {
-            playerRef.current.requestPictureInPicture();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, canPlay]);
-
   // Handle modal open
   const handleModalOpen = useCallback(async () => {
     if (likesCount > 0 && likesButtonRef.current) {
@@ -236,6 +198,7 @@ const VideoPlayer = ({
 
   const handleConfirmDelete = async () => {
     try {
+      const supabase = createClient();
       const { error } = await supabase
         .from('clips')
         .delete()
@@ -255,6 +218,7 @@ const VideoPlayer = ({
     const newVisibility = clip.visibility === 'public' ? 'private' : 'public';
     
     try {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('clips')
         .update({ visibility: newVisibility })
@@ -309,7 +273,14 @@ const VideoPlayer = ({
         enableWorker: true,
         startLevel: -1, // Auto quality
         capLevelToPlayerSize: true,
-        debug: false
+        debug: false,
+        // Basic buffering settings
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        // Basic error recovery
+        fragLoadingMaxRetry: 3,
+        manifestLoadingMaxRetry: 3,
+        levelLoadingMaxRetry: 3,
       };
     }
   }, []);
@@ -321,14 +292,24 @@ const VideoPlayer = ({
   }, []);
 
   const handleHlsLevelSwitched = useCallback((event) => {
-    const { level } = event.detail;
-    setCurrentQuality(level);
+    if (event?.detail?.level !== undefined) {
+      setCurrentQuality(event.detail.level);
+    }
   }, []);
 
-  const handleHlsError = useCallback((event) => {
-    console.error('HLS Error:', event);
-    const { type, details, fatal } = event.detail;
-    setError('Playback error: ' + (details || 'Unknown error'));
+  const handleHlsError = useCallback((e) => {
+    console.error('HLS Error:', e);
+    
+    if (e?.detail) {
+      const { details, fatal } = e.detail;
+      
+      if (fatal) {
+        setError('Playback error: ' + (details || 'Unknown error'));
+        if (playerRef.current) {
+          playerRef.current.load();
+        }
+      }
+    }
   }, []);
 
   // Add back view tracking
@@ -343,6 +324,38 @@ const VideoPlayer = ({
     }
     return () => clearTimeout(timeoutId);
   }, [isPlaying, hasTrackedView, clip.id, user?.id]);
+
+  // Add seeking handlers
+  const handleSeeking = useCallback(() => {
+    setIsSeeking(true);
+    const now = Date.now();
+    lastSeekTime.current = now;
+  }, []);
+
+  const handleSeeked = useCallback(() => {
+    setIsSeeking(false);
+    // Add a small delay before allowing new seeks
+    setTimeout(() => {
+      if (Date.now() - lastSeekTime.current >= 500) {
+        setIsBuffering(false);
+      }
+    }, 100);
+  }, []);
+
+  // Modify the buffering handlers to be more precise
+  const handleWaiting = useCallback(() => {
+    // Only show buffering if we're actually waiting for data
+    if (playerRef.current?.readyState < 3) {
+      setIsBuffering(true);
+      setCanPlay(false);
+    }
+  }, []);
+
+  const handleCanPlay = useCallback(() => {
+    // Clear buffering state when we have enough data
+    setIsBuffering(false);
+    setCanPlay(true);
+  }, []);
 
   return (
     <div className={clipStyles.clipContainer}>
@@ -376,6 +389,8 @@ const VideoPlayer = ({
           playsInline
           autoPlay={false}
           style={{ width: '100%', height: '100%' }}
+          data-screen-orientation="manual"
+          data-view-type="video"
           onPlay={handlePlay}
           onPause={() => {
             setIsPlaying(false);
@@ -383,22 +398,23 @@ const VideoPlayer = ({
               setCurrentPlayingId(null);
             }
           }}
-          onCanPlay={() => setCanPlay(true)}
-          onWaiting={() => setCanPlay(false)}
+          onCanPlay={handleCanPlay}
+          onWaiting={handleWaiting}
+          onSeeking={handleSeeking}
+          onSeeked={handleSeeked}
           onError={(e) => {
             console.error('Video player error:', e);
             setError('Failed to load video');
             setCanPlay(false);
+            // Try to recover from error
+            if (playerRef.current) {
+              playerRef.current.load();
+            }
           }}
           onProviderChange={handleProviderChange}
           onHlsManifestLoaded={handleHlsManifestLoaded}
-          onHlsLevelSwitched={(e) => {
-            setCurrentQuality(e.detail?.level);
-          }}
-          onHlsError={(e) => {
-            console.error('HLS Error:', e);
-            setError('Playback error: ' + (e.detail?.details || 'Unknown error'));
-          }}
+          onHlsLevelSwitched={handleHlsLevelSwitched}
+          onHlsError={handleHlsError}
         >
           <MediaProvider>
             <source 
@@ -418,10 +434,17 @@ const VideoPlayer = ({
           </MediaProvider>
           <DefaultVideoLayout icons={defaultLayoutIcons} />
           
-          {/* Add quality indicator */}
-          {isHLS && currentQuality !== null && (
+          {/* Update quality indicator with safer check */}
+          {isHLS && currentQuality !== null && currentQuality !== undefined && (
             <div className={styles.qualityIndicator}>
               {currentQuality === -1 ? 'Auto' : '1080p'}
+            </div>
+          )}
+
+          {/* Only show buffering indicator when actually buffering */}
+          {isBuffering && !isPlaying && (
+            <div className={styles.bufferingOverlay}>
+              <div className={styles.bufferingSpinner}></div>
             </div>
           )}
 
