@@ -5,7 +5,8 @@ import {
   MdGames, 
   MdFavorite, 
   MdFavoriteBorder, 
-  MdVisibility 
+  MdVisibility,
+  MdScreenRotation
 } from 'react-icons/md';
 import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/ClipCard.module.css';
@@ -16,6 +17,7 @@ import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
+import orientation from 'o9n';
 
 const VideoPlayer = ({ 
   clip,
@@ -37,6 +39,7 @@ const VideoPlayer = ({
   const likesButtonRef = useRef(null);
   const [modalTriggerRect, setModalTriggerRect] = useState(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
+  const [isRotated, setIsRotated] = useState(false);
 
   const {
     liked,
@@ -222,6 +225,75 @@ const VideoPlayer = ({
     };
   }, [clip.id]);
 
+  // Add handler for rotation and fullscreen
+  const handleRotateFullscreen = async () => {
+    if (!playerRef.current) return;
+
+    try {
+      // First enter fullscreen
+      await playerRef.current.enterFullscreen();
+
+      // Then try to lock orientation
+      try {
+        // Use o9n for locking only
+        await orientation.lock('landscape');
+        setIsRotated(true);
+      } catch (orientationError) {
+        console.log('Orientation lock not supported or denied:', orientationError);
+      }
+    } catch (error) {
+      console.error('Fullscreen/Rotation error:', error);
+      // If everything fails, just try fullscreen without rotation
+      try {
+        await playerRef.current.enterFullscreen();
+      } catch (fsError) {
+        console.error('Fullscreen fallback error:', fsError);
+      }
+    }
+  };
+
+  // Update fullscreen change listener to handle exit
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        // Release orientation lock when exiting fullscreen
+        try {
+          orientation.unlock();
+          setIsRotated(false);
+        } catch (error) {
+          console.log('Orientation unlock error:', error);
+        }
+      }
+    };
+
+    // Listen for orientation changes using the standard API when available
+    const handleOrientationChange = () => {
+      if (screen.orientation) {
+        console.log('Orientation changed:', screen.orientation.type, screen.orientation.angle);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
+    // Only add orientation listener if the API is available
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', handleOrientationChange);
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (screen.orientation) {
+        screen.orientation.removeEventListener('change', handleOrientationChange);
+      }
+      // Cleanup orientation lock when component unmounts
+      try {
+        orientation.unlock();
+      } catch (error) {
+        console.log('Orientation unlock cleanup error:', error);
+      }
+    };
+  }, []);
+
   return (
     <>
       <div className={clipStyles.clipContainer}>
@@ -316,6 +388,15 @@ const VideoPlayer = ({
               </div>
             )}
           </MediaPlayer>
+          
+          {/* Add rotate button for mobile */}
+          <button
+            className={styles.rotateButton}
+            onClick={handleRotateFullscreen}
+            title="Rotate and fullscreen"
+          >
+            <MdScreenRotation />
+          </button>
         </div>
 
         {showActions && (
