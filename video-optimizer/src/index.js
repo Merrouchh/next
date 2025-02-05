@@ -153,25 +153,31 @@ async function processVideo(clipData) {
         .outputOptions([
           '-c:v libx264',          // Video codec
           '-c:a aac',              // Audio codec
-          '-b:a 192k',             // Audio bitrate
+          '-ac 2',                 // 2 audio channels
           '-ar 48000',             // Audio sample rate
+          '-b:a 192k',             // Audio bitrate
+          
+          // HLS Specific settings
           '-hls_time 6',           // 6 second segments
           '-hls_list_size 0',      // Keep all segments
+          '-hls_flags independent_segments', // Each segment can be decoded independently
+          '-hls_segment_type mpegts',      // Segment type
           '-hls_segment_filename', `${hlsOutputDir}/1080p_%03d.ts`,
           '-f hls',                // HLS format
           '-hls_playlist_type vod', // Video on demand
+          
+          // Video settings
           '-vf scale=-2:1080',     // Scale to 1080p maintaining aspect ratio
-          '-b:v 6000k',            // High video bitrate (reduced from 8000k)
-          '-maxrate 6500k',        // Maximum bitrate (reduced from 8500k)
-          '-bufsize 12000k',       // Buffer size (reduced from 16000k)
-          '-profile:v high',       // High profile
-          '-level:v 4.1',          // More compatible level
-          '-preset slower',        // Changed from veryslow to slower for better stability
-          '-crf 18',              // Slightly increased CRF for better stability
-          '-movflags +faststart',  // Fast start for web playback
-          '-g 48',                // Keyframe interval
-          '-sc_threshold 0',       // Scene change threshold
+          '-b:v 5000k',            // Video bitrate
+          '-maxrate 5350k',        // Maximum bitrate (1.07x bitrate)
+          '-bufsize 10000k',       // Buffer size (2x bitrate)
+          '-profile:v main',       // Main profile for better compatibility
+          '-level:v 4.1',          // Compatibility level
+          '-preset fast',          // Faster encoding, good balance
+          '-crf 23',              // Default quality
+          '-g 48',                // Keyframe interval (2 seconds at 24fps)
           '-keyint_min 48',       // Minimum keyframe interval
+          '-sc_threshold 0',       // Scene change threshold
           '-pix_fmt yuv420p',      // Pixel format for maximum compatibility
           '-y'                     // Overwrite output
         ])
@@ -186,7 +192,7 @@ async function processVideo(clipData) {
         .on('end', resolve)
         .on('error', (err) => {
           logger.error('FFmpeg 1080p error:', err.message || err);
-          logger.error('FFmpeg command:', err.cmd); // Log the command that failed
+          logger.error('FFmpeg command:', err.cmd);
           reject(err);
         })
         .run();
@@ -195,7 +201,7 @@ async function processVideo(clipData) {
     // Update master playlist for 1080p
     const masterPlaylist = `#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080
+#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080,CODECS="avc1.4d401f,mp4a.40.2"
 1080p.m3u8`;
 
     fs.writeFileSync(path.join(hlsOutputDir, 'master.m3u8'), masterPlaylist);
