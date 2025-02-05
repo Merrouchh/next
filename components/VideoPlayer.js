@@ -252,6 +252,7 @@ const VideoPlayer = ({
             title={clip.title}
             src={clip.url}
             aspectRatio={16/9}
+            playsInline
             style={{ width: '100%', height: '100%' }}
             onPlay={handlePlay}
             onPause={() => {
