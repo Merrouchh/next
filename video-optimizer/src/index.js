@@ -142,89 +142,90 @@ async function processVideo(clipData) {
     }
 
     logger.info('Starting FFmpeg processing');
+    // Process video in multiple qualities
+    const qualities = [
+      {
+        name: '720p',
+        height: 720,
+        bitrate: '2500k',
+        audioBitrate: '128k',
+        outputPath: path.join(tempDir, `processed_${clipData.id}_720p.mp4`)
+      },
+      {
+        name: '480p',
+        height: 480,
+        bitrate: '1500k',
+        audioBitrate: '96k',
+        outputPath: path.join(tempDir, `processed_${clipData.id}_480p.mp4`)
+      }
+    ];
+
+    const processedFiles = [];
+    for (const quality of qualities) {
+      logger.info(`Processing ${quality.name} version`);
       await new Promise((resolve, reject) => {
         ffmpeg(tempFilePath)
           .outputOptions([
-            '-c:v libx264',        // Video codec
-            '-crf 18',             // Higher quality
-            '-preset slow',      // Slower preset for better quality and compression
-            '-profile:v high',     // Higher profile for H.264 for better quality
-            '-tune film',          // Tune for visual quality (useful for detailed videos)
-            '-c:a copy',           // Audio codec
-            '-movflags +faststart', // Enable fast start for web playback
-            '-y'                    // Overwrite output files
+            '-c:v libx264',              // Video codec
+            '-crf 23',                   // Balanced quality/size
+            '-preset medium',            // Balanced speed/compression
+            '-profile:v high',           // High profile H.264
+            '-tune film',                // Optimize for video content
+            `-b:v ${quality.bitrate}`,   // Video bitrate
+            `-vf scale=-2:${quality.height}`, // Scale to height while maintaining aspect ratio
+            '-c:a aac',                  // Audio codec
+            `-b:a ${quality.audioBitrate}`, // Audio bitrate
+            '-movflags +faststart',      // Enable fast start
+            '-y'                         // Overwrite output
           ])
-          .output(outputFilePath)
+          .output(quality.outputPath)
           .on('progress', (progress) => {
             const now = Date.now();
             if (now - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
-              logger.info(`Processing: ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
+              logger.info(`Processing ${quality.name}: ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
               lastProgressLog = now;
             }
           })
           .on('end', () => {
-            logger.info('FFmpeg processing finished');
+            logger.info(`FFmpeg processing finished for ${quality.name}`);
+            processedFiles.push({
+              quality: quality.name,
+              path: quality.outputPath
+            });
             resolve();
           })
           .on('error', (err) => {
-            logger.error('FFmpeg processing error:', err);
+            logger.error(`FFmpeg processing error for ${quality.name}:`, err);
             reject(err);
           })
           .run();
       });
+    }
 
-    logger.info('Reading processed file for upload');
-    // Upload processed file
-    const processedFileBuffer = fs.readFileSync(outputFilePath);
+    logger.info('Reading processed files for upload');
     const timestamp = Date.now();
-    const uniqueFileName = `${clipData.id}_${timestamp}.mp4`;
-    const uploadPath = `video/${uniqueFileName}`;
-    
-    logger.info('Uploading processed file to:', uploadPath);
-    const { error: uploadError } = await supabase
-      .storage
-      .from('highlight-clips')
-      .upload(uploadPath, processedFileBuffer, {
-        contentType: 'video/mp4',
-        upsert: true
-      });
+    // Upload all quality versions
+    const uploadedPaths = {};
+    for (const file of processedFiles) {
+      const processedFileBuffer = fs.readFileSync(file.path);
+      const uniqueFileName = `${clipData.id}_${file.quality}_${timestamp}.mp4`;
+      const uploadPath = `video/${uniqueFileName}`;
+      
+      logger.info(`Uploading ${file.quality} version to:`, uploadPath);
+      
+      const { error: uploadError } = await supabase
+        .storage
+        .from('highlight-clips')
+        .upload(uploadPath, processedFileBuffer, {
+          contentType: 'video/mp4',
+          upsert: true
+        });
 
-    if (uploadError) {
-      throw new Error(`Failed to upload processed file: ${uploadError.message}`);
-    }
-
-    // Move original file to processed folder
-    const processedUploadsDir = path.join(process.cwd(), '..', 'public', 'uploads', 'processed');
-    if (!fs.existsSync(processedUploadsDir)) {
-      fs.mkdirSync(processedUploadsDir, { recursive: true });
-    }
-    
-    const processedLocalPath = path.join(processedUploadsDir, path.basename(clipData.file_path));
-    
-    // Check if source file still exists and is accessible
-    if (fs.existsSync(localFilePath)) {
-      try {
-        // Try to move the file
-        fs.renameSync(localFilePath, processedLocalPath);
-        logger.info('Successfully moved file to processed folder');
-      } catch (moveError) {
-        logger.warn('Could not move file to processed folder:', moveError.message);
-        // Try to copy instead of move
-        try {
-          fs.copyFileSync(localFilePath, processedLocalPath);
-          // If copy succeeds, try to delete the original
-          try {
-            fs.unlinkSync(localFilePath);
-            logger.info('Successfully copied and deleted original file');
-          } catch (deleteError) {
-            logger.warn('Could not delete original file:', deleteError.message);
-          }
-        } catch (copyError) {
-          logger.warn('Could not copy file to processed folder:', copyError.message);
-        }
+      if (uploadError) {
+        throw new Error(`Failed to upload ${file.quality} version: ${uploadError.message}`);
       }
-    } else {
-      logger.warn('Original file no longer exists:', localFilePath);
+      
+      uploadedPaths[file.quality] = uploadPath;
     }
 
     // Insert into clips table
@@ -232,8 +233,8 @@ async function processVideo(clipData) {
       .from('clips')
       .insert({
         user_id: clipData.user_id,
-        file_name: uniqueFileName,
-        file_path: uploadPath,
+        file_name: clipData.file_name,
+        video_variants: uploadedPaths,
         username: clipData.username,
         title: clipData.title,
         game: clipData.game,

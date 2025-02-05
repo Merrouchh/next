@@ -49,6 +49,10 @@ const VideoPlayer = ({
   const [hasTrackedView, setHasTrackedView] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  const [hasLoadedMetadata, setHasLoadedMetadata] = useState(false);
+  const [currentQuality, setCurrentQuality] = useState('720p');
+  const [availableQualities, setAvailableQualities] = useState([]);
+  const [isAutoQuality, setIsAutoQuality] = useState(true);
 
   const {
     liked,
@@ -306,6 +310,45 @@ const VideoPlayer = ({
     }
   };
 
+  // Initialize quality settings based on network conditions
+  useEffect(() => {
+    if (!clip?.video_variants) return;
+    
+    const qualities = Object.keys(clip.video_variants);
+    setAvailableQualities(qualities);
+    
+    // Auto-select initial quality based on connection
+    if (isAutoQuality && navigator.connection) {
+      const connection = navigator.connection;
+      if (connection.effectiveType === '4g' && !connection.saveData) {
+        setCurrentQuality('720p');
+      } else {
+        setCurrentQuality('480p');
+      }
+    }
+  }, [clip, isAutoQuality]);
+
+  // Monitor network changes
+  useEffect(() => {
+    if (!isAutoQuality) return;
+
+    const handleNetworkChange = () => {
+      if (!navigator.connection) return;
+      
+      const connection = navigator.connection;
+      if (connection.effectiveType === '4g' && !connection.saveData) {
+        setCurrentQuality('720p');
+      } else {
+        setCurrentQuality('480p');
+      }
+    };
+
+    if (navigator.connection) {
+      navigator.connection.addEventListener('change', handleNetworkChange);
+      return () => navigator.connection.removeEventListener('change', handleNetworkChange);
+    }
+  }, [isAutoQuality]);
+
   return (
     <>
       <div className={clipStyles.clipContainer}>
@@ -331,21 +374,25 @@ const VideoPlayer = ({
 
         <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
           <MediaPlayer
-                ref={playerRef}
-            load="visible"
+            ref={playerRef}
+            load="idle"
+            preload="metadata"
             title={clip.title}
-            src={clip.url}
+            src={clip.video_variants ? clip.video_variants[currentQuality] : clip.url}
             aspectRatio={16/9}
             playsInline
             style={{ width: '100%', height: '100%' }}
             onPlay={handlePlay}
+            onLoadedMetadata={() => {
+              setHasLoadedMetadata(true);
+              setCanPlay(true);
+            }}
             onPause={() => {
               setIsPlaying(false);
               if (currentPlayingId === clip.id) {
                 setCurrentPlayingId(null);
               }
             }}
-            onCanPlay={() => setCanPlay(true)}
             onWaiting={() => setCanPlay(false)}
             onTimeUpdate={(e) => {
               if (isPlaying && e.currentTime > 5 && !hasTrackedView) {
@@ -367,14 +414,30 @@ const VideoPlayer = ({
             }}
           >
             <MediaProvider>
-              <source src={clip.url} type="video/mp4" />
+              {clip.video_variants ? (
+                Object.entries(clip.video_variants).map(([quality, url]) => (
+                  <source 
+                    key={quality}
+                    src={url} 
+                    type="video/mp4"
+                    preload="metadata"
+                    size={quality === '720p' ? 1280 : quality === '480p' ? 854 : 640}
+                  />
+                ))
+              ) : (
+                <source 
+                  src={clip.url} 
+                  type="video/mp4"
+                  preload="metadata"
+                />
+              )}
               <div className={styles.posterWrapper} style={{ width: '100%', height: '100%' }}>
                 {thumbnailUrl && (
                   <Poster
                     className="vds-poster"
                     src={thumbnailUrl}
                     alt={clip.title || 'Video thumbnail'}
-                    data-visible={!hasStartedPlaying}
+                    data-visible={!hasStartedPlaying || !hasLoadedMetadata}
                     style={{ objectFit: 'contain', width: '100%', height: '100%' }}
                   />
                 )}
@@ -382,6 +445,33 @@ const VideoPlayer = ({
             </MediaProvider>
             <DefaultVideoLayout 
               icons={defaultLayoutIcons}
+              customControls={
+                clip.video_variants && (
+                  <div className={styles.qualityControls}>
+                    <button
+                      onClick={() => setIsAutoQuality(!isAutoQuality)}
+                      className={`${styles.qualityButton} ${isAutoQuality ? styles.active : ''}`}
+                      title="Auto quality"
+                    >
+                      AUTO
+                    </button>
+                    {availableQualities.map(quality => (
+                      <button
+                        key={quality}
+                        onClick={() => {
+                          setIsAutoQuality(false);
+                          setCurrentQuality(quality);
+                        }}
+                        className={`${styles.qualityButton} ${
+                          !isAutoQuality && currentQuality === quality ? styles.active : ''
+                        }`}
+                      >
+                        {quality}
+                      </button>
+                    ))}
+                  </div>
+                )
+              }
               translations={{
                 play: 'Play',
                 pause: 'Pause',
