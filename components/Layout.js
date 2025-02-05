@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import Head from 'next/head';
 import { VideoProvider } from '../context/VideoContext';
+import styles from '@/styles/Layout.module.css';
 
 const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const router = useRouter();

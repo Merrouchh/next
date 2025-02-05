@@ -15,10 +15,12 @@ import { updateLike, checkLikeStatus, getLikesByClipId } from '../utils/supabase
 import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
+import { useLikes } from '../hooks/useLikes';
 
 const VideoPlayer = ({ 
   clip,
   user,
+  onViewCountUpdate,
   onPlay,
   showActions = true,
   showHeader = true
@@ -28,17 +30,25 @@ const VideoPlayer = ({
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(clip.likes_count || 0);
   const [error, setError] = useState(null);
   const [canPlay, setCanPlay] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
-  const [likesList, setLikesList] = useState([]);
-  const [modalTriggerRect, setModalTriggerRect] = useState(null);
-  const [isUpdatingLike, setIsUpdatingLike] = useState(false);
-  const [hasTrackedView, setHasTrackedView] = useState(false);
-  const [localViewCount, setLocalViewCount] = useState(clip.views_count || 0);
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const likesButtonRef = useRef(null);
+  const [modalTriggerRect, setModalTriggerRect] = useState(null);
+  const [hasTrackedView, setHasTrackedView] = useState(false);
+
+  const {
+    liked,
+    setLiked,
+    likesCount,
+    setLikesCount,
+    isUpdatingLike,
+    likesList,
+    setLikesList,
+    handleLike,
+    fetchLikes
+  } = useLikes(false, clip.likes_count || 0);
 
   // Add cleanup effect
   useEffect(() => {
@@ -84,64 +94,32 @@ const VideoPlayer = ({
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}` 
     : null;
 
+  // Check initial like status
   useEffect(() => {
     const checkInitialLikeStatus = async () => {
       if (!user || !clip) return;
 
       try {
-        const [isLiked, likes] = await Promise.all([
-          checkLikeStatus(clip.id, user.id),
-          getLikesByClipId(clip.id)
-        ]);
-
-        if (Array.isArray(likes)) {
-          setLikesList(likes);
-          setLikesCount(likes.length);
-          // Use the likes array to determine liked status as source of truth
-          const actualLikedStatus = likes.some(like => like.user_id === user.id);
-          setLiked(actualLikedStatus);
-        } else {
-          setLiked(isLiked);
-        }
+        const isLiked = await checkLikeStatus(clip.id, user.id);
+        setLiked(isLiked);
+        await fetchLikes(clip.id);
       } catch (error) {
-        console.error('Failed to check initial status:', error);
+        console.error('Failed to check initial like status:', error);
       }
     };
 
     checkInitialLikeStatus();
   }, [clip?.id, user?.id]);
 
-  const handleLike = async () => {
-    if (!user || isUpdatingLike) return;
-    
-    const newLikedState = !liked;
-    const currentCount = likesCount;
-    
-    // Lock updates
-    setIsUpdatingLike(true);
-    
-    // Local update first
-    setLiked(newLikedState);
-    setLikesCount(newLikedState ? currentCount + 1 : currentCount - 1);
+  const handleLikeClick = async () => {
+    if (!user) {
+      // Optional: Show login prompt
+      return;
+    }
 
-    try {
-      // Backend update
-      await updateLike(clip.id, user.id, newLikedState);
-      
-      // Only fetch new data if modal is open
-      if (showLikesModal) {
-        const freshLikes = await getLikesByClipId(clip.id);
-        if (Array.isArray(freshLikes)) {
-          setLikesList(freshLikes);
-        }
-      }
-    } catch (error) {
-      // On error, revert to original state
-      console.error('Failed to update like:', error);
-      setLiked(!newLikedState);
-      setLikesCount(currentCount);
-    } finally {
-      setIsUpdatingLike(false);
+    const success = await handleLike(clip.id, user.id);
+    if (success && showLikesModal) {
+      await fetchLikes(clip.id);
     }
   };
 
@@ -210,30 +188,25 @@ const VideoPlayer = ({
   // Handle modal open
   const handleModalOpen = useCallback(async () => {
     if (likesCount > 0 && likesButtonRef.current) {
-      // Get the clip container element
-      const clipContainer = likesButtonRef.current.closest(`.${clipStyles.clipContainer}`);
-      const containerRect = clipContainer.getBoundingClientRect();
+      // Get the button's position
+      const rect = likesButtonRef.current.getBoundingClientRect();
       const scrollX = window.scrollX;
       const scrollY = window.scrollY;
       
       setModalTriggerRect({
-        top: containerRect.top + scrollY,
-        left: containerRect.left + (containerRect.width / 2) + scrollX,
-        width: containerRect.width,
-        height: containerRect.height,
-        bottom: containerRect.bottom + scrollY,
-        right: containerRect.right + scrollX
+        top: rect.top + scrollY,
+        left: rect.left + scrollX,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom + scrollY,
+        right: rect.right + scrollX
       });
 
-      // Fetch likes only when opening modal
-      const likes = await getLikesByClipId(clip.id);
-      if (Array.isArray(likes)) {
-        setLikesList(likes);
-      }
-
+      // Fetch fresh likes data when opening modal
+      await fetchLikes(clip.id);
       setShowLikesModal(true);
     }
-  }, [clip.id, likesCount]);
+  }, [clip.id, likesCount, fetchLikes]);
 
   // Handle modal close
   const handleModalClose = useCallback(() => {
@@ -241,17 +214,13 @@ const VideoPlayer = ({
     setModalTriggerRect(null);
   }, []);
 
-  // Reset likes list when clip changes
+  // Reset modal state when clip changes
   useEffect(() => {
-    if (clip?.id) {
-      setLikesList([]); // Reset likes list
-    }
     return () => {
-      setLikesList([]); // Cleanup
-      setShowLikesModal(false); // Close modal if open
+      setShowLikesModal(false);
       setModalTriggerRect(null);
     };
-  }, [clip?.id]);
+  }, [clip.id]);
 
   return (
     <>
@@ -295,20 +264,11 @@ const VideoPlayer = ({
             onWaiting={() => setCanPlay(false)}
             onTimeUpdate={(e) => {
               if (isPlaying && e.currentTime > 5 && !hasTrackedView) {
-                console.log('Attempting to track view:', {
-                  clipId: clip.id,
-                  userId: user?.id,
-                  currentTime: e.currentTime
-                });
-                
                 setHasTrackedView(true);
                 trackView(clip.id, user?.id).then(newCount => {
-                  console.log('View tracked, new count:', newCount);
                   if (newCount !== null) {
-                    setLocalViewCount(newCount);
+                    // Update local view count if needed
                   }
-                }).catch(error => {
-                  console.error('Error tracking view:', error);
                 });
               }
             }}
@@ -362,27 +322,32 @@ const VideoPlayer = ({
             <div className={clipStyles.statsContainer}>
               <div className={clipStyles.viewCount}>
                 <MdVisibility />
-                <span>{localViewCount}</span>
+                <span>{clip.views_count || 0}</span>
               </div>
               <div className={clipStyles.likeContainer}>
                 <button
-                  onClick={handleLike}
+                  onClick={handleLikeClick}
                   className={`${clipStyles.likeButton} ${liked ? clipStyles.liked : ''}`}
-                  disabled={!user}
+                  disabled={!user || isUpdatingLike}
                   title={user ? (liked ? 'Unlike' : 'Like') : 'Sign in to like'}
                 >
                   {liked ? <MdFavorite /> : <MdFavoriteBorder />}
                 </button>
-                <div 
+                <button 
                   ref={likesButtonRef}
-                  role="button"
                   onClick={handleModalOpen}
                   className={clipStyles.likesCount}
-                  style={{ cursor: likesCount > 0 ? 'pointer' : 'default' }}
+                  style={{ 
+                    cursor: likesCount > 0 ? 'pointer' : 'default',
+                    border: 'none',
+                    background: 'none',
+                    padding: 0
+                  }}
+                  disabled={likesCount === 0}
                   title={likesCount > 0 ? "Click to see who liked this" : "No likes yet"}
                 >
                   {likesCount}
-                </div>
+                </button>
               </div>
             </div>
           </div>

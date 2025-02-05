@@ -24,39 +24,23 @@ export default async function handler(req, res) {
     const ip = normalizeIp(rawIp);
     const userAgent = req.headers['user-agent'];
 
-    console.log('Processing view:', {
-      clipId,
-      userId: userId || 'anonymous',
-      fingerprint,
-      ip
-    });
-
+    // Create Supabase client with request context
     const supabase = createClient(req, res);
 
     const { data, error } = await supabase.rpc('increment_view_count', {
       clip_id_param: clipId,
-      visitor_id_param: userId || null,  // Explicitly set null for anonymous
+      visitor_id_param: userId || null,
       device_fingerprint_param: fingerprint,
       ip_address_param: ip,
       user_agent_param: userAgent,
       session_id_param: sessionId
     });
 
-    if (error) {
-      console.error('View tracking error:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    return res.status(200).json({ 
-      viewCount: data || 0,
-      success: true 
-    });
+    return res.status(200).json({ viewCount: data });
   } catch (error) {
     console.error('View tracking error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to track view',
-      details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    return res.status(500).json({ error: 'Failed to track view' });
   }
 } 

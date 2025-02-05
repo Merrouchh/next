@@ -24,14 +24,6 @@ export const trackView = async (clipId, userId = null) => {
   try {
     const fingerprint = await getFingerprint();
     const sessionId = getSessionId();
-    
-    console.log('Tracking view with:', {
-      clipId,
-      userId,
-      fingerprint,
-      sessionId,
-      userAgent: navigator.userAgent
-    });
 
     const response = await fetch('/api/clips/track-view', {
       method: 'POST',
@@ -43,17 +35,10 @@ export const trackView = async (clipId, userId = null) => {
         userId,
         fingerprint,
         sessionId,
-        userAgent: navigator.userAgent
       }),
     });
 
     const data = await response.json();
-    console.log('Track view response:', data);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
     return data.viewCount;
   } catch (error) {
     console.error('Failed to track view:', error);

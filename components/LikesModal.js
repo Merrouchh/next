@@ -1,23 +1,35 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { MdClose, MdPerson } from 'react-icons/md';
 import styles from '../styles/LikesModal.module.css';
 import Portal from './Portal';
 
-const LikesModal = ({ isOpen, onClose, likes }) => {
+const LikesModal = ({ isOpen, onClose, likes, triggerRect }) => {
   const modalRef = useRef();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <Portal>
-      <div 
-        className={styles.modalOverlay}
-        onClick={onClose}
-      >
+      <div className={styles.modalOverlay}>
         <div 
           ref={modalRef} 
-          className={styles.modal} 
-          onClick={e => e.stopPropagation()}
+          className={styles.modal}
         >
           <div className={styles.modalHeader}>
             <h3>Liked by ({likes.length})</h3>
@@ -33,12 +45,10 @@ const LikesModal = ({ isOpen, onClose, likes }) => {
                 {likes.map((like) => (
                   <li key={like.id} className={styles.likeItem}>
                     <div className={styles.userAvatar}>
-                      <div className={styles.defaultAvatar}>
-                        <MdPerson />
-                      </div>
+                      <MdPerson />
                     </div>
                     <span className={styles.username}>
-                      {like.userDetails?.username || 'Unknown User'}
+                      {like.users?.username || 'Unknown User'}
                     </span>
                   </li>
                 ))}
