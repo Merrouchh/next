@@ -249,8 +249,8 @@ async function processVideo(clipData) {
     // Clean up all temporary files
     logger.info('Cleaning up all temporary files');
     
-    // Clean temp directory
     try {
+      // Clean temp directory
       const tempFiles = fs.readdirSync(tempDir);
       logger.info('Files in temp directory:', tempFiles);
       
@@ -259,21 +259,42 @@ async function processVideo(clipData) {
         `temp_${clipData.id}`,       // temp file
         `processed_${clipData.id}`,   // processed file
         `thumbnail_${clipData.id}`,   // thumbnail
+        `hls_${clipData.id}`,        // HLS directory
         `${clipData.id}_`            // any other files with clip ID
       ];
       
+      // Clean individual files
       for (const file of tempFiles) {
         const filePath = path.join(tempDir, file);
         // Check if file matches any of our patterns
         if (filesToMatch.some(pattern => file.includes(pattern))) {
           try {
-            fs.unlinkSync(filePath);
-            logger.info(`Cleaned up temp file: ${file}`);
+            const stats = fs.statSync(filePath);
+            if (stats.isDirectory()) {
+              // If it's a directory (like HLS folder), remove recursively
+              fs.rmSync(filePath, { recursive: true, force: true });
+              logger.info(`Cleaned up directory: ${file}`);
+            } else {
+              // If it's a file, remove it
+              fs.unlinkSync(filePath);
+              logger.info(`Cleaned up file: ${file}`);
+            }
           } catch (err) {
-            logger.warn(`Failed to delete temp file ${file}:`, err.message);
+            logger.warn(`Failed to delete ${file}:`, err.message);
           }
         } else {
           logger.info(`Skipping file ${file} as it doesn't match cleanup patterns`);
+        }
+      }
+
+      // Clean up HLS directory if it still exists
+      const hlsDir = path.join(tempDir, `hls_${clipData.id}`);
+      if (fs.existsSync(hlsDir)) {
+        try {
+          fs.rmSync(hlsDir, { recursive: true, force: true });
+          logger.info('Cleaned up HLS directory');
+        } catch (err) {
+          logger.warn('Failed to delete HLS directory:', err.message);
         }
       }
 
@@ -284,19 +305,31 @@ async function processVideo(clipData) {
       } else {
         logger.info('Temp directory is empty');
       }
-    } catch (err) {
-      logger.warn('Error cleaning temp directory:', err.message);
-    }
 
-    // Clean up processed file from uploads directory
-    const processedLocalPath = path.join(process.cwd(), '..', 'public', 'uploads', 'processed', path.basename(clipData.file_path));
-    if (fs.existsSync(processedLocalPath)) {
-      try {
-        fs.unlinkSync(processedLocalPath);
-        logger.info('Cleaned up processed file from uploads directory');
-      } catch (err) {
-        logger.warn('Failed to delete processed file:', err.message);
+      // Clean up processed file from uploads directory
+      const processedLocalPath = path.join(process.cwd(), '..', 'public', 'uploads', 'processed', path.basename(clipData.file_path));
+      if (fs.existsSync(processedLocalPath)) {
+        try {
+          fs.unlinkSync(processedLocalPath);
+          logger.info('Cleaned up processed file from uploads directory');
+        } catch (err) {
+          logger.warn('Failed to delete processed file:', err.message);
+        }
       }
+
+      // Clean up original file from uploads directory
+      const originalLocalPath = path.join(process.cwd(), '..', 'public', 'uploads', path.basename(clipData.file_path));
+      if (fs.existsSync(originalLocalPath)) {
+        try {
+          fs.unlinkSync(originalLocalPath);
+          logger.info('Cleaned up original file from uploads directory');
+        } catch (err) {
+          logger.warn('Failed to delete original file:', err.message);
+        }
+      }
+
+    } catch (err) {
+      logger.warn('Error during cleanup:', err.message);
     }
 
     // Check for new uploads after processing
