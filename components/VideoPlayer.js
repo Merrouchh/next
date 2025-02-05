@@ -23,6 +23,7 @@ import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
 import { supabase } from '../utils/supabase/client';
 import DeleteClipModal from './DeleteClipModal';
+import { isHLSProvider, isHTMLVideoElement } from '@vidstack/react';
 
 const VideoPlayer = ({ 
   clip,
@@ -49,6 +50,10 @@ const VideoPlayer = ({
   const [hasTrackedView, setHasTrackedView] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  const [currentQuality, setCurrentQuality] = useState(null);
+  const [isHLS, setIsHLS] = useState(false);
+  const [hlsError, setHlsError] = useState(null);
+  const [hlsLevels, setHlsLevels] = useState([]);
 
   const {
     liked,
@@ -61,6 +66,29 @@ const VideoPlayer = ({
     handleLike,
     fetchLikes
   } = useLikes(false, clip.likes_count || 0);
+
+  // Construct URLs
+  const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+  const thumbnailUrl = clip.thumbnail_path ? 
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}` 
+    : null;
+
+  // Basic play handler
+  const handlePlay = () => {
+    if (playerRef.current && canPlay) {
+      setIsPlaying(true);
+      setHasStartedPlaying(true);
+      setCurrentPlayingId(clip.id);
+      onPlay?.();
+    }
+  };
+
+  // Pause other videos when this one starts playing
+  useEffect(() => {
+    if (currentPlayingId && currentPlayingId !== clip.id && isPlaying) {
+      playerRef.current?.pause();
+    }
+  }, [currentPlayingId, clip.id, isPlaying]);
 
   // Add cleanup effect
   useEffect(() => {
@@ -100,11 +128,6 @@ const VideoPlayer = ({
       router.events.off('routeChangeStart', handleRouteChange);
     };
   }, [router]);
-
-  // Construct the full thumbnail URL
-  const thumbnailUrl = clip.thumbnail_path ? 
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}` 
-    : null;
 
   // Check initial like status
   useEffect(() => {
@@ -175,27 +198,6 @@ const VideoPlayer = ({
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isPlaying, canPlay]);
-
-  // Add effect to pause when another video starts playing
-  useEffect(() => {
-    if (currentPlayingId && currentPlayingId !== clip.id && isPlaying) {
-      playerRef.current?.pause();
-    }
-  }, [currentPlayingId, clip.id, isPlaying]);
-
-  // Safe play handler
-  const handlePlay = async () => {
-    try {
-      if (canPlay) {
-      setIsPlaying(true);
-        setHasStartedPlaying(true);
-        setCurrentPlayingId(clip.id);
-        onPlay?.();
-      }
-    } catch (error) {
-      console.error('Play error:', error);
-    }
-  };
 
   // Handle modal open
   const handleModalOpen = useCallback(async () => {
@@ -306,179 +308,226 @@ const VideoPlayer = ({
     }
   };
 
-  // Determine video type from file path
-  const isHLS = clip.file_path.endsWith('.m3u8');
-  const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+  const handleProviderChange = useCallback((provider) => {
+    if (isHLSProvider(provider)) {
+      setIsHLS(true);
+      provider.config = {
+        enableWorker: true,
+        startLevel: -1, // Auto quality
+        capLevelToPlayerSize: true,
+        debug: false
+      };
+    }
+  }, []);
+
+  const handleProviderSetup = useCallback((provider, event) => {
+    if (isHLSProvider(provider)) {
+      const hls = provider.instance;
+      if (hls) {
+        hls.on('hlsMediaAttached', () => {
+          setError(null);
+        });
+      }
+    }
+  }, []);
+
+  const handleHlsManifestLoaded = useCallback((event) => {
+    if (event.detail?.levels?.length > 0) {
+      setHlsLevels(event.detail.levels);
+      console.log('Available quality levels:', event.detail.levels);
+    }
+  }, []);
+
+  const handleHlsLevelSwitched = useCallback((event) => {
+    const { level } = event.detail;
+    setCurrentQuality(level);
+  }, []);
+
+  const handleHlsError = useCallback((event) => {
+    console.error('HLS Error:', event);
+    const { type, details, fatal } = event.detail;
+    setHlsError({ type, details, fatal });
+  }, []);
+
+  // Add back view tracking
+  useEffect(() => {
+    let timeoutId;
+    if (isPlaying && !hasTrackedView) {
+      timeoutId = setTimeout(() => {
+        trackView(clip.id, user?.id).then(() => {
+          setHasTrackedView(true);
+        });
+      }, 5000); // Track view after 5 seconds of playback
+    }
+    return () => clearTimeout(timeoutId);
+  }, [isPlaying, hasTrackedView, clip.id, user?.id]);
 
   return (
-    <>
-      <div className={clipStyles.clipContainer}>
-        {showHeader && (
-          <div className={clipStyles.clipHeader}>
-            <button 
-              onClick={() => router.push(`/profile/${clip.username}`)}
-              className={clipStyles.userLink}
-            >
-              <MdPerson />
-              <span>{clip.username}</span>
-            </button>
-            {clip.game && (
-              <span className={clipStyles.gameTag}>
-                <MdGames />
-                {clip.game}
-              </span>
-            )}
-          </div>
-        )}
-
-        {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
-
-        <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
-          <MediaPlayer
-            ref={playerRef}
-            load="visible"
-            title={clip.title}
-            src={videoUrl}
-            aspectRatio={16/9}
-            playsInline
-            style={{ width: '100%', height: '100%' }}
-            onPlay={handlePlay}
-            onPause={() => {
-              setIsPlaying(false);
-              if (currentPlayingId === clip.id) {
-                setCurrentPlayingId(null);
-              }
-            }}
-            onCanPlay={() => setCanPlay(true)}
-            onWaiting={() => setCanPlay(false)}
-            onTimeUpdate={(e) => {
-              if (isPlaying && e.currentTime > 5 && !hasTrackedView) {
-                setHasTrackedView(true);
-                trackView(clip.id, user?.id).then(newCount => {
-                  if (newCount !== null) {
-                    // Update local view count if needed
-                  }
-                });
-              }
-            }}
-            onError={(e) => {
-              console.error('Video player error:', e);
-              setError('Failed to load video');
-              setCanPlay(false);
-              if (document.pictureInPictureElement) {
-                document.exitPictureInPicture().catch(() => {});
-              }
-            }}
+    <div className={clipStyles.clipContainer}>
+      {showHeader && (
+        <div className={clipStyles.clipHeader}>
+          <button 
+            onClick={() => router.push(`/profile/${clip.username}`)}
+            className={clipStyles.userLink}
           >
-            <MediaProvider>
-              <source 
-                src={videoUrl}
-                type={isHLS ? "application/x-mpegURL" : "video/mp4"}
-              />
-              <div className={styles.posterWrapper} style={{ width: '100%', height: '100%' }}>
-                {thumbnailUrl && (
-                  <Poster
-                    className="vds-poster"
-                    src={thumbnailUrl}
-                    alt={clip.title || 'Video thumbnail'}
-                    data-visible={!hasStartedPlaying}
-                    style={{ objectFit: 'contain', width: '100%', height: '100%' }}
-                  />
-                )}
-              </div>
-            </MediaProvider>
-            <DefaultVideoLayout 
-              icons={defaultLayoutIcons}
-              thumbnails={clip.thumbnails_path ? 
-                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnails_path}` 
-                : undefined}
+            <MdPerson />
+            <span>{clip.username}</span>
+          </button>
+          {clip.game && (
+            <span className={clipStyles.gameTag}>
+              <MdGames />
+              {clip.game}
+            </span>
+          )}
+        </div>
+      )}
+
+      {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
+
+      <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
+        <MediaPlayer
+          ref={playerRef}
+          load="visible"
+          title={clip.title}
+          src={videoUrl}
+          aspectRatio={16/9}
+          playsInline
+          autoPlay={false}
+          style={{ width: '100%', height: '100%' }}
+          onPlay={handlePlay}
+          onPause={() => {
+            setIsPlaying(false);
+            if (currentPlayingId === clip.id) {
+              setCurrentPlayingId(null);
+            }
+          }}
+          onCanPlay={() => setCanPlay(true)}
+          onWaiting={() => setCanPlay(false)}
+          onError={(e) => {
+            console.error('Video player error:', e);
+            setError('Failed to load video');
+            setCanPlay(false);
+          }}
+          onProviderChange={handleProviderChange}
+          onHlsManifestLoaded={handleHlsManifestLoaded}
+          onHlsLevelSwitched={(e) => {
+            setCurrentQuality(e.detail?.level);
+          }}
+          onHlsError={(e) => {
+            console.error('HLS Error:', e);
+            setError('Playback error: ' + (e.detail?.details || 'Unknown error'));
+          }}
+        >
+          <MediaProvider>
+            <source 
+              src={videoUrl}
+              type={clip.file_path.endsWith('.m3u8') ? "application/x-mpegURL" : "video/mp4"}
             />
-            {error && (
-              <div className={styles.errorOverlay}>
-                <p>{error}</p>
-                <button onClick={() => window.location.reload()}>Retry</button>
+            {thumbnailUrl && (
+              <div className={styles.posterWrapper}>
+                <Poster
+                  className="vds-poster"
+                  src={thumbnailUrl}
+                  alt={clip.title || 'Video thumbnail'}
+                  data-visible={!hasStartedPlaying}
+                />
               </div>
             )}
-          </MediaPlayer>
-        </div>
+          </MediaProvider>
+          <DefaultVideoLayout icons={defaultLayoutIcons} />
+          
+          {/* Add quality indicator */}
+          {isHLS && currentQuality !== null && (
+            <div className={styles.qualityIndicator}>
+              {currentQuality === -1 ? 'Auto' : '1080p'}
+            </div>
+          )}
 
-        {showActions && (
-          <div className={clipStyles.clipStats}>
-            <div className={clipStyles.statsContainer}>
-              <div className={clipStyles.actionButtons}>
-                {isOwner && (
-                  <div className={clipStyles.ownerActions}>
-                    <button
-                      onClick={handleDelete}
-                      className={clipStyles.actionButton}
-                      title="Delete clip"
-                    >
-                      <MdDelete />
-                    </button>
-                    <button
-                      onClick={handleVisibilityToggle}
-                      className={clipStyles.actionButton}
-                      title={`Make ${clip.visibility === 'public' ? 'private' : 'public'}`}
-                    >
-                      {clip.visibility === 'public' ? <MdPublic /> : <MdLock />}
-                    </button>
+          {error && (
+            <div className={styles.errorOverlay}>
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()}>Retry</button>
+            </div>
+          )}
+        </MediaPlayer>
+      </div>
+
+      {showActions && (
+        <div className={clipStyles.clipStats}>
+          <div className={clipStyles.statsContainer}>
+            <div className={clipStyles.actionButtons}>
+              {isOwner && (
+                <div className={clipStyles.ownerActions}>
+                  <button
+                    onClick={handleDelete}
+                    className={clipStyles.actionButton}
+                    title="Delete clip"
+                  >
+                    <MdDelete />
+                  </button>
+                  <button
+                    onClick={handleVisibilityToggle}
+                    className={clipStyles.actionButton}
+                    title={`Make ${clip.visibility === 'public' ? 'private' : 'public'}`}
+                  >
+                    {clip.visibility === 'public' ? <MdPublic /> : <MdLock />}
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={handleShare}
+                className={clipStyles.actionButton}
+                title="Share clip"
+              >
+                <MdShare />
+              </button>
+              <div className={clipStyles.copyIdWrapper}>
+                <button
+                  onClick={handleCopyLink}
+                  className={clipStyles.actionButton}
+                  title="Copy clip link"
+                >
+                  <MdContentCopy />
+                </button>
+                {showCopyTooltip && (
+                  <div className={clipStyles.copyTooltip}>
+                    Link copied!
                   </div>
                 )}
-                <button
-                  onClick={handleShare}
-                  className={clipStyles.actionButton}
-                  title="Share clip"
-                >
-                  <MdShare />
-                </button>
-                <div className={clipStyles.copyIdWrapper}>
-                  <button
-                    onClick={handleCopyLink}
-                    className={clipStyles.actionButton}
-                    title="Copy clip link"
-                  >
-                    <MdContentCopy />
-                  </button>
-                  {showCopyTooltip && (
-                    <div className={clipStyles.copyTooltip}>
-                      Link copied!
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className={clipStyles.viewCount}>
-                <MdVisibility />
-                <span>{clip.views_count || 0}</span>
-              </div>
-              <div className={clipStyles.likeContainer}>
-                <button
-                  onClick={handleLikeClick}
-                  className={`${clipStyles.likeButton} ${liked ? clipStyles.liked : ''}`}
-                  disabled={!user || isUpdatingLike}
-                  title={user ? (liked ? 'Unlike' : 'Like') : 'Sign in to like'}
-                >
-                  {liked ? <MdFavorite /> : <MdFavoriteBorder />}
-                </button>
-                <button 
-                  ref={likesButtonRef}
-                  onClick={handleModalOpen}
-                  className={clipStyles.likesCount}
-                  style={{ 
-                    cursor: likesCount > 0 ? 'pointer' : 'default',
-                    border: 'none',
-                    background: 'none',
-                    padding: 0
-                  }}
-                  disabled={likesCount === 0}
-                  title={likesCount > 0 ? "Click to see who liked this" : "No likes yet"}
-                >
-                  {likesCount}
-                </button>
               </div>
             </div>
+            <div className={clipStyles.viewCount}>
+              <MdVisibility />
+              <span>{clip.views_count || 0}</span>
+            </div>
+            <div className={clipStyles.likeContainer}>
+              <button
+                onClick={handleLikeClick}
+                className={`${clipStyles.likeButton} ${liked ? clipStyles.liked : ''}`}
+                disabled={!user || isUpdatingLike}
+                title={user ? (liked ? 'Unlike' : 'Like') : 'Sign in to like'}
+              >
+                {liked ? <MdFavorite /> : <MdFavoriteBorder />}
+              </button>
+              <button 
+                ref={likesButtonRef}
+                onClick={handleModalOpen}
+                className={clipStyles.likesCount}
+                style={{ 
+                  cursor: likesCount > 0 ? 'pointer' : 'default',
+                  border: 'none',
+                  background: 'none',
+                  padding: 0
+                }}
+                disabled={likesCount === 0}
+                title={likesCount > 0 ? "Click to see who liked this" : "No likes yet"}
+              >
+                {likesCount}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <DeleteClipModal
         isOpen={showDeleteModal}
@@ -492,7 +541,7 @@ const VideoPlayer = ({
         likes={likesList}
         triggerRect={modalTriggerRect}
       />
-    </>
+    </div>
   );
 };
 

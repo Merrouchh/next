@@ -860,4 +860,16 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+.qualityIndicator {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 2;
 } 
