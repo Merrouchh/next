@@ -153,20 +153,26 @@ async function processVideo(clipData) {
         .outputOptions([
           '-c:v libx264',          // Video codec
           '-c:a aac',              // Audio codec
+          '-b:a 192k',             // Audio bitrate
+          '-ar 48000',             // Audio sample rate
           '-hls_time 6',           // 6 second segments
           '-hls_list_size 0',      // Keep all segments
           '-hls_segment_filename', `${hlsOutputDir}/720p_%03d.ts`,
           '-f hls',                // HLS format
           '-hls_playlist_type vod', // Video on demand
-          '-vf scale=-2:720',      // Scale to 720p
-          '-b:v 2800k',            // Video bitrate
-          '-profile:v main',       // More compatible profile
-          '-preset fast',          // Faster encoding
-          '-crf 23',              // Quality (lower = better)
-          '-maxrate 2996k',        // Maximum bitrate
-          '-bufsize 4200k',        // Buffer size
-          '-movflags +faststart',  // Fast start
-          '-y'                     // Overwrite output
+          '-vf scale=-2:720',      // Scale to 720p maintaining aspect ratio
+          '-b:v 4500k',            // Increased video bitrate for better quality
+          '-maxrate 4800k',        // Maximum bitrate
+          '-bufsize 9000k',        // Increased buffer size
+          '-profile:v high',       // High profile for better quality
+          '-level:v 4.1',          // Compatibility level
+          '-preset slower',        // Slower preset for better compression
+          '-crf 18',              // Lower CRF for higher quality (range 0-51, lower is better)
+          '-movflags +faststart',  // Fast start for web playback
+          '-g 48',                // Keyframe interval
+          '-sc_threshold 0',      // Scene change threshold
+          '-keyint_min 48',       // Minimum keyframe interval
+          '-y'                    // Overwrite output
         ])
         .output(`${hlsOutputDir}/720p.m3u8`)
         .on('progress', (progress) => {
@@ -184,10 +190,10 @@ async function processVideo(clipData) {
         .run();
     });
 
-    // Create master playlist
+    // Update master playlist with new bitrate
     const masterPlaylist = `#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
+#EXT-X-STREAM-INF:BANDWIDTH=4500000,RESOLUTION=1280x720
 720p.m3u8`;
 
     fs.writeFileSync(path.join(hlsOutputDir, 'master.m3u8'), masterPlaylist);
