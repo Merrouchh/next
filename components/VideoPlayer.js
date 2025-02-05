@@ -38,6 +38,7 @@ const VideoPlayer = ({
   const [isUpdatingLike, setIsUpdatingLike] = useState(false);
   const [hasTrackedView, setHasTrackedView] = useState(false);
   const [localViewCount, setLocalViewCount] = useState(clip.views_count || 0);
+  const likesButtonRef = useRef(null);
 
   // Add cleanup effect
   useEffect(() => {
