@@ -147,54 +147,60 @@ async function processVideo(clipData) {
       fs.mkdirSync(hlsOutputDir);
     }
 
-    // First pass: Create 720p version
+    // First pass: Create 1080p version
     await new Promise((resolve, reject) => {
       ffmpeg(tempFilePath)
         .outputOptions([
           '-c:v libx264',          // Video codec
           '-c:a aac',              // Audio codec
-          '-b:a 192k',             // Audio bitrate
+          '-b:a 256k',             // Higher audio bitrate
           '-ar 48000',             // Audio sample rate
           '-hls_time 6',           // 6 second segments
           '-hls_list_size 0',      // Keep all segments
-          '-hls_segment_filename', `${hlsOutputDir}/720p_%03d.ts`,
+          '-hls_segment_filename', `${hlsOutputDir}/1080p_%03d.ts`,
           '-f hls',                // HLS format
           '-hls_playlist_type vod', // Video on demand
-          '-vf scale=-2:720',      // Scale to 720p maintaining aspect ratio
-          '-b:v 4500k',            // Increased video bitrate for better quality
-          '-maxrate 4800k',        // Maximum bitrate
-          '-bufsize 9000k',        // Increased buffer size
-          '-profile:v high',       // High profile for better quality
-          '-level:v 4.1',          // Compatibility level
-          '-preset slower',        // Slower preset for better compression
-          '-crf 18',              // Lower CRF for higher quality (range 0-51, lower is better)
+          '-vf scale=-2:1080',     // Scale to 1080p maintaining aspect ratio
+          '-b:v 8000k',            // Very high video bitrate
+          '-maxrate 8500k',        // Maximum bitrate
+          '-bufsize 16000k',       // Large buffer size
+          '-profile:v high',       // High profile
+          '-level:v 4.2',          // Compatibility level for 1080p
+          '-preset veryslow',      // Highest quality compression
+          '-crf 16',              // Very high quality (lower = better)
           '-movflags +faststart',  // Fast start for web playback
           '-g 48',                // Keyframe interval
           '-sc_threshold 0',      // Scene change threshold
           '-keyint_min 48',       // Minimum keyframe interval
+          '-color_primaries bt709', // Color settings for better quality
+          '-color_trc bt709',
+          '-colorspace bt709',
+          '-x264opts "rc-lookahead=60:ref=6"', // More x264 specific optimizations
+          '-tune film',           // Tune for high quality video content
+          '-pix_fmt yuv420p',     // Pixel format for maximum compatibility
           '-y'                    // Overwrite output
         ])
-        .output(`${hlsOutputDir}/720p.m3u8`)
+        .output(`${hlsOutputDir}/1080p.m3u8`)
         .on('progress', (progress) => {
           const now = Date.now();
           if (now - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
-            logger.info(`HLS Processing (720p): ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
+            logger.info(`HLS Processing (1080p): ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
             lastProgressLog = now;
           }
         })
         .on('end', resolve)
         .on('error', (err) => {
-          logger.error('FFmpeg 720p error:', err);
+          logger.error('FFmpeg 1080p error:', err);
           reject(err);
         })
         .run();
     });
 
-    // Update master playlist with new bitrate
+    // Update master playlist for 1080p
     const masterPlaylist = `#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=4500000,RESOLUTION=1280x720
-720p.m3u8`;
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080
+1080p.m3u8`;
 
     fs.writeFileSync(path.join(hlsOutputDir, 'master.m3u8'), masterPlaylist);
 
