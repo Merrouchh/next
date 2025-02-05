@@ -46,6 +46,7 @@
     "formidable": "^3.5.2",
     "framer-motion": "^11.0.0",
     "fullpage.js": "^4.0.31",
+    "hls.js": "^1.5.20",
     "http-proxy": "^1.18.1",
     "leaflet": "^1.9.4",
     "maverick.js": "^0.43.2",

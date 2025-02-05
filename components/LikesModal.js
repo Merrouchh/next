@@ -3,7 +3,7 @@ import { MdClose, MdPerson } from 'react-icons/md';
 import styles from '../styles/LikesModal.module.css';
 import Portal from './Portal';
 
-const LikesModal = ({ isOpen, onClose, likes }) => {
+const LikesModal = ({ isOpen, onClose, likes, triggerRect }) => {
   const modalRef = useRef();
 
   useEffect(() => {

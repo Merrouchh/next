@@ -16,7 +16,7 @@ import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/ClipCard.module.css';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
-import { checkLikeStatus } from '../utils/supabase/clips';
+import { updateLike, checkLikeStatus, getLikesByClipId } from '../utils/supabase/clips';
 import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
@@ -27,6 +27,7 @@ import DeleteClipModal from './DeleteClipModal';
 const VideoPlayer = ({ 
   clip,
   user,
+  onViewCountUpdate,
   onPlay,
   showActions = true,
   showHeader = true,
@@ -42,22 +43,21 @@ const VideoPlayer = ({
   const [error, setError] = useState(null);
   const [canPlay, setCanPlay] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const likesButtonRef = useRef(null);
   const [modalTriggerRect, setModalTriggerRect] = useState(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
-  const [hasLoadedMetadata, setHasLoadedMetadata] = useState(false);
-  const [currentQuality, setCurrentQuality] = useState('720p');
-  const [availableQualities, setAvailableQualities] = useState([]);
-  const [isAutoQuality, setIsAutoQuality] = useState(true);
 
   const {
     liked,
     setLiked,
     likesCount,
+    setLikesCount,
     isUpdatingLike,
     likesList,
+    setLikesList,
     handleLike,
     fetchLikes
   } = useLikes(false, clip.likes_count || 0);
@@ -306,48 +306,9 @@ const VideoPlayer = ({
     }
   };
 
-  // Initialize quality settings based on network conditions
-  useEffect(() => {
-    if (!clip?.video_variants) {
-      // For older clips without variants, use the single file_path
-      setAvailableQualities([]);
-      return;
-    }
-    
-    const qualities = Object.keys(clip.video_variants);
-    setAvailableQualities(qualities);
-    
-    // Auto-select initial quality based on connection
-    if (isAutoQuality && navigator.connection) {
-      const connection = navigator.connection;
-      if (connection.effectiveType === '4g' && !connection.saveData) {
-        setCurrentQuality('720p');
-      } else {
-        setCurrentQuality('480p');
-      }
-    }
-  }, [clip, isAutoQuality]);
-
-  // Monitor network changes
-  useEffect(() => {
-    if (!isAutoQuality) return;
-
-    const handleNetworkChange = () => {
-      if (!navigator.connection) return;
-      
-      const connection = navigator.connection;
-      if (connection.effectiveType === '4g' && !connection.saveData) {
-        setCurrentQuality('720p');
-      } else {
-        setCurrentQuality('480p');
-      }
-    };
-
-    if (navigator.connection) {
-      navigator.connection.addEventListener('change', handleNetworkChange);
-      return () => navigator.connection.removeEventListener('change', handleNetworkChange);
-    }
-  }, [isAutoQuality]);
+  // Determine video type from file path
+  const isHLS = clip.file_path.endsWith('.m3u8');
+  const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
 
   return (
     <>
@@ -375,24 +336,20 @@ const VideoPlayer = ({
         <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
           <MediaPlayer
             ref={playerRef}
-            load="idle"
-            preload="metadata"
+            load="visible"
             title={clip.title}
-            src={clip.video_variants ? clip.video_variants[currentQuality] : clip.file_path}
+            src={videoUrl}
             aspectRatio={16/9}
             playsInline
             style={{ width: '100%', height: '100%' }}
             onPlay={handlePlay}
-            onLoadedMetadata={() => {
-              setHasLoadedMetadata(true);
-              setCanPlay(true);
-            }}
             onPause={() => {
               setIsPlaying(false);
               if (currentPlayingId === clip.id) {
                 setCurrentPlayingId(null);
               }
             }}
+            onCanPlay={() => setCanPlay(true)}
             onWaiting={() => setCanPlay(false)}
             onTimeUpdate={(e) => {
               if (isPlaying && e.currentTime > 5 && !hasTrackedView) {
@@ -414,28 +371,17 @@ const VideoPlayer = ({
             }}
           >
             <MediaProvider>
-              {clip.video_variants ? (
-                Object.entries(clip.video_variants).map(([quality, url]) => (
-                  <source 
-                    key={quality}
-                    src={url} 
-                    type="video/mp4"
-                    size={quality === '720p' ? 1280 : quality === '480p' ? 854 : 640}
-                  />
-                ))
-              ) : (
-                <source 
-                  src={clip.file_path}
-                  type="video/mp4"
-                />
-              )}
+              <source 
+                src={videoUrl}
+                type={isHLS ? "application/x-mpegURL" : "video/mp4"}
+              />
               <div className={styles.posterWrapper} style={{ width: '100%', height: '100%' }}>
                 {thumbnailUrl && (
                   <Poster
                     className="vds-poster"
                     src={thumbnailUrl}
                     alt={clip.title || 'Video thumbnail'}
-                    data-visible={!hasStartedPlaying || !hasLoadedMetadata}
+                    data-visible={!hasStartedPlaying}
                     style={{ objectFit: 'contain', width: '100%', height: '100%' }}
                   />
                 )}
@@ -443,43 +389,9 @@ const VideoPlayer = ({
             </MediaProvider>
             <DefaultVideoLayout 
               icons={defaultLayoutIcons}
-              customControls={
-                clip.video_variants && (
-                  <div className={styles.qualityControls}>
-                    <button
-                      onClick={() => setIsAutoQuality(!isAutoQuality)}
-                      className={`${styles.qualityButton} ${isAutoQuality ? styles.active : ''}`}
-                      title="Auto quality"
-                    >
-                      AUTO
-                    </button>
-                    {availableQualities.map(quality => (
-                      <button
-                        key={quality}
-                        onClick={() => {
-                          setIsAutoQuality(false);
-                          setCurrentQuality(quality);
-                        }}
-                        className={`${styles.qualityButton} ${
-                          !isAutoQuality && currentQuality === quality ? styles.active : ''
-                        }`}
-                      >
-                        {quality}
-                      </button>
-                    ))}
-                  </div>
-                )
-              }
-              translations={{
-                play: 'Play',
-                pause: 'Pause',
-                mute: 'Mute',
-                unmute: 'Unmute',
-                fullscreen: 'Fullscreen',
-                exitFullscreen: 'Exit Fullscreen',
-                pictureInPicture: 'Picture in Picture',
-                exitPictureInPicture: 'Exit Picture in Picture',
-              }}
+              thumbnails={clip.thumbnails_path ? 
+                `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnails_path}` 
+                : undefined}
             />
             {error && (
               <div className={styles.errorOverlay}>

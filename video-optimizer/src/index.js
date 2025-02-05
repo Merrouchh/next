@@ -141,101 +141,77 @@ async function processVideo(clipData) {
       throw new Error(`Failed to upload thumbnail: ${thumbnailError.message}`);
     }
 
-    logger.info('Starting FFmpeg processing');
-    // Process video in multiple qualities
-    const qualities = [
-      {
-        name: '720p',
-        height: 720,
-        bitrate: '2500k',
-        audioBitrate: '128k',
-        outputPath: path.join(tempDir, `processed_${clipData.id}_720p.mp4`)
-      },
-      {
-        name: '480p',
-        height: 480,
-        bitrate: '1500k',
-        audioBitrate: '96k',
-        outputPath: path.join(tempDir, `processed_${clipData.id}_480p.mp4`)
-      }
-    ];
-
-    const processedFiles = [];
-    for (const quality of qualities) {
-      logger.info(`Processing ${quality.name} version`);
-      await new Promise((resolve, reject) => {
-        ffmpeg(tempFilePath)
-          .outputOptions([
-            '-c:v libx264',              // Video codec
-            '-crf 23',                   // Balanced quality/size
-            '-preset medium',            // Balanced speed/compression
-            '-profile:v high',           // High profile H.264
-            '-tune film',                // Optimize for video content
-            `-b:v ${quality.bitrate}`,   // Video bitrate
-            `-vf scale=-2:${quality.height}`, // Scale to height while maintaining aspect ratio
-            '-c:a aac',                  // Audio codec
-            `-b:a ${quality.audioBitrate}`, // Audio bitrate
-            '-movflags +faststart',      // Enable fast start
-            '-y'                         // Overwrite output
-          ])
-          .output(quality.outputPath)
-          .on('progress', (progress) => {
-            const now = Date.now();
-            if (now - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
-              logger.info(`Processing ${quality.name}: ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
-              lastProgressLog = now;
-            }
-          })
-          .on('end', () => {
-            logger.info(`FFmpeg processing finished for ${quality.name}`);
-            processedFiles.push({
-              quality: quality.name,
-              path: quality.outputPath
-            });
-            resolve();
-          })
-          .on('error', (err) => {
-            logger.error(`FFmpeg processing error for ${quality.name}:`, err);
-            reject(err);
-          })
-          .run();
-      });
+    logger.info('Starting FFmpeg HLS processing');
+    const hlsOutputDir = path.join(tempDir, `hls_${clipData.id}`);
+    if (!fs.existsSync(hlsOutputDir)) {
+      fs.mkdirSync(hlsOutputDir);
     }
 
-    logger.info('Reading processed files for upload');
+    await new Promise((resolve, reject) => {
+      ffmpeg(tempFilePath)
+        .outputOptions([
+          '-c:v libx264',        // Video codec
+          '-c:a aac',            // Audio codec
+          '-hls_time 10',        // 10 second segments
+          '-hls_list_size 0',    // Keep all segments
+          '-hls_segment_filename', `${hlsOutputDir}/segment_%03d.ts`,
+          '-f hls',              // HLS format
+          '-hls_playlist_type vod', // Video on demand
+          '-master_pl_name master.m3u8',
+          // Multiple quality variants
+          '-var_stream_map', 'v:0,a:0,name:720p v:1,a:1,name:480p v:2,a:2,name:360p',
+          // Different quality streams
+          '-map 0:v', '-map 0:a', '-map 0:v', '-map 0:a', '-map 0:v', '-map 0:a',
+          '-b:v:0 2800k', '-b:v:1 1400k', '-b:v:2 800k',
+          '-filter:v:0', 'scale=-2:720', 
+          '-filter:v:1', 'scale=-2:480',
+          '-filter:v:2', 'scale=-2:360',
+          '-preset slow',        // Better compression
+          '-profile:v high',     // High profile for better quality
+          '-crf 23',            // Quality setting (lower = better)
+          '-movflags +faststart' // Enable fast start
+        ])
+        .output(`${hlsOutputDir}/playlist.m3u8`)
+        .on('progress', (progress) => {
+          const now = Date.now();
+          if (now - lastProgressLog >= PROGRESS_LOG_INTERVAL) {
+            logger.info(`HLS Processing: ${progress.percent ? progress.percent.toFixed(1) : 0}% done`);
+            lastProgressLog = now;
+          }
+        })
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+
+    // Upload HLS files to Supabase storage
+    const hlsFiles = fs.readdirSync(hlsOutputDir);
     const timestamp = Date.now();
-    // Upload all quality versions
-    const uploadedPaths = {};
-    for (const file of processedFiles) {
-      const processedFileBuffer = fs.readFileSync(file.path);
-      const uniqueFileName = `${clipData.id}_${file.quality}_${timestamp}.mp4`;
-      const uploadPath = `video/${uniqueFileName}`;
-      
-      logger.info(`Uploading ${file.quality} version to:`, uploadPath);
-      
+    const hlsBasePath = `video/${clipData.id}_${timestamp}`;
+
+    for (const file of hlsFiles) {
+      const filePath = path.join(hlsOutputDir, file);
+      const uploadPath = `${hlsBasePath}/${file}`;
+      const fileBuffer = fs.readFileSync(filePath);
+
       const { error: uploadError } = await supabase
         .storage
         .from('highlight-clips')
-        .upload(uploadPath, processedFileBuffer, {
-          contentType: 'video/mp4',
+        .upload(uploadPath, fileBuffer, {
+          contentType: file.endsWith('.m3u8') ? 'application/x-mpegURL' : 'video/MP2T',
           upsert: true
         });
 
-      if (uploadError) {
-        throw new Error(`Failed to upload ${file.quality} version: ${uploadError.message}`);
-      }
-      
-      uploadedPaths[file.quality] = uploadPath;
+      if (uploadError) throw new Error(`Failed to upload HLS file ${file}: ${uploadError.message}`);
     }
 
-    // Insert into clips table
+    // Insert into clips table with HLS path
     const { error: insertError } = await supabase
       .from('clips')
       .insert({
         user_id: clipData.user_id,
-        file_name: clipData.file_name,
-        file_path: uploadedPaths['720p'], // Keep highest quality as default
-        video_variants: uploadedPaths,    // Store all quality variants
+        file_name: `${clipData.id}_${timestamp}/playlist.m3u8`,
+        file_path: `${hlsBasePath}/playlist.m3u8`,
         username: clipData.username,
         title: clipData.title,
         game: clipData.game,
@@ -248,7 +224,6 @@ async function processVideo(clipData) {
     }
 
     logger.info('Upload successful, calling updateClipStatus to set completed:', { clipId: clipData.id });
-    // Update clip record to completed
     await updateClipStatus(clipData.id, 'completed');
 
   } catch (error) {
