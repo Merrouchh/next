@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MdPlayArrow } from 'react-icons/md';
-import styles from '../styles/VideoThumbnail.module.css';
+import styles from '@/styles/VideoThumbnail.module.css';
 
 const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, height = 180, quality = 0.8 }) => {
     const [thumbnailUrl, setThumbnailUrl] = useState(null);
@@ -30,6 +30,9 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
         video.preload = 'metadata';
         video.playsInline = true;
         video.muted = true;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'contain';
   
         const generateThumbnail = () => {
           if (!mounted) return;
@@ -39,7 +42,14 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           const ctx = canvas.getContext('2d');
   
           try {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const scale = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
+            const x = (canvas.width - video.videoWidth * scale) / 2;
+            const y = (canvas.height - video.videoHeight * scale) / 2;
+  
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(video, x, y, video.videoWidth * scale, video.videoHeight * scale);
+            
             const thumbnail = canvas.toDataURL('image/jpeg', quality);
             if (mounted) {
               setThumbnailUrl(thumbnail);
@@ -56,15 +66,12 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           }
         };
   
-        // Handle metadata loaded
         video.onloadedmetadata = () => {
           if (mounted) video.currentTime = 0.1;
         };
   
-        // Handle seeking complete
         video.onseeked = generateThumbnail;
   
-        // Handle errors
         video.onerror = (e) => {
           if (mounted) {
             console.warn('Video loading failed:', e);
@@ -74,7 +81,6 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           cleanup();
         };
   
-        // Set source last
         videoUrl = URL.createObjectURL(file);
         video.src = videoUrl;
   
@@ -116,6 +122,11 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           src={thumbnailUrl} 
           alt="Video preview" 
           className={styles.thumbnailImage}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain'
+          }}
         />
         <div className={styles.playIcon}>
           <MdPlayArrow />

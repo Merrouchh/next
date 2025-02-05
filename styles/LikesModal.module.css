@@ -1,0 +1,137 @@
+/* Base modal styles */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
+.modal {
+  background: #1a1a1a;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  max-height: 80vh;
+  min-height: 200px;
+}
+
+/* Modal header */
+.modalHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Close button */
+.closeButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: white;
+}
+
+/* Modal content */
+.modalContent {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 20px 24px;
+}
+
+/* Likes list */
+.likesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.likeItem {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  color: white;
+}
+
+/* Avatar styles */
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  margin-right: 12px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.userAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.defaultAvatar {
+  width: 100%;
+  height: 100%;
+  background: #3498db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+.defaultAvatar svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Username and states */
+.username {
+  font-size: 1rem;
+}
+
+.noLikes {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modal {
+    width: 90%;
+    max-height: 70vh;
+  }
+  
+  .modalHeader {
+    padding: 16px 20px;
+  }
+  
+  .modalContent {
+    padding: 16px 20px;
+  }
+} 

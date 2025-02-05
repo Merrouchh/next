@@ -1,17 +1,19 @@
 .preview {
   position: relative;
-  width: 320px;
-  margin: 0 auto;
-  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
-  background: #1a1a1a;
 }
 
 .thumbnailImage {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
   display: block;
-  object-fit: cover;
 }
 
 .playIcon {
@@ -26,8 +28,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffd700;
-  font-size: 2.5rem;
+  color: white;
+  font-size: 2rem;
   transition: all 0.2s ease;
 }
 
@@ -37,22 +39,24 @@
 }
 
 .loading {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  color: #666;
+  color: white;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #ffd700;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #e6cf00;
   border-radius: 50%;
-  border-top-color: transparent;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
 @keyframes spin {
@@ -62,16 +66,15 @@
 }
 
 .error {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #1a1a1a;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
   color: #ff4444;
   text-align: center;
-  background: rgba(255, 68, 68, 0.1);
-  border-radius: 8px;
-  min-height: 180px;
+  padding: 20px;
 }
 
 .error p {

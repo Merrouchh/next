@@ -40,12 +40,15 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
         <Head>
           <title>{title}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+          <meta name="description" content="Share your gaming highlights" />
+          <link rel="icon" href="/favicon.ico" />
         </Head>
         <main className="main-content">
           {children}
         </main>
         {!hideFooterPaths.includes(router.pathname) && <Footer />}
       </div>
+      <div id="modal-root"></div>
     </VideoProvider>
   );
 };

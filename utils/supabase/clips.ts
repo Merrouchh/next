@@ -37,4 +37,51 @@ export const updateLike = async (clipId: number, userId: string, isAdding: boole
   return data;
 };
 
+export const getLikesByClipId = async (clipId: number) => {
+  const supabase = createClient();
+  
+  console.log('Starting likes fetch for clip:', clipId);
+
+  // First get the likes
+  const { data: likes, error: likesError } = await supabase
+    .from('video_likes')
+    .select('*')
+    .eq('clip_id', clipId)
+    .order('created_at', { ascending: false });
+
+  if (likesError) {
+    console.error('Error fetching likes:', likesError);
+    throw likesError;
+  }
+
+  if (!likes || likes.length === 0) {
+    return [];
+  }
+
+  // Then get the usernames for those likes
+  const userIds = likes.map(like => like.user_id);
+  const { data: users, error: usersError } = await supabase
+    .from('users')
+    .select('id, username')
+    .in('id', userIds);
+
+  if (usersError) {
+    console.error('Error fetching users:', usersError);
+    throw usersError;
+  }
+
+  // Combine the data
+  const likesWithUsers = likes.map(like => ({
+    id: like.id,
+    clip_id: like.clip_id,
+    user_id: like.user_id,
+    created_at: like.created_at,
+    userDetails: users.find(user => user.id === like.user_id)
+  }));
+
+  console.log('Combined likes data:', likesWithUsers);
+
+  return likesWithUsers;
+};
+
 // Add other clip-related Supabase functions here 
