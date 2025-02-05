@@ -314,17 +314,6 @@ const VideoPlayer = ({
     }
   }, []);
 
-  const handleProviderSetup = useCallback((provider, event) => {
-    if (isHLSProvider(provider)) {
-      const hls = provider.instance;
-      if (hls) {
-        hls.on('hlsMediaAttached', () => {
-          setError(null);
-        });
-      }
-    }
-  }, []);
-
   const handleHlsManifestLoaded = useCallback((event) => {
     if (event.detail?.levels?.length > 0) {
       console.log('Available quality levels:', event.detail.levels);
