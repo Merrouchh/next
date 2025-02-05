@@ -153,7 +153,7 @@ async function processVideo(clipData) {
         .outputOptions([
           '-c:v libx264',          // Video codec
           '-c:a aac',              // Audio codec
-          '-b:a 256k',             // Higher audio bitrate
+          '-b:a 192k',             // Audio bitrate
           '-ar 48000',             // Audio sample rate
           '-hls_time 6',           // 6 second segments
           '-hls_list_size 0',      // Keep all segments
@@ -161,24 +161,19 @@ async function processVideo(clipData) {
           '-f hls',                // HLS format
           '-hls_playlist_type vod', // Video on demand
           '-vf scale=-2:1080',     // Scale to 1080p maintaining aspect ratio
-          '-b:v 8000k',            // Very high video bitrate
-          '-maxrate 8500k',        // Maximum bitrate
-          '-bufsize 16000k',       // Large buffer size
+          '-b:v 6000k',            // High video bitrate (reduced from 8000k)
+          '-maxrate 6500k',        // Maximum bitrate (reduced from 8500k)
+          '-bufsize 12000k',       // Buffer size (reduced from 16000k)
           '-profile:v high',       // High profile
-          '-level:v 4.2',          // Compatibility level for 1080p
-          '-preset veryslow',      // Highest quality compression
-          '-crf 16',              // Very high quality (lower = better)
+          '-level:v 4.1',          // More compatible level
+          '-preset slower',        // Changed from veryslow to slower for better stability
+          '-crf 18',              // Slightly increased CRF for better stability
           '-movflags +faststart',  // Fast start for web playback
           '-g 48',                // Keyframe interval
-          '-sc_threshold 0',      // Scene change threshold
+          '-sc_threshold 0',       // Scene change threshold
           '-keyint_min 48',       // Minimum keyframe interval
-          '-color_primaries bt709', // Color settings for better quality
-          '-color_trc bt709',
-          '-colorspace bt709',
-          '-x264opts "rc-lookahead=60:ref=6"', // More x264 specific optimizations
-          '-tune film',           // Tune for high quality video content
-          '-pix_fmt yuv420p',     // Pixel format for maximum compatibility
-          '-y'                    // Overwrite output
+          '-pix_fmt yuv420p',      // Pixel format for maximum compatibility
+          '-y'                     // Overwrite output
         ])
         .output(`${hlsOutputDir}/1080p.m3u8`)
         .on('progress', (progress) => {
@@ -190,7 +185,8 @@ async function processVideo(clipData) {
         })
         .on('end', resolve)
         .on('error', (err) => {
-          logger.error('FFmpeg 1080p error:', err);
+          logger.error('FFmpeg 1080p error:', err.message || err);
+          logger.error('FFmpeg command:', err.cmd); // Log the command that failed
           reject(err);
         })
         .run();
@@ -199,7 +195,7 @@ async function processVideo(clipData) {
     // Update master playlist for 1080p
     const masterPlaylist = `#EXTM3U
 #EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080
 1080p.m3u8`;
 
     fs.writeFileSync(path.join(hlsOutputDir, 'master.m3u8'), masterPlaylist);
