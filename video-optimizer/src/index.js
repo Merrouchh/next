@@ -234,8 +234,8 @@ async function processVideo(clipData) {
       .insert({
         user_id: clipData.user_id,
         file_name: clipData.file_name,
-        // Use the highest quality version as the main file_path
-        file_path: uploadedPaths['720p'],
+        file_path: uploadedPaths['720p'], // Keep highest quality as default
+        video_variants: uploadedPaths,    // Store all quality variants
         username: clipData.username,
         title: clipData.title,
         game: clipData.game,
@@ -245,20 +245,6 @@ async function processVideo(clipData) {
 
     if (insertError) {
       throw new Error(`Failed to insert into clips table: ${insertError.message}`);
-    }
-
-    // After adding the video_variants column, you can update it separately
-    try {
-      const { error: updateError } = await supabase
-        .from('clips')
-        .update({ video_variants: uploadedPaths })
-        .eq('id', clipData.id);
-
-      if (updateError) {
-        logger.warn('Failed to update video variants:', updateError);
-      }
-    } catch (err) {
-      logger.warn('Video variants column might not exist yet:', err);
     }
 
     logger.info('Upload successful, calling updateClipStatus to set completed:', { clipId: clipData.id });

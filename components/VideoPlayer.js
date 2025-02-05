@@ -308,7 +308,11 @@ const VideoPlayer = ({
 
   // Initialize quality settings based on network conditions
   useEffect(() => {
-    if (!clip?.video_variants) return;
+    if (!clip?.video_variants) {
+      // For older clips without variants, use the single file_path
+      setAvailableQualities([]);
+      return;
+    }
     
     const qualities = Object.keys(clip.video_variants);
     setAvailableQualities(qualities);
@@ -374,7 +378,7 @@ const VideoPlayer = ({
             load="idle"
             preload="metadata"
             title={clip.title}
-            src={clip.video_variants ? clip.video_variants[currentQuality] : clip.url}
+            src={clip.video_variants ? clip.video_variants[currentQuality] : clip.file_path}
             aspectRatio={16/9}
             playsInline
             style={{ width: '100%', height: '100%' }}
@@ -421,7 +425,7 @@ const VideoPlayer = ({
                 ))
               ) : (
                 <source 
-                  src={clip.url} 
+                  src={clip.file_path}
                   type="video/mp4"
                 />
               )}
