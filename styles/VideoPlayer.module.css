@@ -899,4 +899,24 @@
 /* Adjust position when controls are visible */
 .videoPlayerWrapper[data-playing="true"] .rotateButton {
   bottom: 70px;
+}
+
+.videoPlayerWrapper video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Add specific styles for landscape orientation */
+@media screen and (orientation: landscape) {
+  .videoPlayerWrapper[data-rotated="true"] {
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  .videoPlayerWrapper[data-rotated="true"] video {
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: contain !important;
+  }
 } 

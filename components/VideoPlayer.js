@@ -230,20 +230,36 @@ const VideoPlayer = ({
     if (!playerRef.current) return;
 
     try {
-      // First enter fullscreen
-      await playerRef.current.enterFullscreen();
-
-      // Then try to lock orientation
+      // Try to lock orientation first before entering fullscreen
       try {
-        // Use o9n for locking only
-        await orientation.lock('landscape');
+        // Force landscape-primary orientation
+        await orientation.lock('landscape-primary');
         setIsRotated(true);
       } catch (orientationError) {
         console.log('Orientation lock not supported or denied:', orientationError);
+        
+        // Try alternative method for iOS Safari
+        if (window.screen && window.screen.orientation) {
+          try {
+            await window.screen.orientation.lock('landscape-primary');
+          } catch (iosError) {
+            console.log('iOS orientation lock failed:', iosError);
+          }
+        }
       }
+
+      // Then enter fullscreen after a small delay to allow orientation to change
+      setTimeout(async () => {
+        try {
+          await playerRef.current.enterFullscreen();
+        } catch (fsError) {
+          console.error('Fullscreen error:', fsError);
+        }
+      }, 100);
+
     } catch (error) {
-      console.error('Fullscreen/Rotation error:', error);
-      // If everything fails, just try fullscreen without rotation
+      console.error('Rotation/Fullscreen error:', error);
+      // If everything fails, just try fullscreen
       try {
         await playerRef.current.enterFullscreen();
       } catch (fsError) {
@@ -317,7 +333,11 @@ const VideoPlayer = ({
 
         {clip.title && <h3 className={clipStyles.clipTitle}>{clip.title}</h3>}
 
-        <div className={styles.videoPlayerWrapper} data-playing={isPlaying}>
+        <div 
+          className={styles.videoPlayerWrapper} 
+          data-playing={isPlaying}
+          data-rotated={isRotated}
+        >
           <MediaPlayer
                 ref={playerRef}
             load="visible"
