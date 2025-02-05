@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import Head from 'next/head';
 import { VideoProvider } from '../context/VideoContext';
-import Navbar from './Navbar';
 
 const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const router = useRouter();
@@ -44,7 +43,6 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
           <meta name="description" content="Share your gaming moments" />
           <link rel="icon" href="/favicon.ico" />
         </Head>
-        <Navbar />
         <main className="main-content">
           {children}
         </main>
