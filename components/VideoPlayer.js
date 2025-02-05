@@ -16,7 +16,7 @@ import styles from '../styles/VideoPlayer.module.css';
 import clipStyles from '../styles/ClipCard.module.css';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
-import { updateLike, checkLikeStatus, getLikesByClipId } from '../utils/supabase/clips';
+import { checkLikeStatus } from '../utils/supabase/clips';
 import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
@@ -27,7 +27,6 @@ import DeleteClipModal from './DeleteClipModal';
 const VideoPlayer = ({ 
   clip,
   user,
-  onViewCountUpdate,
   onPlay,
   showActions = true,
   showHeader = true,
@@ -43,7 +42,6 @@ const VideoPlayer = ({
   const [error, setError] = useState(null);
   const [canPlay, setCanPlay] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const likesButtonRef = useRef(null);
   const [modalTriggerRect, setModalTriggerRect] = useState(null);
   const [hasTrackedView, setHasTrackedView] = useState(false);
@@ -58,10 +56,8 @@ const VideoPlayer = ({
     liked,
     setLiked,
     likesCount,
-    setLikesCount,
     isUpdatingLike,
     likesList,
-    setLikesList,
     handleLike,
     fetchLikes
   } = useLikes(false, clip.likes_count || 0);
@@ -420,7 +416,6 @@ const VideoPlayer = ({
                     key={quality}
                     src={url} 
                     type="video/mp4"
-                    preload="metadata"
                     size={quality === '720p' ? 1280 : quality === '480p' ? 854 : 640}
                   />
                 ))
@@ -428,7 +423,6 @@ const VideoPlayer = ({
                 <source 
                   src={clip.url} 
                   type="video/mp4"
-                  preload="metadata"
                 />
               )}
               <div className={styles.posterWrapper} style={{ width: '100%', height: '100%' }}>
