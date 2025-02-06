@@ -38,25 +38,6 @@ function MyApp({ Component, pageProps }) {
       <DefaultSeo
         defaultTitle="Merrouch Gaming"
         titleTemplate="%s | Merrouch Gaming"
-        openGraph={{
-          type: 'website',
-          locale: 'en_US',
-          url: 'https://merrouchgaming.com/',
-          siteName: 'Merrouch Gaming',
-          images: [
-            {
-              url: 'https://merrouchgaming.com/top.jpg',
-              width: 1200,
-              height: 630,
-              alt: 'Merrouch Gaming Center',
-            },
-          ],
-        }}
-        twitter={{
-          handle: '@merrouchgaming',
-          site: '@merrouchgaming',
-          cardType: 'summary_large_image',
-        }}
       />
       <ErrorBoundary>
         <AuthProvider>

@@ -55,7 +55,7 @@ export async function getServerSideProps(context) {
     const metaData = {
       title: `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
       description: `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
-      image: thumbnailUrl,
+      image: `${thumbnailUrl}?v=${Date.now()}`,
       url: `https://merrouchgaming.com/clip/${clip.id}`,
       type: 'video.other'
     };
@@ -104,34 +104,41 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
 
   if (error) {
     return (
-      <ProtectedPageWrapper>
-        <div className={styles.errorContainer}>
-          <h1>{isPrivate ? 'Private Clip' : 'Error'}</h1>
-          {isPrivate ? (
-            <>
-              <p>This clip by {clipOwner} is private.</p>
-              {!user ? (
-                <button 
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className={styles.loginButton}
-                >
-                  Sign in to view
-                </button>
-              ) : (
-                <p className={styles.errorMessage}>You don't have permission to view this clip.</p>
-              )}
-            </>
-          ) : (
-            <p>{error}</p>
-          )}
-          <button 
-            onClick={() => router.push('/discover')}
-            className={styles.backButton}
-          >
-            Back to Discover
-          </button>
-        </div>
-      </ProtectedPageWrapper>
+      <>
+        <DynamicMeta 
+          title="Clip Not Found | Merrouch Gaming"
+          description="This clip is not available or may be private."
+          url={`https://merrouchgaming.com/clip/${router.query.id}`}
+        />
+        <ProtectedPageWrapper>
+          <div className={styles.errorContainer}>
+            <h1>{isPrivate ? 'Private Clip' : 'Error'}</h1>
+            {isPrivate ? (
+              <>
+                <p>This clip by {clipOwner} is private.</p>
+                {!user ? (
+                  <button 
+                    onClick={() => setIsLoginModalOpen(true)}
+                    className={styles.loginButton}
+                  >
+                    Sign in to view
+                  </button>
+                ) : (
+                  <p className={styles.errorMessage}>You don't have permission to view this clip.</p>
+                )}
+              </>
+            ) : (
+              <p>{error}</p>
+            )}
+            <button 
+              onClick={() => router.push('/discover')}
+              className={styles.backButton}
+            >
+              Back to Discover
+            </button>
+          </div>
+        </ProtectedPageWrapper>
+      </>
     );
   }
 
@@ -140,45 +147,47 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
   };
 
   return (
-    <ProtectedPageWrapper>
-      {!error && <DynamicMeta {...metaData} />}
-      <div className={styles.clipPageWrapper}>
-        <div className={styles.clipPageContainer}>
-          <div className={styles.clipCard}>
-            <VideoPlayer
-              clip={clip}
-              user={user}
-              supabase={supabase}
-              isOwner={user?.id === clip.user_id}
-              onClipUpdate={handleClipUpdate}
-              playing={false}
-              light={true}
-              showActions={true}
-              showHeader={true}
-              onViewCountUpdate={(_, newCount) => {
-                // ... updateViewCount function
-              }}
-              onLikeUpdate={(_, newCount) => {
-                // ... updateLikeCount function
-              }}
-            />
+    <>
+      <DynamicMeta {...metaData} />
+      <ProtectedPageWrapper>
+        <div className={styles.clipPageWrapper}>
+          <div className={styles.clipPageContainer}>
+            <div className={styles.clipCard}>
+              <VideoPlayer
+                clip={clip}
+                user={user}
+                supabase={supabase}
+                isOwner={user?.id === clip.user_id}
+                onClipUpdate={handleClipUpdate}
+                playing={false}
+                light={true}
+                showActions={true}
+                showHeader={true}
+                onViewCountUpdate={(_, newCount) => {
+                  // ... updateViewCount function
+                }}
+                onLikeUpdate={(_, newCount) => {
+                  // ... updateLikeCount function
+                }}
+              />
 
-            {!user && (
-              <div className={styles.signInPrompt}>
-                <p>Sign in to like and comment on clips</p>
-                <button onClick={() => setIsLoginModalOpen(true)}>
-                  Sign In
-                </button>
-              </div>
-            )}
+              {!user && (
+                <div className={styles.signInPrompt}>
+                  <p>Sign in to like and comment on clips</p>
+                  <button onClick={() => setIsLoginModalOpen(true)}>
+                    Sign In
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <LoginModal 
-          isOpen={isLoginModalOpen} 
-          onClose={() => setIsLoginModalOpen(false)} 
-        />
-      </div>
-    </ProtectedPageWrapper>
+          <LoginModal 
+            isOpen={isLoginModalOpen} 
+            onClose={() => setIsLoginModalOpen(false)} 
+          />
+        </div>
+      </ProtectedPageWrapper>
+    </>
   );
 } 
