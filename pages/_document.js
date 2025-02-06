@@ -7,20 +7,27 @@ class MyDocument extends Document {
   }
 
   render() {
-    // Get the meta data from __NEXT_DATA__
-    const pageProps = this.__NEXT_DATA__.props.pageProps || {};
-    const metaData = pageProps.metaData || {};
+    let metaData = {};
+    try {
+      // Safely access meta data
+      const pageProps = (this.__NEXT_DATA__?.props?.pageProps) || {};
+      metaData = pageProps.metaData || {};
+    } catch (error) {
+      console.error('Error accessing meta data:', error);
+    }
 
     return (
       <Html lang="en">
         <Head>
           {/* Dynamic Meta Tags */}
-          {metaData.title && (
+          {metaData.title ? (
             <>
               <title>{metaData.title}</title>
               <meta property="og:title" content={metaData.title} />
               <meta name="twitter:title" content={metaData.title} />
             </>
+          ) : (
+            <title>Merrouch Gaming</title>
           )}
           
           {metaData.description && (
@@ -48,7 +55,7 @@ class MyDocument extends Document {
           )}
           
           {metaData.type && (
-            <meta property="og:type" content={metaData.type} />
+            <meta property="og:type" content={metaData.type || 'website'} />
           )}
 
           <meta name="twitter:card" content="summary_large_image" />

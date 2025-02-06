@@ -1,38 +1,9 @@
-import { useEffect } from 'react';
 import { AuthProvider } from '../contexts/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import '../styles/globals.css';
-import { DefaultSeo } from 'next-seo';
-
-// Disable console in production
-if (process.env.NODE_ENV === 'production') {
-  console.log = () => {};
-  console.error = () => {};
-  console.warn = () => {};
-}
 
 function MyApp({ Component, pageProps }) {
-  useEffect(() => {
-    let registration = null;
-
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      window.addEventListener('load', async () => {
-        try {
-          registration = await navigator.serviceWorker.register('/sw.js');
-        } catch (error) {
-          console.error('PWA: Service Worker registration failed:', error);
-        }
-      });
-    }
-
-    return () => {
-      if (registration) {
-        registration.unregister();
-      }
-    };
-  }, []);
-
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -42,14 +13,6 @@ function MyApp({ Component, pageProps }) {
       </AuthProvider>
     </ErrorBoundary>
   );
-}
-
-// Add this to force-refresh meta tags
-export function getInitialProps({ ctx }) {
-  if (ctx.res) {
-    ctx.res.setHeader('Cache-Control', 'no-store');
-  }
-  return { pageProps: {} };
 }
 
 export default MyApp;
