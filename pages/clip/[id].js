@@ -15,18 +15,11 @@ export async function getServerSideProps(context) {
   const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
 
   try {
-    // Get the clip data
     const { data: clip, error } = await supabase
       .from('clips')
       .select(`
-        id,
-        username,
-        title,
-        thumbnail_path,
-        file_path,
-        visibility,
-        user_id,
-        game
+        id, username, title, thumbnail_path, file_path, 
+        visibility, user_id, game
       `)
       .eq('id', id)
       .single();
@@ -35,29 +28,13 @@ export async function getServerSideProps(context) {
       return { props: { error: 'Clip not found' } };
     }
 
-    // Check if the clip is private
-    const { data: { user } } = await supabase.auth.getUser();
-    if (clip.visibility === 'private' && (!user || user.id !== clip.user_id)) {
-      return { 
-        props: { 
-          error: 'This clip is private',
-          isPrivate: true,
-          clipOwner: clip.username 
-        } 
-      };
-    }
-
-    // Prepare meta data
     const thumbnailUrl = clip.thumbnail_path 
       ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
       : 'https://merrouchgaming.com/top.jpg';
 
-    // Add cache-control headers
-    context.res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=10, stale-while-revalidate=59'
-    );
-
+    // Force cache refresh with timestamp
+    const timestamp = Date.now();
+    
     return {
       props: {
         clip: {
@@ -68,14 +45,13 @@ export async function getServerSideProps(context) {
         metaData: {
           title: `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
           description: `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
-          image: thumbnailUrl,
+          image: `${thumbnailUrl}?t=${timestamp}`,
           url: `https://merrouchgaming.com/clip/${clip.id}`,
           type: 'video.other'
         }
       }
     };
   } catch (error) {
-    console.error('Error fetching clip:', error);
     return { props: { error: 'Error loading clip' } };
   }
 }

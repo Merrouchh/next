@@ -34,19 +34,13 @@ function MyApp({ Component, pageProps }) {
   }, []);
 
   return (
-    <>
-      <DefaultSeo
-        defaultTitle="Merrouch Gaming"
-        titleTemplate="%s | Merrouch Gaming"
-      />
-      <ErrorBoundary>
-        <AuthProvider>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
-        </AuthProvider>
-      </ErrorBoundary>
-    </>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
