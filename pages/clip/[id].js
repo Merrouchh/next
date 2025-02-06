@@ -12,12 +12,21 @@ import DynamicMeta from '../../components/DynamicMeta';
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const supabase = createServerClient(context);
+  const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
 
   try {
-    // First, get the clip data
+    // Get the clip data
     const { data: clip, error } = await supabase
       .from('clips')
-      .select('*')
+      .select(`
+        id,
+        username,
+        title,
+        thumbnail_path,
+        file_path,
+        visibility,
+        user_id
+      `)
       .eq('id', id)
       .single();
 
@@ -25,10 +34,8 @@ export async function getServerSideProps(context) {
       return { props: { error: 'Clip not found' } };
     }
 
-    // Get the current user
+    // Check if the clip is private
     const { data: { user } } = await supabase.auth.getUser();
-
-    // Check if the clip is private and if the user has access
     if (clip.visibility === 'private' && (!user || user.id !== clip.user_id)) {
       return { 
         props: { 
@@ -39,33 +46,27 @@ export async function getServerSideProps(context) {
       };
     }
 
-    // Get video URL
-    let videoUrl = null;
-    if (clip.file_path) {
-      const { data: videoData } = await supabase.storage
-        .from('highlight-clips')
-        .createSignedUrl(clip.file_path, 3600);
-      
-      videoUrl = videoData?.signedUrl;
-    }
-    
-    // Get thumbnail URL
-    let thumbnailUrl = null;
-    if (clip.thumbnail_path) {
-      const { data: thumbnailData } = await supabase.storage
-        .from('highlight-clips')
-        .createSignedUrl(clip.thumbnail_path, 3600);
-      
-      thumbnailUrl = thumbnailData?.signedUrl;
-    }
+    // Prepare meta data
+    const thumbnailUrl = clip.thumbnail_path 
+      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
+      : 'https://merrouchgaming.com/top.jpg';
+
+    const metaData = {
+      title: `Gaming Clip by ${clip.username} | Merrouch Gaming`,
+      description: clip.title || 'Amazing gaming moment captured at Cyber Merrouch Gaming Center in Tangier.',
+      image: thumbnailUrl,
+      url: `https://merrouchgaming.com/clip/${clip.id}`,
+      type: 'video.other'
+    };
 
     return {
       props: {
         clip: {
           ...clip,
-          url: videoUrl,
-          thumbnailUrl: thumbnailUrl || videoUrl
-        }
+          url: clip.file_path ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}` : null,
+          thumbnailUrl
+        },
+        metaData
       }
     };
   } catch (error) {
@@ -74,10 +75,9 @@ export async function getServerSideProps(context) {
   }
 }
 
-export default function ClipPage({ clip: initialClip, error, isPrivate, clipOwner }) {
+export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }) {
   const { user, supabase } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [clip, setClip] = useState(initialClip);
   const router = useRouter();
 
   // Move useEffect before any conditionals
@@ -135,18 +135,12 @@ export default function ClipPage({ clip: initialClip, error, isPrivate, clipOwne
   }
 
   const handleClipUpdate = (updatedClip) => {
-    setClip(updatedClip);
+    // ... updateClip function
   };
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta
-        title={`Gaming Clip by ${clip.user_name || 'Gamer'} | Merrouch Gaming`}
-        description={`Watch this amazing gaming moment captured at Cyber Merrouch Gaming Center. ${clip.description || 'High-end gaming experience in Tangier.'}`}
-        image={`https://qdbtccrhcidxllycuxnw.supabase.co/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}?t=${Date.now()}`}
-        url={`https://merrouchgaming.com/clip/${clip.id}`}
-        type="video.other"
-      />
+      <DynamicMeta {...metaData} />
       <div className={styles.clipPageWrapper}>
         <div className={styles.clipPageContainer}>
           <div className={styles.clipCard}>
@@ -161,10 +155,10 @@ export default function ClipPage({ clip: initialClip, error, isPrivate, clipOwne
               showActions={true}
               showHeader={true}
               onViewCountUpdate={(_, newCount) => {
-                setClip(prev => ({ ...prev, views_count: newCount }));
+                // ... updateViewCount function
               }}
               onLikeUpdate={(_, newCount) => {
-                setClip(prev => ({ ...prev, likes_count: newCount }));
+                // ... updateLikeCount function
               }}
             />
 

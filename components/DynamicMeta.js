@@ -8,6 +8,7 @@ export default function DynamicMeta({
   type = 'website'
 }) {
   const currentTime = new Date().toISOString();
+  const imageWithTimestamp = `${image}?t=${currentTime}`;
 
   return (
     <NextSeo
@@ -22,7 +23,7 @@ export default function DynamicMeta({
         site_name: 'Merrouch Gaming',
         images: [
           {
-            url: image,
+            url: imageWithTimestamp,
             width: 1200,
             height: 630,
             alt: title,
@@ -39,7 +40,7 @@ export default function DynamicMeta({
       additionalMetaTags={[
         {
           name: 'twitter:image',
-          content: image,
+          content: imageWithTimestamp,
         },
         {
           name: 'twitter:title',

@@ -6,12 +6,7 @@ const generateSitemap = async (clips, users) => {
   
   const getClipThumbnailUrl = (thumbnailPath) => {
     if (!thumbnailPath) return null;
-    try {
-      return `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${thumbnailPath}`;
-    } catch (error) {
-      console.error('Error generating thumbnail URL:', error);
-      return null;
-    }
+    return `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${thumbnailPath}`;
   };
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -54,41 +49,31 @@ const generateSitemap = async (clips, users) => {
       </url>
 
       <!-- Dynamic Clip Pages -->
-      ${clips
-        .map(
-          (clip) => {
-            const thumbnailUrl = getClipThumbnailUrl(clip.thumbnail_path);
-            return `
-              <url>
-                <loc>https://merrouchgaming.com/clip/${clip.id}</loc>
-                <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
-                <changefreq>monthly</changefreq>
-                <priority>0.6</priority>
-                ${thumbnailUrl ? `
-                <image:image>
-                  <image:loc>${thumbnailUrl}</image:loc>
-                  <image:title>Gaming Clip ${clip.id}</image:title>
-                </image:image>
-                ` : ''}
-              </url>
-            `;
-          }
-        )
-        .join('')}
+      ${clips.map(clip => `
+        <url>
+          <loc>https://merrouchgaming.com/clip/${clip.id}</loc>
+          <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
+          <changefreq>monthly</changefreq>
+          <priority>0.6</priority>
+          ${clip.thumbnail_path ? `
+          <image:image>
+            <image:loc>${getClipThumbnailUrl(clip.thumbnail_path)}</image:loc>
+            <image:title>Gaming Clip by ${clip.username}</image:title>
+            <image:caption>${clip.title || 'Gaming moment at Merrouch Gaming'}</image:caption>
+          </image:image>
+          ` : ''}
+        </url>
+      `).join('')}
 
       <!-- User Profile Pages -->
-      ${users
-        .map(
-          (user) => `
+      ${users.map(user => `
         <url>
           <loc>https://merrouchgaming.com/profile/${user.username}</loc>
           <lastmod>${lastMod}</lastmod>
           <changefreq>daily</changefreq>
           <priority>0.7</priority>
         </url>
-      `
-        )
-        .join('')}
+      `).join('')}
     </urlset>`;
 };
 
@@ -96,17 +81,17 @@ export default async function handler(req, res) {
   try {
     const supabase = createClient(req, res);
 
-    // Fetch public clips with thumbnail_path
+    // Get public clips with thumbnails
     const { data: clips, error: clipsError } = await supabase
       .from('clips')
-      .select('id, uploaded_at, thumbnail_path')
+      .select('id, username, title, thumbnail_path, uploaded_at')
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
       .limit(1000);
 
     if (clipsError) throw clipsError;
 
-    // Fetch active users from users table
+    // Get active users
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('username')

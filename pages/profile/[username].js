@@ -17,12 +17,13 @@ import DynamicMeta from '../../components/DynamicMeta';
 export async function getServerSideProps(context) {
   const { username } = context.params;
   const supabase = createServerClient(context);
+  const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
 
   try {
-    // Check if user exists
+    // Get user data
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('username')
       .eq('username', username)
       .single();
 
@@ -35,11 +36,36 @@ export async function getServerSideProps(context) {
       };
     }
 
+    // Get user's latest public clip
+    const { data: latestClip } = await supabase
+      .from('clips')
+      .select('thumbnail_path, title')
+      .eq('username', username)
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false })
+      .limit(1);
+
+    // Prepare meta data
+    const thumbnailUrl = latestClip?.[0]?.thumbnail_path
+      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip[0].thumbnail_path}`
+      : 'https://merrouchgaming.com/top.jpg';
+
+    const metaData = {
+      title: `${userData.username}'s Gaming Profile | Merrouch Gaming`,
+      description: latestClip?.[0]?.title 
+        ? `Latest highlight: ${latestClip[0].title}. Check out more gaming highlights at Cyber Merrouch Gaming Center in Tangier.`
+        : `Check out ${userData.username}'s gaming highlights at Cyber Merrouch Gaming Center in Tangier.`,
+      image: thumbnailUrl,
+      url: `https://merrouchgaming.com/profile/${userData.username}`,
+      type: 'profile'
+    };
+
     return {
       props: {
         username,
         userExists: true,
-        initialUserData: userData
+        initialUserData: userData,
+        metaData
       }
     };
   } catch (error) {
@@ -54,7 +80,7 @@ export async function getServerSideProps(context) {
   }
 }
 
-const ProfilePage = ({ username, userExists: initialUserExists, error: serverError }) => {
+const ProfilePage = ({ username, userExists: initialUserExists, error: serverError, metaData }) => {
   const router = useRouter();
   const { user, supabase } = useAuth();
   const [userExists, setUserExists] = useState(initialUserExists);
@@ -191,12 +217,7 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta
-        title={`${username}'s Gaming Profile | Merrouch Gaming`}
-        description={`Check out ${username}'s gaming highlights and achievements at Cyber Merrouch Gaming Center in Tangier.`}
-        url={`https://merrouchgaming.com/profile/${username}`}
-        type="profile"
-      />
+      <DynamicMeta {...metaData} />
       <Head>
         <title>{username}'s Profile - Merrouch Gaming</title>
       </Head>
