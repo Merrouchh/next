@@ -10,6 +10,11 @@ import { NextSeo } from 'next-seo';
 
 // Add getServerSideProps for initial data fetch
 export async function getServerSideProps(context) {
+  context.res.setHeader(
+    'Cache-Control',
+    'public, max-age=0, s-maxage=0, must-revalidate'
+  );
+
   const { id } = context.params;
   const supabase = createServerClient(context);
   const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
