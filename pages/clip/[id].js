@@ -6,7 +6,7 @@ import LoginModal from '../../components/LoginModal';
 import VideoPlayer from '../../components/VideoPlayer';
 import { useRouter } from 'next/router';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
-import DynamicMeta from '../../components/DynamicMeta';
+import { NextSeo } from 'next-seo';
 
 // Add getServerSideProps for initial data fetch
 export async function getServerSideProps(context) {
@@ -52,13 +52,11 @@ export async function getServerSideProps(context) {
       ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
       : 'https://merrouchgaming.com/top.jpg';
 
-    const metaData = {
-      title: `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
-      description: `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
-      image: `${thumbnailUrl}?v=${Date.now()}`,
-      url: `https://merrouchgaming.com/clip/${clip.id}`,
-      type: 'video.other'
-    };
+    // Add cache-control headers
+    context.res.setHeader(
+      'Cache-Control',
+      'public, s-maxage=10, stale-while-revalidate=59'
+    );
 
     return {
       props: {
@@ -67,7 +65,13 @@ export async function getServerSideProps(context) {
           url: clip.file_path ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}` : null,
           thumbnailUrl
         },
-        metaData
+        metaData: {
+          title: `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
+          description: `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
+          image: thumbnailUrl,
+          url: `https://merrouchgaming.com/clip/${clip.id}`,
+          type: 'video.other'
+        }
       }
     };
   } catch (error) {
@@ -81,34 +85,25 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const router = useRouter();
 
-  // Move useEffect before any conditionals
-  useEffect(() => {
-    let mounted = true;
-    
-    const updateClip = async () => {
-      if (!mounted) return;
-      // ... async operations
-    };
-
-    if (error) {
-      // Handle error case
-      return;
-    }
-
-    updateClip();
-
-    return () => {
-      mounted = false;
-    };
-  }, [error]);
+  // If the page is not yet generated, this will be displayed
+  // initially until getServerSideProps() completes
+  if (router.isFallback) {
+    return <div>Loading...</div>;
+  }
 
   if (error) {
     return (
       <>
-        <DynamicMeta 
+        <NextSeo
           title="Clip Not Found | Merrouch Gaming"
           description="This clip is not available or may be private."
-          url={`https://merrouchgaming.com/clip/${router.query.id}`}
+          canonical={`https://merrouchgaming.com/clip/${router.query.id}`}
+          openGraph={{
+            title: "Clip Not Found | Merrouch Gaming",
+            description: "This clip is not available or may be private.",
+            url: `https://merrouchgaming.com/clip/${router.query.id}`,
+            type: 'website',
+          }}
         />
         <ProtectedPageWrapper>
           <div className={styles.errorContainer}>
@@ -148,7 +143,30 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
 
   return (
     <>
-      <DynamicMeta {...metaData} />
+      <NextSeo
+        title={metaData.title}
+        description={metaData.description}
+        canonical={metaData.url}
+        openGraph={{
+          title: metaData.title,
+          description: metaData.description,
+          url: metaData.url,
+          type: metaData.type,
+          images: [
+            {
+              url: metaData.image,
+              width: 1200,
+              height: 630,
+              alt: metaData.title,
+            },
+          ],
+        }}
+        twitter={{
+          handle: '@merrouchgaming',
+          site: '@merrouchgaming',
+          cardType: 'summary_large_image',
+        }}
+      />
       <ProtectedPageWrapper>
         <div className={styles.clipPageWrapper}>
           <div className={styles.clipPageContainer}>

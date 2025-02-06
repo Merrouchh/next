@@ -50,4 +50,12 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
+// Add this to force-refresh meta tags
+export function getInitialProps({ ctx }) {
+  if (ctx.res) {
+    ctx.res.setHeader('Cache-Control', 'no-store');
+  }
+  return { pageProps: {} };
+}
+
 export default MyApp;
