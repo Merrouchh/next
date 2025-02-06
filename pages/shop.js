@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { AiOutlineCopy, AiOutlineDollar, AiOutlineCreditCard, AiOutlineBank, AiOutlineClose } from 'react-icons/ai';
 import styles from '../styles/Shop.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import { NextSeo } from 'next-seo';
 
 const Shop = () => {
   const [items, setItems] = useState([]);
@@ -92,6 +93,28 @@ const Shop = () => {
 
   return (
     <ProtectedPageWrapper>
+      <NextSeo
+        title="Gaming Prices & Packages | Merrouch Gaming Center"
+        description="Affordable gaming packages in Tangier. Normal PC from 15 MAD/hour, VIP PC from 18 MAD/hour. High-end gaming experience with RTX 3070 & 180Hz displays. Prix gaming à Tanger."
+        openGraph={{
+          title: 'Gaming Prices & Packages | Merrouch Gaming Center',
+          description: 'Affordable gaming packages in Tangier starting from 15 MAD/hour',
+          images: [
+            {
+              url: 'https://merrouchgaming.com/top2.jpg',
+              width: 1200,
+              height: 630,
+              alt: 'Gaming Packages at Merrouch Gaming',
+            },
+          ],
+        }}
+        additionalMetaTags={[
+          {
+            name: 'keywords',
+            content: 'gaming prices tangier, cyber cafe prices, gaming center cost, pc gamer price tanger, prix gaming tanger, تكلفة قاعة الألعاب طنجة'
+          }
+        ]}
+      />
       <Head>
         <title>Shop - Merrouch Gaming</title>
       </Head>

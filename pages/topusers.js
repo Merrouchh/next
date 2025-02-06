@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import { NextSeo } from 'next-seo';
 
 const TopUsers = () => {
   const [topUsers, setTopUsers] = useState([]);
@@ -125,7 +126,23 @@ const TopUsers = () => {
   };
 
   return (
-    <ProtectedPageWrapper> 
+    <ProtectedPageWrapper>
+      <NextSeo
+        title="Top Gamers & Rewards | Merrouch Gaming Center"
+        description="Discover our top gamers in Tangier and their rewards. Monthly gaming competitions with free gaming hours as prizes. Meilleurs joueurs et récompenses à Tanger."
+        openGraph={{
+          title: 'Top Gamers & Rewards | Merrouch Gaming Center',
+          description: 'Monthly gaming competitions and rewards at Merrouch Gaming',
+          images: [
+            {
+              url: 'https://merrouchgaming.com/gaming-center-banner.jpg',
+              width: 1200,
+              height: 630,
+              alt: 'Top Gamers at Merrouch Gaming',
+            },
+          ],
+        }}
+      />
       <div className={styles.container}>
         <Head>
           <title>Top Users</title>

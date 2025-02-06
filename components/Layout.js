@@ -6,6 +6,8 @@ import LoadingScreen from './LoadingScreen';
 import Head from 'next/head';
 import { VideoProvider } from '../context/VideoContext';
 import styles from '@/styles/Layout.module.css';
+import BusinessInfo from './BusinessInfo';
+import FAQSchema from './FAQSchema';
 
 const Layout = ({ children, title = 'Merrouch Gaming' }) => {
   const router = useRouter();
@@ -45,6 +47,8 @@ const Layout = ({ children, title = 'Merrouch Gaming' }) => {
           <link rel="icon" href="/favicon.ico" />
         </Head>
         <main className="main-content">
+          <BusinessInfo />
+          <FAQSchema />
           {children}
         </main>
         {!hideFooterPaths.includes(router.pathname) && <Footer />}

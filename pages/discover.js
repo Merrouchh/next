@@ -9,6 +9,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import VideoPlayer from '../components/VideoPlayer';
 import { useClipsFeed } from '../hooks/useClipsFeed';
 import LoadingClip from '../components/LoadingClip';
+import { NextSeo } from 'next-seo';
 
 const Discover = () => {
   const router = useRouter();
@@ -59,6 +60,22 @@ const Discover = () => {
 
   return (
     <ProtectedPageWrapper>
+      <NextSeo
+        title="Gaming Highlights | Merrouch Gaming Center"
+        description="Watch the best gaming moments from our community in Tangier. High-quality gameplay clips, eSports highlights, and gaming achievements. Meilleurs moments gaming à Tanger."
+        openGraph={{
+          title: 'Gaming Highlights | Merrouch Gaming Center',
+          description: 'Best gaming moments from our Tangier gaming community',
+          images: [
+            {
+              url: 'https://merrouchgaming.com/top3.jpg',
+              width: 1200,
+              height: 630,
+              alt: 'Gaming Highlights at Merrouch Gaming',
+            },
+          ],
+        }}
+      />
       <Head>
         <title>Discover - Merrouch Gaming</title>
         <meta name="description" content="Discover amazing gaming moments" />
