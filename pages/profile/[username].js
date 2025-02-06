@@ -15,80 +15,100 @@ import DynamicMeta from '../../components/DynamicMeta';
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
 export async function getServerSideProps(context) {
+  // Add cache control header
+  context.res.setHeader(
+    'Cache-Control',
+    'public, max-age=0, s-maxage=0, must-revalidate'
+  );
+
   const { username } = context.params;
   const supabase = createServerClient(context);
-  const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
 
   try {
-    // Get user data
-    const { data: userData, error: userError } = await supabase
+    // Get user data from users table
+    const { data: user, error } = await supabase
       .from('users')
       .select('username')
       .eq('username', username)
       .single();
 
-    if (userError || !userData) {
+    if (error || !user) {
       return {
         props: {
-          username,
-          userExists: false
+          error: 'Profile not found',
+          metaData: {
+            title: 'Profile Not Found | Merrouch Gaming',
+            description: 'This profile does not exist or has been removed.',
+            url: `https://merrouchgaming.com/profile/${username}`,
+            type: 'profile',
+            image: 'https://merrouchgaming.com/top.jpg' // Use your default site image
+          }
         }
       };
     }
 
-    // Get user's latest public clip
+    // Get user's clips count
+    const { count: clipsCount } = await supabase
+      .from('clips')
+      .select('id', { count: 'exact' })
+      .eq('username', username)
+      .eq('visibility', 'public');
+
+    // Get user's latest clip for preview
     const { data: latestClip } = await supabase
       .from('clips')
       .select('thumbnail_path, title')
       .eq('username', username)
       .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1);
 
     // Prepare meta data
-    const thumbnailUrl = latestClip?.[0]?.thumbnail_path
-      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip[0].thumbnail_path}`
+    const previewImage = latestClip?.[0]?.thumbnail_path
+      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip[0].thumbnail_path}`
       : 'https://merrouchgaming.com/top.jpg';
-
-    const metaData = {
-      title: `${userData.username}'s Gaming Profile | Merrouch Gaming`,
-      description: latestClip?.[0]?.title 
-        ? `Latest highlight: ${latestClip[0].title}. Check out more gaming highlights at Cyber Merrouch Gaming Center in Tangier.`
-        : `Check out ${userData.username}'s gaming highlights at Cyber Merrouch Gaming Center in Tangier.`,
-      image: thumbnailUrl,
-      url: `https://merrouchgaming.com/profile/${userData.username}`,
-      type: 'profile'
-    };
 
     return {
       props: {
-        username,
-        userExists: true,
-        initialUserData: userData,
-        metaData
+        userData: {
+          ...user,
+          clipsCount: clipsCount || 0
+        },
+        metaData: {
+          title: `${user.username}'s Profile | Merrouch Gaming`,
+          description: `Check out ${user.username}'s gaming clips at Merrouch Gaming. ${clipsCount || 0} clips shared.${
+            latestClip?.[0]?.title ? ` Latest: ${latestClip[0].title}` : ''
+          }`,
+          image: previewImage,
+          url: `https://merrouchgaming.com/profile/${username}`,
+          type: 'profile'
+        }
       }
     };
   } catch (error) {
-    console.error('Error fetching user data:', error);
     return {
       props: {
-        username,
-        userExists: false,
-        error: 'Failed to load user data'
+        error: 'Error loading profile',
+        metaData: {
+          title: 'Error | Merrouch Gaming',
+          description: 'There was an error loading this profile.',
+          url: `https://merrouchgaming.com/profile/${username}`,
+          type: 'website',
+          image: 'https://merrouchgaming.com/top.jpg'
+        }
       }
     };
   }
 }
 
-const ProfilePage = ({ username, userExists: initialUserExists, error: serverError, metaData }) => {
+const ProfilePage = ({ userData, metaData, error }) => {
   const router = useRouter();
   const { user, supabase } = useAuth();
-  const [userExists, setUserExists] = useState(initialUserExists);
-  const [playingVideoId, setPlayingVideoId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('clips');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [playingVideoId, setPlayingVideoId] = useState(null);
   
-  const isOwner = user?.username?.toLowerCase() === username?.toLowerCase();
+  const isOwner = user?.username?.toLowerCase() === userData?.username?.toLowerCase();
   
   const { 
     clips, 
@@ -98,45 +118,7 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
     updateClipCount,
     searchClips,
     setClips
-  } = useClipsFeed(supabase, 6, username, isOwner);
-
-  // Add function to check if user exists
-  useEffect(() => {
-    let mounted = true;
-
-    const checkUserExists = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('username')
-          .eq('username', username)
-          .single();
-
-        if (!mounted) return;
-
-        if (error || !data) {
-          setUserExists(false);
-          return false;
-        }
-        
-        setUserExists(true);
-        return true;
-      } catch (error) {
-        if (!mounted) return;
-        console.error('Error checking user:', error);
-        setUserExists(false);
-        return false;
-      }
-    };
-
-    if (username) {
-      checkUserExists();
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [username]);
+  } = useClipsFeed(supabase, 6, userData.username, isOwner);
 
   const handleClipUpdate = (updatedClip) => {
     setClips(prevClips => 
@@ -161,29 +143,17 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
     return <div>Loading...</div>
   }
 
-  if (serverError) {
+  if (error) {
     return (
       <ProtectedPageWrapper>
         <div className={styles.errorContainer}>
           <h1>Error</h1>
-          <p>{serverError}</p>
-          <button onClick={() => router.push('/')}>Back to Home</button>
-        </div>
-      </ProtectedPageWrapper>
-    );
-  }
-
-  if (!userExists) {
-    return (
-      <ProtectedPageWrapper>
-        <div className={styles.userNotFound}>
-          <h1>User Not Found</h1>
-          <p>The user "{username}" does not exist.</p>
+          <p>{error}</p>
           <button 
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/discover')}
             className={styles.backButton}
           >
-            Back to Home Page
+            Back to Discover
           </button>
         </div>
       </ProtectedPageWrapper>
@@ -198,7 +168,7 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
         </Head>
         <main className={styles.profileMain}>
           <UserProfileSection 
-            username={username} 
+            username={userData.username} 
             isOwner={isOwner}
             user={user}
             supabase={supabase}
@@ -220,15 +190,15 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
       <DynamicMeta {...metaData} />
       <main className={styles.profileMain}>
         <UserSearch 
-          onSearch={(query) => {
-            if (searchClips) {
-              searchClips(query);
-            }
-          }}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          username={userData.username}
         />
 
         <UserProfileSection 
-          username={username} 
+          username={userData.username} 
           isOwner={isOwner}
           user={user}
           supabase={supabase}
