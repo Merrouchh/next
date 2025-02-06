@@ -1,4 +1,4 @@
-import { createClient } from '../../utils/supabase/server';
+import { createClient } from '../../utils/supabase/server-props';
 
 export default async function handler(req, res) {
   try {
