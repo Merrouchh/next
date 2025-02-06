@@ -7,6 +7,7 @@ import VideoPlayer from '../../components/VideoPlayer';
 import { useRouter } from 'next/router';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import { NextSeo } from 'next-seo';
+import { Head } from 'next/head';
 
 // Add getServerSideProps for initial data fetch
 export async function getServerSideProps(context) {
@@ -24,7 +25,7 @@ export async function getServerSideProps(context) {
       .from('clips')
       .select(`
         id, username, title, thumbnail_path, file_path, 
-        visibility, user_id, game
+        visibility, user_id, game, uploaded_at
       `)
       .eq('id', id)
       .single();
@@ -40,6 +41,23 @@ export async function getServerSideProps(context) {
     // Force cache refresh with timestamp
     const timestamp = Date.now();
     
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
+      "description": `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
+      "thumbnailUrl": `${thumbnailUrl}?t=${timestamp}`,
+      "uploadDate": clip.uploaded_at,
+      "publisher": {
+        "@type": "Organization",
+        "name": "Merrouch Gaming",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://merrouchgaming.com/logo.png"
+        }
+      }
+    };
+
     return {
       props: {
         clip: {
@@ -53,7 +71,8 @@ export async function getServerSideProps(context) {
           image: `${thumbnailUrl}?t=${timestamp}`,
           url: `https://merrouchgaming.com/clip/${clip.id}`,
           type: 'video.other'
-        }
+        },
+        structuredData: JSON.stringify(structuredData)
       }
     };
   } catch (error) {
@@ -61,7 +80,7 @@ export async function getServerSideProps(context) {
   }
 }
 
-export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }) {
+export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner, structuredData }) {
   const { user, supabase } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const router = useRouter();
@@ -148,6 +167,12 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
           cardType: 'summary_large_image',
         }}
       />
+      <Head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: structuredData }}
+        />
+      </Head>
       <ProtectedPageWrapper>
         <div className={styles.clipPageWrapper}>
           <div className={styles.clipPageContainer}>
