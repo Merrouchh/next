@@ -10,6 +10,7 @@ import UserProfileSection from '../../components/UserProfileSection';
 import LoadingClip from '../../components/LoadingClip';
 import UserSearch from '../../components/UserSearch';
 import { createClient as createServerClient } from '../../utils/supabase/server-props';
+import DynamicMeta from '../../components/DynamicMeta';
 
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
@@ -190,6 +191,12 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
 
   return (
     <ProtectedPageWrapper>
+      <DynamicMeta
+        title={`${username}'s Gaming Profile | Merrouch Gaming`}
+        description={`Check out ${username}'s gaming highlights and achievements at Cyber Merrouch Gaming Center in Tangier.`}
+        url={`https://merrouchgaming.com/profile/${username}`}
+        type="profile"
+      />
       <Head>
         <title>{username}'s Profile - Merrouch Gaming</title>
       </Head>

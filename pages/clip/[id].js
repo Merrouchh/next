@@ -6,6 +6,7 @@ import LoginModal from '../../components/LoginModal';
 import VideoPlayer from '../../components/VideoPlayer';
 import { useRouter } from 'next/router';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
+import DynamicMeta from '../../components/DynamicMeta';
 
 // Add getServerSideProps for initial data fetch
 export async function getServerSideProps(context) {
@@ -139,6 +140,13 @@ export default function ClipPage({ clip: initialClip, error, isPrivate, clipOwne
 
   return (
     <ProtectedPageWrapper>
+      <DynamicMeta
+        title={`Gaming Clip by ${clip.user_name || 'Gamer'} | Merrouch Gaming`}
+        description={`Watch this amazing gaming moment captured at Cyber Merrouch Gaming Center. ${clip.description || 'High-end gaming experience in Tangier.'}`}
+        image={`https://qdbtccrhcidxllycuxnw.supabase.co/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`}
+        url={`https://merrouchgaming.com/clip/${clip.id}`}
+        type="video.other"
+      />
       <div className={styles.clipPageWrapper}>
         <div className={styles.clipPageContainer}>
           <div className={styles.clipCard}>

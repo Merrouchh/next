@@ -20,6 +20,7 @@ import NumberDisplay from '../components/NumberDisplay';
 import { MdGames, MdLeaderboard, MdExplore } from 'react-icons/md';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { NextSeo } from 'next-seo';
+import DynamicMeta from '../components/DynamicMeta';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -102,34 +103,10 @@ export default function Home() {
 
   return (
     <ProtectedPageWrapper>
-      <NextSeo
+      <DynamicMeta
         title="Best Gaming Center in Tangier | Merrouch Gaming"
-        description="Premium gaming center in Tangier with high-end PCs, 200Mbps internet, and competitive gaming environment. Cyber café gaming à Tanger avec PC Gamer. مقهى ألعاب في طنجة"
-        canonical="https://merrouchgaming.com"
-        openGraph={{
-          type: 'website',
-          locale: 'en_US',
-          url: 'https://merrouchgaming.com',
-          siteName: 'Merrouch Gaming Center',
-          images: [
-            {
-              url: 'https://merrouchgaming.com/top.jpg',
-              width: 1200,
-              height: 630,
-              alt: 'Merrouch Gaming Center Setup',
-            },
-          ],
-        }}
-        additionalMetaTags={[
-          {
-            name: 'keywords',
-            content: 'gaming center tangier, cyber cafe tanger, gaming cafe morocco, pc gamer tanger, internet cafe near me, gaming center near me, cyber gaming tanger, قاعة العاب طنجة'
-          },
-          {
-            name: 'geo.position',
-            content: '35.7595;-5.8340'
-          }
-        ]}
+        description="Premium Gaming Center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive gaming environment. Best cyber café gaming à Tanger. أفضل مقهى ألعاب في طنجة"
+        url="https://merrouchgaming.com"
       />
       <Head>
         <title>Merrouch Gaming Center</title>
