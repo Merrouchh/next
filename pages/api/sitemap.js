@@ -2,10 +2,20 @@ import createClient from '../../utils/supabase/api'
 
 const generateSitemap = async (clips, users) => {
   const lastMod = new Date().toISOString();
+  const SUPABASE_URL = 'https://qdbtccrhcidxllycuxnw.supabase.co';
   
+  const getClipThumbnailUrl = (thumbnailPath) => {
+    if (!thumbnailPath) return null;
+    try {
+      return `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${thumbnailPath}`;
+    } catch (error) {
+      console.error('Error generating thumbnail URL:', error);
+      return null;
+    }
+  };
+
   return `<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-            xmlns:xhtml="http://www.w3.org/1999/xhtml"
             xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
       <!-- Static Pages -->
       <url>
@@ -46,20 +56,23 @@ const generateSitemap = async (clips, users) => {
       <!-- Dynamic Clip Pages -->
       ${clips
         .map(
-          (clip) => `
-        <url>
-          <loc>https://merrouchgaming.com/clip/${clip.id}</loc>
-          <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.6</priority>
-          ${clip.thumbnail ? `
-          <image:image>
-            <image:loc>${clip.thumbnail}</image:loc>
-            <image:title>Gaming Clip ${clip.id}</image:title>
-          </image:image>
-          ` : ''}
-        </url>
-      `
+          (clip) => {
+            const thumbnailUrl = getClipThumbnailUrl(clip.thumbnail_path);
+            return `
+              <url>
+                <loc>https://merrouchgaming.com/clip/${clip.id}</loc>
+                <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
+                <changefreq>monthly</changefreq>
+                <priority>0.6</priority>
+                ${thumbnailUrl ? `
+                <image:image>
+                  <image:loc>${thumbnailUrl}</image:loc>
+                  <image:title>Gaming Clip ${clip.id}</image:title>
+                </image:image>
+                ` : ''}
+              </url>
+            `;
+          }
         )
         .join('')}
 
@@ -83,22 +96,22 @@ export default async function handler(req, res) {
   try {
     const supabase = createClient(req, res);
 
-    // Fetch public clips with thumbnails
+    // Fetch public clips with thumbnail_path
     const { data: clips, error: clipsError } = await supabase
       .from('clips')
-      .select('id, uploaded_at, thumbnail')
+      .select('id, uploaded_at, thumbnail_path')
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
-      .limit(1000); // Limit to recent 1000 clips for sitemap size
+      .limit(1000);
 
     if (clipsError) throw clipsError;
 
-    // Fetch active users
+    // Fetch active users from users table
     const { data: users, error: usersError } = await supabase
-      .from('profiles')
+      .from('users')
       .select('username')
       .not('username', 'is', null)
-      .limit(1000); // Limit to 1000 most active users
+      .limit(1000);
 
     if (usersError) throw usersError;
 
