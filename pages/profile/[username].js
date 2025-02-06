@@ -23,6 +23,7 @@ export async function getServerSideProps(context) {
 
   const { username } = context.params;
   const supabase = createServerClient(context);
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   try {
     // Get user data from users table
@@ -41,43 +42,44 @@ export async function getServerSideProps(context) {
             description: 'This profile does not exist or has been removed.',
             url: `https://merrouchgaming.com/profile/${username}`,
             type: 'profile',
-            image: 'https://merrouchgaming.com/top.jpg' // Use your default site image
+            image: 'https://merrouchgaming.com/top.jpg'
           }
         }
       };
     }
 
-    // Get user's clips count
-    const { count: clipsCount } = await supabase
-      .from('clips')
-      .select('id', { count: 'exact' })
-      .eq('username', username)
-      .eq('visibility', 'public');
+    // Get user's clips count and latest public clip in one query
+    const [{ count }, { data: latestClips }] = await Promise.all([
+      supabase
+        .from('clips')
+        .select('id', { count: 'exact', head: true })
+        .eq('username', username)
+        .eq('visibility', 'public'),
+      supabase
+        .from('clips')
+        .select('thumbnail_path, title')
+        .eq('username', username)
+        .eq('visibility', 'public')
+        .order('created_at', { ascending: false })
+        .limit(1)
+    ]);
 
-    // Get user's latest clip for preview
-    const { data: latestClip } = await supabase
-      .from('clips')
-      .select('thumbnail_path, title')
-      .eq('username', username)
-      .eq('visibility', 'public')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    // Prepare meta data
-    const previewImage = latestClip?.[0]?.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip[0].thumbnail_path}`
+    // Prepare the preview image URL with timestamp to prevent caching
+    const timestamp = Date.now();
+    const previewImage = latestClips?.[0]?.thumbnail_path
+      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClips[0].thumbnail_path}?t=${timestamp}`
       : 'https://merrouchgaming.com/top.jpg';
 
     return {
       props: {
         userData: {
           ...user,
-          clipsCount: clipsCount || 0
+          clipsCount: count || 0
         },
         metaData: {
           title: `${user.username}'s Profile | Merrouch Gaming`,
-          description: `Check out ${user.username}'s gaming clips at Merrouch Gaming. ${clipsCount || 0} clips shared.${
-            latestClip?.[0]?.title ? ` Latest: ${latestClip[0].title}` : ''
+          description: `Check out ${user.username}'s gaming clips at Merrouch Gaming. ${count || 0} clips shared.${
+            latestClips?.[0]?.title ? ` Latest: ${latestClips[0].title}` : ''
           }`,
           image: previewImage,
           url: `https://merrouchgaming.com/profile/${username}`,
@@ -86,6 +88,7 @@ export async function getServerSideProps(context) {
       }
     };
   } catch (error) {
+    console.error('Error in getServerSideProps:', error);
     return {
       props: {
         error: 'Error loading profile',
