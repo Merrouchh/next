@@ -143,7 +143,7 @@ export default function ClipPage({ clip: initialClip, error, isPrivate, clipOwne
       <DynamicMeta
         title={`Gaming Clip by ${clip.user_name || 'Gamer'} | Merrouch Gaming`}
         description={`Watch this amazing gaming moment captured at Cyber Merrouch Gaming Center. ${clip.description || 'High-end gaming experience in Tangier.'}`}
-        image={`https://qdbtccrhcidxllycuxnw.supabase.co/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`}
+        image={`https://qdbtccrhcidxllycuxnw.supabase.co/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}?t=${Date.now()}`}
         url={`https://merrouchgaming.com/clip/${clip.id}`}
         type="video.other"
       />
