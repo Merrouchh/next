@@ -26,14 +26,14 @@ export async function getServerSideProps(context) {
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   try {
-    // Get user data from users table
-    const { data: user, error } = await supabase
+    // Get user data
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('username')
       .eq('username', username)
       .single();
 
-    if (error || !user) {
+    if (userError || !user) {
       return {
         props: {
           error: 'Profile not found',
@@ -48,27 +48,32 @@ export async function getServerSideProps(context) {
       };
     }
 
-    // Get user's clips count and latest public clip in one query
-    const [{ count }, { data: latestClips }] = await Promise.all([
-      supabase
-        .from('clips')
-        .select('id', { count: 'exact', head: true })
-        .eq('username', username)
-        .eq('visibility', 'public'),
-      supabase
-        .from('clips')
-        .select('thumbnail_path, title')
-        .eq('username', username)
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false })
-        .limit(1)
-    ]);
+    // Get latest clip first to ensure we have the thumbnail
+    const { data: latestClip, error: clipError } = await supabase
+      .from('clips')
+      .select('thumbnail_path, title')
+      .eq('username', username)
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    // Prepare the preview image URL with timestamp to prevent caching
+    // Get total clips count
+    const { count } = await supabase
+      .from('clips')
+      .select('id', { count: 'exact', head: true })
+      .eq('username', username)
+      .eq('visibility', 'public');
+
+    // Prepare the preview image URL
     const timestamp = Date.now();
-    const previewImage = latestClips?.[0]?.thumbnail_path
-      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClips[0].thumbnail_path}?t=${timestamp}`
+    const previewImage = latestClip?.thumbnail_path
+      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}?t=${timestamp}`
       : 'https://merrouchgaming.com/top.jpg';
+
+    // For debugging
+    console.log('Latest Clip:', latestClip);
+    console.log('Preview Image:', previewImage);
 
     return {
       props: {
@@ -79,7 +84,7 @@ export async function getServerSideProps(context) {
         metaData: {
           title: `${user.username}'s Profile | Merrouch Gaming`,
           description: `Check out ${user.username}'s gaming clips at Merrouch Gaming. ${count || 0} clips shared.${
-            latestClips?.[0]?.title ? ` Latest: ${latestClips[0].title}` : ''
+            latestClip?.title ? ` Latest: ${latestClip.title}` : ''
           }`,
           image: previewImage,
           url: `https://merrouchgaming.com/profile/${username}`,
