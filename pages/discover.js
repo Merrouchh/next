@@ -10,6 +10,7 @@ import { useClipsFeed } from '../hooks/useClipsFeed';
 import LoadingClip from '../components/LoadingClip';
 import DynamicMeta from '../components/DynamicMeta';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
+import Head from 'next/head';
 
 export async function getServerSideProps(context) {
   context.res.setHeader(
@@ -33,21 +34,49 @@ export async function getServerSideProps(context) {
 
     // Get a featured clip for the preview image
     const featuredClip = latestClips?.[0];
+    
+    // Ensure the timestamp is added to prevent caching
+    const timestamp = Date.now();
     const previewImage = featuredClip?.thumbnail_path
-      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}?t=${Date.now()}`
+      ? `${SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}?t=${timestamp}`
       : 'https://merrouchgaming.com/top.jpg';
+
+    // Create a more detailed description
+    const description = featuredClip
+      ? `Watch the latest gaming highlights at Merrouch Gaming! Featured: ${featuredClip.title} - an amazing ${featuredClip.game} clip by ${featuredClip.username}. Join our gaming community and share your best moments.`
+      : 'Explore amazing gaming moments from the Merrouch Gaming community. Watch, share, and discover gaming highlights from your favorite games.';
 
     return {
       props: {
         initialClips: latestClips || [],
         metaData: {
           title: 'Discover Gaming Clips | Merrouch Gaming',
-          description: `Explore amazing gaming moments from the Merrouch Gaming community. ${
-            featuredClip ? `Latest: ${featuredClip.game} clip by ${featuredClip.username}` : ''
-          }`,
+          description,
           image: previewImage,
           url: 'https://merrouchgaming.com/discover',
-          type: 'website'
+          type: 'website',
+          // Add additional OpenGraph metadata
+          openGraph: {
+            title: 'Discover Gaming Clips | Merrouch Gaming',
+            description,
+            images: [
+              {
+                url: previewImage,
+                width: 1200,
+                height: 630,
+                alt: featuredClip ? `${featuredClip.game} gameplay by ${featuredClip.username}` : 'Merrouch Gaming Clips',
+              },
+            ],
+            site_name: 'Merrouch Gaming',
+          },
+          // Add Twitter card metadata
+          twitter: {
+            card: 'summary_large_image',
+            site: '@merrouchgaming',
+            title: 'Discover Gaming Clips | Merrouch Gaming',
+            description,
+            image: previewImage,
+          }
         }
       }
     };
@@ -105,6 +134,27 @@ const Discover = ({ initialClips, metaData, error }) => {
   if (authLoading || (loading && clips.length === 0) || isTransitioning) {
     return (
       <ProtectedPageWrapper>
+        <Head>
+          <title>{metaData.title}</title>
+          <meta name="description" content={metaData.description} />
+          
+          {/* OpenGraph tags */}
+          <meta property="og:title" content={metaData.title} />
+          <meta property="og:description" content={metaData.description} />
+          <meta property="og:image" content={metaData.image} />
+          <meta property="og:url" content={metaData.url} />
+          <meta property="og:type" content={metaData.type} />
+          <meta property="og:site_name" content="Merrouch Gaming" />
+          
+          {/* Twitter tags */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:site" content="@merrouchgaming" />
+          <meta name="twitter:title" content={metaData.title} />
+          <meta name="twitter:description" content={metaData.description} />
+          <meta name="twitter:image" content={metaData.image} />
+          
+          <link rel="canonical" href={metaData.url} />
+        </Head>
         <DynamicMeta {...metaData} />
         <main className={styles.discoverMain}>
           <div className={styles.feedContainer}>
@@ -121,6 +171,27 @@ const Discover = ({ initialClips, metaData, error }) => {
 
   return (
     <ProtectedPageWrapper>
+      <Head>
+        <title>{metaData.title}</title>
+        <meta name="description" content={metaData.description} />
+        
+        {/* OpenGraph tags */}
+        <meta property="og:title" content={metaData.title} />
+        <meta property="og:description" content={metaData.description} />
+        <meta property="og:image" content={metaData.image} />
+        <meta property="og:url" content={metaData.url} />
+        <meta property="og:type" content={metaData.type} />
+        <meta property="og:site_name" content="Merrouch Gaming" />
+        
+        {/* Twitter tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@merrouchgaming" />
+        <meta name="twitter:title" content={metaData.title} />
+        <meta name="twitter:description" content={metaData.description} />
+        <meta name="twitter:image" content={metaData.image} />
+        
+        <link rel="canonical" href={metaData.url} />
+      </Head>
       <DynamicMeta {...metaData} />
       <main className={styles.discoverMain}>
         <div className={styles.feedContainer}>
