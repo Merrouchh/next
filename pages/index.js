@@ -104,19 +104,12 @@ export default function Home() {
   return (
     <ProtectedPageWrapper>
       <DynamicMeta
-        title="Best Gaming Center in Tangier | Merrouch Gaming"
-        description="Premium Gaming Center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive gaming environment. Best cyber café gaming à Tanger. أفضل مقهى ألعاب في طنجة"
+        title="Cyber Merrouch Gaming Center | Best Gaming Center in Tangier"
+        description="Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco."
+        image="https://merrouchgaming.com/top.jpg"
         url="https://merrouchgaming.com"
+        type="website"
       />
-      <Head>
-        <title>Merrouch Gaming Center</title>
-        <meta name="description" content="Experience gaming at its finest with our high-end PCs, fast internet, and vibrant gaming community in Tangier." />
-        <meta name="robots" content={user ? 'noindex, nofollow' : 'index, follow'} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <meta name="theme-color" content="#0f1119" />
-      </Head>
 
       <div className={styles.progressBarContainer}>
         <div 

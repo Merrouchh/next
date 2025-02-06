@@ -4,7 +4,6 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import '../styles/globals.css';
 import { DefaultSeo } from 'next-seo';
-import { defaultSEO } from '../utils/seo-config';
 
 // Disable console in production
 if (process.env.NODE_ENV === 'production') {
@@ -36,7 +35,19 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <>
-      <DefaultSeo {...defaultSEO} />
+      <DefaultSeo
+        openGraph={{
+          type: 'website',
+          locale: 'en_US',
+          url: 'https://merrouchgaming.com/',
+          siteName: 'Merrouch Gaming',
+        }}
+        twitter={{
+          handle: '@merrouchgaming',
+          site: '@merrouchgaming',
+          cardType: 'summary_large_image',
+        }}
+      />
       <ErrorBoundary>
         <AuthProvider>
           <Layout>

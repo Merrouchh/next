@@ -68,11 +68,6 @@ const Discover = () => {
         url="https://merrouchgaming.com/discover"
         type="website"
       />
-      <Head>
-        <title>Discover - Merrouch Gaming</title>
-        <meta name="description" content="Discover amazing gaming moments" />
-      </Head>
-
       <main className={styles.discoverMain}>
         <div className={styles.feedContainer}>
           {user && (

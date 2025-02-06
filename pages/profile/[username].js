@@ -218,10 +218,6 @@ const ProfilePage = ({ username, userExists: initialUserExists, error: serverErr
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <Head>
-        <title>{username}'s Profile - Merrouch Gaming</title>
-      </Head>
-
       <main className={styles.profileMain}>
         <UserSearch 
           onSearch={(query) => {

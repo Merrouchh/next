@@ -15,8 +15,9 @@ class MyDocument extends Document {
           />
           
           {/* PWA Meta Tags */}
-          <meta name="theme-color" content="#000000" /> {/* Adjust the color to your app's theme */}
+          <meta name="theme-color" content="#000000" />
           <link rel="icon" href="/favicon.ico" />
+          <link rel="manifest" href="/manifest.json" />
           
           {/* Apple-specific meta tags for PWA */}
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -30,11 +31,13 @@ class MyDocument extends Document {
           <meta name="msapplication-navbutton-color" content="#000000" />
           <meta name="msapplication-starturl" content="/" />
           
-          {/* Web App Manifest */}
-          <link rel="manifest" href="/manifest.json" />
-          <meta httpEquiv="Cross-Origin-Opener-Policy" content="same-origin" />
-          <meta httpEquiv="Cross-Origin-Embedder-Policy" content="credentialless" />
-          <meta httpEquiv="Cross-Origin-Resource-Policy" content="same-site" />
+          {/* Business Info */}
+          <meta property="business:contact_data:street_address" content="RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1" />
+          <meta property="business:contact_data:locality" content="Tangier" />
+          <meta property="business:contact_data:postal_code" content="90060" />
+          <meta property="business:contact_data:country_name" content="Morocco" />
+          <meta property="place:location:latitude" content="35.768787" />
+          <meta property="place:location:longitude" content="-5.8102713" />
           
           {/* Add these new meta tags */}
           <meta name="geo.region" content="MA-01" />
@@ -50,22 +53,9 @@ class MyDocument extends Document {
           {/* Add social media verification */}
           <meta name="facebook-domain-verification" content="dxu3ycwpdg2uorgckvuv8kwr3ci661" />
           
-          {/* Local Business Tags */}
-          <meta name="business:contact_data:street_address" content="RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1" />
-          <meta name="business:contact_data:locality" content="Tangier" />
-          <meta name="business:contact_data:postal_code" content="90060" />
-          <meta name="business:contact_data:country_name" content="Morocco" />
-          <meta name="business:contact_data:phone_number" content="+212531098983" />
-          
           {/* Open Graph Business Info */}
           <meta property="og:type" content="business.business" />
-          <meta property="business:contact_data:street_address" content="RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1" />
-          <meta property="business:contact_data:locality" content="Tangier" />
           <meta property="business:contact_data:region" content="Tanger-Tetouan-Al Hoceima" />
-          <meta property="business:contact_data:postal_code" content="90060" />
-          <meta property="business:contact_data:country_name" content="Morocco" />
-          <meta property="place:location:latitude" content="35.768787" />
-          <meta property="place:location:longitude" content="-5.8102713" />
           
           {/* Rich Snippets */}
           <meta name="description" content="Premium Gaming Center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive gaming environment. Best cyber café gaming à Tanger. أفضل مقهى ألعاب في طنجة" />
