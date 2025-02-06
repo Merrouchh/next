@@ -25,7 +25,8 @@ export async function getServerSideProps(context) {
         thumbnail_path,
         file_path,
         visibility,
-        user_id
+        user_id,
+        game
       `)
       .eq('id', id)
       .single();
@@ -52,8 +53,8 @@ export async function getServerSideProps(context) {
       : 'https://merrouchgaming.com/top.jpg';
 
     const metaData = {
-      title: `Gaming Clip by ${clip.username} | Merrouch Gaming`,
-      description: clip.title || 'Amazing gaming moment captured at Cyber Merrouch Gaming Center in Tangier.',
+      title: `${clip.game} Gameplay by ${clip.username} | Merrouch Gaming`,
+      description: `${clip.title} - Watch amazing ${clip.game} gaming moments at Cyber Merrouch Gaming Center in Tangier.`,
       image: thumbnailUrl,
       url: `https://merrouchgaming.com/clip/${clip.id}`,
       type: 'video.other'
@@ -140,7 +141,7 @@ export default function ClipPage({ clip, metaData, error, isPrivate, clipOwner }
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+      {!error && <DynamicMeta {...metaData} />}
       <div className={styles.clipPageWrapper}>
         <div className={styles.clipPageContainer}>
           <div className={styles.clipCard}>

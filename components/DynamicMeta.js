@@ -18,19 +18,17 @@ export default function DynamicMeta({
       openGraph={{
         title,
         description,
-        url: url || 'https://merrouchgaming.com',
+        url,
         type,
-        site_name: 'Merrouch Gaming',
+        siteName: 'Merrouch Gaming',
         images: [
           {
             url: imageWithTimestamp,
             width: 1200,
             height: 630,
             alt: title,
-            type: 'image/jpeg',
           },
         ],
-        updated_time: currentTime,
       }}
       twitter={{
         handle: '@merrouchgaming',
@@ -39,24 +37,20 @@ export default function DynamicMeta({
       }}
       additionalMetaTags={[
         {
-          name: 'twitter:image',
+          property: 'og:image',
           content: imageWithTimestamp,
         },
         {
-          name: 'twitter:title',
-          content: title,
+          property: 'og:image:width',
+          content: '1200',
         },
         {
-          name: 'twitter:description',
-          content: description,
+          property: 'og:image:height',
+          content: '630',
         },
         {
           property: 'og:updated_time',
           content: currentTime,
-        },
-        {
-          name: 'robots',
-          content: 'max-image-preview:large',
         }
       ]}
     />
