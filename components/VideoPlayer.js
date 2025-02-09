@@ -72,14 +72,22 @@ const VideoPlayer = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
   const [hasTrackedView, setHasTrackedView] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   // Video event handlers
   const handleCanPlay = useCallback(() => {
     setCanPlay(true);
+    setIsBuffering(false);
   }, []);
 
+  const handleWaiting = useCallback(() => {
+    if (isPlaying && !isSeeking) {
+      setIsBuffering(true);
+    }
+  }, [isPlaying, isSeeking]);
+
   const handleError = useCallback((e) => {
-    console.error('Video error:', e);
     setError('Failed to load video');
     setCanPlay(false);
   }, []);
@@ -373,9 +381,8 @@ const VideoPlayer = ({
                 provider.setMuted?.(false);
               }
             }}
-            onCanPlay={() => {
-              handleCanPlay();
-            }}
+            onCanPlay={handleCanPlay}
+            onWaiting={handleWaiting}
             onPlay={() => {
               setIsPlaying(true);
               setHasStartedPlaying(true);
@@ -383,15 +390,26 @@ const VideoPlayer = ({
             }}
             onPause={() => {
               setIsPlaying(false);
+              setIsBuffering(false);
               if (currentPlayingId === clip.id) {
                 setCurrentPlayingId(null);
               }
+            }}
+            onProgress={() => {
+              setIsBuffering(false);
             }}
             onEnded={() => {
               setIsPlaying(false);
               if (currentPlayingId === clip.id) {
                 setCurrentPlayingId(null);
               }
+            }}
+            onSeeking={() => {
+              setIsSeeking(true);
+            }}
+            onSeeked={() => {
+              setIsSeeking(false);
+              setIsBuffering(false);
             }}
             onError={handleError}
           >
@@ -425,7 +443,7 @@ const VideoPlayer = ({
               smallLayoutWhen={({ width }) => width < 576}
             />
 
-            {!canPlay && !error && (
+            {isPlaying && isBuffering && !isSeeking && !error && (
               <div className={styles.bufferingOverlay}>
                 <div className={styles.bufferingSpinner} />
               </div>
@@ -451,10 +469,11 @@ const VideoPlayer = ({
       <DeleteClipModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={onClipDelete}
+        onConfirm={() => {
+          onClipDelete?.();
+          setShowDeleteModal(false);
+        }}
       />
-
-      {console.log('Likes data being passed to modal:', likesList)}
 
       <LikesModal
         isOpen={showLikesModal}

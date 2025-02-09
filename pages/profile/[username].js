@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -110,6 +110,7 @@ const ProfilePage = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [playingVideoId, setPlayingVideoId] = useState(null);
   
+  
   const isOwner = user?.username?.toLowerCase() === userData?.username?.toLowerCase();
   
   const { 
@@ -129,8 +130,29 @@ const ProfilePage = ({
     );
   };
 
-  const handleClipDelete = (clipId) => {
-    setClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
+  const handleClipDelete = async (clipId) => {
+    try {
+      // Delete the clip from Supabase
+      const { error } = await supabase
+        .from('clips')
+        .delete()
+        .eq('id', clipId);
+
+      if (error) throw error;
+
+      // Update the UI by removing the deleted clip
+      setClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
+      
+      // Update the clip count in the profile
+      if (updateClipCount) {
+        updateClipCount(clipId, 'total', -1);
+      }
+    } catch (error) {
+      // Handle error silently in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting clip:', error);
+      }
+    }
   };
 
   const handlePlay = (clipId) => {
@@ -233,7 +255,7 @@ const ProfilePage = ({
                     }
                     isOwner={isOwner}
                     onClipUpdate={handleClipUpdate}
-                    onClipDelete={handleClipDelete}
+                    onClipDelete={() => handleClipDelete(clip.id)}
                   />
                 </div>
               ))}

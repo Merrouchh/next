@@ -118,7 +118,7 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
           if (error) throw error;
           setLiked(!!data);
         } catch (error) {
-          console.error('Error checking like status:', error);
+          // Remove this line
         }
       }
     };
