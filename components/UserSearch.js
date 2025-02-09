@@ -54,12 +54,11 @@ const UserSearch = () => {
     setSearchQuery('');
     setShowResults(false);
     
-    // Navigate to the user's profile
-    // Use replace instead of push to avoid adding to history
-    // and shallow: false to ensure full data refresh
-    await router.replace(`/profile/${selectedUsername}`, undefined, { 
-      shallow: false 
-    });
+    // First navigate to the new URL
+    await router.push(`/profile/${selectedUsername}`);
+    
+    // Then force a complete page refresh
+    window.location.reload();
   };
 
   const handleInputChange = (e) => {
