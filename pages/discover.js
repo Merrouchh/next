@@ -279,14 +279,14 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     };
   }, [clips]);
 
-  // Function to load more clips
-  const loadMoreClips = async () => {
+  // Wrap loadMoreClips in useCallback
+  const loadMoreClips = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
 
     setIsLoadingMore(true);
     try {
-      const from = page * 4; // Changed from 50 to 4
-      const to = from + 3; // Changed to load 4 items
+      const from = page * 4;
+      const to = from + 3;
 
       const { data: newClips, error } = await supabase
         .from('clips')
@@ -299,13 +299,12 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
 
       if (newClips?.length) {
         setClips(prevClips => {
-          // Filter out duplicates
           const newClipsMap = new Map(newClips.map(clip => [clip.id, clip]));
           const existingClips = prevClips.filter(clip => !newClipsMap.has(clip.id));
           return [...existingClips, ...newClips];
         });
         setPage(p => p + 1);
-        setHasMore(newClips.length === 4); // Changed to 4
+        setHasMore(newClips.length === 4);
       } else {
         setHasMore(false);
       }
@@ -314,9 +313,9 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [isLoadingMore, hasMore, page, supabase, setClips]);
 
-  // Intersection Observer for infinite scroll
+  // Now the useEffect dependency is stable
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -332,7 +331,7 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     }
 
     return () => observer.disconnect();
-  }, [page, hasMore, isLoadingMore, loadMoreClips]);
+  }, [loadMoreClips]);
 
   // Loading content component
   const LoadingContent = () => (
