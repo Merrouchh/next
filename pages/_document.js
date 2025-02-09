@@ -14,7 +14,6 @@ class MyDocument extends Document {
       const initialProps = await Document.getInitialProps(ctx);
       return { ...initialProps };
     } catch (error) {
-      console.error('Error in getInitialProps:', error);
       return { ...await Document.getInitialProps(ctx) };
     }
   }
@@ -24,7 +23,7 @@ class MyDocument extends Document {
     try {
       metaData = this.props.__NEXT_DATA__.props.pageProps?.metaData || {};
     } catch (error) {
-      console.error('Error accessing meta data:', error);
+      // Silently fail and use defaults
     }
 
     return (
