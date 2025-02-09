@@ -40,8 +40,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Service Worker
-public/sw.js
-public/manifest.json
+
 public/workbox-*.js
 
 # Go binaries
