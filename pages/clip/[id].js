@@ -17,9 +17,10 @@ export async function getServerSideProps({ req, res, params }) {
   const { id } = params;
 
   try {
+    // Get session to check ownership
     const { data: { session } } = await supabase.auth.getSession();
-    
-    // Get clip data without users relation since we don't have avatars yet
+
+    // Get clip data
     const { data: clip, error } = await supabase
       .from('clips')
       .select('*')
@@ -30,126 +31,141 @@ export async function getServerSideProps({ req, res, params }) {
       return { notFound: true };
     }
 
-    const isOwner = session?.user?.email === clip.email;
+    // Get user's username from session if logged in
+    let username = null;
+    if (session?.user?.id) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', session.user.id)
+        .single();
+      username = userData?.username;
+    }
+
+    // Check ownership based on username
+    const isOwner = username?.toLowerCase() === clip.username?.toLowerCase();
     const isPrivate = clip.visibility === 'private';
 
-    // Don't show private clips to non-owners
-    if (isPrivate && !isOwner) {
+    // Allow access if clip is public OR if user is the owner
+    if (!isPrivate || isOwner) {
+      // Generate video and thumbnail URLs
+      const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+      const thumbnailUrl = clip.thumbnail_path
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
+        : 'https://merrouchgaming.com/top.jpg';
+
+      // Generate rich description
+      const description = `Watch this amazing ${clip.game} gameplay clip by ${clip.username}. ${
+        clip.description || ''
+      } Shared on Merrouch Gaming with ${clip.views_count || 0} views and ${
+        clip.likes_count || 0
+      } likes.`;
+
+      // Prepare meta data with rich snippets
+      const metaData = {
+        title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
+        description,
+        image: thumbnailUrl,
+        url: `https://merrouchgaming.com/clip/${id}`,
+        type: 'video.other',
+        structuredData: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "VideoObject",
+          "name": clip.title,
+          "description": description,
+          "thumbnailUrl": thumbnailUrl,
+          "uploadDate": clip.uploaded_at,
+          "contentUrl": videoUrl,
+          "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
+          "interactionStatistic": [
+            {
+              "@type": "InteractionCounter",
+              "interactionType": "http://schema.org/WatchAction",
+              "userInteractionCount": clip.views_count || 0
+            },
+            {
+              "@type": "InteractionCounter",
+              "interactionType": "http://schema.org/LikeAction",
+              "userInteractionCount": clip.likes_count || 0
+            }
+          ],
+          "author": {
+            "@type": "Person",
+            "name": clip.username,
+            "url": `https://merrouchgaming.com/profile/${clip.username}`
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Merrouch Gaming",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://merrouchgaming.com/logo.png"
+            }
+          },
+          "genre": clip.game,
+          "keywords": [clip.game, "gaming", "gameplay", "highlights", clip.username].join(",")
+        }),
+        openGraph: {
+          title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
+          description,
+          url: `https://merrouchgaming.com/clip/${id}`,
+          type: 'video.other',
+          video: {
+            url: videoUrl,
+            type: 'video/mp4',
+            width: 1280,
+            height: 720
+          },
+          images: [
+            {
+              url: thumbnailUrl,
+              width: 1280,
+              height: 720,
+              alt: `${clip.title} - ${clip.game} gameplay by ${clip.username}`
+            }
+          ],
+          site_name: 'Merrouch Gaming'
+        },
+        twitter: {
+          card: 'player',
+          site: '@merrouchgaming',
+          title: `${clip.title} by ${clip.username}`,
+          description,
+          image: thumbnailUrl,
+          player: {
+            url: `https://merrouchgaming.com/clip/${id}`,
+            width: 1280,
+            height: 720
+          }
+        }
+      };
+
       return {
         props: {
-          isPrivate: true,
-          isOwnClip: false,
-          metaData: {
-            title: 'Private Clip | Merrouch Gaming',
-            description: 'This content is private',
-            type: 'video.other',
-            image: 'https://merrouchgaming.com/top.jpg'
-          }
+          initialSession: session,
+          clip,
+          metaData,
+          isOwnClip: !!isOwner,
+          isPrivate: !!isPrivate
         }
       };
     }
 
-    // Prepare video URL and thumbnail
-    const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-    const thumbnailUrl = clip.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
-      : 'https://merrouchgaming.com/top.jpg';
-
-    // Generate rich description
-    const description = `Watch this amazing ${clip.game} gameplay clip by ${clip.username}. ${
-      clip.description || ''
-    } Shared on Merrouch Gaming with ${clip.views_count || 0} views and ${
-      clip.likes_count || 0
-    } likes.`;
-
-    // Prepare meta data with rich snippets
-    const metaData = {
-      title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
-      description,
-      image: thumbnailUrl,
-      url: `https://merrouchgaming.com/clip/${id}`,
-      type: 'video.other',
-      structuredData: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "VideoObject",
-        "name": clip.title,
-        "description": description,
-        "thumbnailUrl": thumbnailUrl,
-        "uploadDate": clip.uploaded_at,
-        "contentUrl": videoUrl,
-        "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
-        "interactionStatistic": [
-          {
-            "@type": "InteractionCounter",
-            "interactionType": "http://schema.org/WatchAction",
-            "userInteractionCount": clip.views_count || 0
-          },
-          {
-            "@type": "InteractionCounter",
-            "interactionType": "http://schema.org/LikeAction",
-            "userInteractionCount": clip.likes_count || 0
-          }
-        ],
-        "author": {
-          "@type": "Person",
-          "name": clip.username,
-          "url": `https://merrouchgaming.com/profile/${clip.username}`
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Merrouch Gaming",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://merrouchgaming.com/logo.png"
-          }
-        },
-        "genre": clip.game,
-        "keywords": [clip.game, "gaming", "gameplay", "highlights", clip.username].join(",")
-      }),
-      openGraph: {
-        title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
-        description,
-        url: `https://merrouchgaming.com/clip/${id}`,
-        type: 'video.other',
-        video: {
-          url: videoUrl,
-          type: 'video/mp4',
-          width: 1280,
-          height: 720
-        },
-        images: [
-          {
-            url: thumbnailUrl,
-            width: 1280,
-            height: 720,
-            alt: `${clip.title} - ${clip.game} gameplay by ${clip.username}`
-          }
-        ],
-        site_name: 'Merrouch Gaming'
-      },
-      twitter: {
-        card: 'player',
-        site: '@merrouchgaming',
-        title: `${clip.title} by ${clip.username}`,
-        description,
-        image: thumbnailUrl,
-        player: {
-          url: `https://merrouchgaming.com/clip/${id}`,
-          width: 1280,
-          height: 720
+    // If clip is private and user is not owner, return private clip page
+    return {
+      props: {
+        isPrivate: true,
+        isOwnClip: false,
+        metaData: {
+          title: 'Private Clip | Merrouch Gaming',
+          description: 'This content is private',
+          type: 'video.other',
+          image: 'https://merrouchgaming.com/top.jpg',
+          url: `https://merrouchgaming.com/clip/${id}`
         }
       }
     };
 
-    return {
-      props: {
-        initialSession: session,
-        clip,
-        metaData,
-        isOwnClip: !!isOwner,
-        isPrivate: !!isPrivate
-      }
-    };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
     return { notFound: true };
@@ -171,19 +187,17 @@ const ClipPage = ({ clip, metaData, isOwnClip, isPrivate }) => {
   }, [isOwnClip, isPrivate, user, clip]);
 
   const handleClipDelete = async () => {
-    // Add security check before deletion
     if (!isLoggedIn || !isOwnClip) {
       router.push('/login');
       return;
     }
 
     try {
-      // Delete the clip from Supabase
       const { error } = await supabase
         .from('clips')
         .delete()
         .eq('id', clip.id)
-        .eq('username', user.username);
+        .eq('username', clip.username);
 
       if (error) throw error;
 
@@ -191,6 +205,27 @@ const ClipPage = ({ clip, metaData, isOwnClip, isPrivate }) => {
     } catch (error) {
       console.error('Error deleting clip:', error);
       alert('Failed to delete clip');
+    }
+  };
+
+  // Add handler for visibility updates
+  const handleClipUpdate = async (updatedClip) => {
+    if (!isLoggedIn || !isOwnClip) return;
+
+    try {
+      const { error } = await supabase
+        .from('clips')
+        .update({ visibility: updatedClip.visibility })
+        .eq('id', updatedClip.id)
+        .eq('username', clip.username);
+
+      if (error) throw error;
+
+      // Update local state
+      router.replace(router.asPath); // Refresh the page to get updated data
+    } catch (error) {
+      console.error('Error updating clip:', error);
+      alert('Failed to update clip visibility');
     }
   };
 
@@ -260,8 +295,17 @@ const ClipPage = ({ clip, metaData, isOwnClip, isPrivate }) => {
             supabase={supabase}
             isOwner={isOwnClip}
             onClipDelete={handleClipDelete}
+            onClipUpdate={handleClipUpdate}
           />
         </div>
+        <style jsx>{`
+          .clip-container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1rem;
+          }
+        `}</style>
       </main>
     </ProtectedPageWrapper>
   );

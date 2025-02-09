@@ -248,13 +248,33 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     }
   }, [isPlayerReady, playingVideoId]);
 
-  const handleClipUpdate = useCallback((updatedClip) => {
-    setClips(prevClips => 
-      prevClips.map(clip => 
-        clip.id === updatedClip.id ? updatedClip : clip
-      )
-    );
-  }, [setClips]);
+  // Add clip update handler
+  const handleClipUpdate = useCallback(async (updatedClip) => {
+    if (!user || user.username?.toLowerCase() !== updatedClip.username?.toLowerCase()) return;
+
+    try {
+      const { error } = await supabase
+        .from('clips')
+        .update({ visibility: updatedClip.visibility })
+        .eq('id', updatedClip.id)
+        .eq('username', updatedClip.username);
+
+      if (error) throw error;
+
+      // Update local state
+      setClips(prevClips => 
+        prevClips.map(clip => 
+          clip.id === updatedClip.id 
+            ? { ...clip, visibility: updatedClip.visibility }
+            : clip
+        )
+      );
+
+    } catch (error) {
+      console.error('Error updating clip:', error);
+      alert('Failed to update clip visibility');
+    }
+  }, [user, supabase]);
 
   // Add this effect to handle initial loading
   useEffect(() => {
@@ -333,6 +353,29 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     return () => observer.disconnect();
   }, [loadMoreClips]);
 
+  // Add handleClipDelete function
+  const handleClipDelete = useCallback(async (clipId, clipUsername) => {
+    // Check if user is the owner of the clip
+    if (!user || user.username?.toLowerCase() !== clipUsername?.toLowerCase()) return;
+
+    try {
+      const { error } = await supabase
+        .from('clips')
+        .delete()
+        .eq('id', clipId)
+        .eq('username', clipUsername);
+
+      if (error) throw error;
+
+      // Update local state to remove the deleted clip
+      setClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
+
+    } catch (error) {
+      console.error('Error deleting clip:', error);
+      alert('Failed to delete clip');
+    }
+  }, [user, supabase]);
+
   // Loading content component
   const LoadingContent = () => (
     <main className={styles.discoverMain}>
@@ -380,8 +423,9 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
                     onLikeUpdate={(clipId, newCount) => 
                       updateClipCount(clipId, 'likes_count', newCount)
                     }
-                    isOwner={user && clip.user_id === user.id}
+                    isOwner={user && user.username?.toLowerCase() === clip.username?.toLowerCase()}
                     onClipUpdate={handleClipUpdate}
+                    onClipDelete={() => handleClipDelete(clip.id, clip.username)}
                     playsInline
                   />
                 </div>

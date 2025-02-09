@@ -158,6 +158,7 @@ const ProfilePage = ({
   const [activeTab, setActiveTab] = useState('clips');
   const [searchQuery, setSearchQuery] = useState('');
   const [playingVideoId, setPlayingVideoId] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   
   const isOwner = user?.username?.toLowerCase() === userData?.username?.toLowerCase();
@@ -204,13 +205,16 @@ const ProfilePage = ({
     }
   }, [isOwner, supabase, userData.username, setClips]); // Add setClips to dependencies
 
-  const handleClipDelete = async (clipId) => {
+  const handleClipDelete = useCallback(async (clipId) => {
+    if (!isOwner) return;
+
     try {
       // Delete the clip from Supabase
       const { error } = await supabase
         .from('clips')
         .delete()
-        .eq('id', clipId);
+        .eq('id', clipId)
+        .eq('username', userData.username);
 
       if (error) throw error;
 
@@ -222,18 +226,24 @@ const ProfilePage = ({
         updateClipCount(clipId, 'total', -1);
       }
     } catch (error) {
-      // Handle error silently in production
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Error deleting clip:', error);
-      }
+      console.error('Error deleting clip:', error);
+      alert('Failed to delete clip');
     }
-  };
+  }, [isOwner, supabase, userData.username, updateClipCount, setClips]);
 
   const handlePlay = (clipId) => {
     if (playingVideoId !== clipId) {
       setPlayingVideoId(clipId);
     }
   };
+
+  const handlePlayerInit = useCallback((clipId, playerInstance) => {
+    // Add any player initialization logic here if needed
+  }, []);
+
+  const handlePlayerReady = useCallback(() => {
+    // Add any player ready logic here if needed
+  }, []);
 
   // Handle the fallback state
   if (router.isFallback) {
@@ -286,6 +296,12 @@ const ProfilePage = ({
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
       <main className={styles.profileMain}>
+        <UserProfileSection 
+          username={userData.username} 
+          isOwner={isOwner}
+          user={user}
+          supabase={supabase}
+        />
         <UserSearch 
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -293,53 +309,40 @@ const ProfilePage = ({
           onSearchChange={setSearchQuery}
           username={userData.username}
         />
-
-        <UserProfileSection 
-          username={userData.username} 
-          isOwner={isOwner}
-          user={user}
-          supabase={supabase}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-
         <div className={styles.clipsGrid}>
-          {clips.length === 0 ? (
-            <div className={styles.noClips}>
-              <p>{searchQuery ? 'No clips found matching your search' : 'No clips available'}</p>
+          {clips.map(clip => (
+            <div key={clip.id} className={styles.clipCard}>
+              <VideoPlayer
+                clip={clip}
+                user={user}
+                supabase={supabase}
+                light={true}
+                playing={playingVideoId === clip.id}
+                onPlay={() => handlePlay(clip.id)}
+                onPlayerInit={(player) => handlePlayerInit(clip.id, player)}
+                onReady={handlePlayerReady}
+                onViewCountUpdate={(clipId, newCount) => 
+                  updateClipCount(clipId, 'views_count', newCount)
+                }
+                onLikeUpdate={(clipId, newCount) => 
+                  updateClipCount(clipId, 'likes_count', newCount)
+                }
+                isOwner={isOwner}
+                onClipUpdate={handleClipUpdate}
+                onClipDelete={() => handleClipDelete(clip.id)}
+                playsInline
+              />
             </div>
-          ) : (
-            <>
-              {clips.map((clip) => clip && (
-                <div key={clip.id} className={styles.clipWrapper}>
-                  <VideoPlayer
-                    clip={clip}
-                    user={user}
-                    supabase={supabase}
-                    light={true}
-                    playing={playingVideoId === clip.id}
-                    onPlay={() => handlePlay(clip.id)}
-                    onViewCountUpdate={(clipId, newCount) => 
-                      updateClipCount(clipId, 'views_count', newCount)
-                    }
-                    onLikeUpdate={(clipId, newCount) => 
-                      updateClipCount(clipId, 'likes_count', newCount)
-                    }
-                    isOwner={isOwner}
-                    onClipUpdate={handleClipUpdate}
-                    onClipDelete={() => handleClipDelete(clip.id)}
-                  />
-                </div>
-              ))}
-              
-              {hasMore && (
-                <div ref={loaderRef} className={styles.loader}>
+          ))}
+          {hasMore && (
+            <div ref={loaderRef} className={styles.loaderContainer}>
+              {isLoadingMore ? (
+                <div className={styles.loader}>
                   <div className={styles.spinner} />
+                  <p>Loading more clips...</p>
                 </div>
-              )}
-            </>
+              ) : null}
+            </div>
           )}
         </div>
       </main>

@@ -1,6 +1,6 @@
 .profileMain {
   padding: 0 2rem;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   min-height: calc(100vh - var(--desktop-padding));
   width: 100%;
@@ -121,23 +121,26 @@
 
 .clipsGrid {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  padding: 2rem 0;
   width: 100%;
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 1rem;
 }
 
 .clipCard {
-  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .clipCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
 .clipContainer {
@@ -245,79 +248,31 @@
 }
 
 /* Responsive Adjustments */
-@media (max-width: 768px) {
-  .profileMain {
-    padding: 0 1rem;
-    width: 100%;
-  }
-
-  .profileTop {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .profileInfo {
-    flex-direction: column;
-    text-align: center;
-    width: 100%;
-  }
-
-  .profileDetails {
-    align-items: center;
-    width: 100%;
-  }
-
-  .profileDetails h1 {
-    font-size: 1.5rem;
-  }
-
-  .uploadButton {
-    width: 100%;
-    margin-top: 1rem;
-  }
-
+@media (max-width: 1400px) {
   .clipsGrid {
-    padding: 1rem;
-    width: 100%;
-  }
-
-  .clipWrapper {
-    width: 100%;
-    margin: 0 auto;
-    max-width: 500px;
-  }
-
-  .searchContainer {
-    padding: 0.5rem 15px;
-    margin-bottom: 1.5rem;
-  }
-
-  .noClips {
-    padding: 2rem 1rem;
-  }
-
-  .loader {
-    padding: 2rem 1rem;
-    grid-column: 1;
-  }
-
-  .clipsGrid:last-child {
-    margin-bottom: 60px; /* Add space for bottom nav */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
   }
 }
 
-/* Add styles for very small screens */
+@media (max-width: 900px) {
+  .clipsGrid {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1.25rem;
+  }
+  
+  .profileMain {
+    padding: 1rem;
+  }
+}
+
 @media (max-width: 480px) {
   .profileMain {
-    padding: 0.5rem 0 0;
+    padding: 0.75rem;
   }
-
+  
   .clipsGrid {
-    padding: 0.5rem;
-  }
-
-  .clipWrapper {
-    max-width: 100%;
+    gap: 1rem;
   }
 }
 
@@ -388,19 +343,17 @@
 
 .loader {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 20px;
-  width: 100%;
-  grid-column: 1 / -1;
+  gap: 1rem;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(230, 207, 0, 0.2);
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #FFD700;
   border-radius: 50%;
-  border-top-color: #e6cf00;
   animation: spin 1s linear infinite;
 }
 
@@ -733,5 +686,20 @@
 @media (min-width: 769px) {
   .profileMain {
     padding-bottom: 1rem; /* Normal padding for desktop */
+  }
+}
+
+.loaderContainer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .clipsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
   }
 } 
