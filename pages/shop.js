@@ -138,8 +138,8 @@ const Shop = () => {
   return (
     <>
       <DynamicMeta
-        title="Gaming Shop | Merrouch Gaming Center"
-        description="Check out the prices and payment methods at Merrouch Gaming Center in Tangier."
+        title="Gaming Prices | Merrouch Gaming Center"
+        description="Check our competitive gaming PC prices. Normal PC from 8 DH/30min and VIP PC (RTX 3070) from 10 DH/30min. Best value gaming in Tangier."
         image="https://merrouchgaming.com/shop.jpg"
         url="https://merrouchgaming.com/shop"
         type="website"

@@ -181,22 +181,21 @@ const VideoPlayer = ({
   }, [clip.id]);
 
   const handleVisibilityToggle = useCallback(async () => {
+    if (!isOwner) return;
+    
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('clips')
-        .update({ visibility: clip.visibility === 'public' ? 'private' : 'public' })
-        .eq('id', clip.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      onClipUpdate?.(data);
+      const newVisibility = clip.visibility === 'public' ? 'private' : 'public';
+      
+      // Call the update handler with the updated clip
+      onClipUpdate?.({
+        ...clip,
+        visibility: newVisibility
+      });
+      
     } catch (error) {
-      console.error('Error updating clip visibility:', error);
-      alert('Failed to update clip visibility');
+      console.error('Error toggling visibility:', error);
     }
-  }, [clip.id, clip.visibility, onClipUpdate]);
+  }, [clip, isOwner, onClipUpdate]);
 
   const handleLikeClick = useCallback(async () => {
     if (!user) return;

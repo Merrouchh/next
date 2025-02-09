@@ -12,16 +12,20 @@ import { createClient as createServerClient } from '../utils/supabase/server-pro
 export async function getServerSideProps({ req, res }) {
   res.setHeader(
     'Cache-Control',
-    'public, max-age=0, s-maxage=0, must-revalidate'
+    'public, s-maxage=300, stale-while-revalidate=60'
   );
 
   const supabase = createServerClient({ req, res });
+  const PAGE_SIZE = 4;
 
   try {
-    // Check session server-side
-    const { data: { session } } = await supabase.auth.getSession();
+    // First get total count of public clips
+    const { count } = await supabase
+      .from('clips')
+      .select('id', { count: 'exact', head: true })
+      .eq('visibility', 'public');
 
-    // Get latest clips for initial render and meta preview
+    // Get latest public clips for SEO and initial render
     const { data: latestClips, error } = await supabase
       .from('clips')
       .select(`
@@ -39,25 +43,74 @@ export async function getServerSideProps({ req, res }) {
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
-      .limit(12);
+      .limit(PAGE_SIZE);
 
     if (error) throw error;
 
-    // Get a featured clip for the preview image
+    // Get featured clip for meta data
     const featuredClip = latestClips?.[0];
     const timestamp = Date.now();
     const previewImage = featuredClip?.thumbnail_path
       ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}?t=${timestamp}`
       : 'https://merrouchgaming.com/top.jpg';
 
+    // Generate rich description
     const description = featuredClip
       ? `Watch the latest gaming highlights at Merrouch Gaming! Featured: ${featuredClip.title} - an amazing ${featuredClip.game} clip by ${featuredClip.username}. Join our gaming community and share your best moments.`
       : 'Explore amazing gaming moments from the Merrouch Gaming community. Watch, share, and discover gaming highlights from your favorite games.';
 
+    // Generate structured data for clips list
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": latestClips.map((clip, index) => ({
+        "@type": "VideoObject",
+        "position": index + 1,
+        "name": clip.title,
+        "description": `${clip.game} gameplay clip by ${clip.username}`,
+        "thumbnailUrl": `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`,
+        "uploadDate": clip.uploaded_at,
+        "contentUrl": `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`,
+        "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
+        "author": {
+          "@type": "Person",
+          "name": clip.username,
+          "url": `https://merrouchgaming.com/profile/${clip.username}`
+        },
+        "interactionStatistic": [
+          {
+            "@type": "InteractionCounter",
+            "interactionType": "http://schema.org/WatchAction",
+            "userInteractionCount": clip.views_count || 0
+          },
+          {
+            "@type": "InteractionCounter",
+            "interactionType": "http://schema.org/LikeAction",
+            "userInteractionCount": clip.likes_count || 0
+          }
+        ]
+      }))
+    };
+
+    // Add website structured data
+    const websiteStructuredData = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Merrouch Gaming",
+      "url": "https://merrouchgaming.com",
+      "description": "Gaming community and clip sharing platform",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://merrouchgaming.com/discover?search={search_term}",
+        "query-input": "required name=search_term"
+      }
+    };
+
     return {
       props: {
-        initialSession: session,
         initialClips: latestClips || [],
+        totalClips: count || 0,
+        hasMore: (latestClips?.length || 0) < (count || 0),
         metaData: {
           title: 'Discover Gaming Clips | Merrouch Gaming',
           description,
@@ -73,7 +126,7 @@ export async function getServerSideProps({ req, res }) {
                 width: 1200,
                 height: 630,
                 alt: featuredClip ? `${featuredClip.game} gameplay by ${featuredClip.username}` : 'Merrouch Gaming Clips',
-              },
+              }
             ],
             site_name: 'Merrouch Gaming',
           },
@@ -83,7 +136,8 @@ export async function getServerSideProps({ req, res }) {
             title: 'Discover Gaming Clips | Merrouch Gaming',
             description,
             image: previewImage,
-          }
+          },
+          structuredData: JSON.stringify([structuredData, websiteStructuredData])
         }
       }
     };
@@ -91,8 +145,9 @@ export async function getServerSideProps({ req, res }) {
     console.error('Error in getServerSideProps:', error);
     return {
       props: {
-        initialSession: null,
         initialClips: [],
+        totalClips: 0,
+        hasMore: false,
         error: 'Error loading clips',
         metaData: {
           title: 'Discover | Merrouch Gaming',
@@ -106,22 +161,24 @@ export async function getServerSideProps({ req, res }) {
   }
 }
 
-const Discover = ({ initialClips, metaData }) => {
+const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore }) => {
   const [isTransitioning] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const [playingVideoId, setPlayingVideoId] = useState(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const playerRefs = useRef(new Map());
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const loaderRef = useRef(null);
   
   const { 
     clips, 
     loading: clipsLoading, 
-    hasMore, 
-    loaderRef,
     updateClipCount,
     setClips
-  } = useClipsFeed(supabase, 12, null, false, initialClips);
+  } = useClipsFeed(supabase, 4, null, false, initialClips, totalClips); // Changed to 4
 
   // Reset player state on unmount
   useEffect(() => {
@@ -222,6 +279,61 @@ const Discover = ({ initialClips, metaData }) => {
     };
   }, [clips]);
 
+  // Function to load more clips
+  const loadMoreClips = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const from = page * 4; // Changed from 50 to 4
+      const to = from + 3; // Changed to load 4 items
+
+      const { data: newClips, error } = await supabase
+        .from('clips')
+        .select('*')
+        .eq('visibility', 'public')
+        .order('uploaded_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      if (newClips?.length) {
+        setClips(prevClips => {
+          // Filter out duplicates
+          const newClipsMap = new Map(newClips.map(clip => [clip.id, clip]));
+          const existingClips = prevClips.filter(clip => !newClipsMap.has(clip.id));
+          return [...existingClips, ...newClips];
+        });
+        setPage(p => p + 1);
+        setHasMore(newClips.length === 4); // Changed to 4
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more clips:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreClips();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [page, hasMore, isLoadingMore]);
+
   // Loading content component
   const LoadingContent = () => (
     <main className={styles.discoverMain}>
@@ -238,6 +350,12 @@ const Discover = ({ initialClips, metaData }) => {
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
+      {metaData.structuredData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: metaData.structuredData }}
+        />
+      )}
       {authLoading || (clipsLoading && clips.length === 0) || isTransitioning ? (
         <LoadingContent />
       ) : (
@@ -271,13 +389,25 @@ const Discover = ({ initialClips, metaData }) => {
               );
             })}
 
+            {/* Loading indicator */}
             {hasMore && (
               <div 
-                ref={loaderRef} 
-                className={styles.loader}
-                style={{ height: '20px', margin: '20px 0' }}
+                ref={loaderRef}
+                className={styles.loaderContainer}
               >
-                <div className={styles.spinner} />
+                {isLoadingMore ? (
+                  <div className={styles.loader}>
+                    <div className={styles.spinner} />
+                    <p>Loading more clips...</p>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={loadMoreClips}
+                    className={styles.loadMoreButton}
+                  >
+                    Load More Clips
+                  </button>
+                )}
               </div>
             )}
           </div>

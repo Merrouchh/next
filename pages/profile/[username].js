@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,51 +41,100 @@ export async function getServerSideProps({ req, res, params }) {
       };
     }
 
-    // Get latest clip first to ensure we have the thumbnail
-    const { data: latestClip, error: _clipError } = await supabase
+    // Get user's clips count and latest clip
+    const { data: userClips, count } = await supabase
       .from('clips')
-      .select('thumbnail_path, title')
+      .select('title, game, thumbnail_path, uploaded_at', { count: 'exact' })
       .eq('username', username)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    // Get total clips count
-    const { count } = await supabase
-      .from('clips')
-      .select('id', { count: 'exact', head: true })
-      .eq('username', username)
-      .eq('visibility', 'public');
+    const latestClip = userClips?.[0];
 
-    // Prepare the preview image URL
-    const timestamp = Date.now();
-    const previewImage = latestClip?.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}?t=${timestamp}`
-      : 'https://merrouchgaming.com/top.jpg';
+    // Generate description based on user data
+    const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
+      count ? `${count} clips shared. ` : ''
+    }${latestClip ? `Latest clip: ${latestClip.title} (${latestClip.game})` : ''
+    }Join our gaming community to watch and share your best gaming moments.`;
 
-    // For debugging
-    console.log('Latest Clip:', latestClip);
-    console.log('Preview Image:', previewImage);
+    // Prepare meta data with rich snippets
+    const metaData = {
+      title: `${profileData.username}'s Profile | Merrouch Gaming`,
+      description,
+      image: latestClip?.thumbnail_path 
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
+        : 'https://merrouchgaming.com/top.jpg',
+      url: `https://merrouchgaming.com/profile/${username}`,
+      type: 'profile',
+      structuredData: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+          "@type": "Person",
+          "name": profileData.username,
+          "url": `https://merrouchgaming.com/profile/${profileData.username}`,
+          "description": description,
+          "interactionStatistic": [
+            {
+              "@type": "InteractionCounter",
+              "interactionType": "http://schema.org/CreateAction",
+              "userInteractionCount": count || 0,
+              "name": "Clips Shared"
+            }
+          ],
+          "potentialAction": {
+            "@type": "ViewAction",
+            "target": `https://merrouchgaming.com/profile/${profileData.username}`
+          }
+        },
+        "about": {
+          "@type": "VideoGallery",
+          "name": `${profileData.username}'s Gaming Clips`,
+          "numberOfItems": count || 0,
+          "url": `https://merrouchgaming.com/profile/${profileData.username}`
+        }
+      }),
+      openGraph: {
+        title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+        description,
+        images: [
+          {
+            url: latestClip?.thumbnail_path 
+              ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
+              : 'https://merrouchgaming.com/top.jpg',
+            width: 1200,
+            height: 630,
+            alt: `${profileData.username}'s profile thumbnail`
+          }
+        ],
+        type: 'profile',
+        profile: {
+          username: profileData.username
+        }
+      },
+      twitter: {
+        card: 'summary_large_image',
+        site: '@merrouchgaming',
+        title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+        description,
+        image: latestClip?.thumbnail_path 
+          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
+          : 'https://merrouchgaming.com/top.jpg'
+      }
+    };
 
     return {
       props: {
-        initialSession: session, // Pass session to client
+        initialSession: session,
         profile: profileData,
         isOwnProfile: session?.user?.email === profileData.email,
         userData: {
           ...profileData,
-          clipsCount: count || 0
+          clipsCount: count || 0,
+          latestClip: latestClip || null
         },
-        metaData: {
-          title: `${profileData.username}'s Profile | Merrouch Gaming`,
-          description: `Check out ${profileData.username}'s gaming clips at Merrouch Gaming. ${count || 0} clips shared.${
-            latestClip?.title ? ` Latest: ${latestClip.title}` : ''
-          }`,
-          image: previewImage,
-          url: `https://merrouchgaming.com/profile/${username}`,
-          type: 'profile'
-        }
+        metaData
       }
     };
   } catch (error) {
@@ -122,13 +171,42 @@ const ProfilePage = ({
     setClips
   } = useClipsFeed(supabase, 6, userData.username, isOwner);
 
-  const handleClipUpdate = (updatedClip) => {
-    setClips(prevClips => 
-      prevClips.map(clip => 
-        clip.id === updatedClip.id ? updatedClip : clip
-      )
-    );
-  };
+  const handleClipUpdate = useCallback(async (updatedClip) => {
+    if (!isOwner) return; // Only allow owner to update
+
+    try {
+      // Update clip in Supabase
+      const { error } = await supabase
+        .from('clips')
+        .update({
+          visibility: updatedClip.visibility
+        })
+        .eq('id', updatedClip.id)
+        .eq('username', userData.username); // Use userData.username for consistency
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setClips(prevClips => 
+        prevClips.map(clip => 
+          clip.id === updatedClip.id 
+            ? { ...clip, visibility: updatedClip.visibility } 
+            : clip
+        )
+      );
+
+      // Show success message
+      console.log('Clip updated successfully:', updatedClip.visibility);
+
+    } catch (error) {
+      console.error('Error updating clip:', error);
+      // Revert local state if update failed
+      setClips(prevClips => [...prevClips]); // Reset to previous state
+      alert('Failed to update clip visibility');
+    }
+  }, [isOwner, supabase, userData.username]); // Use userData.username in dependencies
 
   const handleClipDelete = async (clipId) => {
     try {

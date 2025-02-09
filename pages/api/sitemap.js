@@ -8,20 +8,27 @@ export default async function handler(req, res) {
       process.env.SUPABASE_SERVICE_ROLE_KEY // Use service role key for admin access
     );
 
-    // Get all public clips
+    // Get only public clips with better ordering
     const { data: clips, error: clipsError } = await supabase
       .from('clips')
-      .select('id')
-      .eq('visibility', 'public');
+      .select('id, uploaded_at')
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false })
+      .limit(1000); // Limit to latest 1000 clips
 
     if (clipsError) throw clipsError;
 
-    // Get all users with public clips
+    // Get only users who have public clips
     const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('username');
+      .from('clips')
+      .select('username')
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false });
 
     if (usersError) throw usersError;
+
+    // Get unique usernames
+    const uniqueUsers = [...new Set(users.map(user => user.username))];
 
     // Get current date for lastmod
     const currentDate = new Date().toISOString();
@@ -37,32 +44,32 @@ export default async function handler(req, res) {
         <priority>1.0</priority>
       </url>
       <url>
-        <loc>https://merrouchgaming.com/discover</loc>
-        <lastmod>${currentDate}</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.9</priority>
-      </url>
-      <url>
         <loc>https://merrouchgaming.com/shop</loc>
         <lastmod>${currentDate}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
       </url>
+      <url>
+        <loc>https://merrouchgaming.com/avcomputers</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>hourly</changefreq>
+        <priority>0.8</priority>
+      </url>
 
-      <!-- Dynamic Clip Pages -->
+      <!-- Public Clips -->
       ${clips?.map(clip => `
         <url>
           <loc>https://merrouchgaming.com/clip/${clip.id}</loc>
-          <lastmod>${currentDate}</lastmod>
+          <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
           <changefreq>weekly</changefreq>
           <priority>0.7</priority>
         </url>
       `).join('')}
 
-      <!-- User Profile Pages -->
-      ${users?.map(user => `
+      <!-- Users with Public Clips -->
+      ${uniqueUsers?.map(username => `
         <url>
-          <loc>https://merrouchgaming.com/profile/${user.username}</loc>
+          <loc>https://merrouchgaming.com/profile/${username}</loc>
           <lastmod>${currentDate}</lastmod>
           <changefreq>daily</changefreq>
           <priority>0.6</priority>

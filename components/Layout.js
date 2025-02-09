@@ -21,7 +21,8 @@ const Layout = ({ children }) => {
       '/avcomputers', 
       '/dashboard', 
       '/shop', 
-      '/upload', 
+      '/upload',
+      '/discover',
       '/topusers'
     ];
     

@@ -342,3 +342,60 @@ export default function Home() {
     </ProtectedPageWrapper>
   );
 }
+
+export async function getServerSideProps() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Merrouch Gaming Center",
+    "image": "https://merrouchgaming.com/top.jpg",
+    "description": "Professional Gaming Center in Tangier with RTX 3070 PCs and 200Mbps internet. The best gaming café experience.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Avenue Abi Elhassan Chadili",
+      "addressLocality": "Tangier",
+      "addressCountry": "MA"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "35.7686846",
+      "longitude": "-5.8101584"
+    },
+    "url": "https://merrouchgaming.com",
+    "telephone": "+212531098983",
+    "priceRange": "$$",
+    "openingHours": "Mo-Su 10:00-00:00",
+    "sameAs": [
+      "https://instagram.com/merrouchgaming"
+    ],
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Normal PC Gaming",
+        "price": "15",
+        "priceCurrency": "MAD",
+        "description": "I5 10400F, 2060, 144Hz Gaming Setup"
+      },
+      {
+        "@type": "Offer",
+        "name": "VIP PC Gaming",
+        "price": "18",
+        "priceCurrency": "MAD",
+        "description": "Ryzen 7 7700, RTX 3070, 180Hz Gaming Setup"
+      }
+    ]
+  };
+
+  return {
+    props: {
+      metaData: {
+        title: "Cyber Merrouch Gaming Center | Best Gaming Center in Tangier",
+        description: "Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: "https://merrouchgaming.com",
+        type: "website",
+        structuredData: JSON.stringify(structuredData)
+      }
+    }
+  };
+}
