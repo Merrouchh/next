@@ -24,6 +24,14 @@ html, body {
   font-family: 'Rajdhani', sans-serif;
   line-height: 1.6;
   transition: opacity 0.3s ease;
+  scroll-behavior: instant;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  min-height: 100vh;
+  /* For mobile browsers */
+  min-height: -webkit-fill-available;
 }
 
 /* Typography */

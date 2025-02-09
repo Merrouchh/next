@@ -24,21 +24,49 @@ function MyApp({ Component, pageProps }) {
   useEffect(() => {
     // Function to handle scroll to top
     const handleScrollTop = () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'instant'
-      });
+      // Try multiple scroll methods for better cross-browser/device support
+      try {
+        // For modern browsers
+        window.scrollTo({
+          top: 0,
+          behavior: 'instant'
+        });
+        
+        // Fallback for iOS Safari
+        document.documentElement.scrollTo({
+          top: 0,
+          behavior: 'instant'
+        });
+        
+        // Additional fallback
+        document.body.scrollTo({
+          top: 0,
+          behavior: 'instant'
+        });
+
+        // Ultimate fallback
+        window.scrollY = 0;
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      } catch (e) {
+        // If smooth scroll fails, use immediate scroll
+        window.scrollTo(0, 0);
+      }
     };
 
     // Handle initial page load
     handleScrollTop();
 
     // Handle route changes
-    router.events.on('routeChangeComplete', handleScrollTop);
+    const handleRouteChange = () => {
+      // Small delay to ensure content is rendered
+      setTimeout(handleScrollTop, 100);
+    };
 
-    // Cleanup
+    router.events.on('routeChangeComplete', handleRouteChange);
+
     return () => {
-      router.events.off('routeChangeComplete', handleScrollTop);
+      router.events.off('routeChangeComplete', handleRouteChange);
     };
   }, [router.events]);
 
