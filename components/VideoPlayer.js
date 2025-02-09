@@ -23,7 +23,6 @@ import { useVideo } from '../context/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
-import { createClient } from '../utils/supabase/component';
 import DeleteClipModal from './DeleteClipModal';
 
 const VideoPlayer = ({
