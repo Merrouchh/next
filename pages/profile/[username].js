@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -172,23 +172,21 @@ const ProfilePage = ({
   } = useClipsFeed(supabase, 6, userData.username, isOwner);
 
   const handleClipUpdate = useCallback(async (updatedClip) => {
-    if (!isOwner) return; // Only allow owner to update
+    if (!isOwner) return;
 
     try {
-      // Update clip in Supabase
       const { error } = await supabase
         .from('clips')
         .update({
           visibility: updatedClip.visibility
         })
         .eq('id', updatedClip.id)
-        .eq('username', userData.username); // Use userData.username for consistency
+        .eq('username', userData.username);
 
       if (error) {
         throw error;
       }
 
-      // Update local state
       setClips(prevClips => 
         prevClips.map(clip => 
           clip.id === updatedClip.id 
@@ -197,16 +195,14 @@ const ProfilePage = ({
         )
       );
 
-      // Show success message
       console.log('Clip updated successfully:', updatedClip.visibility);
 
     } catch (error) {
       console.error('Error updating clip:', error);
-      // Revert local state if update failed
-      setClips(prevClips => [...prevClips]); // Reset to previous state
+      setClips(prevClips => [...prevClips]);
       alert('Failed to update clip visibility');
     }
-  }, [isOwner, supabase, userData.username]); // Use userData.username in dependencies
+  }, [isOwner, supabase, userData.username, setClips]); // Add setClips to dependencies
 
   const handleClipDelete = async (clipId) => {
     try {

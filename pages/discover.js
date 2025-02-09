@@ -332,7 +332,7 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     }
 
     return () => observer.disconnect();
-  }, [page, hasMore, isLoadingMore]);
+  }, [page, hasMore, isLoadingMore, loadMoreClips]);
 
   // Loading content component
   const LoadingContent = () => (

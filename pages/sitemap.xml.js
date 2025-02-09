@@ -1,8 +1,11 @@
 const EXTERNAL_DATA_URL = 'https://merrouchgaming.com';
-import { createClient } from '../utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 async function generateSiteMap() {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
   const lastMod = new Date().toISOString();
 
   // Fetch only public clips with better ordering
