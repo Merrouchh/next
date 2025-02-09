@@ -1,0 +1,23 @@
+.feedContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.videoItem {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+}
+
+.videoPlaceholder {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio */
+  background-color: #f0f0f0;
+  border-radius: 8px;
+} 

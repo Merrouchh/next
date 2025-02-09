@@ -1,0 +1,737 @@
+.profileMain {
+  padding: 0 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - var(--desktop-padding));
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  padding-bottom: 60px; /* Fixed padding for mobile bottom nav */
+}
+
+.profileHeader {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 46;
+}
+
+.profileTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.profileDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profileDetails h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.profileIcon {
+  font-size: 1.2rem;
+  min-width: 1.2rem;
+  color: #FFD700;
+}
+
+.profileImageContainer {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #ebc725;
+  background-color: #e5e7eb;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.profileImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e7eb;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.placeholderIcon {
+  width: 60px;
+  height: 60px;
+  color: #9ca3af;
+}
+
+.uploadButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  background-color: var(--primary-color, #FFD700);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
+.uploadButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.uploadButton svg {
+  font-size: 1.2rem;
+}
+
+.error {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-left: 4px solid #ff4444;
+  color: #ff4444;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 0 8px 8px 0;
+}
+
+.clipsGrid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.clipCard {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.clipCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.clipContainer {
+  cursor: pointer;
+}
+
+.clipHeader {
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.clipHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gameTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--primary-color, #FFD700);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.gameTag svg {
+  font-size: 0.9rem;
+}
+
+.videoWrapper {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.clipVideo {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+}
+
+.clipActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.actionButton, .likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover, .likeButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.likeButton {
+  color: #fff;
+}
+
+.likeButton.liked {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.likeButton span {
+  font-size: 0.9rem;
+}
+
+.deleteButton {
+  color: #ff4444;
+}
+
+.deleteButton:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.noClips {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: #888;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .profileMain {
+    padding: 0 1rem;
+    width: 100%;
+  }
+
+  .profileTop {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profileInfo {
+    flex-direction: column;
+    text-align: center;
+    width: 100%;
+  }
+
+  .profileDetails {
+    align-items: center;
+    width: 100%;
+  }
+
+  .profileDetails h1 {
+    font-size: 1.5rem;
+  }
+
+  .uploadButton {
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .clipsGrid {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  .clipWrapper {
+    width: 100%;
+    margin: 0 auto;
+    max-width: 500px;
+  }
+
+  .searchContainer {
+    padding: 0.5rem 15px;
+    margin-bottom: 1.5rem;
+  }
+
+  .noClips {
+    padding: 2rem 1rem;
+  }
+
+  .loader {
+    padding: 2rem 1rem;
+    grid-column: 1;
+  }
+
+  .clipsGrid:last-child {
+    margin-bottom: 60px; /* Add space for bottom nav */
+  }
+}
+
+/* Add styles for very small screens */
+@media (max-width: 480px) {
+  .profileMain {
+    padding: 0.5rem 0 0;
+  }
+
+  .clipsGrid {
+    padding: 0.5rem;
+  }
+
+  .clipWrapper {
+    max-width: 100%;
+  }
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.loading {
+  animation: shimmer 1s linear infinite;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.05) 8%,
+    rgba(255, 255, 255, 0.1) 18%,
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 1000px 100%;
+}
+
+.loadMoreContainer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.loadMoreButton {
+  background: #2563eb;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.loadMoreButton:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.loadMoreButton:active {
+  transform: translateY(0);
+}
+
+.loadingMore {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1rem;
+  color: #6b7280;
+}
+
+.profileImageLoading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e7eb;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(230, 207, 0, 0.2);
+  border-radius: 50%;
+  border-top-color: #e6cf00;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Add media query for better mobile spacing */
+@media (max-width: 768px) {
+  .loader {
+    padding: 40px 20px;
+  }
+}
+
+.gamingProfiles {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.profilesHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerIcon {
+  color: #FFD700;
+  font-size: 1.2rem;
+}
+
+.profilesHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.editButton {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.profilesDisplayGrid, .profilesEditGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profileItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.profileItem span {
+  flex: 1;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileItem button {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.profileItem button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profileItem button svg {
+  font-size: 1rem;
+}
+
+.profileInput {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.profileInput input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 0.25rem;
+}
+
+.noProfiles {
+  text-align: center;
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .gamingProfiles {
+    padding: 0.75rem;
+  }
+
+  .profileItem {
+    padding: 0.375rem;
+  }
+
+  .profileItem button {
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+.searchContainer {
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(230, 207, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 25px;
+  border: 1px solid rgba(230, 207, 0, 0.2);
+  background: rgba(26, 26, 26, 0.8);
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(230, 207, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(230, 207, 0, 0.1);
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Add responsive styles */
+@media (max-width: 768px) {
+  .searchContainer {
+    padding: 0 15px;
+  }
+  
+  .searchInput {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
+}
+
+.userNotFound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 2rem;
+  text-align: center;
+}
+
+.userNotFound h1 {
+  font-size: 2rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
+}
+
+.userNotFound p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.backButton {
+  background: #FFD700;
+  color: black;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.clipWrapper {
+  position: relative;
+  width: 100%;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.clipWrapper:hover {
+  transform: translateY(-2px);
+}
+
+/* Add styles for the delete confirmation */
+.deleteConfirmation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  z-index: 10;
+}
+
+.deleteConfirmation h3 {
+  color: #fff;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.deleteConfirmation p {
+  color: #ccc;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.deleteActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.cancelButton {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #666;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.deleteButton {
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.deleteButton:hover {
+  background: #bd2130;
+}
+
+.deleteButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading state for the delete action */
+.deletingState {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 11;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .deleteConfirmation h3 {
+    font-size: 1rem;
+  }
+
+  .deleteConfirmation p {
+    font-size: 0.8rem;
+  }
+
+  .deleteActions button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .profileMain {
+    padding-bottom: 1rem; /* Normal padding for desktop */
+  }
+} 

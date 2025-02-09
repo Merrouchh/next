@@ -1,0 +1,1501 @@
+/* Main Wrapper */
+.mainWrapper {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+/* Logo and Title Section */
+.titleSection {
+  width: 100%;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+}
+
+.brandLogo {
+  width: 150px !important;
+  height: auto !important;
+  margin-bottom: 1.5rem;
+}
+
+.mainTitle {
+  font-size: 2.2rem;
+  color: white;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Main Grid Container */
+.gridContainer {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-areas: 
+    "title title title title"
+    "info info map map"
+    "info info map map";
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Title Area */
+.titleArea {
+  grid-area: title;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+}
+
+/* Info Column */
+.infoColumn {
+  grid-area: info;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+/* Map Column */
+.mapColumn {
+  grid-area: map;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* If you want to add more columns */
+.extraColumn {
+  grid-column: span 1; /* Single column width */
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Header Area */
+.headerArea {
+  grid-area: header;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+}
+
+/* Highlights Area */
+.highlightsArea {
+  grid-area: highlights;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+/* Map Area */
+.mapArea {
+  grid-area: map;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  min-height: 500px;
+}
+
+/* Info Area */
+.infoArea {
+  grid-area: info;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+/* Stats Area */
+.statsArea {
+  grid-area: stats;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+/* Buttons Area */
+.buttonsArea {
+  grid-area: buttons;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+/* Title Section */
+.title {
+  font-size: 2.2rem;
+  color: white;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Discover Section */
+.discoverSection {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Quick Stats */
+.quickStats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Action Buttons */
+.actionButtons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Base Layout */
+.mainWrapper {
+  border-radius: 20px 20px 0 0;
+  margin-top: 0;
+  padding-top: 0;
+  background: var(--bg-color, #0f1119);
+  overflow: hidden; /* This ensures the border radius is respected */
+}
+
+/* Main Grid Container */
+.gridContainer {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr;  /* First row auto for header, second row for content */
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Header Row */
+.headerRow {
+  grid-row: 1;
+  width: 100%;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+}
+
+.logo {
+  width: 150px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 2.2rem;
+  color: white;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Content Grid */
+.contentGrid {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* Two columns */
+  gap: 2rem;
+}
+
+/* Card Styles */
+.card {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.highlightCard {
+  text-align: center;
+}
+
+.mapCard {
+  min-height: 400px;
+  overflow: hidden;
+}
+
+/* Stats and Buttons */
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.buttonsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .gridContainer {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .infoColumn,
+  .mapColumn,
+  .extraColumn {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Logo Area */
+.logoSection {
+  grid-area: logo;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 150px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 2rem;
+  color: white;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Highlight Card */
+.highlightCard {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+/* Map Area */
+.mapCard {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  min-height: 300px;
+}
+
+/* Info Area */
+.infoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.statItem {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+/* Buttons Area */
+.buttonsSection {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.button {
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primaryButton {
+  background: #FFD700;
+  color: #000000;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.outlineButton {
+  background: transparent;
+  color: #FFD700;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #FFD700;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Desktop Logo */
+.brandLogo {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 150px;
+  display: none; /* Hidden by default */
+}
+
+/* Mobile Text Logo */
+.textLogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.welcome {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.merrouch {
+  color: #FFD700;
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.gaming {
+  color: #ffffff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+  .brandLogo {
+    display: block; /* Show logo on desktop */
+  }
+  
+  .textLogo {
+    display: none; /* Hide text logo on desktop */
+  }
+}
+
+@media (max-width: 767px) {
+  .brandLogo {
+    display: none; /* Hide logo on mobile */
+  }
+  
+  .textLogo {
+    display: flex; /* Show text logo on mobile */
+  }
+}
+
+/* Main Heading */
+.mainHeading {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.3;
+  margin: 0;
+  text-align: center;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stat:hover {
+  background: rgba(255, 215, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.primaryButton, .outlineButton {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: linear-gradient(45deg, #FFD700, #FFC107);
+  color: #000;
+}
+
+.outlineButton {
+  background: transparent;
+  border: 2px solid #FFD700;
+  color: #FFD700;
+}
+
+/* Map Column */
+.mapColumn {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  justify-content: center;  /* Center vertically */
+}
+
+.mapWrapper {
+  width: 100%;
+  height: 250px;
+  position: relative;
+}
+
+.locationDetails {
+  padding: 1.5rem;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #fff;
+}
+
+/* Desktop Styles */
+@media (min-width: 1024px) {
+  .gridContainer {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    padding: 3rem;
+    align-items: start;
+  }
+
+  .infoColumn {
+    align-items: flex-start;
+    text-align: left;
+    height: 100%;
+  }
+
+  .quickStats {
+    grid-template-columns: 1fr;
+  }
+
+  .actionButtons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .mapColumn {
+    position: sticky;
+    top: calc(var(--header-height) + 2rem);
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .gridContainer {
+    padding: 2rem;
+    gap: 2rem;
+  }
+
+  .quickStats {
+    grid-template-columns: 1fr;
+  }
+
+  .actionButtons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .gridContainer {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .headerRow {
+    padding: 1.5rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .bottomRow {
+    padding: 1.5rem;
+  }
+
+  .actionButtons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Features Section */
+.features {
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.containerWide {
+  width: 100%;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  margin: 0;
+}
+
+.featuresContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.featureCard {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Update responsive styles */
+@media (max-width: 1024px) {
+  .featuresGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .containerWide {
+    padding: 1.5rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .features {
+    padding: 1rem 0;
+    width: 100%;
+  }
+
+  .containerWide {
+    padding: 1rem;
+    margin: 0;
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .featureCard {
+    padding: 1.5rem;
+  }
+}
+
+/* Packages Section */
+.packages {
+  padding: 2rem 0;
+}
+
+.containerNarrow {
+  width: 100%;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  margin: 0;
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+  font-size: 2.5rem;
+  color: #FFD700;
+}
+
+.packagesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.pricingCard {
+  background: rgba(26, 32, 44, 0.8);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pricingCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
+}
+
+.pricingCard.featured {
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.pricingHeader h3 {
+  color: #FFD700;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.price {
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin-bottom: 2rem;
+}
+
+.price span {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.pricingFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pricingFeatures li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+
+.pricingFeatures li:last-child {
+  border-bottom: none;
+}
+
+.featured {
+  background: rgba(26, 32, 44, 0.9);
+  border-color: rgba(255, 215, 0, 0.2);
+  transform: translateY(-10px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.featured:hover {
+  transform: scale(1.05) translateY(-5px);
+}
+
+.learnMoreButton {
+  text-align: center;
+  margin-top: 3rem;
+}
+
+/* Update responsive styles */
+@media (max-width: 1200px) {
+  .mainWrapper {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainWrapper {
+    padding: 1rem;
+    gap: 2rem;
+  }
+
+  .container,
+  .containerNarrow,
+  .containerWide {
+    padding: 1.5rem;
+  }
+}
+
+/* Animation Classes */
+.glowEffect {
+  position: relative;
+}
+
+.glowEffect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glowEffect:hover::after {
+  opacity: 1;
+}
+
+/* Add these new styles */
+.discoverCard {
+  background: linear-gradient(135deg, #1a1a2e 0%, #202040 100%);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.discoverCard:hover {
+  border-color: #FFD700;
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(255, 215, 0, 0.1);
+}
+
+.discoverCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.discoverCard:hover::before {
+  opacity: 1;
+}
+
+.cardIcon {
+  font-size: 2.5rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .cardIcon {
+  transform: scale(1.1);
+}
+
+/* Update existing styles */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 2rem auto;
+  background: linear-gradient(145deg, rgba(26, 32, 44, 0.8), rgba(17, 24, 39, 0.85));
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cardIcon {
+  font-size: 2.5rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .cardIcon {
+  transform: scale(1.1);
+}
+
+.card h2 {
+  font-size: 1.5rem;
+  color: #FFD700;
+  margin: 0.5rem 0;
+  transition: color 0.3s ease;
+}
+
+.card p {
+  color: #e0e0e0;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Responsive styles */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 1.5rem;
+    gap: 1.5rem;
+    margin: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 1rem;
+    margin: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .cardIcon {
+    font-size: 2rem;
+  }
+
+  .card h2 {
+    font-size: 1.3rem;
+  }
+
+  .card p {
+    font-size: 0.95rem;
+  }
+}
+
+/* Add this media query for mobile-specific styles */
+@media (max-width: 768px) {
+  .contactInfo {
+    padding-top: 2rem; /* Add more padding to the top */
+  }
+}
+
+/* Progress Bar Container */
+.progressBarContainer {
+  position: fixed;
+  top: 60px; /* Adjust this value to match your header height */
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 998;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: #007bff;
+  transition: width 0.2s ease-out;
+}
+
+/* Main Container */
+.mainContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Logo Row */
+.logoRow {
+  width: 100%;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  margin-bottom: 1rem;
+}
+
+.brandLogo {
+  width: 150px !important;
+  height: auto !important;
+  margin-bottom: 1.5rem;
+}
+
+.mainTitle {
+  font-size: 2.2rem;
+  color: white;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* Content Grid */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+/* Map Column */
+.mapColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Card Styles */
+.card {
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.highlightCard {
+  text-align: center;
+}
+
+.mapCard {
+  min-height: 400px;
+  overflow: hidden;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainContainer {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .logoRow {
+    padding: 1.5rem;
+  }
+
+  .mainTitle {
+    font-size: 1.8rem;
+  }
+}
+
+.container {
+  width: 100%;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  padding: 2rem;
+  max-width: none;
+  margin: 0;
+}
+
+.header {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.logoWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandLogo {
+  width: 120px !important;
+  height: auto !important;
+}
+
+.mainTitle {
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cardContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 300px;
+}
+
+.cardHighlight, .cardMap {
+  background: rgba(26, 32, 44, 0.8);
+  border-radius: 16px;
+  padding: 25px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.cardHighlight {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  cursor: pointer;
+}
+
+.highlightContent {
+  text-align: center;
+  color: #ffffff;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+}
+
+.highlightContent:hover {
+  background: rgba(255, 215, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.highlightIcon {
+  color: #FFD700;
+  margin-bottom: 15px;
+  font-size: 2rem;
+}
+
+.highlightContent h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8rem;
+  margin: 0 0 15px 0;
+  color: #FFD700;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.highlightContent p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  color: #e0e0e0;
+}
+
+.mapWrapper {
+  height: 100%;
+  min-height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.locationDetails {
+  padding-top: 15px;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 25px;
+  background: rgba(26, 32, 44, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.contactItem:hover {
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.05);
+  transform: translateX(5px);
+}
+
+.contactItem svg {
+  font-size: 1.2rem;
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+.socialLink {
+  color: #FFD700;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.socialLink:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.infoSection {
+  padding: 20px;
+}
+
+.actionButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.primaryButton, .outlineButton {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.primaryButton {
+  background: #FFD700;
+  color: #000000;
+}
+
+.outlineButton {
+  background: transparent;
+  color: #FFD700;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #FFD700;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.primaryButton:hover {
+  background: #ffd900;
+  transform: translateY(-2px);
+}
+
+.outlineButton:hover {
+  background: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Hover effects */
+.cardHighlight:hover, .cardMap:hover {
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  .cardContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .actionButtons {
+    grid-template-columns: 1fr;
+  }
+
+  .mainTitle {
+    font-size: 1.5rem;
+  }
+
+  .cardHighlight, .cardMap {
+    padding: 20px;
+  }
+
+  .mapWrapper {
+    min-height: 300px;
+  }
+  
+  .contactInfo {
+    padding: 15px;
+  }
+  
+  .contactItem {
+    font-size: 0.85rem;
+  }
+}
+
+/* Add these new styles */
+.quickInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(26, 32, 44, 0.8);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  color: #ffffff;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.infoItem svg {
+  color: #FFD700;
+  flex-shrink: 0;
+}
+
+.infoItem:hover {
+  border-color: rgba(255, 215, 0, 0.3);
+  transform: translateX(5px);
+}
+
+/* Update responsive styles */
+@media (max-width: 768px) {
+  .quickInfo {
+    margin-top: 5px;
+  }
+
+  .infoItem {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Hero Section */
+.heroSection {
+  position: relative;
+  width: 100%;
+  min-height: 600px;
+  background: rgba(15, 15, 25, 0.95);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroGallery {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+.heroImage {
+  position: relative;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.heroImage:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(255, 215, 0, 0.2);
+}
+
+.imageOverlay {
+  object-fit: cover;
+  transition: transform 0.5s ease !important;
+}
+
+.heroImage:hover .imageOverlay {
+  transform: scale(1.1);
+}
+
+.imageCaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  color: #ffffff;
+}
+
+.imageCaption h3 {
+  font-family: var(--font-orbitron);
+  font-size: 1.2rem;
+  margin: 0;
+  color: #FFD700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.heroContent {
+  margin-top: 280px;
+  padding: 40px;
+  width: 100%;
+  text-align: center;
+}
+
+.mainTitle {
+  font-family: var(--font-orbitron);
+  font-size: 3rem;
+  font-weight: 700;
+  color: #FFD700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 2rem 0;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  line-height: 1.2;
+}
+
+.mainTitle span {
+  display: block;
+  font-size: 2rem;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+/* Update existing styles */
+.logoWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.brandLogo {
+  width: 180px !important;
+  height: auto !important;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .heroGallery {
+    grid-template-columns: repeat(2, 1fr);
+    height: 250px; /* Slightly reduced height */
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .mainTitle {
+    font-size: 2.5rem;
+  }
+
+  .mainTitle span {
+    font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroSection {
+    min-height: 600px; /* Increased to accommodate taller gallery */
+  }
+
+  .heroGallery {
+    height: auto; /* Remove fixed height */
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .heroImage {
+    height: 180px; /* Fixed height for each image */
+  }
+
+  .heroContent {
+    margin-top: 580px; /* Adjust based on gallery height */
+    padding: 20px;
+  }
+
+  /* Adjust other spacing */
+  .imageCaption {
+    padding: 15px;
+  }
+
+  .imageCaption h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+  .heroSection {
+    min-height: 550px;
+  }
+
+  .heroImage {
+    height: 150px;
+  }
+
+  .heroContent {
+    margin-top: 520px;
+  }
+}

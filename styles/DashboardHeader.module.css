@@ -1,0 +1,332 @@
+.dashboardHeader {
+  position: relative;
+  width: 100%;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  --bottom-nav-height: 60px;
+}
+
+.topNav {
+  position: sticky;
+  top: var(--header-height, 60px);
+  width: 100%;
+  background: rgba(15, 15, 25, 0.98);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--bottom-nav-height);
+  background: rgba(15, 15, 25, 0.98);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+}
+
+.navContainer {
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* Button Styles */
+.navButton {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.75rem;
+  border: none;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Custom colors for each button - both top and bottom nav */
+.navButton[data-path="/dashboard"],
+.navButton[data-path="/"] {
+  color: #64B5F6;
+}
+
+.navButton[data-path="/topusers"] {
+  color: #FFD700;
+}
+
+.navButton[data-path="/shop"] {
+  color: #81C784;
+}
+
+.navButton[data-path="/discover"] {
+  color: #FF7043;
+  opacity: 0.7;
+}
+
+.navButton[data-path="/avcomputers"] {
+  color: #BA68C8;
+  opacity: 0.7;
+}
+
+.navButton[data-path^="/profile"] {
+  color: #4FC3F7;
+  opacity: 0.7;
+}
+
+/* Active state for each button */
+.navButton.active[data-path="/dashboard"],
+.navButton.active[data-path="/"] {
+  background: linear-gradient(135deg, rgba(100, 181, 246, 0.15) 0%, rgba(30, 136, 229, 0.15) 100%);
+}
+
+.navButton.active[data-path="/topusers"] {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+}
+
+.navButton.active[data-path="/shop"] {
+  background: linear-gradient(135deg, rgba(129, 199, 132, 0.15) 0%, rgba(67, 160, 71, 0.15) 100%);
+}
+
+/* When button is active, ensure full opacity */
+.navButton.active[data-path="/discover"],
+.navButton.active[data-path="/avcomputers"],
+.navButton.active[data-path^="/profile"] {
+  opacity: 1;
+}
+
+.icon {
+  font-size: 1.4rem;
+  transition: transform 0.3s ease;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .navContainer {
+    height: 60px;
+    justify-content: space-around;
+    padding: 0;
+  }
+
+  .navButton {
+    flex: 1;
+    flex-direction: column;
+    padding: 8px 4px;
+    gap: 4px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .navButton.active {
+    background: transparent;
+  }
+
+  .navButton.active .icon {
+    transform: translateY(-2px) scale(1.2);
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+
+  .navButton.active .label {
+    font-weight: 700;
+    opacity: 1;
+  }
+
+  .navButton.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 4px;
+    opacity: 0.8;
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  .navButton.active::after {
+    display: none;
+  }
+
+  .icon {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+  }
+
+  .label {
+    font-size: 0.7rem;
+    margin-left: 0;
+    opacity: 0.9;
+    transition: all 0.3s ease;
+    z-index: 1;
+  }
+
+  .navButton:active {
+    transform: scale(0.95);
+  }
+
+  .bottomNav .navButton {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .bottomNav .navButton:active,
+  .bottomNav .navButton.active {
+    opacity: 1;
+  }
+
+  .bottomNav .navButton[data-path="/discover"] {
+    color: #FF7043;
+  }
+
+  .bottomNav .navButton[data-path="/avcomputers"] {
+    color: #BA68C8;
+  }
+
+  .bottomNav .navButton[data-path^="/profile"] {
+    color: #4FC3F7;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+  .bottomNav {
+    display: none;
+  }
+
+  .navContainer {
+    gap: 1rem;
+  }
+
+  .navButton {
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .navButton:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Enhanced desktop active states */
+  .navButton.active {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .navButton.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
+  }
+
+  .navButton.active .icon {
+    transform: scale(1.1);
+  }
+
+  .navButton.active .label {
+    font-weight: 700;
+  }
+
+  /* Desktop-specific active states for each button */
+  .navButton.active[data-path="/dashboard"],
+  .navButton.active[data-path="/"] {
+    background: linear-gradient(135deg, rgba(100, 181, 246, 0.15) 0%, rgba(30, 136, 229, 0.15) 100%);
+  }
+
+  .navButton.active[data-path="/topusers"] {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+  }
+
+  .navButton.active[data-path="/shop"] {
+    background: linear-gradient(135deg, rgba(129, 199, 132, 0.15) 0%, rgba(67, 160, 71, 0.15) 100%);
+  }
+
+  .navButton.active[data-path="/discover"] {
+    background: linear-gradient(135deg, rgba(255, 112, 67, 0.15) 0%, rgba(244, 81, 30, 0.15) 100%);
+  }
+
+  .navButton.active[data-path="/avcomputers"] {
+    background: linear-gradient(135deg, rgba(186, 104, 200, 0.15) 0%, rgba(142, 36, 170, 0.15) 100%);
+  }
+
+  .navButton.active[data-path^="/profile"] {
+    background: linear-gradient(135deg, rgba(79, 195, 247, 0.15) 0%, rgba(3, 169, 244, 0.15) 100%);
+  }
+}
+
+/* Animation for active state */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.navButton.active {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .navButton,
+  .icon,
+  .label,
+  .dashboardHeader,
+  .navContainer {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Add glow animation */
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.2);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Add a new class for the main content padding */
+.mainContent {
+  padding-bottom: var(--bottom-nav-height);
+}
+
+@media (min-width: 769px) {
+  .mainContent {
+    padding-bottom: 0;
+  }
+} 

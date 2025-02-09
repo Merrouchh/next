@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /api/*
+Disallow: /_next/*
+Disallow: /static/*
+
+# Allow images to be crawled
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+
+# Sitemaps
+Sitemap: https://merrouchgaming.com/sitemap.xml
+Sitemap: https://merrouchgaming.com/api/sitemap
+
+# Crawl-delay
+Crawl-delay: 1 

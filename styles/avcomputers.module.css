@@ -1,0 +1,220 @@
+.mainContainer {
+  padding-top: 100px;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.sectionHeading {
+  color: #fff;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* PC Box Styles */
+.pcSquare, .vipPcBox {
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pcSquare {
+  background: #1a1f2e;
+  border: 2px solid #2a2f3e;
+}
+
+.vipPcBox {
+  background: #2d1f3e;
+  border: 2px solid #3d2f4e;
+  min-width: 200px;
+}
+
+/* Status Classes */
+.active {
+  background: #1e3a2d !important;
+  border-color: #2e4a3d !important;
+  opacity: 1 !important;
+}
+
+.inactive {
+  opacity: 0.8;
+}
+
+.warning {
+  background: #3a2d1e !important;
+  border-color: #4a3d2e !important;
+  opacity: 1 !important;
+}
+
+.orange {
+  background: #442d1e !important;
+  border-color: #543d2e !important;
+  opacity: 1 !important;
+}
+
+/* Text Styles */
+.pcNumber {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.statusText {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+}
+
+/* VIP Section Styles */
+.vipWrapper {
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.vipSection {
+  position: relative;
+  padding: 1rem 0;
+}
+
+.vipComputers {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding: 1rem;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a #1a1a1a;
+}
+
+.vipComputers::-webkit-scrollbar {
+  height: 8px;
+}
+
+.vipComputers::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.vipComputers::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+
+/* Error State */
+.error {
+  color: #ff6b6b;
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .mainContainer {
+    padding-top: 80px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .computerGrid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .pcSquare, .vipPcBox {
+    padding: 1rem;
+    min-height: 100px;
+  }
+
+  .pcNumber {
+    font-size: 1rem;
+  }
+
+  .statusText {
+    font-size: 0.8rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .pcSquare, .vipPcBox {
+    background: #1a1f2e;
+    border-color: #2a2f3e;
+  }
+
+  .active {
+    background: #1e3a2d;
+    border-color: #2e4a3d;
+  }
+
+  .warning {
+    background: #3a2d1e;
+    border-color: #4a3d2e;
+  }
+
+  .statusText {
+    color: #a0a0a0;
+  }
+}
+
+@keyframes updatePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+  }
+}
+
+.updated {
+  animation: updatePulse 1s ease-out;
+}
+
+.highlight {
+  animation: pulse 2s ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4);
+  }
+  
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+  }
+  
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+  }
+}

@@ -1,0 +1,1 @@
+// Delete this file entirely as we'll use component.ts instead 

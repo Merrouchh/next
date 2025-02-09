@@ -1,0 +1,185 @@
+/* components/LoginModal.module.css */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #111111;
+    padding: 2rem;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.closeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #FFD700;
+    transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+    color: #FFF;
+}
+
+.modalTitle {
+    text-align: center;
+    color: #FFD700;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.inputWrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.inputIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #FFD700;
+    font-size: 1.2rem;
+}
+
+.inputField {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #222;
+    color: #FFF;
+    transition: all 0.3s ease;
+}
+
+.inputField:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+    background: #333;
+}
+
+.inputField:disabled {
+    background-color: #1a1a1a;
+    border-color: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.inputField::placeholder {
+    color: #888;
+}
+
+.errorMessage {
+    color: #ff4444;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    text-align: center;
+}
+
+.loginButton {
+    width: 100%;
+    padding: 12px;
+    background: #FFD700;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.loginButton:hover:not(:disabled) {
+    background: #FFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.loginButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: #444;
+    color: #888;
+}
+
+.loadingWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.loadingIcon {
+    animation: spin 1s linear infinite;
+    color: #000;
+}
+
+.buttonContent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Add smooth transitions */
+.modal, .inputField, .loginButton {
+    transition: all 0.3s ease;
+}
+
+/* Glowing effect for focus states */
+.inputField:focus {
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2),
+                0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+/* Add responsive design */
+@media (max-width: 480px) {
+    .modal {
+        width: 95%;
+        padding: 1.5rem;
+    }
+
+    .modalTitle {
+        font-size: 1.25rem;
+    }
+
+    .inputField {
+        font-size: 0.875rem;
+    }
+}
