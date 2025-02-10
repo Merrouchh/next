@@ -142,7 +142,7 @@ const ActiveSessionsCard = ({ activeSessions, handleNavigation }) => (
 
 const Dashboard = ({ _initialClips, metaData }) => {
   const router = useRouter();
-  const { user, supabase, loading, isLoggedIn } = useAuth();
+  const { isLoggedIn, user, supabase, loading } = useAuth();
   const [pageState, setPageState] = useState({
     loading: true,
     error: null,
@@ -156,6 +156,39 @@ const Dashboard = ({ _initialClips, metaData }) => {
     }
   });
   const [topClip, setTopClip] = useState(null);
+
+  // Move topClip fetch into the main initialization effect
+  useEffect(() => {
+    let mounted = true;
+
+    const initialize = async () => {
+      // Auth check
+      if (!loading && !isLoggedIn) {
+        router.replace('/');
+        return;
+      }
+
+      // Only proceed if logged in and supabase is available
+      if (isLoggedIn && user && supabase) {
+        try {
+          await initializePage();
+          // Fetch top clip only if component is still mounted
+          if (mounted) {
+            const clip = await fetchTopClipOfWeek(supabase);
+            setTopClip(clip);
+          }
+        } catch (error) {
+          console.error('Error initializing dashboard:', error);
+        }
+      }
+    };
+
+    initialize();
+
+    return () => {
+      mounted = false;
+    };
+  }, [loading, isLoggedIn, user, supabase]); // Include all dependencies
 
   const initializePage = useCallback(async () => {
     if (!user) return;
@@ -247,109 +280,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
       mounted = false;
     };
   }, [user]);
-
-  // Replace the three separate effects with one combined effect
-  useEffect(() => {
-    let mounted = true;
-
-    const initializeAndSetupListeners = async () => {
-      // Auth check
-      if (!loading && !isLoggedIn) {
-        router.replace('/');
-        return;
-      }
-
-      // Only proceed if logged in and has user
-      if (isLoggedIn && user) {
-        await initializePage();
-      }
-    };
-
-    initializeAndSetupListeners();
-
-    // Setup route change listener
-    const handleRouteChange = () => {
-      if (mounted) {
-        initializePage();
-      }
-    };
-
-    router.events.on('routeChangeComplete', handleRouteChange);
-
-    return () => {
-      mounted = false;
-      router.events.off('routeChangeComplete', handleRouteChange);
-    };
-  }, [loading, isLoggedIn, user, router, initializePage]);
-
-  useEffect(() => {
-    const getTopClip = async () => {
-      const clip = await fetchTopClipOfWeek(supabase);
-      setTopClip(clip);
-    };
-
-    getTopClip();
-  }, [supabase]);
-
-  // Update real-time updates handling
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('clips_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clips',
-          filter: `username=eq.${user.username}`
-        },
-        () => {
-          initializePage();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, supabase, initializePage]);
-
-  // Add real-time update for active sessions
-  useEffect(() => {
-    let mounted = true;
-    let intervalId;
-
-    const updateActiveSessions = async () => {
-      try {
-        const sessions = await fetchActiveUserSessions();
-        if (mounted) {
-          setPageState(prev => ({
-            ...prev,
-            data: {
-              ...prev.data,
-              activeSessions: sessions
-            }
-          }));
-        }
-      } catch (error) {
-        console.error('Error fetching active sessions:', error);
-      }
-    };
-
-    if (isLoggedIn && user) {
-      updateActiveSessions();
-      intervalId = setInterval(updateActiveSessions, 5000); // Update every 5 seconds
-    }
-
-    return () => {
-      mounted = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isLoggedIn, user]);
 
   // Update loading check
   if (loading || pageState.loading) {

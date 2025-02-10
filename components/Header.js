@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import LoginModal from './LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
@@ -8,13 +8,14 @@ import styles from '../styles/Header.module.css';
 import Image from 'next/image';
 import LoadingScreen from './LoadingScreen';
 import DashboardHeader from './DashboardHeader';
+import MobileMenu from './MobileMenu';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 
 const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const { isLoggedIn, logout, user, loading } = useAuth();
@@ -35,6 +36,8 @@ const Header = () => {
     router.pathname !== '/' && 
     router.pathname !== '/dashboard';
 
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   useEffect(() => {
     let lastScroll = 0;
     const handleScroll = () => {
@@ -46,19 +49,6 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-
-    if (!isMobile) setIsMenuOpen(false);
-
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [isMobile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -79,23 +69,35 @@ const Header = () => {
     };
   }, [isMenuOpen]);
 
-  const toggleMenu = () => setIsMenuOpen(prev => !prev);
-  const closeMenu = () => setIsMenuOpen(false);
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const handleLogout = async (e) => {
+  const handleLogout = useCallback(async (e) => {
     e.preventDefault();
     setIsTransitioning(true);
     try {
       await logout();
+      closeMenu();
     } catch (error) {
       console.error('Logout error:', error);
-      // Handle UI feedback here if needed
     } finally {
       setIsTransitioning(false);
     }
-  };
+  }, [logout]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setIsMenuOpen(false);
+    }
+  }, [isMobile]);
 
   if (loading || isTransitioning) {
     return <LoadingScreen message="Loading..." />;
@@ -124,13 +126,12 @@ const Header = () => {
                     width={150}
                     height={50}
                     className={styles.mobileLogo}
-                    priority={router.pathname === '/'}
-                    loading={router.pathname === '/' ? "eager" : "lazy"}
+                    priority={true}
+                    loading="eager"
+                    sizes="150px"
+                    quality={100}
                     placeholder="blur"
-                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAPUlEQVR4nGNgQIApU6b8////1atXDAwMv3//ZkACL1++ZGBg+P//PwMDw5s3b5B5DAwMv379YmBg+Pv3LzIPAFNVD4x+XW6ZAAAAAElFTkSuQmCC"
-                    sizes="(max-width: 768px) 150px, 0px"
-                    quality={75}
-                    decoding="async"
+                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
                   />
                 ) : (
                   <h1 className={styles.logo}>
@@ -152,26 +153,47 @@ const Header = () => {
             <div className={styles.bar}></div>
           </div>
 
-          <nav
-            ref={navRef}
-            className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}
-          >
-            {!isMobile && showGoBackButton && (
-              <button className={styles.goBackButton} onClick={() => router.back()}>
-                <AiOutlineArrowLeft size={30} />
-              </button>
-            )}
+          {!isMobile && (
+            <nav ref={navRef} className={styles.nav}>
+              {showGoBackButton && (
+                <button className={styles.goBackButton} onClick={() => router.back()}>
+                  <AiOutlineArrowLeft size={30} />
+                </button>
+              )}
 
+              {isLoggedIn ? (
+                <>
+                  <span className={styles.usernameBox}>
+                    {user?.username}
+                    {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
+                  </span>
+                  <button className={styles.logoutButton} onClick={handleLogout}>
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button className={styles.loginButton} onClick={openModal}>
+                  Login
+                </button>
+              )}
+            </nav>
+          )}
+        </header>
+      </div>
+
+      {showDashboardHeader && <DashboardHeader />}
+      {isModalOpen && <LoginModal isOpen={isModalOpen} onClose={closeModal} />}
+      
+      {isMobile && (
+        <MobileMenu isOpen={isMenuOpen}>
+          <nav ref={navRef} className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}>
             {isLoggedIn ? (
               <>
                 <span className={styles.usernameBox}>
                   {user?.username}
                   {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
                 </span>
-                <button
-                  className={styles.logoutButton}
-                  onClick={handleLogout}
-                >
+                <button className={styles.logoutButton} onClick={handleLogout}>
                   Logout
                 </button>
               </>
@@ -187,11 +209,8 @@ const Header = () => {
               </button>
             )}
           </nav>
-        </header>
-      </div>
-
-      {showDashboardHeader && <DashboardHeader />}
-      {isModalOpen && <LoginModal isOpen={isModalOpen} onClose={closeModal} />}
+        </MobileMenu>
+      )}
     </>
   );
 };

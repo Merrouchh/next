@@ -1,32 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MdPlayArrow } from 'react-icons/md';
 import styles from '@/styles/VideoThumbnail.module.css';
 
 const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, height = 180, quality = 0.8 }) => {
     const [thumbnailUrl, setThumbnailUrl] = useState(null);
     const [error, setError] = useState(null);
+    const videoUrlRef = useRef(null);
   
     useEffect(() => {
       if (!file) return;
   
       let mounted = true;
-      let videoUrl = null;
-      const video = document.createElement('video');
   
       const cleanup = () => {
-        if (videoUrl) {
-          URL.revokeObjectURL(videoUrl);
-          videoUrl = null;
+        if (videoUrlRef.current) {
+          URL.revokeObjectURL(videoUrlRef.current);
+          videoUrlRef.current = null;
         }
-        video.onloadedmetadata = null;
-        video.onerror = null;
-        video.onseeked = null;
-        video.src = '';
-        video.remove();
+        const video = document.querySelector('video');
+        if (video) {
+          video.onloadedmetadata = null;
+          video.onerror = null;
+          video.onseeked = null;
+          video.src = '';
+          video.remove();
+        }
       };
   
       try {
         // Set up video element
+        const video = document.createElement('video');
         video.preload = 'metadata';
         video.playsInline = true;
         video.muted = true;
@@ -81,8 +84,11 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, heig
           cleanup();
         };
   
-        videoUrl = URL.createObjectURL(file);
-        video.src = videoUrl;
+        // Only create new URL if needed
+        if (!videoUrlRef.current) {
+          videoUrlRef.current = URL.createObjectURL(file);
+        }
+        video.src = videoUrlRef.current;
   
       } catch (err) {
         if (mounted) {

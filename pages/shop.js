@@ -21,28 +21,6 @@ const Shop = () => {
   const [copyFeedback, setCopyFeedback] = useState('');
 
   useEffect(() => {
-    const validateAuth = async () => {
-      if (!loading && !isLoggedIn) {
-        router.replace('/');
-        return;
-      }
-
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session) {
-          router.replace('/');
-        }
-      } catch (error) {
-        console.error('Session validation error:', error);
-        setError('Session validation failed');
-        router.replace('/');
-      }
-    };
-
-    validateAuth();
-  }, [isLoggedIn, loading, router, supabase.auth]);
-
-  useEffect(() => {
     // Fetch the conversion rate from an API
     const fetchConversionRate = async () => {
       try {

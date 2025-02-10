@@ -19,7 +19,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #0f1119;
+  background: rgb(15, 15, 15);
   color: #ffffff;
   font-family: 'Rajdhani', sans-serif;
   line-height: 1.6;
@@ -274,13 +274,7 @@ body.modal-open {
 
 /* Add any other global styles below */
 
-:root {
-  --header-height: 60px;
-  --dashboard-header-height: 60px;
-  --header-bg: rgba(0, 0, 0, 0.95);
-  --dashboard-header-bg: rgba(15, 15, 25, 0.95);
-  --max-width: 1200px;
-}
+
 
 @media (min-width: 768px) {
   :root {

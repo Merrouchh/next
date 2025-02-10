@@ -5,8 +5,10 @@ import '../styles/globals.css';
 import { Inter, Orbitron } from 'next/font/google';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { VideoProvider } from '../contexts/VideoContext';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -20,46 +22,43 @@ const orbitron = Orbitron({
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Function to handle scroll to top
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const handleScrollTop = () => {
-      // Try multiple scroll methods for better cross-browser/device support
       try {
-        // For modern browsers
         window.scrollTo({
           top: 0,
           behavior: 'instant'
         });
         
-        // Fallback for iOS Safari
         document.documentElement.scrollTo({
           top: 0,
           behavior: 'instant'
         });
         
-        // Additional fallback
         document.body.scrollTo({
           top: 0,
           behavior: 'instant'
         });
 
-        // Ultimate fallback
         window.scrollY = 0;
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
       } catch (e) {
-        // If smooth scroll fails, use immediate scroll
         window.scrollTo(0, 0);
       }
     };
 
-    // Handle initial page load
     handleScrollTop();
 
-    // Handle route changes
     const handleRouteChange = () => {
-      // Small delay to ensure content is rendered
       setTimeout(handleScrollTop, 100);
     };
 
@@ -68,17 +67,45 @@ function MyApp({ Component, pageProps }) {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [router.events]);
+  }, [router.events, mounted]);
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Layout>
-          <main className={`${inter.variable} ${orbitron.variable}`}>
-            <Component {...pageProps} />
-          </main>
-        </Layout>
-      </AuthProvider>
+      <div suppressHydrationWarning>
+        <AuthProvider>
+          <VideoProvider>
+            <Toaster 
+              position="bottom-center"
+              toastOptions={{
+                style: {
+                  background: '#333',
+                  color: '#fff',
+                  border: '1px solid #2a2a2a',
+                },
+                success: {
+                  duration: 2000,
+                  iconTheme: {
+                    primary: '#FFD700',
+                    secondary: '#000',
+                  },
+                },
+                error: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#ff4b4b',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
+            <Layout>
+              <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
+                <Component {...pageProps} />
+              </main>
+            </Layout>
+          </VideoProvider>
+        </AuthProvider>
+      </div>
     </ErrorBoundary>
   );
 }

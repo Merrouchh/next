@@ -3,22 +3,23 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 2rem;
-  background: rgba(15, 15, 25, 0.95);
+  padding: 1rem 2rem;
+  background: #141414;
   backdrop-filter: blur(10px);
-  color: white;
+  color: #ffffff;
   position: sticky;
   top: 0;
   left: 0;
   right: 0;
   height: var(--header-height, 60px);
-  z-index: 999;
+  z-index: 1002;
   box-sizing: border-box;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  border-bottom: 1px solid #2a2a2a;
   width: 100%;
+  position: relative;
 }
 
 /* Sticky Header */
@@ -43,6 +44,8 @@
   -webkit-background-clip: text;
   background-clip: text;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  color: #3b82f6;
+  font-weight: 600;
 }
 
 .merrouch {
@@ -74,6 +77,8 @@
   gap: 1rem;
   flex-direction: row;
   transition: transform 0.3s ease;
+  background-color: #141414;
+  z-index: 1001;
 }
 
 .nav.open {
@@ -84,26 +89,20 @@
 .loginButton,
 .logoutButton,
 .topUsersButton {
-  background: rgba(255, 215, 0, 0.1);
-  color: #FFD700;
-  padding: 0.6rem 1.2rem;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: #FFD700;
+  color: #000000;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .loginButton:hover,
 .logoutButton:hover,
 .topUsersButton:hover {
-  background: #FFD700;
-  color: black;
+  background: #ffc107;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 }
 
 .activeButton {
@@ -112,12 +111,12 @@
 }
 
 .usernameBox {
-  background: rgba(255, 215, 0, 0.1);
-  padding: 0.6rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
+  background: #1a1a1a;
   color: #FFD700;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
   min-width: 120px;
   text-align: center;
 }
@@ -214,25 +213,17 @@
 
   /* Hide nav items (username, logout) by default */
   .nav {
-    display: none;
-    flex-direction: column;
-    gap: 0.8rem;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    display: flex;
+    flex-direction: column; /* Back to column */
+    align-items: stretch; /* Make items full width */
+    gap: 12px;
+    padding: 16px;
     background: rgba(0, 0, 0, 0.98);
-    padding: 1rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    transform: translateY(-100%);
-    transition: transform 0.3s ease;
-    z-index: 1000;
-    border-top: 1px solid rgba(255, 215, 0, 0.2);
+    border-top: 1px solid rgba(255, 215, 0, 0.1);
   }
 
   .nav.open {
-    display: flex;
-    transform: translateY(0); /* Show nav when hamburger is open */
+    transform: translateY(0);
   }
 
   /* Go Back button positioned to the right on mobile */
@@ -263,18 +254,48 @@
     margin: 0 auto;
   }
 
+  /* Username box in mobile */
   .usernameBox {
     width: 100%;
     text-align: center;
-    margin-bottom: 10px;
+    padding: 14px 20px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
   }
 
+  /* Logout/Login button in mobile */
   .logoutButton,
-  .loginButton,
-  .topUsersButton {
+  .loginButton {
     width: 100%;
-    text-align: center;
-    margin: 5px 0;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #FFD700;
+    color: #000;
+    border: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .logoutButton:hover,
+  .loginButton:hover {
+    background: #FFC800;
+    transform: translateY(-1px);
+  }
+
+  /* Admin badge in mobile */
+  .adminBadge {
+    margin-left: 8px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    background: #000;
+    color: #FFD700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 }
 
@@ -352,4 +373,18 @@
   height: 100%;
   background-color: #007bff; /* or your preferred color */
   transition: width 0.2s ease-out;
+}
+
+/* Update mobile menu styles */
+.mobileMenuPortal {
+  position: fixed;
+  top: var(--header-height, 60px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.mobileMenuPortal.open {
+  pointer-events: auto;
 }

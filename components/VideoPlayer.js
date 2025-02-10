@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { 
   MdPerson, 
@@ -19,12 +19,18 @@ import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
-import { useVideo } from '../context/VideoContext';
+import { useVideo } from '../contexts/VideoContext';
 import LikesModal from './LikesModal';
 import { trackView } from '@/utils/viewTracking';
 import { useLikes } from '../hooks/useLikes';
 import DeleteClipModal from './DeleteClipModal';
+import Hls from 'hls.js';
+import { toast } from 'react-hot-toast';
 
+// Add this at the top of your component
+const isBrowser = typeof window !== 'undefined';
+
+// Create a regular component first
 const VideoPlayer = ({
   clip,
   user,
@@ -43,16 +49,24 @@ const VideoPlayer = ({
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
   const [canPlay, setCanPlay] = useState(false);
   const [error, setError] = useState(null);
+  const [hlsError, setHlsError] = useState(null);
 
   // Lazy loading state
   const [shouldLoad, setShouldLoad] = useState(false);
   const observerRef = useRef(null);
 
-  // URLs
-  const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-  const thumbnailUrl = clip.thumbnail_path ? 
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}` 
-    : null;
+  // Memoize video URL to prevent multiple fetches
+  const videoUrl = useMemo(() => 
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`,
+    [clip.file_path]
+  );
+
+  const thumbnailUrl = useMemo(() => 
+    clip.thumbnail_path ? 
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}` 
+      : null,
+    [clip.thumbnail_path]
+  );
 
   // Likes handling
   const {
@@ -74,25 +88,136 @@ const VideoPlayer = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
 
+  const hlsRef = useRef(null);
+  const bufferingTimeoutRef = useRef(null);
+
+  // Use it in your memoized values that depend on window
+  const origin = useMemo(() => 
+    isBrowser ? window.location.origin : '',
+    []
+  );
+
+  // Add these state variables at the top of your component
+  const [isPlayRequested, setIsPlayRequested] = useState(false);
+  const playRequestRef = useRef(null);
+
+  // Action handlers
+  const handleVisibilityToggle = useCallback(async () => {
+    if (!isOwner) return;
+    
+    try {
+      const newVisibility = clip.visibility === 'public' ? 'private' : 'public';
+      
+      // Call the update handler with the updated clip
+      await onClipUpdate?.({
+        ...clip,
+        visibility: newVisibility
+      });
+      
+      toast.success(`Clip is now ${newVisibility}`);
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+      toast.error('Failed to update clip visibility');
+    }
+  }, [clip, isOwner, onClipUpdate]);
+
+  const handleLikeClick = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const success = await handleLike();
+      if (success && showLikesModal) {
+        await fetchLikes();
+      }
+    } catch (error) {
+      console.error('Error handling like:', error);
+      toast.error('Failed to update like');
+    }
+  }, [user, handleLike, showLikesModal, fetchLikes]);
+
+  const handleLikesModalOpen = useCallback(async () => {
+    if (likesCount > 0 && likesButtonRef.current) {
+      const rect = likesButtonRef.current.getBoundingClientRect();
+      setModalTriggerRect({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom + window.scrollY,
+        right: rect.right + window.scrollX
+      });
+      
+      setShowLikesModal(true);
+      await fetchLikes();
+    }
+  }, [likesCount, fetchLikes]);
+
+  const handleShare = useCallback(async () => {
+    const shareUrl = `${origin}/clip/${clip.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: clip.title,
+          text: `Check out this clip by ${clip.username}`,
+          url: shareUrl
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share clip');
+    }
+  }, [clip.id, clip.title, clip.username, origin]);
+
+  const handleCopyLink = useCallback(async () => {
+    try {
+      const clipUrl = `${origin}/clip/${clip.id}`;
+      await navigator.clipboard.writeText(clipUrl);
+      setShowCopyTooltip(true);
+      setTimeout(() => setShowCopyTooltip(false), 2000);
+      toast.success('Link copied!');
+    } catch (error) {
+      console.error('Error copying link:', error);
+      toast.error('Failed to copy link');
+    }
+  }, [clip.id, origin]);
+
   // Video event handlers
   const handleCanPlay = useCallback(() => {
     setCanPlay(true);
     setIsBuffering(false);
   }, []);
 
-  const handleWaiting = useCallback(() => {
-    if (isPlaying && !isSeeking) {
-      setIsBuffering(true);
+  const handleWaiting = () => {
+    // Clear any existing timeout
+    if (bufferingTimeoutRef.current) {
+      clearTimeout(bufferingTimeoutRef.current);
     }
-  }, [isPlaying, isSeeking]);
+    
+    // Set a timeout before showing buffering indicator to prevent flashing
+    bufferingTimeoutRef.current = setTimeout(() => {
+      setIsBuffering(true);
+    }, 500);
+  };
 
-  const handleError = useCallback((e) => {
+  const handlePlaying = () => {
+    if (bufferingTimeoutRef.current) {
+      clearTimeout(bufferingTimeoutRef.current);
+    }
+    setIsBuffering(false);
+  };
+
+  const handleError = useCallback(() => {
     setError('Failed to load video');
     setCanPlay(false);
   }, []);
 
   // Intersection Observer setup
   useEffect(() => {
+    if (!isBrowser) return;
+    
     const options = {
       root: null,
       rootMargin: '50px',
@@ -117,6 +242,8 @@ const VideoPlayer = ({
 
   // View tracking
   useEffect(() => {
+    if (!isBrowser) return;
+    
     let timeoutId;
     if (isPlaying && !hasTrackedView) {
       timeoutId = setTimeout(() => {
@@ -139,6 +266,8 @@ const VideoPlayer = ({
 
   // First, update the useEffect to pause when currentPlayingId changes
   useEffect(() => {
+    if (!isBrowser) return;
+    
     // If another video starts playing (currentPlayingId changes to a different id)
     // and this video is currently playing, pause it
     if (currentPlayingId && currentPlayingId !== clip.id && isPlaying) {
@@ -148,92 +277,245 @@ const VideoPlayer = ({
     }
   }, [currentPlayingId, clip.id, isPlaying]);
 
-  // Action handlers
-  const handleShare = useCallback(async () => {
-    const shareUrl = `${window.location.origin}/clip/${clip.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: clip.title,
-          text: `Check out this clip by ${clip.username}`,
-          url: shareUrl
-        });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        alert('Link copied to clipboard!');
+  // Cleanup HLS instance on unmount
+  useEffect(() => {
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  }, [clip.id, clip.title, clip.username]);
-
-  const handleCopyLink = useCallback(async () => {
-    try {
-      const clipUrl = `${window.location.origin}/clip/${clip.id}`;
-      await navigator.clipboard.writeText(clipUrl);
-      setShowCopyTooltip(true);
-      setTimeout(() => setShowCopyTooltip(false), 2000);
-    } catch (error) {
-      console.error('Error copying link:', error);
-      alert('Failed to copy clip link');
-    }
-  }, [clip.id]);
-
-  const handleVisibilityToggle = useCallback(async () => {
-    if (!isOwner) return;
-    
-    try {
-      const newVisibility = clip.visibility === 'public' ? 'private' : 'public';
-      
-      // Call the update handler with the updated clip
-      onClipUpdate?.({
-        ...clip,
-        visibility: newVisibility
-      });
-      
-    } catch (error) {
-      console.error('Error toggling visibility:', error);
-    }
-  }, [clip, isOwner, onClipUpdate]);
-
-  const handleLikeClick = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const success = await handleLike();
-      if (success && showLikesModal) {
-        await fetchLikes();
-      }
-    } catch (error) {
-      console.error('Error handling like:', error);
-    }
-  }, [user, handleLike, showLikesModal, fetchLikes]);
-
-  const handleLikesModalOpen = useCallback(async () => {
-    if (likesCount > 0 && likesButtonRef.current) {
-      const rect = likesButtonRef.current.getBoundingClientRect();
-      setModalTriggerRect({
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-        height: rect.height,
-        bottom: rect.bottom + window.scrollY,
-        right: rect.right + window.scrollX
-      });
-      
-      setShowLikesModal(true);
-      await fetchLikes();
-    }
-  }, [likesCount, fetchLikes]);
+    };
+  }, []);
 
   // Add a new effect to handle auto-play
   useEffect(() => {
+    if (!isBrowser) return;
+    
     if (shouldLoad && canPlay && !hasStartedPlaying) {
       player.current?.play().catch(err => {
         console.error('Auto-play failed:', err);
       });
     }
   }, [shouldLoad, canPlay, hasStartedPlaying]);
+
+  useEffect(() => {
+    if (!isBrowser) return;
+    
+    if (!clip?.file_path) return;
+
+    // Check if it's an MP4 or HLS video
+    const isHLS = clip.file_path.endsWith('.m3u8');
+    const videoElement = player.current?.querySelector('video');
+    
+    if (!videoElement) return;
+
+    // Prevent multiple loads of the same video
+    if (videoElement.src === videoUrl) return;
+
+    // Set crossOrigin before setting src
+    videoElement.crossOrigin = 'anonymous';
+
+    // Configure video element for better buffering
+    videoElement.preload = "metadata";  // Start with metadata only
+    videoElement.addEventListener('canplaythrough', () => {
+      setIsBuffering(false);
+    });
+
+    // If it's MP4, configure for better buffering
+    if (!isHLS) {
+      videoElement.src = videoUrl;
+      return;
+    }
+
+    const initHls = () => {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          debug: process.env.NODE_ENV === 'development',
+          
+          // Optimize for small segments
+          maxBufferSize: 200 * 1000 * 1000, // Increase to 200MB to store more segments
+          maxBufferLength: 90, // Buffer up to 90 seconds
+          maxMaxBufferLength: 120, // Allow up to 120 seconds in special cases
+          
+          // Aggressive buffering strategy
+          highBufferWatchdogPeriod: 10,
+          nudgeOffset: 0.1,
+          nudgeMaxRetry: 5,
+          
+          // Preload aggressively
+          startFragPrefetch: true,
+          lowLatencyMode: false,
+          backBufferLength: 90, // Keep 90 seconds of back buffer
+          
+          // Bandwidth and quality settings
+          abrEwmaDefaultEstimate: 5000000, // Start with 5 Mbps estimate
+          abrEwmaFastLive: 2, // Faster quality switching
+          abrEwmaSlowLive: 5,
+          
+          // Segment loading optimizations
+          maxFragLookUpTolerance: 0.5,
+          maxLoadingDelay: 1,
+          maxStarvationDelay: 8,
+          startLevel: -1,
+          autoStartLoad: true,
+          
+          // Advanced loading policies for small segments
+          fragLoadPolicy: {
+            default: {
+              maxTimeToFirstByteMs: 5000,
+              maxLoadTimeMs: 60000,
+              timeoutRetry: {
+                maxNumRetry: 8,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              },
+              errorRetry: {
+                maxNumRetry: 8,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              }
+            }
+          },
+          
+          // Batch loading for small segments
+          maxBufferHole: 0.5,
+          maxSeekHole: 2,
+          appendErrorMaxRetry: 5,
+          
+          // Enable better segment merging
+          stretchShortVideoTrack: true,
+          maxAudioFramesDrift: 1,
+          enableSoftwareAES: true,
+          
+          // Memory management
+          enableWorker: true,
+          testBandwidth: true,
+          progressive: true
+        });
+
+        // Add more comprehensive event handling
+        hls.on(Hls.Events.FRAG_LOADING, () => {
+          setIsBuffering(true);
+        });
+
+        hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+          setIsBuffering(false);
+          // Try to preload next fragment
+          if (data.frag.sn !== undefined) {
+            hls.loadFragment(data.frag.sn + 1);
+          }
+        });
+
+        hls.on(Hls.Events.BUFFER_APPENDED, () => {
+          setIsBuffering(false);
+        });
+
+        hls.on(Hls.Events.BUFFER_APPENDING, () => {
+          setIsBuffering(true);
+        });
+
+        // Handle quality level changes
+        hls.on(Hls.Events.LEVEL_LOADED, () => {
+          setIsBuffering(false);
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+          setIsBuffering(false);
+        });
+
+        // Enhanced error handling
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.log('Network error, retrying...');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('Media error, recovering...');
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error('Fatal error, destroying...');
+                hls.destroy();
+                break;
+            }
+          } else {
+            // Handle non-fatal errors
+            console.warn('Non-fatal error:', data);
+            if (data.type === Hls.ErrorTypes.BUFFER_STALLED_ERROR) {
+              hls.trigger(Hls.Events.BUFFER_FLUSHING);
+            }
+          }
+        });
+
+        hlsRef.current = hls;
+        return hls;
+      }
+      return null;
+    };
+
+    const hls = initHls();
+    
+    if (hls && videoElement) {
+      hls.loadSource(videoUrl);
+      hls.attachMedia(videoElement);
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [clip?.file_path, videoUrl]);
+
+  // Update these functions to use Vidstack's API
+  const handlePlayRequest = useCallback(async () => {
+    if (playRequestRef.current) {
+      clearTimeout(playRequestRef.current);
+    }
+
+    setIsPlayRequested(true);
+
+    try {
+      await new Promise(resolve => {
+        playRequestRef.current = setTimeout(resolve, 50);
+      });
+
+      if (isPlayRequested && player.current) {
+        // Use Vidstack's API instead of querySelector
+        const mediaPlayer = player.current;
+        if (!mediaPlayer.playing) {
+          await mediaPlayer.play();
+        }
+      }
+    } catch (error) {
+      console.error('Play error:', error);
+      setIsPlayRequested(false);
+    }
+  }, [isPlayRequested]);
+
+  const handlePauseRequest = useCallback(() => {
+    setIsPlayRequested(false);
+    if (player.current) {
+      // Use Vidstack's API instead of querySelector
+      const mediaPlayer = player.current;
+      if (mediaPlayer.playing) {
+        mediaPlayer.pause();
+      }
+    }
+  }, []);
+
+  // Add this useEffect for cleanup
+  useEffect(() => {
+    return () => {
+      if (playRequestRef.current) {
+        clearTimeout(playRequestRef.current);
+      }
+      setIsPlayRequested(false);
+    };
+  }, []);
 
   // Render functions
   const renderHeader = () => (
@@ -367,12 +649,13 @@ const VideoPlayer = ({
             src={videoUrl}
             title={clip.title}
             load="visible"
-            aspectRatio={16/9}
             playsInline
             viewType="video"
             streamType="on-demand"
             autoplay={false}
-            crossOrigin=""
+            crossOrigin="anonymous"
+            preload="metadata"
+            buffer={4}
             onProviderChange={(provider) => {
               if (provider) {
                 provider.setVolume?.(1);
@@ -381,12 +664,19 @@ const VideoPlayer = ({
             }}
             onCanPlay={handleCanPlay}
             onWaiting={handleWaiting}
-            onPlay={() => {
-              setIsPlaying(true);
-              setHasStartedPlaying(true);
-              setCurrentPlayingId(clip.id);
+            onPlaying={handlePlaying}
+            onPlay={async () => {
+              try {
+                await handlePlayRequest();
+                setIsPlaying(true);
+                setHasStartedPlaying(true);
+                setCurrentPlayingId(clip.id);
+              } catch (error) {
+                console.error('Error during play:', error);
+              }
             }}
             onPause={() => {
+              handlePauseRequest();
               setIsPlaying(false);
               setIsBuffering(false);
               if (currentPlayingId === clip.id) {
@@ -444,14 +734,16 @@ const VideoPlayer = ({
             {isPlaying && isBuffering && !isSeeking && !error && (
               <div className={styles.bufferingOverlay}>
                 <div className={styles.bufferingSpinner} />
+                <div className={styles.bufferingText}>Loading...</div>
               </div>
             )}
 
-            {error && (
+            {(error || hlsError) && (
               <div className={styles.errorOverlay}>
-                <p>{error}</p>
+                <p>{error || hlsError}</p>
                 <button onClick={() => {
                   setError(null);
+                  setHlsError(null);
                   player.current?.startLoading();
                 }}>
                   Retry
@@ -484,6 +776,12 @@ const VideoPlayer = ({
         isLoading={isUpdatingLike}
         currentUserId={user?.id}
       />
+
+      {isPlayRequested && !isPlaying && (
+        <div className={styles.playingOverlay}>
+          <div className={styles.playingSpinner} />
+        </div>
+      )}
     </div>
   );
 };

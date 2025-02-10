@@ -19,11 +19,7 @@ const AuthContext = createContext({
   isLoggedIn: false,
   user: null,
   loading: true,
-  login: async () => {},
-  logout: async () => {},
-  userExists: async () => {},
-  createUser: async () => {},
-  fetchUserData: async () => {}
+  initialized: false
 });
 
 export function useAuth() {
@@ -34,12 +30,9 @@ export function useAuth() {
   return context;
 }
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const router = useRouter();
-  const supabase = createClient();
-  const initTimeoutRef = useRef(null);
-  const refreshTimerRef = useRef(null);
-  
+  const [mounted, setMounted] = useState(false);
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
     user: null,
@@ -50,11 +43,69 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const supabaseRef = useRef(null);
+
+  // Initialize Supabase client only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !supabaseRef.current) {
+      supabaseRef.current = createClient();
+    }
+    setMounted(true);
+  }, []);
+
+  // Initialize auth state
+  useEffect(() => {
+    if (!mounted || !supabaseRef.current) return;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+        
+        if (error || !session?.user) {
+          setAuthState({
+            isLoggedIn: false,
+            user: null,
+            loading: false,
+            initialized: true
+          });
+          return;
+        }
+
+        // Fetch user data if we have a session
+        const { data: userData, error: userError } = await supabaseRef.current
+          .from('users')
+          .select('*')
+          .eq('email', session.user.email)
+          .single();
+
+        if (userError) throw userError;
+
+        setAuthState({
+          isLoggedIn: true,
+          user: userData,
+          loading: false,
+          initialized: true
+        });
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setAuthState({
+          isLoggedIn: false,
+          user: null,
+          loading: false,
+          initialized: true
+        });
+      }
+    };
+
+    initAuth();
+  }, [mounted]);
 
   // Session check function
   const checkSession = useCallback(async () => {
+    if (!mounted || !supabaseRef.current) return;
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseRef.current.auth.getSession();
       if (!session && authState.isLoggedIn) {
         setAuthState(prev => ({
           ...prev,
@@ -65,7 +116,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('Session check error:', error);
     }
-  }, [authState.isLoggedIn]);
+  }, [authState.isLoggedIn, mounted]);
 
   // Handle focus and visibility
   useEffect(() => {
@@ -90,67 +141,6 @@ export function AuthProvider({ children }) {
     };
   }, [authState.isLoggedIn, checkSession]);
 
-  // Initialize auth
-  useEffect(() => {
-    let mounted = true;
-
-    const initAuth = async () => {
-      try {
-        // Parallel fetch of session and user data
-        const sessionPromise = supabase.auth.getSession();
-        
-        const { data: { session } } = await sessionPromise;
-
-        if (!mounted) return;
-
-        if (!session?.user) {
-          setAuthState({
-            isLoggedIn: false,
-            user: null,
-            loading: false,
-            initialized: true
-          });
-          return;
-        }
-
-        // Fetch user data if we have a session
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', session.user.email)
-          .single();
-
-        if (!mounted) return;
-
-        setAuthState({
-          isLoggedIn: true,
-          user: userData || null,
-          loading: false,
-          initialized: true
-        });
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) {
-          setAuthState({
-            isLoggedIn: false,
-            user: null,
-            loading: false,
-            initialized: true
-          });
-        }
-      }
-    };
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-      }
-    };
-  }, []);
-
   // Session refresh logic
   useEffect(() => {
     const REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes refresh interval
@@ -163,18 +153,18 @@ export function AuthProvider({ children }) {
         
         const attemptRefresh = async () => {
           try {
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabaseRef.current.auth.getSession();
             if (error || !session) {
               throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
             }
 
             // Refresh session
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            const { data: refreshData, error: refreshError } = await supabaseRef.current.auth.refreshSession();
             if (refreshError) throw refreshError;
 
             // Update user data if refresh successful
             if (refreshData.session) {
-              const { data: userData } = await supabase
+              const { data: userData } = await supabaseRef.current
                 .from('users')
                 .select('*')
                 .eq('email', refreshData.session.user.email)
@@ -207,27 +197,16 @@ export function AuthProvider({ children }) {
     // Set up refresh interval when logged in
     if (authState.isLoggedIn) {
       refreshSession();
-      refreshTimerRef.current = setInterval(refreshSession, REFRESH_INTERVAL);
     }
-
-    return () => {
-      if (refreshTimerRef.current) {
-        clearInterval(refreshTimerRef.current);
-      }
-    };
   }, [authState.isLoggedIn]);
 
   // Simplified loading check
   const shouldShowLoading = () => {
-    if (typeof window === 'undefined' || isPublicRoute(router.pathname)) {
+    if (!mounted || isPublicRoute(router.pathname)) {
       return false;
     }
 
-    if (!authState.initialized || isLoggingOut) {
-      return true;
-    }
-
-    return isProtectedRoute(router.pathname) && !authState.isLoggedIn && authState.loading;
+    return (!authState.initialized || isLoggingOut) && isProtectedRoute(router.pathname);
   };
 
   // Function to fetch user data
@@ -235,7 +214,7 @@ export function AuthProvider({ children }) {
     if (!identifier) return null;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseRef.current
         .from('users')
         .select(`id, username, email, is_admin, gizmo_id, created_at`)
         .or(`username.eq.${identifier.toLowerCase()},email.eq.${identifier.toLowerCase()}`)
@@ -262,7 +241,7 @@ export function AuthProvider({ children }) {
 
     try {
       // Find user by username
-      const { data: userData, error: userError } = await supabase
+      const { data: userData, error: userError } = await supabaseRef.current
         .from('users')
         .select('email')
         .eq('username', username.toLowerCase())
@@ -274,7 +253,7 @@ export function AuthProvider({ children }) {
       }
 
       // Sign in
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabaseRef.current.auth.signInWithPassword({
         email: userData.email,
         password
       });
@@ -282,7 +261,7 @@ export function AuthProvider({ children }) {
       if (signInError) throw signInError;
 
       // Get full user data
-      const { data: fullUserData, error: fullUserError } = await supabase
+      const { data: fullUserData, error: fullUserError } = await supabaseRef.current
         .from('users')
         .select('*')
         .eq('email', userData.email)
@@ -336,7 +315,7 @@ export function AuthProvider({ children }) {
       });
 
       // Perform the signOut
-      const { error } = await supabase.auth.signOut({
+      const { error } = await supabaseRef.current.auth.signOut({
         scope: 'local'
       });
       
@@ -359,7 +338,7 @@ export function AuthProvider({ children }) {
   const userExists = async (username) => {
     try {
       const lowerCaseUsername = username.toLowerCase();
-      const { data, error } = await supabase
+      const { data, error } = await supabaseRef.current
         .from('users')
         .select('username, email, is_admin')
         .eq('username', lowerCaseUsername)
@@ -378,7 +357,7 @@ export function AuthProvider({ children }) {
   const createUser = async (email, password, username) => {
     try {
       const lowerCaseUsername = username.toLowerCase();
-      const { error: signUpError, data } = await supabase.auth.signUp({ email, password });
+      const { error: signUpError, data } = await supabaseRef.current.auth.signUp({ email, password });
       
       if (!signUpError) {
         console.log('User signed up successfully:', data);
@@ -401,7 +380,7 @@ export function AuthProvider({ children }) {
           }
 
           // Insert user with Gizmo ID if available
-          const { error: insertError } = await supabase
+          const { error: insertError } = await supabaseRef.current
             .from('users')
             .insert([{ 
               id: data.user.id, 
@@ -413,7 +392,7 @@ export function AuthProvider({ children }) {
           if (!insertError) {
             console.log('User inserted into users table successfully');
             // Automatically log in the user
-            const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+            const { error: signInError } = await supabaseRef.current.auth.signInWithPassword({ email, password });
             if (!signInError) {
               setAuthState(prev => ({
                 ...prev,
@@ -478,27 +457,32 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   if (shouldShowLoading()) {
-    return <LoadingScreen 
-      message={isLoggingOut ? "Logging out..." : "Loading..."} 
-      type={typeof window !== 'undefined' ? 'auth' : undefined} 
-    />;
+    return (
+      <div className="auth-loading-wrapper" suppressHydrationWarning>
+        <LoadingScreen 
+          type="auth" 
+          message={isLoggingOut ? "Logging out..." : "Authenticating..."} 
+        />
+      </div>
+    );
   }
 
+  // Only provide Supabase client after mounting
+  const value = {
+    ...authState,
+    supabase: supabaseRef.current,
+    login,
+    logout,
+    userExists,
+    createUser,
+    fetchUserData,
+    error,
+    isLoading
+  };
+
   return (
-    <AuthContext.Provider 
-      value={{
-        ...authState,
-        supabase,
-        login,
-        logout,
-        userExists,
-        createUser,
-        fetchUserData,
-        error,
-        isLoading
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
+};

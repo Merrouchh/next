@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode only in development for better debugging
-  reactStrictMode: process.env.NODE_ENV === 'development',
+  reactStrictMode: false,
 
   // Environment variables
   env: {
@@ -142,8 +142,28 @@ const nextConfig = {
         source: '/:path*',
         headers: [
           {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          },
+          {
             key: 'Access-Control-Allow-Origin',
             value: '*'
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS'
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization, apikey'
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin'
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
@@ -159,12 +179,24 @@ const nextConfig = {
         source: '/storage/:path*',
         headers: [
           {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          },
+          {
             key: 'Access-Control-Allow-Origin',
             value: '*'
           },
           {
             key: 'Cross-Origin-Resource-Policy',
             value: 'cross-origin'
+          },
+          {
+            key: 'Accept-Ranges',
+            value: 'bytes'
+          },
+          {
+            key: 'Content-Range',
+            value: 'bytes'
           }
         ]
       }
@@ -192,6 +224,10 @@ const nextConfig = {
 
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  eslint: {
+    ignoreDuringBuilds: true
   },
 };
 

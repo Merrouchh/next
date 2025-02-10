@@ -113,15 +113,6 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
             <h1>{username}'s Profile</h1>
           </div>
         </div>
-        {isOwner && (
-          <button
-            onClick={() => router.push('/upload')}
-            className={styles.uploadButton}
-          >
-            <MdCloudUpload />
-            Upload Clip
-          </button>
-        )}
       </div>
 
       <div className={styles.profileContent}>

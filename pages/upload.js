@@ -21,6 +21,34 @@ const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
   )
 });
 
+const _updatedUploadStyles = {
+  uploadMain: {
+    backgroundColor: 'var(--dark-bg-primary)',
+    color: 'var(--dark-text-primary)'
+  },
+  uploadCard: {
+    backgroundColor: 'var(--dark-card-bg)',
+    border: '1px solid var(--dark-border)'
+  },
+  input: {
+    backgroundColor: 'var(--dark-input-bg)',
+    color: 'var(--dark-text-primary)',
+    border: '1px solid var(--dark-border)'
+  },
+  select: {
+    backgroundColor: 'var(--dark-input-bg)',
+    color: 'var(--dark-text-primary)',
+    border: '1px solid var(--dark-border)'
+  },
+  dropzone: {
+    backgroundColor: 'var(--dark-bg-elevated)',
+    border: '2px dashed var(--dark-border)',
+    '&:hover': {
+      borderColor: 'var(--dark-accent-primary)'
+    }
+  }
+};
+
 const UploadPage = () => {
   const [title, setTitle] = useState('');
   const [game, setGame] = useState('');

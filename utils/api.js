@@ -250,15 +250,26 @@ const fetchUserData = async () => {
 };
 
 export const fetchTopClipOfWeek = async (supabase) => {
-  // Get the start and end of the current week
-  const now = new Date();
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
-  endOfWeek.setHours(23, 59, 59, 999);
-
   try {
+    // Add safety check
+    if (!supabase?.from) {
+      console.error('Supabase client is not properly initialized');
+      return null;
+    }
+
+    // Get the start and end of the current week
+    const now = new Date();
+    
+    // Calculate start of week (Monday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Calculate end of week (Sunday)
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
     const { data: clips, error } = await supabase
       .from('clips')
       .select('*')
@@ -271,29 +282,27 @@ export const fetchTopClipOfWeek = async (supabase) => {
 
     if (error) throw error;
 
-    if (clips && clips.length > 0) {
-      // Get video URL
-      const { data: videoData } = supabase.storage
+    if (!clips?.length) return null;
+
+    // Get video URL and thumbnail URL
+    const { data: videoData } = await supabase.storage
+      .from('highlight-clips')
+      .getPublicUrl(clips[0].file_path);
+
+    let thumbnailUrl = null;
+    if (clips[0].thumbnail_path) {
+      const { data: thumbnailData } = await supabase.storage
         .from('highlight-clips')
-        .getPublicUrl(clips[0].file_path);
-
-      // Get thumbnail URL if it exists
-      let thumbnailUrl = null;
-      if (clips[0].thumbnail_path) {
-        const { data: thumbnailData } = supabase.storage
-          .from('highlight-clips')
-          .getPublicUrl(clips[0].thumbnail_path);
-        thumbnailUrl = thumbnailData?.publicUrl;
-      }
-
-      return {
-        ...clips[0],
-        url: videoData?.publicUrl,
-        thumbnailUrl: thumbnailUrl || videoData?.publicUrl
-      };
+        .getPublicUrl(clips[0].thumbnail_path);
+      thumbnailUrl = thumbnailData?.publicUrl;
     }
 
-    return null;
+    return {
+      ...clips[0],
+      url: videoData?.publicUrl,
+      thumbnailUrl: thumbnailUrl || videoData?.publicUrl
+    };
+
   } catch (error) {
     console.error('Error fetching top clip:', error);
     return null;

@@ -54,11 +54,16 @@ const UserSearch = () => {
     setSearchQuery('');
     setShowResults(false);
     
-    // First navigate to the new URL
-    await router.push(`/profile/${selectedUsername}`);
+    // Force loading state before navigation
+    setIsSearching(true);
     
-    // Then force a complete page refresh
-    window.location.reload();
+    // Use router.replace instead of push to force a new server-side render
+    await router.replace(`/profile/${selectedUsername}`, undefined, { 
+      shallow: false 
+    });
+    
+    // Reset search state after navigation
+    setIsSearching(false);
   };
 
   const handleInputChange = (e) => {

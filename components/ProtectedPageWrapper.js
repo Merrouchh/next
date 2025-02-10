@@ -6,23 +6,37 @@ import { getRouteConfig } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import DashboardHeader from './DashboardHeader';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   const { isLoggedIn, loading: authLoading, userData, logout, supabase } = useAuth();
   const router = useRouter();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Get route configuration
   const routeConfig = getRouteConfig(router.pathname);
-  // Update showDashboardHeader logic to handle root path
   const showDashboardHeader = isLoggedIn && 
     (!routeConfig.singleHeader || router.pathname === '/' || router.pathname === '/dashboard');
-
-  // Check if we're on the home page
   const isHomePage = router.pathname === '/';
+  const hasBottomNav = routeConfig.hasBottomNav;
+
+  // Calculate main content style
+  const mainContentStyle = {
+    ...(isMobile && isLoggedIn && hasBottomNav && {
+      paddingBottom: 'calc(70px + env(safe-area-inset-bottom))', // Adjust this value based on your bottom nav height
+    })
+  };
 
   // Navigation handling
   useEffect(() => {
+    if (!mounted) return;
+
     const handleStart = () => setIsNavigating(true);
     const handleComplete = () => setIsNavigating(false);
     const handleError = () => setIsNavigating(false);
@@ -36,23 +50,39 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleError);
     };
-  }, [router]);
+  }, [router, mounted]);
 
   // Auth check
   useEffect(() => {
-    if (routeConfig.requireAuth && !authLoading && !isLoggedIn) {
+    if (!mounted) return;
+
+    console.log('Route Config:', {
+      path: router.pathname,
+      config: routeConfig,
+      authLoading,
+      isLoggedIn
+    });
+
+    if (!authLoading && !isLoggedIn && routeConfig.requireAuth && !routeConfig.public) {
+      console.log('Redirecting because:', {
+        authLoading,
+        isLoggedIn,
+        requireAuth: routeConfig.requireAuth,
+        public: routeConfig.public
+      });
       router.replace('/');
     }
-  }, [isLoggedIn, authLoading, router, routeConfig]);
+  }, [authLoading, isLoggedIn, router, routeConfig]);
 
   // Add session validation check
   useEffect(() => {
+    if (!mounted) return;
+
     const validateSession = async () => {
       if (isLoggedIn) {
         try {
           const { data: { session }, error } = await supabase.auth.getSession();
           if (error || !session) {
-            // Force logout if session is invalid
             logout();
           }
         } catch (error) {
@@ -62,15 +92,26 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
     };
 
     validateSession();
-  }, [isLoggedIn, supabase, logout]);
+  }, [isLoggedIn, supabase, logout, mounted]);
+
+  const renderLoading = () => (
+    <div className={styles.navigationLoadingWrapper} suppressHydrationWarning>
+      <LoadingScreen message="Navigating..." type="content" />
+    </div>
+  );
+
+  if (!mounted) {
+    return renderLoading();
+  }
 
   if (isNavigating) {
-    return <LoadingScreen message="Navigating..." type="auth" />;
+    return renderLoading();
   }
 
   return (
-    <>
-      <div className={styles.headerSection}>
+    <div className={styles.wrapper} suppressHydrationWarning>
+      {/* Create a separate container for headers with higher z-index */}
+      <div className={styles.headerWrapper}>
         <Header />
         {isHomePage && (
           <div className={styles.progressBarContainer}>
@@ -80,22 +121,29 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
             />
           </div>
         )}
-        {showDashboardHeader && userData && <DashboardHeader />}
       </div>
       
-      <div className={styles.wrapper}>
-        <main className={styles.mainContent}>
-          {authLoading && routeConfig.requireAuth ? (
-            <div className={styles.contentLoading}>
-              <LoadingScreen message="Loading..." type="content" />
-            </div>
-          ) : (
-            children
-          )}
-        </main>
-      </div>
-    </>
+      {/* Separate container for DashboardHeader */}
+      {showDashboardHeader && userData && (
+        <div className={styles.dashboardWrapper}>
+          <DashboardHeader />
+        </div>
+      )}
+      
+      <main 
+        className={styles.mainContent}
+        style={mainContentStyle}
+      >
+        {authLoading && routeConfig.requireAuth ? (
+          <div className={styles.contentLoading}>
+            <LoadingScreen message="Loading..." type="content" />
+          </div>
+        ) : (
+          children
+        )}
+      </main>
+    </div>
   );
-}
+};
 
 export default ProtectedPageWrapper;

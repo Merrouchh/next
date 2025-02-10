@@ -1,20 +1,19 @@
 .dashboardHeader {
   position: relative;
   width: 100%;
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  --bottom-nav-height: 60px;
+  z-index: 1001;
+  background: #0f0f0f;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .topNav {
   position: sticky;
   top: var(--header-height, 60px);
   width: 100%;
-  background: rgba(15, 15, 25, 0.98);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  background: #0f0f0f;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
 }
 
 .bottomNav {
@@ -22,189 +21,177 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: var(--bottom-nav-height);
-  background: rgba(15, 15, 25, 0.98);
-  backdrop-filter: blur(10px);
+  background: #0f0f0f;
   border-top: 1px solid rgba(255, 215, 0, 0.1);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
   z-index: 999;
 }
 
 .navContainer {
-  max-width: var(--max-width, 1200px);
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
-  width: 100%;
-  padding: 0 1rem;
+  gap: 10px;
+  padding: 10px;
 }
 
-/* Button Styles */
+/* Base button style */
 .navButton {
+  padding: 8px 16px;
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  padding: 0.75rem 1.75rem;
-  border: none;
-  background: transparent;
-  color: #888;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  gap: 8px;
 }
 
-/* Custom colors for each button - both top and bottom nav */
-.navButton[data-path="/dashboard"],
-.navButton[data-path="/"] {
-  color: #64B5F6;
-}
-
-.navButton[data-path="/topusers"] {
+/* Hover state */
+.navButton:hover {
   color: #FFD700;
 }
 
-.navButton[data-path="/shop"] {
-  color: #81C784;
-}
-
-.navButton[data-path="/discover"] {
-  color: #FF7043;
-  opacity: 0.7;
-}
-
-.navButton[data-path="/avcomputers"] {
-  color: #BA68C8;
-  opacity: 0.7;
-}
-
-.navButton[data-path^="/profile"] {
-  color: #4FC3F7;
-  opacity: 0.7;
-}
-
-/* Active state for each button */
-.navButton.active[data-path="/dashboard"],
-.navButton.active[data-path="/"] {
-  background: linear-gradient(135deg, rgba(100, 181, 246, 0.15) 0%, rgba(30, 136, 229, 0.15) 100%);
-}
-
-.navButton.active[data-path="/topusers"] {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
-}
-
-.navButton.active[data-path="/shop"] {
-  background: linear-gradient(135deg, rgba(129, 199, 132, 0.15) 0%, rgba(67, 160, 71, 0.15) 100%);
-}
-
-/* When button is active, ensure full opacity */
-.navButton.active[data-path="/discover"],
-.navButton.active[data-path="/avcomputers"],
-.navButton.active[data-path^="/profile"] {
-  opacity: 1;
-}
-
-.icon {
-  font-size: 1.4rem;
-  transition: transform 0.3s ease;
-}
-
-.label {
-  font-size: 0.85rem;
+/* Active state */
+.navButton.active {
+  background: #FFD700 !important;
+  color: #000000 !important; /* Force black text when active */
   font-weight: 600;
-  margin-left: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Mobile styles */
+/* Make sure icon and label are also black when active */
+.navButton.active .icon,
+.navButton.active .label {
+  color: #000000;
+}
+
+/* Icon styles */
+.icon {
+  font-size: 18px;
+}
+
+/* Mobile bottom navigation */
 @media (max-width: 768px) {
+  .bottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #0f0f0f;
+    border-top: 1px solid rgba(255, 215, 0, 0.1);
+    padding: 8px 0;
+    z-index: 999;
+  }
+
   .navContainer {
-    height: 60px;
-    justify-content: space-around;
-    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px;
   }
 
   .navButton {
-    flex: 1;
     flex-direction: column;
-    padding: 8px 4px;
-    gap: 4px;
-    position: relative;
-    overflow: visible;
-  }
-
-  .navButton.active {
-    background: transparent;
-  }
-
-  .navButton.active .icon {
-    transform: translateY(-2px) scale(1.2);
-    filter: drop-shadow(0 0 8px currentColor);
-  }
-
-  .navButton.active .label {
-    font-weight: 700;
-    opacity: 1;
-  }
-
-  .navButton.active::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 2px;
-    background: currentColor;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    font-size: 12px;
+    width: 100%;
+    height: 100%;
     border-radius: 4px;
-    opacity: 0.8;
-    box-shadow: 0 0 10px currentColor;
   }
 
+  .icon {
+    font-size: 20px;
+  }
+
+  /* Active state - same as desktop */
+  .navButton.active {
+    background: #FFD700 !important;
+    color: #000000 !important;
+  }
+
+  .navButton.active .icon,
+  .navButton.active .label {
+    color: #000000;
+  }
+
+  /* Remove the underline indicator since we're using full yellow background */
   .navButton.active::after {
     display: none;
   }
 
-  .icon {
-    font-size: 1.5rem;
-    margin-bottom: 4px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
-  }
-
+  /* Label styles for mobile */
   .label {
-    font-size: 0.7rem;
-    margin-left: 0;
-    opacity: 0.9;
-    transition: all 0.3s ease;
-    z-index: 1;
+    font-size: 11px;
+    text-align: center;
+    margin-top: 4px;
+  }
+}
+
+@media (min-width: 769px) {
+  .bottomNav {
+    display: none;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 769px) {
+  .bottomNav {
+    display: none;
   }
 
-  .navButton:active {
-    transform: scale(0.95);
+  .navContainer {
+    gap: 1rem;
   }
 
-  .bottomNav .navButton {
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
+  .navButton::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #FFD700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: -1;
   }
 
-  .bottomNav .navButton:active,
-  .bottomNav .navButton.active {
+  .navButton:hover::before {
+    opacity: 0.03;
+  }
+
+  .navButton.active::before {
+    opacity: 0.05;
+  }
+}
+
+/* Animation for smooth transitions */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
     opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  .bottomNav .navButton[data-path="/discover"] {
-    color: #FF7043;
-  }
+.navButton {
+  animation: slideIn 0.3s ease;
+}
 
-  .bottomNav .navButton[data-path="/avcomputers"] {
-    color: #BA68C8;
-  }
-
-  .bottomNav .navButton[data-path^="/profile"] {
-    color: #4FC3F7;
-  }
+/* Animation for glow effect */
+@keyframes glow {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+  100% { filter: brightness(1); }
 }
 
 /* Desktop styles */
@@ -223,73 +210,26 @@
   }
 
   .navButton:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.05);
+    background-color: #222222;
+    color: #FFD700;
   }
 
-  /* Enhanced desktop active states */
+  /* Clean up the active state */
   .navButton.active {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    position: relative;
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .navButton.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: currentColor;
-    box-shadow: 0 0 10px currentColor;
-  }
-
-  .navButton.active .icon {
-    transform: scale(1.1);
+    background: #FFD700;
+    color: #000000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .navButton.active .label {
-    font-weight: 700;
-  }
-
-  /* Desktop-specific active states for each button */
-  .navButton.active[data-path="/dashboard"],
-  .navButton.active[data-path="/"] {
-    background: linear-gradient(135deg, rgba(100, 181, 246, 0.15) 0%, rgba(30, 136, 229, 0.15) 100%);
-  }
-
-  .navButton.active[data-path="/topusers"] {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
-  }
-
-  .navButton.active[data-path="/shop"] {
-    background: linear-gradient(135deg, rgba(129, 199, 132, 0.15) 0%, rgba(67, 160, 71, 0.15) 100%);
-  }
-
-  .navButton.active[data-path="/discover"] {
-    background: linear-gradient(135deg, rgba(255, 112, 67, 0.15) 0%, rgba(244, 81, 30, 0.15) 100%);
-  }
-
-  .navButton.active[data-path="/avcomputers"] {
-    background: linear-gradient(135deg, rgba(186, 104, 200, 0.15) 0%, rgba(142, 36, 170, 0.15) 100%);
-  }
-
-  .navButton.active[data-path^="/profile"] {
-    background: linear-gradient(135deg, rgba(79, 195, 247, 0.15) 0%, rgba(3, 169, 244, 0.15) 100%);
+    font-weight: 600;
   }
 }
 
-/* Animation for active state */
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
+/* Remove the gradient animations and keep it simple */
 .navButton.active {
-  background-size: 200% 200%;
-  animation: gradientShift 3s ease infinite;
+  animation: none;
+  background: #FFD700;
 }
 
 /* Accessibility */

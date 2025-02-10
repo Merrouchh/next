@@ -42,6 +42,13 @@ export const ROUTE_CONFIG = {
     hasBottomNav: true
   },
 
+  '/avcomputers': {
+    public: false,
+    singleHeader: false,
+    requireAuth: true,
+    hasBottomNav: true
+  },
+
   // Default configuration
   default: {
     public: true,

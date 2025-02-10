@@ -4,6 +4,25 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/DashboardHeader.module.css';
 import { AiOutlineDashboard, AiOutlineDesktop, AiOutlineShop, AiOutlineTrophy, AiOutlineVideoCamera, AiOutlineCompass } from 'react-icons/ai';
 
+// Update the styles for DashboardHeader
+const _updatedDashboardHeaderStyles = {
+  dashboardHeader: {
+    backgroundColor: 'var(--dark-bg-secondary)',
+    borderBottom: '1px solid var(--dark-border)'
+  },
+  navButton: {
+    backgroundColor: 'var(--dark-bg-elevated)',
+    color: 'var(--dark-text-secondary)',
+    '&:hover': {
+      backgroundColor: 'var(--dark-hover)'
+    },
+    '&.active': {
+      backgroundColor: 'var(--dark-accent-primary)',
+      color: 'var(--dark-text-primary)'
+    }
+  }
+};
+
 export default function DashboardHeader({ children }) {
   const router = useRouter();
   const { isLoggedIn, user } = useAuth();

@@ -3,10 +3,10 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen';
-import { VideoProvider } from '../context/VideoContext';
 import React from 'react';
 import BusinessInfo from './BusinessInfo';
 import FAQSchema from './FAQSchema';
+import styles from '../styles/Layout.module.css';
 
 const Layout = ({ children }) => {
   const router = useRouter();
@@ -55,15 +55,21 @@ const Layout = ({ children }) => {
     };
   }, [router.events, mounted]);
 
-  // Only show loading during initial mount
+  // Return consistent loading screen structure
   if (!mounted || !initialized) {
-    return <LoadingScreen />;
+    return (
+      <div className={styles.layoutWrapper}>
+        <div className={styles.loadingContainer} suppressHydrationWarning>
+          <LoadingScreen type="auth" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <VideoProvider>
-      <div className={`layout ${isTransitioning ? 'transitioning' : ''}`}>
-        <main className="main-content">
+    <div className={styles.layoutWrapper}>
+      <div className={`${styles.layoutContent} ${isTransitioning ? styles.transitioning : ''}`}>
+        <main className={styles.mainContent}>
           <BusinessInfo />
           <FAQSchema />
           {children}
@@ -71,7 +77,7 @@ const Layout = ({ children }) => {
         {!shouldHideFooter() && <Footer />}
       </div>
       <div id="modal-root"></div>
-    </VideoProvider>
+    </div>
   );
 };
 

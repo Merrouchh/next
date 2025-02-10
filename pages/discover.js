@@ -178,7 +178,7 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
     loading: clipsLoading, 
     updateClipCount,
     setClips
-  } = useClipsFeed(supabase, 4, null, false, initialClips, totalClips); // Changed to 4
+  } = useClipsFeed(supabase, 4, null, false, initialClips, totalClips);
 
   // Reset player state on unmount
   useEffect(() => {
@@ -274,7 +274,7 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
       console.error('Error updating clip:', error);
       alert('Failed to update clip visibility');
     }
-  }, [user, supabase]);
+  }, [user, supabase, setClips]);
 
   // Add this effect to handle initial loading
   useEffect(() => {
@@ -374,7 +374,7 @@ const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore 
       console.error('Error deleting clip:', error);
       alert('Failed to delete clip');
     }
-  }, [user, supabase]);
+  }, [user, supabase, setClips]);
 
   // Loading content component
   const LoadingContent = () => (

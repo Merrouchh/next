@@ -301,9 +301,18 @@ const ClipPage = ({ clip, metaData, isOwnClip, isPrivate }) => {
         <style jsx>{`
           .clip-container {
             width: 100%;
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: center;
+          }
+
+          @media (max-width: 768px) {
+            .clip-container {
+              margin: 20px auto;
+              padding: 0 10px;
+            }
           }
         `}</style>
       </main>

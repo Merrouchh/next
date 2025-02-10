@@ -1,19 +1,19 @@
 .uploadMain {
   padding: 2rem;
-  background: var(--bg-color, #0f1119);
+  background-color: #0a0a0a;
   min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #fff;
-  background: radial-gradient(circle at top, #1a1f35 0%, #0f1119 100%);
+  color: #ffffff;
+  background: linear-gradient(180deg, #0f1119 0%, #0a0a0a 100%);
 }
 
 .uploadCard {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 2.5rem;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background-color: #141414;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #2a2a2a;
   backdrop-filter: blur(20px);
   max-width: 700px;
   width: 100%;
@@ -82,20 +82,20 @@
 }
 
 .dropzone {
-  border: 2px dashed rgba(255, 215, 0, 0.3);
-  padding: 3rem 2rem;
+  background-color: #1a1a1a;
+  border: 2px dashed #2a2a2a;
+  padding: 2rem;
   text-align: center;
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  transition: all 0.2s ease;
   margin-bottom: 2rem;
-  background: rgba(255, 215, 0, 0.02);
   position: relative;
   overflow: hidden;
 }
 
 .dropzone:hover {
-  border-color: rgba(255, 215, 0, 0.5);
-  background: rgba(255, 215, 0, 0.05);
+  border-color: #3b82f6;
+  background-color: #141414;
 }
 
 .dropzoneActive {
@@ -206,12 +206,12 @@
 .input,
 .select {
   width: 100%;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   font-size: 1rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  background: rgba(255, 255, 255, 0.03);
-  color: #fff;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  background-color: #1a1a1a;
+  color: #ffffff;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
@@ -236,7 +236,7 @@
 .input:focus,
 .select:focus {
   outline: none;
-  border-color: #FFD700;
+  border-color: #3b82f6;
   background: rgba(255, 255, 255, 0.07);
   box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.1);
 }
@@ -253,22 +253,23 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  border: 1px solid #2a2a2a;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.03);
+  background: #141414;
   backdrop-filter: blur(10px);
 }
 
 .visibilityOption:hover {
-  border-color: rgba(255, 215, 0, 0.4);
+  border-color: #3b82f6;
   transform: translateY(-2px);
+  background: #1a1a1a;
 }
 
 .visibilityOption.selected {
-  border-color: #FFD700;
-  background: rgba(255, 215, 0, 0.1);
+  border-color: #3b82f6;
+  background: #1a1a1a;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -337,23 +338,22 @@
 }
 
 .uploadButton {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  color: #000;
+  background: #FFD700;
+  color: #000000;
   border: none;
-  padding: 1rem;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 1rem;
 }
 
 .uploadButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+  background: #ffc107;
 }
 
 .uploadButton:disabled {
@@ -387,9 +387,9 @@
 }
 
 .backButton {
-  background: transparent;
+  background: #141414;
   color: #FFD700;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid #2a2a2a;
   padding: 1rem;
   border-radius: 12px;
   font-size: 1rem;
@@ -402,8 +402,8 @@
 }
 
 .backButton:hover {
-  background: rgba(255, 215, 0, 0.1);
-  border-color: #FFD700;
+  background: #1a1a1a;
+  border-color: #3b82f6;
   transform: translateY(-2px);
 }
 
@@ -449,7 +449,7 @@
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  background: #000;
+  background: #141414;
   aspect-ratio: 16/9;
 }
 
@@ -467,7 +467,7 @@
   transform: translate(-50%, -50%);
   width: 60px;
   height: 60px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(20, 20, 20, 0.9);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -478,7 +478,7 @@
 }
 
 .staticPreview:hover .playIcon {
-  background: rgba(255, 215, 0, 0.9);
+  background: #3b82f6;
   color: #000;
   transform: translate(-50%, -50%) scale(1.1);
 }

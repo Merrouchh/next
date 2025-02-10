@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,6 +11,8 @@ import LoadingClip from '../../components/LoadingClip';
 import UserSearch from '../../components/UserSearch';
 import { createClient as createServerClient } from '../../utils/supabase/server-props';
 import DynamicMeta from '../../components/DynamicMeta';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { MdCloudUpload } from 'react-icons/md';
 
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
@@ -145,21 +147,13 @@ export async function getServerSideProps({ req, res, params }) {
   }
 }
 
-const ProfilePage = ({ 
-  userData, 
-  metaData, 
-  error, 
-  _initialSession,  // Prefix with underscore
-  _profile,         // Prefix with underscore
-  _isOwnProfile    // Prefix with underscore
-}) => {
+const ProfilePage = ({ userData, metaData, error }) => {
+  const previousUsername = useRef(userData.username);
   const router = useRouter();
-  const { user, supabase } = useAuth();
+  const { user, supabase, isLoggedIn } = useAuth();
   const [activeTab, setActiveTab] = useState('clips');
   const [searchQuery, setSearchQuery] = useState('');
   const [playingVideoId, setPlayingVideoId] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  
   
   const isOwner = user?.username?.toLowerCase() === userData?.username?.toLowerCase();
   
@@ -169,8 +163,60 @@ const ProfilePage = ({
     hasMore, 
     loaderRef, 
     updateClipCount,
-    setClips
-  } = useClipsFeed(supabase, 6, userData.username, isOwner);
+    setClips,
+    resetClips,
+    fetchClips
+  } = useClipsFeed(
+    supabase, 
+    6, 
+    userData.username, 
+    isOwner, 
+    isLoggedIn
+  );
+
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Define the style objects
+  const mainStyles = { 
+    padding: isMobile === null ? '20px' : (isMobile ? '10px' : '20px')
+  };
+
+  const headerStyles = {
+    position: isMobile ? 'sticky' : 'relative',
+    top: isMobile ? '0' : 'auto',
+    zIndex: isMobile ? '10' : '1',
+    background: isMobile ? 'var(--background-color)' : 'transparent'
+  };
+
+  const mainClassName = styles.profileMain;
+
+  // Reset everything when username changes
+  useEffect(() => {
+    if (previousUsername.current === userData.username) return;
+    previousUsername.current = userData.username;
+    setPlayingVideoId(null);
+    setSearchQuery('');
+    resetClips();
+  }, [userData.username, resetClips]);
+
+  // Add a loading timeout to prevent flash of "no clips" message
+  const [showNoClips, setShowNoClips] = useState(false);
+  useEffect(() => {
+    if (!loading && clips.length === 0) {
+      const timer = setTimeout(() => setShowNoClips(true), 1000);
+      return () => clearTimeout(timer);
+    }
+    setShowNoClips(false);
+  }, [loading, clips.length]);
+
+  // Add this new effect to watch for auth state changes
+  useEffect(() => {
+    // When auth state changes (login/logout)
+    setPlayingVideoId(null);
+    resetClips();
+    // Force a refetch with new auth state
+    fetchClips && fetchClips();
+  }, [isLoggedIn]); // Watch isLoggedIn state
 
   const handleClipUpdate = useCallback(async (updatedClip) => {
     if (!isOwner) return;
@@ -237,13 +283,23 @@ const ProfilePage = ({
     }
   };
 
-  const handlePlayerInit = useCallback((clipId, playerInstance) => {
+  const handlePlayerInit = useCallback((_clipId, _playerInstance) => {
     // Add any player initialization logic here if needed
   }, []);
 
   const handlePlayerReady = useCallback(() => {
     // Add any player ready logic here if needed
   }, []);
+
+  // Debug logs
+  useEffect(() => {
+    console.log('Profile page rendered for:', userData.username);
+  }, [userData.username]);
+
+  // Debug logs
+  useEffect(() => {
+    console.log('Clips state:', { loading, clipsCount: clips.length, hasMore });
+  }, [loading, clips, hasMore]);
 
   // Handle the fallback state
   if (router.isFallback) {
@@ -267,19 +323,44 @@ const ProfilePage = ({
     );
   }
 
-  if (loading) {
+  // Move this up, before any return statements
+  const UploadButton = ({ isFixed = false }) => (
+    <button 
+      onClick={() => router.push('/upload')}
+      className={`${styles.uploadButton} ${isFixed ? styles.fixedButton : styles.inlineButton}`}
+      aria-label="Upload new clip"
+    >
+      <MdCloudUpload className={styles.uploadIcon} />
+      <span>{isFixed ? 'Upload Clip' : 'Upload New Clip'}</span>
+    </button>
+  );
+
+  // Loading state
+  if (loading && clips.length === 0) {
     return (
       <ProtectedPageWrapper>
-        <Head>
-          <title>Loading Profile - Merrouch Gaming</title>
-        </Head>
-        <main className={styles.profileMain}>
-          <UserProfileSection 
-            username={userData.username} 
-            isOwner={isOwner}
-            user={user}
-            supabase={supabase}
-          />
+        <DynamicMeta {...metaData} />
+        <main className={mainClassName} style={mainStyles}>
+          <div className={styles.profileHeader} style={headerStyles}>
+            <UserProfileSection 
+              username={userData.username} 
+              isOwner={isOwner}
+              user={user}
+              supabase={supabase}
+            />
+            {isOwner && (
+              <div className={styles.uploadButtonContainer}>
+                <UploadButton isFixed={false} />
+              </div>
+            )}
+            <UserSearch 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              username={userData.username}
+            />
+          </div>
           <div className={styles.clipsGrid}>
             {[...Array(6)].map((_, i) => (
               <div key={i} className={styles.clipWrapper}>
@@ -288,6 +369,47 @@ const ProfilePage = ({
             ))}
           </div>
         </main>
+        {!isOwner && user && <UploadButton isFixed={true} />}
+      </ProtectedPageWrapper>
+    );
+  }
+
+  // No clips state
+  if (!loading && clips.length === 0 && showNoClips) {
+    return (
+      <ProtectedPageWrapper>
+        <main 
+          className={mainClassName}
+          style={mainStyles}
+        >
+          <div 
+            className={styles.profileHeader}
+            style={headerStyles}
+          >
+            <UserProfileSection 
+              username={userData.username} 
+              isOwner={isOwner}
+              user={user}
+              supabase={supabase}
+            />
+            {isOwner && (
+              <div className={styles.uploadButtonContainer}>
+                <UploadButton isFixed={false} />
+              </div>
+            )}
+            <UserSearch 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              username={userData.username}
+            />
+          </div>
+          <div className={styles.noClipsMessage}>
+            No clips found for {userData.username}
+          </div>
+        </main>
+        {!isOwner && user && <UploadButton isFixed={true} />}
       </ProtectedPageWrapper>
     );
   }
@@ -295,22 +417,29 @@ const ProfilePage = ({
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <main className={styles.profileMain}>
-        <UserProfileSection 
-          username={userData.username} 
-          isOwner={isOwner}
-          user={user}
-          supabase={supabase}
-        />
-        <UserSearch 
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          username={userData.username}
-        />
+      <main className={mainClassName} style={mainStyles}>
+        <div className={styles.profileHeader} style={headerStyles}>
+          <UserProfileSection 
+            username={userData.username} 
+            isOwner={isOwner}
+            user={user}
+            supabase={supabase}
+          />
+          {isOwner && (
+            <div className={styles.uploadButtonContainer}>
+              <UploadButton isFixed={false} />
+            </div>
+          )}
+          <UserSearch 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            username={userData.username}
+          />
+        </div>
         <div className={styles.clipsGrid}>
-          {clips.map(clip => (
+          {Array.isArray(clips) && clips.map(clip => (
             <div key={clip.id} className={styles.clipCard}>
               <VideoPlayer
                 clip={clip}
@@ -336,15 +465,16 @@ const ProfilePage = ({
           ))}
           {hasMore && (
             <div ref={loaderRef} className={styles.loaderContainer}>
-              {isLoadingMore ? (
+              {loading && (
                 <div className={styles.loader}>
                   <div className={styles.spinner} />
                   <p>Loading more clips...</p>
                 </div>
-              ) : null}
+              )}
             </div>
           )}
         </div>
+        {!isOwner && user && <UploadButton isFixed={true} />}
       </main>
     </ProtectedPageWrapper>
   );

@@ -13,6 +13,8 @@ import {
 } from 'react-icons/ai';
 import { MdExplore } from 'react-icons/md';
 import dynamic from 'next/dynamic';
+import { FaGamepad, FaTrophy, FaBolt, FaDiscord, FaInstagram } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 // Components
 import LoadingScreen from '../components/LoadingScreen';
@@ -21,6 +23,7 @@ import LoginModal from '../components/LoginModal';
 import NumberDisplay from '../components/NumberDisplay';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
+import HeroSection from '../components/HeroSection';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -63,6 +66,7 @@ const GALLERY_IMAGES = [
   }
 ];
 
+// Main Home component first
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -130,68 +134,10 @@ export default function Home() {
       />
 
       <main className={styles.mainWrapper}>
-        {/* Hero Section */}
-        <section className={styles.heroSection}>
-          <div className={styles.heroGallery}>
-            {GALLERY_IMAGES.map((image, index) => (
-              <div key={index} className={styles.heroImage}>
-                <Image
-                  src={image.src}
-                  alt={image.alt}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  loading={index < 2 ? "eager" : "lazy"}
-                  className={styles.imageOverlay}
-                  quality={75}
-                  placeholder="blur"
-                  blurDataURL={image.src}
-                  decoding="async"
-                />
-                <div className={styles.imageCaption}>
-                  <h3>{image.title}</h3>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.heroContent}>
-            <div className={styles.logoWrapper}>
-              <Image
-                src="/logomobile.png"
-                alt="Merrouch Gaming"
-                width={180}
-                height={90}
-                loading="lazy"
-                className={styles.brandLogo}
-                quality={75}
-              />
-              <div className={styles.textLogo}>
-                <span className={styles.welcome}>Welcome To</span>
-                <div>
-                  <span className={styles.merrouch}>Merrouch</span>{' '}
-                  <span className={styles.gaming}>Gaming</span>
-                </div>
-              </div>
-            </div>
-
-            <h1 className={styles.mainTitle}>
-              Professional Gaming Center<br />
-              <span>in the Heart of Tangier</span>
-            </h1>
-
-            {/* Quick Info */}
-            <div className={styles.quickInfo}>
-              <div className={styles.infoItem}>
-                <AiOutlineDesktop size={20} />
-                <span>Only PC Gamers , Yes we got ps4 controllers for FC25 or simply controller players</span>
-              </div>
-              <div className={styles.infoItem}>
-                <AiOutlineWifi size={20} />
-                <span>200 Mbps Internet , Low Ping , Smooth Gaming Experience</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HeroSection 
+          onCheckAvailability={handleCheckAvailability}
+          router={router}
+        />
 
         {/* Cards Section */}
         <div className={styles.cardContainer}>
@@ -243,30 +189,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className={styles.infoSection}>
-          <div className={styles.actionButtons}>
-            <button 
-              className={styles.primaryButton}
-              onClick={handleCheckAvailability}
-            >
-              CHECK AVAILABILITY
-            </button>
-            <button 
-              className={styles.outlineButton}
-              onClick={() => router.push('/shop')}
-            >
-              VIEW PRICES
-            </button>
-            <button 
-              className={styles.outlineButton}
-              onClick={() => router.push('/topusers')}
-            >
-              TOP USERS
-            </button>
-          </div>
-        </div>
-
         {/* Packages Section */}
         <section className={styles.packages}>
           <div className={styles.containerNarrow}>
@@ -308,24 +230,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className={styles.features}>
-          <div className={styles.containerWide}>
-            <div className={styles.featuresContent}>
-              <div className={styles.featuresGrid}>
-                {FEATURES.map((feature, index) => (
-                  <div key={index} className={`${styles.featureCard} ${styles.glowEffect}`}>
-                    <div className={styles.featureIcon}>{feature.icon}</div>
-                    <div className={styles.featureText}>
-                      <h3>{feature.title}</h3>
-                      <p>{feature.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+        
       </main>
 
       {/* Modals */}
