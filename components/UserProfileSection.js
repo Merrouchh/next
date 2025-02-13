@@ -62,20 +62,34 @@ const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated 
     };
   }, [username]);
 
-  // Fetch user picture
+  // Fetch user picture using gizmo_id from users table
   useEffect(() => {
     let mounted = true;
     
     const fetchProfilePicture = async () => {
       setPictureLoading(true);
       try {
-        const { gizmoId } = await fetchGizmoId(username);
-        if (gizmoId && mounted) {
-          const pictureUrl = await fetchUserPicture(gizmoId);
-          if (mounted) setUserPicture(pictureUrl);
+        // Get gizmo_id directly from users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('gizmo_id')
+          .eq('username', username)
+          .single();
+
+        if (error) throw error;
+        
+        console.log('User data from DB:', userData); // Debug log
+
+        if (userData?.gizmo_id && mounted) {
+          const pictureUrl = await fetchUserPicture(userData.gizmo_id);
+          console.log('Fetched pictureUrl:', pictureUrl); // Debug log
+          
+          if (mounted && pictureUrl) {
+            setUserPicture(pictureUrl);
+          }
         }
       } catch (error) {
-        if (mounted) console.error('Error fetching profile picture:', error);
+        console.error('Error fetching profile picture:', error);
       } finally {
         if (mounted) setPictureLoading(false);
       }
@@ -87,9 +101,9 @@ const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated 
 
     return () => {
       mounted = false;
-      cleanupBlobUrls(); // Clean up blob URLs when component unmounts
+      cleanupBlobUrls();
     };
-  }, [username]);
+  }, [username, supabase]);
 
   // Fetch user profiles
   useEffect(() => {

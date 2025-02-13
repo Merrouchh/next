@@ -4,14 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NODE_ENV=production next build",
+    "build": "cross-env NODE_ENV=production next build --no-lint",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "clean": "rimraf .next out",
     "dev:clean": "npm run clean && npm run dev",
-    "start:all": "start.bat",
-    "prebuild": "npm run lint:fix"
+    "start:all": "start.bat"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

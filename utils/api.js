@@ -162,33 +162,13 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
 
 export const fetchGizmoId = async (username) => {
   try {
-    const response = await fetch(`/api/returngizmoid?username=${encodeURIComponent(username)}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/returngizmoid?username=${encodeURIComponent(username)}`);
+    if (!response.ok) throw new Error('Failed to fetch Gizmo ID');
     const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to fetch Gizmo ID');
-    }
-
-    if (!data.gizmo_id) {
-      throw new Error('No Gizmo ID returned');
-    }
-
-    return {
-      gizmoId: data.gizmo_id,
-      success: true
-    };
+    return { gizmoId: data.gizmoId };
   } catch (error) {
-    return {
-      gizmoId: null,
-      success: false,
-      error: error.message
-    };
+    console.error('Error in fetchGizmoId:', error);
+    return { gizmoId: null };
   }
 };
 
@@ -365,37 +345,14 @@ const blobUrls = new Set();
 
 export const fetchUserPicture = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/users/${gizmoId}/picture`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/users/${gizmoId}/picture`);
+    if (!response.ok) throw new Error('Failed to fetch user picture');
     
-    if (!response.ok) {
-      console.error('Failed to fetch user picture:', response.status);
-      return null;
-    }
-
-    // Check if the response is an image
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('image')) {
-      console.error('Invalid content type for user picture:', contentType);
-      return null;
-    }
-
-    // Create a blob URL directly from the response
+    // Convert response to blob and create URL
     const blob = await response.blob();
-    const imageUrl = URL.createObjectURL(blob);
-    
-    // Track this URL for cleanup
-    blobUrls.add(imageUrl);
-    
-    return imageUrl;
-
+    return URL.createObjectURL(blob);
   } catch (error) {
-    console.error('Error fetching user picture:', error);
+    console.error('Error in fetchUserPicture:', error);
     return null;
   }
 };

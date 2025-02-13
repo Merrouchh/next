@@ -15,17 +15,22 @@ export default async function handler(req, res) {
   try {
     console.log('Starting Gizmo ID fetch for username:', username);
     
-    const apiUrl = process.env.GIZMO_API_URL;
-    const authHeader = `Basic ${Buffer.from(
-      `${process.env.GIZMO_API_USERNAME}:${process.env.GIZMO_API_PASSWORD}`
-    ).toString('base64')}`;
+    // Use API_BASE_URL instead of GIZMO_API_URL to match other API files
+    const apiUrl = process.env.API_BASE_URL;
+    const auth = process.env.API_AUTH;
+
+    if (!apiUrl || !auth) {
+      throw new Error('Missing API configuration');
+    }
+
+    const authHeader = `Basic ${Buffer.from(auth).toString('base64')}`;
 
     // Add timeout and retry logic
     const fetchWithRetry = async (url, options, retries = 3) => {
       for (let i = 0; i < retries; i++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
 
           const response = await fetch(url, {
             ...options,
@@ -43,14 +48,9 @@ export default async function handler(req, res) {
             }
           }
 
-          if (response.status === 522) {
-            throw new Error('Connection timed out');
-          }
-
           throw new Error(`API responded with status: ${response.status}`);
         } catch (error) {
           if (i === retries - 1) throw error;
-          // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         }
       }
@@ -89,16 +89,10 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Error fetching gizmo ID:', error);
     
-    // More specific error responses
-    if (error.message.includes('ECONNRESET') || error.message.includes('timed out')) {
-      return res.status(503).json({ 
-        error: 'Service temporarily unavailable. Please try again.' 
-      });
-    }
-
-    if (error.message.includes('content type')) {
-      return res.status(502).json({ 
-        error: 'Invalid response from server. Please try again.' 
+    if (error.message.includes('Invalid URL')) {
+      return res.status(500).json({ 
+        error: 'API URL configuration missing',
+        details: 'Please check API_BASE_URL environment variable'
       });
     }
 
