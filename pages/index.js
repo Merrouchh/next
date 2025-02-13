@@ -190,12 +190,21 @@ const Home = () => {
 export default Home;
 
 export async function getServerSideProps({ res }) {
+  // Different cache strategies based on path
   res.setHeader(
     'Cache-Control',
-    'public, max-age=3600, stale-while-revalidate=86400'
+    'public, max-age=300, stale-while-revalidate=3600'
   );
+  res.setHeader(
+    'Surrogate-Control',
+    'public, max-age=300, stale-while-revalidate=3600'
+  );
+  // Add Vary header to handle different cached versions
+  res.setHeader('Vary', 'Cookie, Accept-Encoding');
 
   return {
-    props: {}
+    props: {
+      timestamp: Date.now() // Force revalidation when needed
+    }
   };
 }

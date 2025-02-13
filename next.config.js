@@ -24,13 +24,7 @@ const nextConfig = {
     ],
     // Only allow SVG from trusted sources
     dangerouslyAllowSVG: false,
-    // Reduce cache duration to 1 month for more frequent updates
-    minimumCacheTTL: 2592000, // 30 days
     domains: ['merrouchgaming.com'],
-    // Add reasonable image size limits
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [110, 220, 384], // Match your logo sizes
-    formats: ['image/webp', 'image/avif'],  // Modern formats
   },
 
   // ESLint configuration
@@ -51,7 +45,7 @@ const nextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.infrastructureLogging = { level: 'error' };
 
     config.resolve.fallback = {
@@ -60,6 +54,13 @@ const nextConfig = {
       path: false,
       crypto: false,
     };
+
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        punycode: false,
+      };
+    }
 
     return config;
   },
@@ -85,59 +86,193 @@ const nextConfig = {
   // Security headers with more restrictive CORS
   async headers() {
     return [
-      // Global headers for all routes
       {
+        // Apply to all routes
         source: '/:path*',
         headers: [
           {
-            key: 'Access-Control-Allow-Origin',
-            value: '*'
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
           },
           {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS'
+            key: 'Pragma',
+            value: 'no-cache'
           },
           {
-            key: 'Access-Control-Allow-Headers',
-            value: 'X-Requested-With, Content-Type, Authorization'
+            key: 'Expires',
+            value: '0'
           },
           {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
+            key: 'Surrogate-Control',
+            value: 'no-store'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
           }
         ]
       },
-      // Specific headers for video streaming
       {
-        source: '/storage/highlight-clips/:path*',
+        // Specific stricter rules for dashboard
+        source: '/dashboard',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400'
+            value: 'private, no-cache, no-store, must-revalidate, max-age=0'
           },
           {
-            key: 'Accept-Ranges',
-            value: 'bytes'
+            key: 'Pragma',
+            value: 'no-cache'
           },
           {
-            key: 'Access-Control-Allow-Origin',
-            value: '*'
+            key: 'Expires',
+            value: '0'
+          }
+        ]
+      },
+      {
+        // Specific stricter rules for avcomputers
+        source: '/avcomputers',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, no-cache, no-store, must-revalidate, max-age=0'
           },
           {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, OPTIONS'
+            key: 'Pragma',
+            value: 'no-cache'
           },
           {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Range, Accept-Ranges'
+            key: 'Expires',
+            value: '0'
           },
           {
-            key: 'Access-Control-Expose-Headers',
-            value: 'Content-Range, Content-Length'
+            key: 'Surrogate-Control',
+            value: 'no-store'
+          }
+        ]
+      },
+      {
+        // Specific caching rules for discover page
+        source: '/discover',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, stale-while-revalidate=300'
           },
           {
-            key: 'Cross-Origin-Resource-Policy',
-            value: 'cross-origin'
+            key: 'Surrogate-Control',
+            value: 'public, max-age=60, stale-while-revalidate=300'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      },
+      {
+        // Specific caching rules for individual clip pages
+        source: '/clip/:id',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, stale-while-revalidate=600'
+          },
+          {
+            key: 'Surrogate-Control',
+            value: 'public, max-age=60, stale-while-revalidate=600'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Vary',
+            value: 'Cookie'
+          }
+        ]
+      },
+      {
+        // Profile pages cache control
+        source: '/profile/:username',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=10, stale-while-revalidate=59'
+          },
+          {
+            key: 'Vary',
+            value: 'Cookie, Authorization'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      },
+      {
+        // Top users page cache control
+        source: '/topusers',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=15, stale-while-revalidate=30'
+          },
+          {
+            key: 'Surrogate-Control',
+            value: 'public, max-age=15, stale-while-revalidate=30'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Vary',
+            value: 'Accept-Encoding'
+          }
+        ]
+      },
+      {
+        // Home page cache control (more aggressive caching for landing page)
+        source: '/',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=300, stale-while-revalidate=3600'
+          },
+          {
+            key: 'Surrogate-Control',
+            value: 'public, max-age=300, stale-while-revalidate=3600'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Vary',
+            value: 'Cookie, Accept-Encoding'
+          }
+        ]
+      },
+      {
+        // Shop page cache control
+        source: '/shop',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, stale-while-revalidate=300'
+          },
+          {
+            key: 'Surrogate-Control',
+            value: 'public, max-age=60, stale-while-revalidate=300'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Vary',
+            value: 'Cookie, Accept-Encoding'
           }
         ]
       }

@@ -20,11 +20,6 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
 export async function getServerSideProps({ req, res, params }) {
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=10, stale-while-revalidate=59'
-  );
-
   const supabase = createClient({ req, res });
   const { username } = params;
   const normalizedUsername = username.toLowerCase();
@@ -44,6 +39,23 @@ export async function getServerSideProps({ req, res, params }) {
     if (profileError) {
       console.error('Profile fetch error:', profileError);
       return { notFound: true };
+    }
+
+    // Set cache headers based on authentication status
+    if (session?.user?.id === profileData.id) {
+      // Owner viewing their profile: no cache
+      res.setHeader(
+        'Cache-Control',
+        'private, no-cache, no-store, must-revalidate'
+      );
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Public viewing profile: short cache
+      res.setHeader(
+        'Cache-Control',
+        'public, max-age=10, stale-while-revalidate=59'
+      );
     }
 
     // Get current user's full data if logged in

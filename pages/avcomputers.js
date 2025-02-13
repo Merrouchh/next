@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { fetchActiveUserSessions, fetchUserBalance } from '../utils/api';
+import { fetchActiveUserSessions, fetchUserBalance, fetchComputers } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
@@ -8,18 +8,37 @@ import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
 
-// Remove the server-side auth check since we handle it client-side
-export async function getServerSideProps({ res }) {
-  // Keep only the no-cache headers since this page needs real-time data
+// We can remove cache headers since they're handled globally in next.config.js
+export const getServerSideProps = async ({ res }) => {
+  // Set cache control headers
   res.setHeader(
     'Cache-Control',
-    'private, no-cache, no-store, must-revalidate'
+    'private, no-cache, no-store, must-revalidate, max-age=0'
   );
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
-  return {
-    props: {}
-  };
-}
+  try {
+    const computers = await fetchComputers();
+    return {
+      props: {
+        computers,
+        timestamp: Date.now(), // Keep timestamp to force revalidation
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching computers:', error);
+    return {
+      props: {
+        computers: {
+          normal: [],
+          vip: []
+        },
+        timestamp: Date.now(),
+      },
+    };
+  }
+};
 
 // Computer component
 const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {

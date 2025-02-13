@@ -9,13 +9,8 @@ import ClipCard from '../../components/ClipCard';
 import styles from '../../styles/ClipPage.module.css';
 
 export async function getServerSideProps({ req, res, params }) {
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=300, stale-while-revalidate=3600'
-  );
-
-  const supabase = createServerClient({ req, res });
   const { id } = params;
+  const supabase = createServerClient({ req, res });
 
   try {
     // Get session to check ownership
@@ -27,6 +22,30 @@ export async function getServerSideProps({ req, res, params }) {
       .select('*')
       .eq('id', id)
       .single();
+
+    // Different cache strategies based on clip visibility and ownership
+    if (clip?.visibility === 'private' || user?.id === clip?.user_id) {
+      // Private clips or owner viewing: no cache
+      res.setHeader(
+        'Cache-Control',
+        'private, no-cache, no-store, must-revalidate, max-age=0'
+      );
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Public clips: cache for 1 minute, stale for 10 minutes
+      res.setHeader(
+        'Cache-Control',
+        'public, max-age=60, stale-while-revalidate=600'
+      );
+      res.setHeader(
+        'Surrogate-Control',
+        'public, max-age=60, stale-while-revalidate=600'
+      );
+    }
+
+    // Add Vary header to handle different cached versions
+    res.setHeader('Vary', 'Cookie');
 
     console.log('Clip data:', clip);
 

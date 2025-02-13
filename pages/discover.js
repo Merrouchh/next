@@ -10,10 +10,14 @@ import styles from '../styles/Discover.module.css';
 const CLIPS_PER_PAGE = 5;
 
 export async function getServerSideProps({ req, res }) {
-  // Keep cache headers
+  // Set cache headers for discover page
   res.setHeader(
     'Cache-Control',
-    'public, max-age=3600, stale-while-revalidate=86400'
+    'public, max-age=60, stale-while-revalidate=300'
+  );
+  res.setHeader(
+    'Surrogate-Control',
+    'public, max-age=60, stale-while-revalidate=300'
   );
 
   const supabase = createServerClient({ req, res });

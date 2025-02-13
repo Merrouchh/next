@@ -5,6 +5,24 @@ import styles from '../styles/TopUsers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { NextSeo } from 'next-seo';
 
+export async function getServerSideProps({ res }) {
+  // Set cache headers for top users page
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=15, stale-while-revalidate=30'
+  );
+  res.setHeader(
+    'Surrogate-Control',
+    'public, max-age=15, stale-while-revalidate=30'
+  );
+
+  return {
+    props: {
+      timestamp: Date.now() // Force revalidation
+    }
+  };
+}
+
 const TopUsers = () => {
   const [topUsers, setTopUsers] = useState([]);
   const [error, setError] = useState(null);

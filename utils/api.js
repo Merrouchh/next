@@ -2,18 +2,65 @@ import { createClient } from '../utils/supabase/component';
 const supabase = createClient();
 
 // utils/api.js
+const FETCH_TIMEOUT = 10000; // 10 seconds
+const MAX_RETRIES = 3;
+
+const fetchConfig = {
+  headers: {
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Content-Type': 'application/json'
+  },
+  cache: 'no-store',
+  next: { revalidate: 0 }
+};
+
+const enhancedFetch = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  const finalOptions = {
+    ...fetchConfig,
+    ...options,
+    headers: {
+      ...fetchConfig.headers,
+      ...options.headers
+    },
+    signal: controller.signal
+  };
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, finalOptions);
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      return response;
+    } catch (error) {
+      clearTimeout(timeout);
+      
+      if (attempt === MAX_RETRIES - 1) {
+        throw error;
+      }
+
+      await new Promise(resolve => 
+        setTimeout(resolve, Math.pow(2, attempt) * 1000)
+      );
+    }
+  }
+};
+
 export const validateUserCredentials = async (username, password) => {
   try {
     console.log('Validating user credentials for username:', username);
-    // POST to your API handler
     const response = await fetch('/api/validateUserCredentials', {
+      ...fetchConfig,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
       body: JSON.stringify({ username, password }),
     });
 
@@ -43,13 +90,7 @@ export const validateUserCredentials = async (username, password) => {
     
 export const fetchActiveUserSessions = async () => {
   try {
-    const response = await fetch('/api/fetchactivesessions', {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch('/api/fetchactivesessions', fetchConfig);
     if (!response.ok) throw new Error('Failed to fetch sessions');
     const data = await response.json();
     return data.result || [];
@@ -60,32 +101,18 @@ export const fetchActiveUserSessions = async () => {
 
 export const fetchUserBalance = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
-    if (!response.ok) {
-      return 'Error fetching time';
-    }
+    const response = await enhancedFetch(`/api/fetchuserbalance/${gizmoId}`);
     const data = await response.json();
     return data.balance || 'Error fetching time';
   } catch (error) {
+    console.error('Error fetching balance:', error);
     return 'Error fetching time';
   }
 };
 
 export const fetchUserBalanceWithDebt = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`, fetchConfig);
     if (!response.ok) {
       return {
         balance: 'Error fetching time',
@@ -113,13 +140,7 @@ export const fetchUserBalanceWithDebt = async (gizmoId) => {
 
 export const fetchUserById = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/fetchUserById/${gizmoId}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/fetchUserById/${gizmoId}`, fetchConfig);
     if (!response.ok) throw new Error('Error fetching user by ID');
     const data = await response.json();
     return data.result;
@@ -132,13 +153,7 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
   console.log('fetchTopUsers called');
   try {
     console.log('Making request to /api/fetchtopusers');
-    const response = await fetch(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}`, fetchConfig);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -159,10 +174,12 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
   }
 };
 
-
 export const fetchGizmoId = async (username) => {
   try {
-    const response = await fetch(`/api/returngizmoid?username=${encodeURIComponent(username)}`);
+    const response = await fetch(
+      `/api/returngizmoid?username=${encodeURIComponent(username)}`,
+      fetchConfig
+    );
     if (!response.ok) throw new Error('Failed to fetch Gizmo ID');
     const data = await response.json();
     return { gizmoId: data.gizmoId };
@@ -176,13 +193,7 @@ export const fetchUserPoints = async (gizmoId) => {
   const url = `/api/points/${gizmoId}`;
   try {
     console.log(`Fetching user points from URL: ${url}`);
-    const response = await fetch(url, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(url, fetchConfig);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -203,13 +214,7 @@ export const fetchUserPoints = async (gizmoId) => {
 
 export const fetchUserTimeInfo = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/users/${gizmoId}/producttimeextended`, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch(`/api/users/${gizmoId}/producttimeextended`, fetchConfig);
     if (!response.ok) {
       console.error('Error response from time info API:', response.status);
       throw new Error('Failed to fetch time info');
@@ -345,12 +350,13 @@ const blobUrls = new Set();
 
 export const fetchUserPicture = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/users/${gizmoId}/picture`);
+    const response = await fetch(`/api/users/${gizmoId}/picture`, fetchConfig);
     if (!response.ok) throw new Error('Failed to fetch user picture');
     
-    // Convert response to blob and create URL
     const blob = await response.blob();
-    return URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    blobUrls.add(url); // Track the URL for cleanup
+    return url;
   } catch (error) {
     console.error('Error in fetchUserPicture:', error);
     return null;
@@ -371,48 +377,32 @@ export const cleanupBlobUrls = () => {
 
 export const uploadUserPicture = async (gizmoId, file) => {
   try {
-    // Resize image before upload
     const resizedImage = await resizeImage(file, {
-      maxWidth: 500,    // Maximum width of 500px
-      maxHeight: 500,   // Maximum height of 500px
-      quality: 1     // 80% quality compression
+      maxWidth: 500,
+      maxHeight: 500,
+      quality: 1
     });
 
-    // Convert the image to base64 string
-    const base64String = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.readAsDataURL(resizedImage);
-    });
+    const base64String = await imageToBase64(resizedImage);
 
-    const response = await fetch(`/api/users/${gizmoId}/picture`, {
+    const response = await enhancedFetch(`/api/users/${gizmoId}/picture`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      },
-      body: JSON.stringify({
-        picture: base64String
-      })
+      body: JSON.stringify({ picture: base64String })
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'Failed to upload picture');
-    }
 
     return true;
   } catch (error) {
-    console.error('Error uploading user picture:', error);
+    console.error('Error uploading picture:', error);
     return false;
   }
 };
+
+// Helper functions
+const imageToBase64 = (file) => new Promise((resolve) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(reader.result.split(',')[1]);
+  reader.readAsDataURL(file);
+});
 
 // Helper function to resize images
 const resizeImage = async (file, { maxWidth, maxHeight, quality }) => {
@@ -465,17 +455,38 @@ const resizeImage = async (file, { maxWidth, maxHeight, quality }) => {
 // Add this function to get client IP
 export const getClientIP = async () => {
   try {
-    const response = await fetch('https://api.ipify.org?format=json', {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const response = await fetch('https://api.ipify.org?format=json', fetchConfig);
     const data = await response.json();
     return data.ip;
   } catch (error) {
     console.error('Error getting IP:', error);
     return '0.0.0.0'; // fallback IP
+  }
+};
+
+export const fetchComputers = async () => {
+  try {
+    // Define your computers data structure
+    const computers = {
+      normal: Array.from({ length: 8 }, (_, i) => ({
+        id: i + 1,
+        number: i + 1,
+        isActive: false,
+        timeLeft: 'No Time',
+        type: 'normal'
+      })),
+      vip: Array.from({ length: 6 }, (_, i) => ({
+        id: i + 9,
+        number: i + 1,
+        isActive: false,
+        timeLeft: 'No Time',
+        type: 'vip'
+      }))
+    };
+
+    return computers;
+  } catch (error) {
+    console.error('Error in fetchComputers:', error);
+    throw error;
   }
 };

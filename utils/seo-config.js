@@ -5,29 +5,17 @@ export const defaultSEO = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com',
-    site_name: 'Your Gaming Center Name',
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://merrouchgaming.com',
+    site_name: 'Merrouch Gaming',
     images: [
       {
-        url: '/images/gaming-center-banner.jpg', // Add your actual image path
+        url: '/top.jpg', // Add your actual image path
         width: 1200,
         height: 630,
         alt: 'Best Gaming Center in Tangier',
       },
     ],
   },
-  additionalLinkTags: [
-    {
-      rel: 'alternate',
-      hrefLang: 'fr',
-      href: `${process.env.NEXT_PUBLIC_SITE_URL}/fr`,
-    },
-    {
-      rel: 'alternate',
-      hrefLang: 'ar',
-      href: `${process.env.NEXT_PUBLIC_SITE_URL}/ar`,
-    },
-  ],
   additionalMetaTags: [
     {
       name: 'keywords',

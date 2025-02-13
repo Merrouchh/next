@@ -20,8 +20,15 @@ import {
 } from '../utils/api';
 
 
-export async function getServerSideProps() {
-  // Simplified to only return meta data since auth check is handled by ProtectedPageWrapper
+export async function getServerSideProps({ res }) {
+  // Set cache control headers
+  res.setHeader(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate'
+  );
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const metaData = {
     title: 'My Dashboard | Merrouch Gaming',
     description: 'Manage your gaming clips and profile on Merrouch Gaming.',
