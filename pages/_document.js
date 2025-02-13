@@ -44,17 +44,45 @@ class MyDocument extends Document {
           
           <meta property="og:site_name" content="Merrouch Gaming" key="og:site_name" />
 
-          {/* Static Resources */}
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=Zen+Dots&display=swap" rel="stylesheet" />
+          {/* Static Resources with correct 'as' attributes */}
+          <link 
+            rel="stylesheet" 
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+            as="style"
+          />
+          <link 
+            rel="preconnect" 
+            href="https://fonts.googleapis.com" 
+            crossOrigin="anonymous"
+          />
+          <link 
+            rel="preconnect" 
+            href="https://fonts.gstatic.com" 
+            crossOrigin="anonymous"
+          />
+          <link 
+            href="https://fonts.googleapis.com/css2?family=Zen+Dots&display=swap" 
+            rel="stylesheet"
+            as="style"
+          />
           
-          {/* PWA */}
-          <meta name="theme-color" content="#000000" />
-          <link rel="icon" href="/favicon.ico" />
-          <link rel="manifest" href="/manifest.json" />
-          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          {/* PWA with correct 'as' attributes */}
+          <link 
+            rel="icon" 
+            href="/favicon.ico" 
+            as="image"
+          />
+          <link 
+            rel="manifest" 
+            href="/manifest.json" 
+            as="fetch"
+            crossOrigin="use-credentials"
+          />
+          <link 
+            rel="apple-touch-icon" 
+            href="/apple-touch-icon.png" 
+            as="image"
+          />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -66,6 +94,20 @@ class MyDocument extends Document {
           <meta property="business:contact_data:locality" content="Tangier" />
           <meta property="business:contact_data:postal_code" content="90060" />
           <meta property="business:contact_data:country_name" content="Morocco" />
+
+          {/* Add Media Chrome */}
+          <script 
+            type="module" 
+            src="https://cdn.jsdelivr.net/npm/media-chrome@1.5.1/+esm"
+            strategy="beforeInteractive"
+          />
+          
+          {/* Add HLS Video Element */}
+          <script 
+            type="module" 
+            src="https://cdn.jsdelivr.net/npm/hls-video-element@1.2/+esm"
+            strategy="beforeInteractive"
+          />
         </Head>
         <body>
           <Main />

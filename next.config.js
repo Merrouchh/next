@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable React strict mode only in development for better debugging
-  reactStrictMode: false,
+  // Enable React strict mode only in development
+  reactStrictMode: true,
 
   // Environment variables
   env: {
@@ -14,23 +14,36 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'qdbtccrhcidxllycuxnw.supabase.co'
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME || 'qdbtccrhcidxllycuxnw.supabase.co',
+        pathname: '/storage/v1/object/public/**',
       },
       {
         protocol: 'https',
         hostname: 'unpkg.com'
       }
     ],
-    dangerouslyAllowSVG: true,
-    minimumCacheTTL: 60,
+    // Only allow SVG from trusted sources
+    dangerouslyAllowSVG: false,
+    // Reduce cache duration to 1 month for more frequent updates
+    minimumCacheTTL: 2592000, // 30 days
     domains: ['merrouchgaming.com'],
     // Add reasonable image size limits
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    imageSizes: [110, 220, 384], // Match your logo sizes
+    formats: ['image/webp', 'image/avif'],  // Modern formats
+  },
+
+  // ESLint configuration
+  eslint: {
+    // Don't ignore during builds - let's fix the errors instead
+    ignoreDuringBuilds: false,
+    dirs: ['pages', 'components', 'lib', 'utils', 'contexts']
   },
 
   // Compiler options
   compiler: {
+    // Keep React properties in development
+    reactRemoveProperties: process.env.NODE_ENV === 'production',
     // Enable console removal in production
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
@@ -38,89 +51,15 @@ const nextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config, { dev, isServer }) => {
-    // Optimize logging
+  webpack: (config) => {
     config.infrastructureLogging = { level: 'error' };
 
-    // Enable WebAssembly
-    config.experiments = {
-      ...config.experiments,
-      asyncWebAssembly: true,
-    };
-
-    // Optimize fallbacks
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       path: false,
       crypto: false,
-      punycode: false,
     };
-
-    // Handle WebSocket-related externals
-    config.externals = [
-      ...(config.externals || []).filter(e => 
-        e !== 'bufferutil' && 
-        e !== 'utf-8-validate'
-      ),
-      { 'bufferutil': 'bufferutil' },
-      { 'utf-8-validate': 'utf-8-validate' }
-    ];
-
-    // Worker configuration
-    if (!isServer) {
-      config.module.rules.push({
-        test: /\.worker\.(js|ts)$/,
-        loader: 'worker-loader',
-        options: {
-          filename: 'static/[hash].worker.js',
-          publicPath: '/_next/',
-        },
-      });
-    }
-
-    // Production optimizations
-    if (!dev && !isServer) {
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        minSize: 20000,
-        maxSize: 244000,
-        minChunks: 1,
-        maxAsyncRequests: 30,
-        maxInitialRequests: 30,
-        cacheGroups: {
-          defaultVendors: {
-            test: /[\\/]node_modules[\\/]/,
-            priority: -10,
-            reuseExistingChunk: true,
-          },
-          default: {
-            minChunks: 2,
-            priority: -20,
-            reuseExistingChunk: true,
-          },
-        },
-      };
-    }
-
-    // Add handling for both .js and .ts files
-    config.resolve.extensions = ['.js', '.ts', '.tsx', ...config.resolve.extensions];
-
-    if (dev && !isServer) {
-      config.infrastructureLogging = {
-        level: 'error'
-      };
-    }
-
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'hls.js': 'hls.js/dist/hls.min.js',
-    };
-
-    config.module.rules.push({
-      test: /\.(m3u8)$/,
-      type: 'asset/resource',
-    });
 
     return config;
   },
@@ -129,22 +68,27 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/storage/highlight-clips/:path*',
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/:path*`,
+      },
+      {
+        source: '/storage/:path*',
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/:path*`,
+      },
+      {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
     ];
   },
 
-  // Security headers
+  // Security headers with more restrictive CORS
   async headers() {
     return [
+      // Global headers for all routes
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          },
           {
             key: 'Access-Control-Allow-Origin',
             value: '*'
@@ -155,63 +99,60 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Headers',
-            value: 'X-Requested-With, Content-Type, Authorization, apikey'
+            value: 'X-Requested-With, Content-Type, Authorization'
           },
           {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true'
-          },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin'
-          },
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless'
-          },
-          {
-            key: 'Cross-Origin-Resource-Policy',
-            value: 'cross-origin'
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
           }
         ]
       },
+      // Specific headers for video streaming
       {
-        source: '/storage/:path*',
+        source: '/storage/highlight-clips/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*'
-          },
-          {
-            key: 'Cross-Origin-Resource-Policy',
-            value: 'cross-origin'
+            value: 'public, max-age=3600, stale-while-revalidate=86400'
           },
           {
             key: 'Accept-Ranges',
             value: 'bytes'
           },
           {
-            key: 'Content-Range',
-            value: 'bytes'
+            key: 'Access-Control-Allow-Origin',
+            value: '*'
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, OPTIONS'
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Range, Accept-Ranges'
+          },
+          {
+            key: 'Access-Control-Expose-Headers',
+            value: 'Content-Range, Content-Length'
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin'
           }
         ]
       }
     ];
   },
 
-  // Performance optimizations
+  // Security optimizations
   poweredByHeader: false,
   generateEtags: true,
   compress: true,
 
   // Add this section
   experimental: {
-    forceSwcTransforms: true,
     scrollRestoration: true,
+    forceSwcTransforms: true,
   },
 
   // Add proper process handling
@@ -222,26 +163,24 @@ const nextConfig = {
     pagesBufferLength: 5,
   },
 
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // TypeScript and ESLint - Only ignore in production
 
-  eslint: {
-    ignoreDuringBuilds: true
-  },
+
+  // Development features
+  ...(process.env.NODE_ENV === 'production' && {
+    devIndicators: {
+      buildActivity: true,
+    }
+  })
 };
 
-// Add proper process handling
-if (process.env.NODE_ENV === 'development') {
-  process.on('SIGTERM', () => {
-    console.log('Received SIGTERM. Performing cleanup...');
-    process.exit(0);
+// Add proper error handling for process events
+['SIGTERM', 'SIGINT', 'uncaughtException', 'unhandledRejection'].forEach(signal => {
+  process.on(signal, (error) => {
+    console.error(`Received ${signal}${error ? ': ' + error : ''}. Performing cleanup...`);
+    // Add any cleanup logic here
+    process.exit(signal === 'uncaughtException' ? 1 : 0);
   });
-
-  process.on('SIGINT', () => {
-    console.log('Received SIGINT. Performing cleanup...');
-    process.exit(0);
-  });
-}
+});
 
 module.exports = nextConfig;

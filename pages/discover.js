@@ -1,143 +1,70 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import styles from '../styles/Discover.module.css';
-import { createClient } from '../utils/supabase/component';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createClient as createServerClient } from '../utils/supabase/server-props';
+import { createClient as createBrowserClient } from '../utils/supabase/component';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import VideoPlayer from '../components/VideoPlayer';
-import { useClipsFeed } from '../hooks/useClipsFeed';
-import LoadingClip from '../components/LoadingClip';
+import ClipCard from '../components/ClipCard';
 import DynamicMeta from '../components/DynamicMeta';
-import { createClient as createServerClient } from '../utils/supabase/server-props';
+import styles from '../styles/Discover.module.css';
+
+const CLIPS_PER_PAGE = 5;
 
 export async function getServerSideProps({ req, res }) {
+  // Keep cache headers
   res.setHeader(
     'Cache-Control',
-    'public, s-maxage=300, stale-while-revalidate=60'
+    'public, max-age=3600, stale-while-revalidate=86400'
   );
 
   const supabase = createServerClient({ req, res });
-  const PAGE_SIZE = 4;
-
+  
   try {
-    // First get total count of public clips
+    // Get total count of public clips
     const { count } = await supabase
       .from('clips')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact' })
       .eq('visibility', 'public');
 
-    // Get latest public clips for SEO and initial render
-    const { data: latestClips, error } = await supabase
+    // Fetch initial clips
+    const { data: clips, error } = await supabase
       .from('clips')
       .select(`
         id, 
         thumbnail_path, 
         title, 
-        username, 
+        username,
         game, 
-        user_id, 
         visibility, 
         likes_count, 
         views_count,
         file_path,
-        uploaded_at
+        uploaded_at,
+        user_id
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
-      .limit(PAGE_SIZE);
+      .limit(CLIPS_PER_PAGE);
 
     if (error) throw error;
 
-    // Get featured clip for meta data
-    const featuredClip = latestClips?.[0];
-    const timestamp = Date.now();
+    const featuredClip = clips?.[0];
     const previewImage = featuredClip?.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}?t=${timestamp}`
+      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}`
       : 'https://merrouchgaming.com/top.jpg';
-
-    // Generate rich description
-    const description = featuredClip
-      ? `Watch the latest gaming highlights at Merrouch Gaming! Featured: ${featuredClip.title} - an amazing ${featuredClip.game} clip by ${featuredClip.username}. Join our gaming community and share your best moments.`
-      : 'Explore amazing gaming moments from the Merrouch Gaming community. Watch, share, and discover gaming highlights from your favorite games.';
-
-    // Generate structured data for clips list
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "itemListElement": latestClips.map((clip, index) => ({
-        "@type": "VideoObject",
-        "position": index + 1,
-        "name": clip.title,
-        "description": `${clip.game} gameplay clip by ${clip.username}`,
-        "thumbnailUrl": `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`,
-        "uploadDate": clip.uploaded_at,
-        "contentUrl": `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`,
-        "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
-        "author": {
-          "@type": "Person",
-          "name": clip.username,
-          "url": `https://merrouchgaming.com/profile/${clip.username}`
-        },
-        "interactionStatistic": [
-          {
-            "@type": "InteractionCounter",
-            "interactionType": "http://schema.org/WatchAction",
-            "userInteractionCount": clip.views_count || 0
-          },
-          {
-            "@type": "InteractionCounter",
-            "interactionType": "http://schema.org/LikeAction",
-            "userInteractionCount": clip.likes_count || 0
-          }
-        ]
-      }))
-    };
-
-    // Add website structured data
-    const websiteStructuredData = {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Merrouch Gaming",
-      "url": "https://merrouchgaming.com",
-      "description": "Gaming community and clip sharing platform",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://merrouchgaming.com/discover?search={search_term}",
-        "query-input": "required name=search_term"
-      }
-    };
 
     return {
       props: {
-        initialClips: latestClips || [],
+        initialClips: clips || [],
         totalClips: count || 0,
-        hasMore: (latestClips?.length || 0) < (count || 0),
+        hasMore: (clips?.length || 0) < (count || 0),
         metaData: {
           title: 'Discover Gaming Clips | Merrouch Gaming',
-          description,
+          description: featuredClip
+            ? `Watch the latest gaming highlights at Merrouch Gaming! Featured: ${featuredClip.title} - an amazing ${featuredClip.game} clip by ${featuredClip.username}.`
+            : 'Explore amazing gaming moments from the Merrouch Gaming community.',
           image: previewImage,
           url: 'https://merrouchgaming.com/discover',
-          type: 'website',
-          openGraph: {
-            title: 'Discover Gaming Clips | Merrouch Gaming',
-            description,
-            images: [
-              {
-                url: previewImage,
-                width: 1200,
-                height: 630,
-                alt: featuredClip ? `${featuredClip.game} gameplay by ${featuredClip.username}` : 'Merrouch Gaming Clips',
-              }
-            ],
-            site_name: 'Merrouch Gaming',
-          },
-          twitter: {
-            card: 'summary_large_image',
-            site: '@merrouchgaming',
-            title: 'Discover Gaming Clips | Merrouch Gaming',
-            description,
-            image: previewImage,
-          },
-          structuredData: JSON.stringify([structuredData, websiteStructuredData])
+          type: 'website'
         }
       }
     };
@@ -161,301 +88,203 @@ export async function getServerSideProps({ req, res }) {
   }
 }
 
-const Discover = ({ initialClips, metaData, totalClips, hasMore: initialHasMore }) => {
-  const [isTransitioning] = useState(false);
-  const { user, loading: authLoading } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
-  const [playingVideoId, setPlayingVideoId] = useState(null);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const playerRefs = useRef(new Map());
-  const [page, setPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData }) => {
+  const { supabase } = useAuth();
+  const [clips, setClips] = useState(initialClips);
   const [hasMore, setHasMore] = useState(initialHasMore);
-  const loaderRef = useRef(null);
-  
-  const { 
-    clips, 
-    loading: clipsLoading, 
-    updateClipCount,
-    setClips
-  } = useClipsFeed(supabase, 4, null, false, initialClips, totalClips);
+  const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Reset player state on unmount
-  useEffect(() => {
-    // Store ref in a variable at effect execution time
-    const playersRef = playerRefs.current;
+  const loadMoreClips = async () => {
+    if (isLoading || !hasMore) return;
 
-    return () => {
-      setPlayingVideoId(null);
-      setIsPlayerReady(false);
-      // Use stored ref in cleanup
-      if (playersRef) {
-        playersRef.clear();
-      }
-    };
-  }, []);
-
-  // Clean up players
-  useEffect(() => {
-    // Create a snapshot of current players at effect execution time
-    const players = new Map(playerRefs.current);
-    const playersRef = playerRefs.current;
-
-    return () => {
-      // Use snapshot for player cleanup
-      players.forEach((player) => {
-        try {
-          if (player?.destroy) {
-            player.destroy();
-          }
-        } catch (err) {
-          console.error('Error cleaning up player:', err);
-        }
-      });
-      
-      // Use stored ref for final cleanup
-      if (playersRef) {
-        playersRef.clear();
-      }
-    };
-  }, []); // No dependencies needed since we're using snapshots
-
-  // Handle player initialization
-  const handlePlayerInit = useCallback((clipId, playerInstance) => {
-    playerRefs.current.set(clipId, playerInstance);
-  }, []);
-
-  // Handle player ready state
-  const handlePlayerReady = useCallback(() => {
-    setIsPlayerReady(true);
-  }, []);
-
-  const handlePlay = useCallback((clipId) => {
-    if (!isPlayerReady) return;
-    
-    // Only pause other players if this is a new video playing
-    if (playingVideoId !== clipId) {
-      playerRefs.current.forEach((player, id) => {
-        if (id !== clipId) {
-          try {
-            player?.pause?.();
-          } catch (err) {
-            console.error('Error pausing player:', err);
-          }
-        }
-      });
-      setPlayingVideoId(clipId);
-    }
-  }, [isPlayerReady, playingVideoId]);
-
-  // Add clip update handler
-  const handleClipUpdate = useCallback(async (updatedClip) => {
-    if (!user || user.username?.toLowerCase() !== updatedClip.username?.toLowerCase()) return;
+    setIsLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('clips')
-        .update({ visibility: updatedClip.visibility })
-        .eq('id', updatedClip.id)
-        .eq('username', updatedClip.username);
-
-      if (error) throw error;
-
-      // Update local state
-      setClips(prevClips => 
-        prevClips.map(clip => 
-          clip.id === updatedClip.id 
-            ? { ...clip, visibility: updatedClip.visibility }
-            : clip
-        )
-      );
-
-    } catch (error) {
-      console.error('Error updating clip:', error);
-      alert('Failed to update clip visibility');
-    }
-  }, [user, supabase, setClips]);
-
-  // Add this effect to handle initial loading
-  useEffect(() => {
-    let mounted = true;
-
-    const initializeVideos = async () => {
-      try {
-        if (mounted) {
-          // No need to setLoading(false) here, as clipsLoading handles it
-        }
-      } catch (error) {
-        console.error('Error initializing videos:', error);
-      }
-    };
-
-    if (clips.length > 0) {
-      initializeVideos();
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [clips]);
-
-  // Wrap loadMoreClips in useCallback
-  const loadMoreClips = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const from = page * 4;
-      const to = from + 3;
+      const start = clips.length;
+      const end = start + (CLIPS_PER_PAGE - 1);
 
       const { data: newClips, error } = await supabase
         .from('clips')
-        .select('*')
+        .select(`
+          id, 
+          thumbnail_path, 
+          title, 
+          username,
+          game, 
+          visibility, 
+          likes_count, 
+          views_count,
+          file_path,
+          uploaded_at,
+          user_id
+        `)
         .eq('visibility', 'public')
         .order('uploaded_at', { ascending: false })
-        .range(from, to);
+        .range(start, end);
 
       if (error) throw error;
 
       if (newClips?.length) {
-        setClips(prevClips => {
-          const newClipsMap = new Map(newClips.map(clip => [clip.id, clip]));
-          const existingClips = prevClips.filter(clip => !newClipsMap.has(clip.id));
-          return [...existingClips, ...newClips];
-        });
-        setPage(p => p + 1);
-        setHasMore(newClips.length === 4);
+        setClips(prev => [...prev, ...newClips]);
+        const newHasMore = clips.length + newClips.length < totalClips;
+        setHasMore(newHasMore);
       } else {
         setHasMore(false);
       }
     } catch (error) {
       console.error('Error loading more clips:', error);
     } finally {
-      setIsLoadingMore(false);
+      setIsLoading(false);
     }
-  }, [isLoadingMore, hasMore, page, supabase, setClips]);
+  };
 
-  // Now the useEffect dependency is stable
+  // Handle scroll with throttling
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
+    let timeoutId = null;
+
+    const handleScroll = () => {
+      if (timeoutId || isLoading || !hasMore) return;
+
+      timeoutId = setTimeout(() => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+        
+        // Calculate percentage scrolled
+        const scrollPercentage = (scrollTop + windowHeight) / documentHeight * 100;
+        
+        // Load more when user has scrolled past 95% of the page
+        if (scrollPercentage > 95) {
+          console.log(`Scrolled ${scrollPercentage.toFixed(2)}% - Loading more`);
           loadMoreClips();
         }
-      },
-      { threshold: 0.1, rootMargin: '100px' }
+
+        timeoutId = null;
+      }, 150); // Throttle scroll events
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [hasMore, isLoading]);
+
+  // Subscribe to changes in clips
+  useEffect(() => {
+    console.log('Setting up realtime subscription');
+
+    const subscription = supabase
+      .channel('public_clips_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clips'
+        },
+        (payload) => {
+          console.log('Received realtime event:', payload.eventType, payload);
+
+          switch (payload.eventType) {
+            case 'INSERT':
+              // Only add new clips that are public
+              if (payload.new.visibility === 'public') {
+                console.log('Adding new public clip:', payload.new.id);
+                setClips(prevClips => {
+                  // Check if clip already exists
+                  if (prevClips.some(clip => clip.id === payload.new.id)) {
+                    return prevClips;
+                  }
+                  return [payload.new, ...prevClips];
+                });
+              }
+              break;
+
+            case 'UPDATE':
+              console.log('Updating clip:', payload.new.id, 'Visibility:', payload.new.visibility);
+              setClips(prevClips => {
+                return prevClips.map(clip => {
+                  if (clip.id !== payload.new.id) return clip;
+                  
+                  // If clip was made private, remove it
+                  if (payload.new.visibility === 'private') {
+                    return null;
+                  }
+                  // Otherwise update it
+                  return { ...clip, ...payload.new };
+                }).filter(Boolean); // Remove null entries (private clips)
+              });
+              break;
+
+            case 'DELETE':
+              console.log('Removing deleted clip:', payload.old.id);
+              setClips(prevClips => 
+                prevClips.filter(clip => clip.id !== payload.old.id)
+              );
+              break;
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up subscription');
+      supabase.removeChannel(subscription);
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.loadingContainer}>
+          <div className={styles.spinner} />
+        </div>
+      </ProtectedPageWrapper>
     );
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [loadMoreClips]);
-
-  // Add handleClipDelete function
-  const handleClipDelete = useCallback(async (clipId, clipUsername) => {
-    // Check if user is the owner of the clip
-    if (!user || user.username?.toLowerCase() !== clipUsername?.toLowerCase()) return;
-
-    try {
-      const { error } = await supabase
-        .from('clips')
-        .delete()
-        .eq('id', clipId)
-        .eq('username', clipUsername);
-
-      if (error) throw error;
-
-      // Update local state to remove the deleted clip
-      setClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
-
-    } catch (error) {
-      console.error('Error deleting clip:', error);
-      alert('Failed to delete clip');
-    }
-  }, [user, supabase, setClips]);
-
-  // Loading content component
-  const LoadingContent = () => (
-    <main className={styles.discoverMain}>
-      <div className={styles.feedContainer}>
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className={styles.clipWrapper}>
-            <LoadingClip />
-          </div>
-        ))}
-      </div>
-    </main>
-  );
+  }
 
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      {metaData.structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: metaData.structuredData }}
-        />
-      )}
-      {authLoading || (clipsLoading && clips.length === 0) || isTransitioning ? (
-        <LoadingContent />
-      ) : (
-        <main className={styles.discoverMain}>
-          <div className={styles.feedContainer}>
-            {/* Use a Set to ensure unique clips */}
-            {Array.from(new Set(clips.map(clip => clip.id))).map(clipId => {
-              const clip = clips.find(c => c.id === clipId);
-              return clip && (
-                <div key={clipId} className={styles.clipWrapper}>
-                  <VideoPlayer
-                    clip={clip}
-                    user={user}
-                    supabase={supabase}
-                    light={true}
-                    playing={playingVideoId === clip.id}
-                    onPlay={() => handlePlay(clip.id)}
-                    onPlayerInit={(player) => handlePlayerInit(clip.id, player)}
-                    onReady={handlePlayerReady}
-                    onViewCountUpdate={(clipId, newCount) => 
-                      updateClipCount(clipId, 'views_count', newCount)
-                    }
-                    onLikeUpdate={(clipId, newCount) => 
-                      updateClipCount(clipId, 'likes_count', newCount)
-                    }
-                    isOwner={user && user.username?.toLowerCase() === clip.username?.toLowerCase()}
-                    onClipUpdate={handleClipUpdate}
-                    onClipDelete={() => handleClipDelete(clip.id, clip.username)}
-                    playsInline
-                  />
-                </div>
-              );
-            })}
-
-            {/* Loading indicator */}
-            {hasMore && (
-              <div 
-                ref={loaderRef}
-                className={styles.loaderContainer}
-              >
-                {isLoadingMore ? (
-                  <div className={styles.loader}>
-                    <div className={styles.spinner} />
-                    <p>Loading more clips...</p>
+      <main className={styles.discoverMain}>
+        <div className={styles.feedContainer}>
+          {clips.length > 0 ? (
+            <>
+              {clips.map(clip => (
+                <ClipCard
+                  key={clip.id}
+                  clip={clip}
+                />
+              ))}
+              <div className={styles.loadingMore}>
+                {isLoading && (
+                  <div className={styles.spinner} />
+                )}
+                {!hasMore && (
+                  <div className={styles.endMessage}>
+                    <span className={styles.endIcon}>🎮</span>
+                    <p>You've seen all the clips!</p>
+                    <p className={styles.endSubtext}>Check back later for more gaming moments</p>
                   </div>
-                ) : (
-                  <button 
-                    onClick={loadMoreClips}
-                    className={styles.loadMoreButton}
-                  >
-                    Load More Clips
-                  </button>
                 )}
               </div>
-            )}
-          </div>
-        </main>
-      )}
+            </>
+          ) : (
+            <div className={styles.noClips}>
+              No clips available at the moment
+            </div>
+          )}
+        </div>
+      </main>
     </ProtectedPageWrapper>
   );
 };

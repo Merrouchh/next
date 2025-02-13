@@ -6,6 +6,20 @@ import Head from 'next/head';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import { createClient as createServerClient } from '../utils/supabase/server-props';
+
+// Remove the server-side auth check since we handle it client-side
+export async function getServerSideProps({ res }) {
+  // Keep only the no-cache headers since this page needs real-time data
+  res.setHeader(
+    'Cache-Control',
+    'private, no-cache, no-store, must-revalidate'
+  );
+
+  return {
+    props: {}
+  };
+}
 
 // Computer component
 const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
@@ -88,7 +102,7 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
 
 // Main component
 const AvailableComputers = () => {
-  const { isLoggedIn, loading, user, supabase } = useAuth();
+  const { user } = useAuth();  // Simplified auth usage
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
@@ -164,7 +178,7 @@ const AvailableComputers = () => {
     };
 
     const fetchAllComputers = async () => {
-      if (!isLoggedIn || !user) return;
+      if (!user) return;  // Simplified check
 
       try {
         await Promise.all([
@@ -179,7 +193,7 @@ const AvailableComputers = () => {
       }
     };
 
-    if (isLoggedIn && user) {
+    if (user) {  // Simplified check
       fetchAllComputers();
       intervalId = setInterval(fetchAllComputers, 5000);
     }
@@ -190,7 +204,7 @@ const AvailableComputers = () => {
         clearInterval(intervalId);
       }
     };
-  }, [isLoggedIn, user, updateSingleComputer, computersList]);
+  }, [user, updateSingleComputer, computersList]);
 
   // Initialize computers state
   useEffect(() => {
@@ -205,28 +219,6 @@ const AvailableComputers = () => {
     }
   }, [computersList, computers.normal.length, computers.vip.length]);
 
-  // Add session validation effect
-  useEffect(() => {
-    const validateAuth = async () => {
-      if (!loading && !isLoggedIn) {
-        router.replace('/');
-        return;
-      }
-
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session) {
-          router.replace('/');
-        }
-      } catch (error) {
-        console.error('Session validation error:', error);
-        router.replace('/');
-      }
-    };
-
-    validateAuth();
-  }, [isLoggedIn, loading, supabase, router]);
-
   // Add effect to handle highlighting
   useEffect(() => {
     if (router.query.from === 'dashboard') {
@@ -235,12 +227,8 @@ const AvailableComputers = () => {
     }
   }, [router.query]);
 
-  if (loading || isLoading) {
+  if (isLoading) {
     return <LoadingScreen />;
-  }
-
-  if (!isLoggedIn) {
-    return null;
   }
 
   if (error) {

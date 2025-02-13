@@ -18,12 +18,12 @@ const Header = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const { isLoggedIn, logout, user, loading } = useAuth();
+  const { user, logout } = useAuth();
   const navRef = useRef(null);
   const hamburgerRef = useRef(null);
   const router = useRouter();
 
-  const showDashboardHeader = isLoggedIn && (
+  const showDashboardHeader = user && (
     router.pathname === '/dashboard' ||
     router.pathname === '/discover' ||
     router.pathname.startsWith('/profile/') ||
@@ -32,7 +32,7 @@ const Header = () => {
     router.pathname === '/topusers'
   );
 
-  const showGoBackButton = isLoggedIn && 
+  const showGoBackButton = user && 
     router.pathname !== '/' && 
     router.pathname !== '/dashboard';
 
@@ -99,10 +99,6 @@ const Header = () => {
     }
   }, [isMobile]);
 
-  if (loading || isTransitioning) {
-    return <LoadingScreen message="Loading..." />;
-  }
-
   return (
     <>
       <div className={styles.headerWrapper}>
@@ -122,16 +118,13 @@ const Header = () => {
                 {isMobile ? (
                   <Image
                     src="/logomobile.png"
-                    alt="Merrouch Gaming Logo"
+                    alt="Merrouch Gaming"
                     width={150}
-                    height={50}
-                    className={styles.mobileLogo}
+                    height={75}
                     priority={true}
                     loading="eager"
-                    sizes="150px"
-                    quality={100}
-                    placeholder="blur"
-                    blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+                    className={styles.mobileLogo}
+                    sizes="(max-width: 768px) 150px, 110px"
                   />
                 ) : (
                   <h1 className={styles.logo}>
@@ -161,7 +154,7 @@ const Header = () => {
                 </button>
               )}
 
-              {isLoggedIn ? (
+              {user ? (
                 <>
                   <span className={styles.usernameBox}>
                     {user?.username}
@@ -181,13 +174,12 @@ const Header = () => {
         </header>
       </div>
 
-      {showDashboardHeader && <DashboardHeader />}
       {isModalOpen && <LoginModal isOpen={isModalOpen} onClose={closeModal} />}
       
       {isMobile && (
         <MobileMenu isOpen={isMenuOpen}>
           <nav ref={navRef} className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}>
-            {isLoggedIn ? (
+            {user ? (
               <>
                 <span className={styles.usernameBox}>
                   {user?.username}

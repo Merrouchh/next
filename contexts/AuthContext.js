@@ -30,9 +30,10 @@ export function useAuth() {
   return context;
 }
 
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children, onError }) => {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const initRef = useRef(false);
   const [authState, setAuthState] = useState({
     isLoggedIn: false,
     user: null,
@@ -55,49 +56,63 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize auth state
   useEffect(() => {
-    if (!mounted || !supabaseRef.current) return;
+    if (!mounted) return;
+    if (initRef.current) return;
+    initRef.current = true;
 
-    const initAuth = async () => {
+    const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession();
         
-        if (error || !session?.user) {
+        console.log('Auth: Session check', session); // Debug session
+
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          return;
+        }
+        
+        if (session?.user) {
+          console.log('Auth: Found existing session, getting user data');
+          // Get user data in one go
+          const { data: userData, error: userError } = await supabaseRef.current
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (userError) {
+            console.error('Error fetching user data:', userError);
+            return;
+          }
+
+          console.log('Auth: User data loaded:', userData); // Debug user data
+
+          setAuthState({
+            isLoggedIn: true,
+            user: userData,
+            loading: false,
+            initialized: true
+          });
+        } else {
+          console.log('Auth: No session found');
           setAuthState({
             isLoggedIn: false,
             user: null,
             loading: false,
             initialized: true
           });
-          return;
         }
-
-        // Fetch user data if we have a session
-        const { data: userData, error: userError } = await supabaseRef.current
-          .from('users')
-          .select('*')
-          .eq('email', session.user.email)
-          .single();
-
-        if (userError) throw userError;
-
-        setAuthState({
-          isLoggedIn: true,
-          user: userData,
-          loading: false,
-          initialized: true
-        });
       } catch (error) {
         console.error('Auth initialization error:', error);
-        setAuthState({
-          isLoggedIn: false,
-          user: null,
+        setAuthState(prev => ({
+          ...prev,
           loading: false,
           initialized: true
-        });
+        }));
       }
     };
 
-    initAuth();
+    getInitialSession();
   }, [mounted]);
 
   // Session check function
@@ -202,11 +217,13 @@ export const AuthProvider = ({ children }) => {
 
   // Simplified loading check
   const shouldShowLoading = () => {
+    // Don't show loading on public routes
     if (!mounted || isPublicRoute(router.pathname)) {
       return false;
     }
 
-    return (!authState.initialized || isLoggingOut) && isProtectedRoute(router.pathname);
+    // Only show loading if we're actually loading and on a protected route
+    return (authState.loading && !authState.initialized) && isProtectedRoute(router.pathname);
   };
 
   // Function to fetch user data
@@ -455,6 +472,18 @@ export const AuthProvider = ({ children }) => {
       }
     };
   }, [router]);
+
+  useEffect(() => {
+    try {
+      // Your auth initialization code
+    } catch (error) {
+      if (onError) {
+        onError(error);
+      } else {
+        console.error('Auth error:', error);
+      }
+    }
+  }, [onError]);
 
   if (shouldShowLoading()) {
     return (

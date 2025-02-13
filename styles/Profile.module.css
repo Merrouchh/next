@@ -2,6 +2,10 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .profileHeader {
@@ -10,24 +14,130 @@
   gap: 20px;
   margin-bottom: 20px;
   transition: all 0.3s ease;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--background-color);
+  padding: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .clipsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 10px;
+  gap: 24px;
+  padding: 24px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  will-change: contents;
+  min-height: auto;
+}
+
+.clipWrapper {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clipWrapper:hover {
+  transform: translateY(-2px);
+}
+
+.clipWrapper > div {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.loadingRow {
+  display: contents;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  grid-column: 1 / -1;
+  position: relative;
+}
+
+.noClipsMessage {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+/* Loading clip styles */
+.loadingClip {
+  width: 100%;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+/* Video container */
+.videoContainer {
+  width: 100%;
+  position: relative;
+  aspect-ratio: 16/9;
+  background: var(--background-primary);
+  overflow: hidden;
+}
+
+/* Make sure video fills container */
+.videoContainer > div {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure all content fits inside the grid cell */
+.clipWrapper > * {
+  max-width: 100%;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1200px) {
+  .clipsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 900px;
+  }
 }
 
 @media (max-width: 768px) {
   .clipsGrid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-    padding: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px;
   }
-  
-  .profileHeader {
-    margin-bottom: 10px;
+}
+
+@media (max-width: 480px) {
+  .clipsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
   }
 }
 
@@ -112,12 +222,14 @@
 .clipCard {
   position: relative;
   width: 100%;
-  height: 100%;
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .clipCard:hover {
@@ -127,74 +239,90 @@
 
 .clipContainer {
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .clipHeader {
-  padding: 1rem;
+  padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
+  width: 100%;
 }
 
 .clipHeader h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.gameTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 215, 0, 0.1);
-  color: var(--primary-color, #FFD700);
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-}
-
-.gameTag svg {
-  font-size: 0.9rem;
-}
-
-.videoWrapper {
-  position: relative;
-  width: 100%;
-  background: #000;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
 .clipVideo {
   position: absolute !important;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipInfo {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.clipTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.clipStats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+  padding: 4px 0;
 }
 
 .clipActions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 8px;
+  padding: 8px 12px;
   background: rgba(0, 0, 0, 0.2);
+  width: 100%;
+  margin: 0;
+  flex-shrink: 0;
 }
 
-.actionButton, .likeButton {
+.actionButton, 
+.likeButton {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem;
+  gap: 4px;
+  padding: 4px 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
   color: #fff;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.8rem;
 }
 
-.actionButton:hover, .likeButton:hover {
+.actionButton:hover, 
+.likeButton:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
 }
@@ -208,8 +336,22 @@
   background: rgba(255, 68, 68, 0.1);
 }
 
-.likeButton span {
+.gameTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--primary-color, #FFD700);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
   font-size: 0.9rem;
+  margin-top: 0.5rem;
+  max-width: fit-content;
+}
+
+.gameTag svg {
+  font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .deleteButton {
@@ -227,35 +369,6 @@
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   color: #888;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 1400px) {
-  .clipsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 900px) {
-  .clipsGrid {
-    grid-template-columns: repeat(1, 1fr);
-    gap: 1.25rem;
-  }
-  
-  .profileHeader {
-    margin-bottom: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .profileHeader {
-    margin-bottom: 10px;
-  }
-  
-  .clipsGrid {
-    gap: 1rem;
-  }
 }
 
 /* Loading Animation */
@@ -323,6 +436,14 @@
   background-color: #e5e7eb;
 }
 
+.loaderContainer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  width: 100%;
+}
+
 .loader {
   display: flex;
   flex-direction: column;
@@ -333,16 +454,15 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-left-color: #FFD700;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Add media query for better mobile spacing */
@@ -553,19 +673,6 @@
   box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
 }
 
-.clipWrapper {
-  position: relative;
-  width: 100%;
-  background: var(--background-secondary);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.2s ease;
-}
-
-.clipWrapper:hover {
-  transform: translateY(-2px);
-}
-
 /* Add styles for the delete confirmation */
 .deleteConfirmation {
   position: absolute;
@@ -573,14 +680,15 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.95);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1.5rem;
   text-align: center;
   z-index: 10;
+  border-radius: 12px;
 }
 
 .deleteConfirmation h3 {
@@ -598,6 +706,7 @@
 .deleteActions {
   display: flex;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
 .cancelButton {
@@ -668,21 +777,6 @@
 @media (min-width: 769px) {
   .profileHeader {
     padding-bottom: 1rem; /* Normal padding for desktop */
-  }
-}
-
-.loaderContainer {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  padding: 2rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .clipsGrid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
   }
 }
 
@@ -788,4 +882,116 @@
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
+}
+
+.loadMoreIndicator {
+  grid-column: 1 / -1;
+  min-height: 20px;
+  margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .clipCard {
+    border-radius: 8px;
+  }
+
+  .clipHeader {
+    padding: 0.75rem;
+  }
+
+  .clipHeader h3 {
+    font-size: 1rem;
+  }
+
+  .clipActions {
+    padding: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .actionButton, 
+  .likeButton {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .gameTag {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.6rem;
+  }
+}
+
+/* Loading state */
+.clipWrapper.loading {
+  animation: shimmer 1s linear infinite;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.05) 8%,
+    rgba(255, 255, 255, 0.1) 18%,
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 1000px 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+/* Add a loading overlay instead of injecting new elements */
+.loadingOverlay {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 100px;
+  background: linear-gradient(to top, var(--background-color) 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  margin-top: 20px;
+}
+
+.loadingOverlay.visible {
+  opacity: 1;
+}
+
+/* Loading state */
+.clipWrapper.loading {
+  animation: shimmer 1s linear infinite;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.05) 8%,
+    rgba(255, 255, 255, 0.1) 18%,
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 1000px 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+/* Add a loading overlay instead of injecting new elements */
+.loadingOverlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(to top, var(--background-color) 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.loadingOverlay.visible {
+  opacity: 1;
 } 

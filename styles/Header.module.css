@@ -63,11 +63,18 @@
 }
 
 .mobileLogo {
-  height: 40px;
-  width: auto;
+  width: auto !important;
+  height: auto !important;
+  max-height: 50px;  /* Control maximum height */
   object-fit: contain;
-  display: block;
-  margin: 0 auto; /* Centers the logo image in the available space */
+  transition: transform 0.2s ease;
+}
+
+/* Add responsive adjustments */
+@media (max-width: 480px) {
+  .mobileLogo {
+    max-height: 40px;  /* Even smaller on mobile */
+  }
 }
 
 /* Navigation */

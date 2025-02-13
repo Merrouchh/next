@@ -1,309 +1,289 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import styles from '../../styles/Profile.module.css';
 import VideoPlayer from '../../components/VideoPlayer';
-import { useClipsFeed } from '../../hooks/useClipsFeed';
+import { useProfileClips } from '../../hooks/useProfileClips';
 import UserProfileSection from '../../components/UserProfileSection';
 import LoadingClip from '../../components/LoadingClip';
 import UserSearch from '../../components/UserSearch';
-import { createClient as createServerClient } from '../../utils/supabase/server-props';
+import { createClient } from '../../utils/supabase/server-props';
 import DynamicMeta from '../../components/DynamicMeta';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { MdCloudUpload } from 'react-icons/md';
+import ClipCard from '../../components/ClipCard';
+import { debounce } from 'lodash';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
 export async function getServerSideProps({ req, res, params }) {
-  // Add cache control header
   res.setHeader(
     'Cache-Control',
-    'public, max-age=0, s-maxage=0, must-revalidate'
+    'public, s-maxage=10, stale-while-revalidate=59'
   );
 
-  const supabase = createServerClient({ req, res });
+  const supabase = createClient({ req, res });
   const { username } = params;
+  const normalizedUsername = username.toLowerCase();
 
   try {
-    // Check session server-side
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get session data
+    const { data, error: sessionError } = await supabase.auth.getSession();
+    const session = data?.session;
 
     // Get profile data
     const { data: profileData, error: profileError } = await supabase
       .from('users')
       .select('*')
-      .eq('username', username.toLowerCase())
+      .eq('username', normalizedUsername)
       .single();
 
     if (profileError) {
-      return {
-        notFound: true
-      };
+      console.error('Profile fetch error:', profileError);
+      return { notFound: true };
     }
 
-    // Get user's clips count and latest clip
-    const { data: userClips, count } = await supabase
+    // Get current user's full data if logged in
+    let currentUserData = null;
+    let isOwner = false;
+
+    if (session?.user?.id) {
+      const { data: userData, error: userDataError } = await supabase
+        .from('users')
+        .select('username, id, email')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!userDataError) {
+        currentUserData = userData;
+        isOwner = currentUserData?.username?.toLowerCase() === normalizedUsername;
+      }
+    }
+
+    // Build clips query - always filter by visibility for non-owners
+    let clipsQuery = supabase
       .from('clips')
-      .select('title, game, thumbnail_path, uploaded_at', { count: 'exact' })
-      .eq('username', username)
-      .eq('visibility', 'public')
+      .select('*', { count: 'exact' })
+      .eq('username', normalizedUsername)
       .order('uploaded_at', { ascending: false })
-      .limit(1);
+      .range(0, 2);
 
-    const latestClip = userClips?.[0];
+    // If not owner or not logged in, only show public clips
+    if (!isOwner) {
+      console.log('Showing only public clips');
+      clipsQuery = clipsQuery.eq('visibility', 'public');
+    } else {
+      console.log('Owner, showing all clips');
+    }
 
-    // Generate description based on user data
+    const { data: initialClips, count: totalClips, error: clipsError } = await clipsQuery;
+
+    if (clipsError) {
+      console.error('Clips fetch error:', clipsError);
+      return { notFound: true };
+    }
+
+    const latestClip = initialClips?.[0];
+
+    // Generate description
     const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
-      count ? `${count} clips shared. ` : ''
+      totalClips ? `${totalClips} clips shared. ` : ''
     }${latestClip ? `Latest clip: ${latestClip.title} (${latestClip.game})` : ''
     }Join our gaming community to watch and share your best gaming moments.`;
-
-    // Prepare meta data with rich snippets
-    const metaData = {
-      title: `${profileData.username}'s Profile | Merrouch Gaming`,
-      description,
-      image: latestClip?.thumbnail_path 
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
-        : 'https://merrouchgaming.com/top.jpg',
-      url: `https://merrouchgaming.com/profile/${username}`,
-      type: 'profile',
-      structuredData: JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "ProfilePage",
-        "mainEntity": {
-          "@type": "Person",
-          "name": profileData.username,
-          "url": `https://merrouchgaming.com/profile/${profileData.username}`,
-          "description": description,
-          "interactionStatistic": [
-            {
-              "@type": "InteractionCounter",
-              "interactionType": "http://schema.org/CreateAction",
-              "userInteractionCount": count || 0,
-              "name": "Clips Shared"
-            }
-          ],
-          "potentialAction": {
-            "@type": "ViewAction",
-            "target": `https://merrouchgaming.com/profile/${profileData.username}`
-          }
-        },
-        "about": {
-          "@type": "VideoGallery",
-          "name": `${profileData.username}'s Gaming Clips`,
-          "numberOfItems": count || 0,
-          "url": `https://merrouchgaming.com/profile/${profileData.username}`
-        }
-      }),
-      openGraph: {
-        title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
-        description,
-        images: [
-          {
-            url: latestClip?.thumbnail_path 
-              ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
-              : 'https://merrouchgaming.com/top.jpg',
-            width: 1200,
-            height: 630,
-            alt: `${profileData.username}'s profile thumbnail`
-          }
-        ],
-        type: 'profile',
-        profile: {
-          username: profileData.username
-        }
-      },
-      twitter: {
-        card: 'summary_large_image',
-        site: '@merrouchgaming',
-        title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
-        description,
-        image: latestClip?.thumbnail_path 
-          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
-          : 'https://merrouchgaming.com/top.jpg'
-      }
-    };
 
     return {
       props: {
         initialSession: session,
         profile: profileData,
-        isOwnProfile: session?.user?.email === profileData.email,
+        isOwnProfile: isOwner,
+        isAuthenticated: !!session,
         userData: {
           ...profileData,
-          clipsCount: count || 0,
+          username: normalizedUsername,
+          clipsCount: totalClips || 0,
+          initialClips: initialClips || [],
+          hasMore: totalClips > 3,
           latestClip: latestClip || null
         },
-        metaData
+        metaData: {
+          title: `${profileData.username}'s Profile | Merrouch Gaming`,
+          description,
+          image: latestClip?.thumbnail_path 
+            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
+            : 'https://merrouchgaming.com/top.jpg',
+          url: `https://merrouchgaming.com/profile/${username}`,
+          type: 'profile',
+          structuredData: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "mainEntity": {
+              "@type": "Person",
+              "name": profileData.username,
+              "url": `https://merrouchgaming.com/profile/${profileData.username}`,
+              "description": `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
+              "interactionStatistic": [
+                {
+                  "@type": "InteractionCounter",
+                  "interactionType": "http://schema.org/CreateAction",
+                  "userInteractionCount": 0,
+                  "name": "Clips Shared"
+                }
+              ],
+              "potentialAction": {
+                "@type": "ViewAction",
+                "target": `https://merrouchgaming.com/profile/${profileData.username}`
+              }
+            },
+            "about": {
+              "@type": "VideoGallery",
+              "name": `${profileData.username}'s Gaming Clips`,
+              "numberOfItems": 0,
+              "url": `https://merrouchgaming.com/profile/${profileData.username}`
+            }
+          }),
+          openGraph: {
+            title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+            description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
+            images: [
+              {
+                url: 'https://merrouchgaming.com/top.jpg',
+                width: 1200,
+                height: 630,
+                alt: `${profileData.username}'s profile thumbnail`
+              }
+            ],
+            type: 'profile',
+            profile: {
+              username: profileData.username
+            }
+          },
+          twitter: {
+            card: 'summary_large_image',
+            site: '@merrouchgaming',
+            title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+            description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
+            image: 'https://merrouchgaming.com/top.jpg'
+          }
+        }
       }
     };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
-    return {
-      notFound: true
+    return { 
+      props: {
+        error: 'Failed to load profile',
+        userData: null,
+        isAuthenticated: false,
+        metaData: {
+          title: 'Profile Not Found | Merrouch Gaming',
+          description: 'Unable to load profile'
+        }
+      }
     };
   }
 }
 
-const ProfilePage = ({ userData, metaData, error }) => {
-  const previousUsername = useRef(userData.username);
+// Memoize the clips grid
+const ClipsGrid = memo(({ clips, loading, hasMore, ...props }) => {
+  const parentRef = useRef();
+  
+  const rowVirtualizer = useVirtualizer({
+    count: clips.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 300,
+    overscan: 5
+  });
+
+  const [error, setError] = useState(null);
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <p>Error loading clips. Please try refreshing the page.</p>
+      </div>
+    );
+  }
+
+  const [renderedClips, setRenderedClips] = useState(clips);
+  
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      setRenderedClips(clips);
+    });
+  }, [clips]);
+
+  return (
+    <div className={styles.clipsGrid}>
+      {renderedClips.map((clip, index) => (
+        <div 
+          key={`clip-${clip.id}-${index}`}
+          className={styles.clipWrapper}
+        >
+          <ClipCard 
+            clip={clip}
+            isOwner={props.isOwner}
+          />
+        </div>
+      ))}
+
+      {loading && (
+        <div className={`${styles.loadingOverlay} ${loading ? styles.visible : ''}`}>
+          <div className={styles.loadingRow}>
+            {[...Array(3)].map((_, i) => (
+              <div key={`loading-${i}`} className={styles.clipWrapper}>
+                <LoadingClip />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && clips.length === 0 && (
+        <div className={styles.noClipsMessage}>
+          {props.isOwner 
+            ? "You haven't shared any clips yet"
+            : `${props.username} hasn't shared any public clips yet`}
+        </div>
+      )}
+    </div>
+  );
+});
+
+ClipsGrid.displayName = 'ClipsGrid';
+
+const ProfilePage = ({ userData, metaData, error, isAuthenticated, isOwnProfile }) => {
   const router = useRouter();
-  const { user, supabase, isLoggedIn } = useAuth();
-  const [activeTab, setActiveTab] = useState('clips');
+  const { user: currentUser, supabase, isLoggedIn } = useAuth();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [playingVideoId, setPlayingVideoId] = useState(null);
   
-  const isOwner = user?.username?.toLowerCase() === userData?.username?.toLowerCase();
-  
-  const { 
-    clips, 
-    loading, 
-    hasMore, 
-    loaderRef, 
-    updateClipCount,
-    setClips,
-    resetClips,
-    fetchClips
-  } = useClipsFeed(
-    supabase, 
-    6, 
-    userData.username, 
-    isOwner, 
-    isLoggedIn
+  const normalizedUsername = userData?.username?.toLowerCase();
+
+  const {
+    clips: userClips,
+    loading: clipsLoading,
+    hasMore: hasMoreClips,
+    error: clipsError
+  } = useProfileClips(
+    normalizedUsername, 
+    isOwnProfile,
+    userData?.initialClips || []
   );
 
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchQuery(value);
+    }, 300),
+    []
+  );
 
-  // Define the style objects
-  const mainStyles = { 
-    padding: isMobile === null ? '20px' : (isMobile ? '10px' : '20px')
-  };
-
-  const headerStyles = {
-    position: isMobile ? 'sticky' : 'relative',
-    top: isMobile ? '0' : 'auto',
-    zIndex: isMobile ? '10' : '1',
-    background: isMobile ? 'var(--background-color)' : 'transparent'
-  };
-
-  const mainClassName = styles.profileMain;
-
-  // Reset everything when username changes
-  useEffect(() => {
-    if (previousUsername.current === userData.username) return;
-    previousUsername.current = userData.username;
-    setPlayingVideoId(null);
-    setSearchQuery('');
-    resetClips();
-  }, [userData.username, resetClips]);
-
-  // Add a loading timeout to prevent flash of "no clips" message
-  const [showNoClips, setShowNoClips] = useState(false);
-  useEffect(() => {
-    if (!loading && clips.length === 0) {
-      const timer = setTimeout(() => setShowNoClips(true), 1000);
-      return () => clearTimeout(timer);
-    }
-    setShowNoClips(false);
-  }, [loading, clips.length]);
-
-  // Add this new effect to watch for auth state changes
-  useEffect(() => {
-    // When auth state changes (login/logout)
-    setPlayingVideoId(null);
-    resetClips();
-    // Force a refetch with new auth state
-    fetchClips && fetchClips();
-  }, [isLoggedIn]); // Watch isLoggedIn state
-
-  const handleClipUpdate = useCallback(async (updatedClip) => {
-    if (!isOwner) return;
-
-    try {
-      const { error } = await supabase
-        .from('clips')
-        .update({
-          visibility: updatedClip.visibility
-        })
-        .eq('id', updatedClip.id)
-        .eq('username', userData.username);
-
-      if (error) {
-        throw error;
-      }
-
-      setClips(prevClips => 
-        prevClips.map(clip => 
-          clip.id === updatedClip.id 
-            ? { ...clip, visibility: updatedClip.visibility } 
-            : clip
-        )
-      );
-
-      console.log('Clip updated successfully:', updatedClip.visibility);
-
-    } catch (error) {
-      console.error('Error updating clip:', error);
-      setClips(prevClips => [...prevClips]);
-      alert('Failed to update clip visibility');
-    }
-  }, [isOwner, supabase, userData.username, setClips]); // Add setClips to dependencies
-
-  const handleClipDelete = useCallback(async (clipId) => {
-    if (!isOwner) return;
-
-    try {
-      // Delete the clip from Supabase
-      const { error } = await supabase
-        .from('clips')
-        .delete()
-        .eq('id', clipId)
-        .eq('username', userData.username);
-
-      if (error) throw error;
-
-      // Update the UI by removing the deleted clip
-      setClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
-      
-      // Update the clip count in the profile
-      if (updateClipCount) {
-        updateClipCount(clipId, 'total', -1);
-      }
-    } catch (error) {
-      console.error('Error deleting clip:', error);
-      alert('Failed to delete clip');
-    }
-  }, [isOwner, supabase, userData.username, updateClipCount, setClips]);
-
-  const handlePlay = (clipId) => {
-    if (playingVideoId !== clipId) {
-      setPlayingVideoId(clipId);
-    }
-  };
-
-  const handlePlayerInit = useCallback((_clipId, _playerInstance) => {
-    // Add any player initialization logic here if needed
-  }, []);
-
-  const handlePlayerReady = useCallback(() => {
-    // Add any player ready logic here if needed
-  }, []);
-
-  // Debug logs
-  useEffect(() => {
-    console.log('Profile page rendered for:', userData.username);
-  }, [userData.username]);
-
-  // Debug logs
-  useEffect(() => {
-    console.log('Clips state:', { loading, clipsCount: clips.length, hasMore });
-  }, [loading, clips, hasMore]);
-
-  // Handle the fallback state
   if (router.isFallback) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   if (error) {
@@ -323,7 +303,6 @@ const ProfilePage = ({ userData, metaData, error }) => {
     );
   }
 
-  // Move this up, before any return statements
   const UploadButton = ({ isFixed = false }) => (
     <button 
       onClick={() => router.push('/upload')}
@@ -335,97 +314,20 @@ const ProfilePage = ({ userData, metaData, error }) => {
     </button>
   );
 
-  // Loading state
-  if (loading && clips.length === 0) {
-    return (
-      <ProtectedPageWrapper>
-        <DynamicMeta {...metaData} />
-        <main className={mainClassName} style={mainStyles}>
-          <div className={styles.profileHeader} style={headerStyles}>
-            <UserProfileSection 
-              username={userData.username} 
-              isOwner={isOwner}
-              user={user}
-              supabase={supabase}
-            />
-            {isOwner && (
-              <div className={styles.uploadButtonContainer}>
-                <UploadButton isFixed={false} />
-              </div>
-            )}
-            <UserSearch 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              username={userData.username}
-            />
-          </div>
-          <div className={styles.clipsGrid}>
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className={styles.clipWrapper}>
-                <LoadingClip />
-              </div>
-            ))}
-          </div>
-        </main>
-        {!isOwner && user && <UploadButton isFixed={true} />}
-      </ProtectedPageWrapper>
-    );
-  }
-
-  // No clips state
-  if (!loading && clips.length === 0 && showNoClips) {
-    return (
-      <ProtectedPageWrapper>
-        <main 
-          className={mainClassName}
-          style={mainStyles}
-        >
-          <div 
-            className={styles.profileHeader}
-            style={headerStyles}
-          >
-            <UserProfileSection 
-              username={userData.username} 
-              isOwner={isOwner}
-              user={user}
-              supabase={supabase}
-            />
-            {isOwner && (
-              <div className={styles.uploadButtonContainer}>
-                <UploadButton isFixed={false} />
-              </div>
-            )}
-            <UserSearch 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              username={userData.username}
-            />
-          </div>
-          <div className={styles.noClipsMessage}>
-            No clips found for {userData.username}
-          </div>
-        </main>
-        {!isOwner && user && <UploadButton isFixed={true} />}
-      </ProtectedPageWrapper>
-    );
-  }
-
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <main className={mainClassName} style={mainStyles}>
-        <div className={styles.profileHeader} style={headerStyles}>
+      <main className={styles.profileMain}>
+        <div className={styles.profileHeader}>
           <UserProfileSection 
             username={userData.username} 
-            isOwner={isOwner}
-            user={user}
+            isOwner={isOwnProfile}
+            clipsCount={userData.clipsCount}
+            user={currentUser}
             supabase={supabase}
+            isAuthenticated={isAuthenticated}
           />
-          {isOwner && (
+          {isOwnProfile && isLoggedIn && (
             <div className={styles.uploadButtonContainer}>
               <UploadButton isFixed={false} />
             </div>
@@ -438,46 +340,21 @@ const ProfilePage = ({ userData, metaData, error }) => {
             username={userData.username}
           />
         </div>
-        <div className={styles.clipsGrid}>
-          {Array.isArray(clips) && clips.map(clip => (
-            <div key={clip.id} className={styles.clipCard}>
-              <VideoPlayer
-                clip={clip}
-                user={user}
-                supabase={supabase}
-                light={true}
-                playing={playingVideoId === clip.id}
-                onPlay={() => handlePlay(clip.id)}
-                onPlayerInit={(player) => handlePlayerInit(clip.id, player)}
-                onReady={handlePlayerReady}
-                onViewCountUpdate={(clipId, newCount) => 
-                  updateClipCount(clipId, 'views_count', newCount)
-                }
-                onLikeUpdate={(clipId, newCount) => 
-                  updateClipCount(clipId, 'likes_count', newCount)
-                }
-                isOwner={isOwner}
-                onClipUpdate={handleClipUpdate}
-                onClipDelete={() => handleClipDelete(clip.id)}
-                playsInline
-              />
-            </div>
-          ))}
-          {hasMore && (
-            <div ref={loaderRef} className={styles.loaderContainer}>
-              {loading && (
-                <div className={styles.loader}>
-                  <div className={styles.spinner} />
-                  <p>Loading more clips...</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        {!isOwner && user && <UploadButton isFixed={true} />}
+
+        <ClipsGrid 
+          clips={userClips}
+          loading={clipsLoading}
+          hasMore={hasMoreClips}
+          isOwner={isOwnProfile}
+          username={userData.username}
+          isAuthenticated={isAuthenticated}
+        />
       </main>
+      {isAuthenticated && !isOwnProfile && currentUser && isLoggedIn && (
+        <UploadButton isFixed={true} />
+      )}
     </ProtectedPageWrapper>
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;

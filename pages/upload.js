@@ -49,6 +49,15 @@ const _updatedUploadStyles = {
   }
 };
 
+export async function getServerSideProps({ _req, _res }) {
+  // This makes the page dynamic and prevents static generation
+  return {
+    props: {
+      // You can pass any initial props here if needed
+    }
+  };
+}
+
 const UploadPage = () => {
   const [title, setTitle] = useState('');
   const [game, setGame] = useState('');
@@ -305,27 +314,6 @@ const UploadPage = () => {
   };
 
   useEffect(() => {
-    const validateSession = async () => {
-      if (!isLoggedIn) {
-        router.replace('/');
-        return;
-      }
-
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error || !session) {
-          router.replace('/');
-        }
-      } catch (error) {
-        console.error('Session validation error:', error);
-        router.replace('/');
-      }
-    };
-
-    validateSession();
-  }, [isLoggedIn, router, supabase.auth]);
-
-  useEffect(() => {
     return () => {
       if (xhrRef.current) {
         xhrRef.current.abort();
@@ -336,11 +324,6 @@ const UploadPage = () => {
       }
     };
   }, [previewUrl]);
-
-  if (!isLoggedIn || !user) {
-    router.push('/');
-    return null;
-  }
 
   return (
     <ProtectedPageWrapper>

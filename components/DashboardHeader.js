@@ -25,7 +25,7 @@ const _updatedDashboardHeaderStyles = {
 
 export default function DashboardHeader({ children }) {
   const router = useRouter();
-  const { isLoggedIn, user } = useAuth();
+  const { user } = useAuth();
   const currentPath = router.pathname;
   const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
@@ -80,7 +80,6 @@ export default function DashboardHeader({ children }) {
     if (path.startsWith('/profile/')) {
       return currentPath.startsWith('/profile/') && path === `/profile/${user?.username}`;
     }
-    // Make dashboard check more explicit
     if (path === '/dashboard') {
       return currentPath === '/dashboard' || currentPath === '/';
     }
@@ -236,8 +235,6 @@ export default function DashboardHeader({ children }) {
       mounted = false;
     };
   }, [isMobile]);
-
-  if (!isLoggedIn) return null;
 
   return (
     <>

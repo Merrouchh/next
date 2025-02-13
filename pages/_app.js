@@ -1,11 +1,10 @@
+import 'intersection-observer';
 import { AuthProvider } from '../contexts/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import '../styles/globals.css';
 import { Inter, Orbitron } from 'next/font/google';
-import '@vidstack/react/player/styles/default/theme.css';
-import '@vidstack/react/player/styles/default/layouts/video.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import { VideoProvider } from '../contexts/VideoContext';
 import { Toaster } from 'react-hot-toast';
@@ -20,11 +19,30 @@ const orbitron = Orbitron({
   variable: '--font-orbitron',
 });
 
+// Add error handler for lock failures
+const handleLockError = (error) => {
+  if (error.message?.includes('LockManager lock') || error.isAcquireTimeout) {
+    // Silently handle lock errors
+    console.debug('Auth lock already acquired, continuing...');
+    return;
+  }
+  // Rethrow other errors
+  throw error;
+};
+
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Add global error handler for lock errors
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason?.message?.includes('LockManager lock')) {
+        event.preventDefault(); // Prevent the error from being logged
+        handleLockError(event.reason);
+      }
+    });
+
     setMounted(true);
   }, []);
 
@@ -69,45 +87,51 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router.events, mounted]);
 
-  return (
-    <ErrorBoundary>
-      <div suppressHydrationWarning>
-        <AuthProvider>
-          <VideoProvider>
-            <Toaster 
-              position="bottom-center"
-              toastOptions={{
-                style: {
-                  background: '#333',
-                  color: '#fff',
-                  border: '1px solid #2a2a2a',
-                },
-                success: {
-                  duration: 2000,
-                  iconTheme: {
-                    primary: '#FFD700',
-                    secondary: '#000',
-                  },
-                },
-                error: {
-                  duration: 3000,
-                  iconTheme: {
-                    primary: '#ff4b4b',
-                    secondary: '#fff',
-                  },
-                },
-              }}
-            />
-            <Layout>
-              <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
-                <Component {...pageProps} />
-              </main>
-            </Layout>
-          </VideoProvider>
-        </AuthProvider>
-      </div>
-    </ErrorBoundary>
-  );
+  if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
+    return (
+      <StrictMode>
+        <ErrorBoundary>
+          <div suppressHydrationWarning>
+            <AuthProvider onError={handleLockError}>
+              <VideoProvider>
+                <Toaster 
+                  position="bottom-center"
+                  toastOptions={{
+                    style: {
+                      background: '#333',
+                      color: '#fff',
+                      border: '1px solid #2a2a2a',
+                    },
+                    success: {
+                      duration: 2000,
+                      iconTheme: {
+                        primary: '#FFD700',
+                        secondary: '#000',
+                      },
+                    },
+                    error: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#ff4b4b',
+                        secondary: '#fff',
+                      },
+                    },
+                  }}
+                />
+                <Layout>
+                  <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
+                    <Component {...pageProps} />
+                  </main>
+                </Layout>
+              </VideoProvider>
+            </AuthProvider>
+          </div>
+        </ErrorBoundary>
+      </StrictMode>
+    );
+  }
+
+  return <Component {...pageProps} />;
 }
 
 export default MyApp;

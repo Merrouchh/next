@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { FaDiscord, FaGamepad } from 'react-icons/fa';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
 import { AiOutlineUser, AiOutlineCopy } from 'react-icons/ai';
@@ -6,9 +6,12 @@ import { MdCloudUpload } from 'react-icons/md';
 import { useRouter } from 'next/router';
 import { fetchGizmoId, fetchUserPicture, cleanupBlobUrls } from '../utils/api';
 import styles from '../styles/Profile.module.css';
+import { useAuth } from '../contexts/AuthContext';
+import { createClient } from '../utils/supabase/component';
 
-const UserProfileSection = ({ username, isOwner, supabase }) => {
+const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated }) => {
   const router = useRouter();
+  const { user, isLoggedIn } = useAuth();
   const [userPicture, setUserPicture] = useState(null);
   const [pictureLoading, setPictureLoading] = useState(true);
   const [isEditingProfiles, setIsEditingProfiles] = useState(false);
@@ -19,6 +22,45 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
     fortnite_name: '',
     battlenet_id: ''
   });
+
+  // Reset editing state when auth state changes
+  useEffect(() => {
+    if (!isLoggedIn) {
+      console.log('User logged out, resetting edit state');
+      setIsEditingProfiles(false);
+    }
+  }, [isLoggedIn]);
+
+  // Subscribe to real-time profile changes
+  useEffect(() => {
+    if (!username) return;
+
+    const supabase = createClient();
+    
+    const subscription = supabase
+      .channel(`profile-${username}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'users',
+          filter: `username=eq.${username}`
+        },
+        (payload) => {
+          console.log('Profile update:', payload);
+          if (payload.new) {
+            setUserProfiles(payload.new);
+            setEditedProfiles(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [username]);
 
   // Fetch user picture
   useEffect(() => {
@@ -122,7 +164,7 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
             <div className={styles.profilesHeader}>
               <FaGamepad className={styles.headerIcon} />
               <h3>Gaming Profiles</h3>
-              {isOwner && (
+              {isOwner && isLoggedIn && (
                 <button 
                   onClick={() => {
                     if (isEditingProfiles) {
@@ -137,7 +179,7 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
               )}
             </div>
 
-            {isEditingProfiles ? (
+            {isEditingProfiles && isLoggedIn ? (
               <div className={styles.profilesEditGrid}>
                 <div className={styles.profileInput}>
                   <FaDiscord className={styles.profileIcon} />
@@ -194,36 +236,44 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
                   <div className={styles.profileItem}>
                     <FaDiscord className={styles.profileIcon} />
                     <span>{userProfiles.discord_id}</span>
-                    <button onClick={() => navigator.clipboard.writeText(userProfiles.discord_id)}>
-                      <AiOutlineCopy /> Copy
-                    </button>
+                    {isLoggedIn && (
+                      <button onClick={() => navigator.clipboard.writeText(userProfiles.discord_id)}>
+                        <AiOutlineCopy /> Copy
+                      </button>
+                    )}
                   </div>
                 )}
                 {userProfiles?.valorant_id && (
                   <div className={styles.profileItem}>
                     <SiValorant className={styles.profileIcon} />
                     <span>{userProfiles.valorant_id}</span>
-                    <button onClick={() => navigator.clipboard.writeText(userProfiles.valorant_id)}>
-                      <AiOutlineCopy /> Copy
-                    </button>
+                    {isLoggedIn && (
+                      <button onClick={() => navigator.clipboard.writeText(userProfiles.valorant_id)}>
+                        <AiOutlineCopy /> Copy
+                      </button>
+                    )}
                   </div>
                 )}
                 {userProfiles?.fortnite_name && (
                   <div className={styles.profileItem}>
                     <SiEpicgames className={styles.profileIcon} />
                     <span>{userProfiles.fortnite_name}</span>
-                    <button onClick={() => navigator.clipboard.writeText(userProfiles.fortnite_name)}>
-                      <AiOutlineCopy /> Copy
-                    </button>
+                    {isLoggedIn && (
+                      <button onClick={() => navigator.clipboard.writeText(userProfiles.fortnite_name)}>
+                        <AiOutlineCopy /> Copy
+                      </button>
+                    )}
                   </div>
                 )}
                 {userProfiles?.battlenet_id && (
                   <div className={styles.profileItem}>
                     <SiBattledotnet className={styles.profileIcon} />
                     <span>{userProfiles.battlenet_id}</span>
-                    <button onClick={() => navigator.clipboard.writeText(userProfiles.battlenet_id)}>
-                      <AiOutlineCopy /> Copy
-                    </button>
+                    {isLoggedIn && (
+                      <button onClick={() => navigator.clipboard.writeText(userProfiles.battlenet_id)}>
+                        <AiOutlineCopy /> Copy
+                      </button>
+                    )}
                   </div>
                 )}
                 {!userProfiles?.discord_id && 
@@ -231,7 +281,11 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
                  !userProfiles?.fortnite_name && 
                  !userProfiles?.battlenet_id && (
                   <div className={styles.noProfiles}>
-                    {isOwner ? 'Add your gaming profiles!' : 'No gaming profiles added yet.'}
+                    {isOwner && isLoggedIn ? (
+                      'Add your gaming profiles!'
+                    ) : (
+                      'No gaming profiles added yet.'
+                    )}
                   </div>
                 )}
               </div>
@@ -241,6 +295,8 @@ const UserProfileSection = ({ username, isOwner, supabase }) => {
       </div>
     </div>
   );
-};
+});
+
+UserProfileSection.displayName = 'UserProfileSection';
 
 export default UserProfileSection; 

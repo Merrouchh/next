@@ -1,69 +1,78 @@
-import { useRef, useEffect } from 'react';
 import { MdClose, MdPerson } from 'react-icons/md';
 import styles from '../styles/LikesModal.module.css';
-import Portal from './Portal';
-import Link from 'next/link';
+import { useRef, useState, useEffect } from 'react';
 
-const LikesModal = ({ isOpen, onClose, likes, _triggerRect, isLoadingLikes }) => {
-  const modalRef = useRef();
+const LikesModal = ({ isOpen, onClose, likes, isLoadingLikes }) => {
+  const modalRef = useRef(null);
+  const [hasScroll, setHasScroll] = useState(false);
+  const [position, setPosition] = useState({ nearTop: false, nearBottom: false });
+  const [shouldAdjustPosition, setShouldAdjustPosition] = useState(false);
+
+  // Check if modal has scroll and position
+  useEffect(() => {
+    if (modalRef.current) {
+      const modal = modalRef.current;
+      setHasScroll(modal.scrollHeight > modal.clientHeight);
+      
+      // Check position relative to viewport
+      const rect = modal.getBoundingClientRect();
+      setPosition({
+        nearTop: rect.top < 100,
+        nearBottom: window.innerHeight - rect.bottom < 100
+      });
+    }
+  }, [likes]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+    if (modalRef.current && window.innerWidth >= 768) {
+      const rect = modalRef.current.getBoundingClientRect();
+      setShouldAdjustPosition(rect.right > window.innerWidth - 20);
     }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <Portal>
-      <div className={styles.modalOverlay}>
-        <div 
-          ref={modalRef} 
-          className={`${styles.modal} ${isOpen ? styles.open : ''}`}
-        >
-          <div className={styles.modalHeader}>
-            <h3>Liked by ({likes?.length || 0})</h3>
-            <button onClick={onClose} className={styles.closeButton}>
-              <MdClose />
-            </button>
-          </div>
-          <div className={styles.modalContent}>
-            {isLoadingLikes ? (
-              <div className={styles.loading}>Loading likes...</div>
-            ) : !likes?.length ? (
-              <p className={styles.noLikes}>No likes yet</p>
-            ) : (
-              <ul className={styles.likesList}>
-                {likes.map((like) => (
-                  <li key={like.id} className={styles.likeItem}>
-                    <div className={styles.userAvatar}>
-                      <MdPerson />
-                    </div>
-                    <Link 
-                      href={`/profile/${like.username}`}
-                      className={styles.username}
-                    >
-                      {like.username || 'Unknown User'}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+    <>
+      <div className={styles.likesModalOverlay} onClick={onClose} />
+      <div ref={modalRef} className={styles.likesModal}>
+        <div className={styles.modalHeader}>
+          <h3>Likes</h3>
+          <button onClick={onClose} className={styles.closeButton}>
+            <MdClose />
+          </button>
         </div>
+        
+        {isLoadingLikes ? (
+          <div className={styles.loadingState}>
+            <div className={styles.spinner} />
+          </div>
+        ) : likes?.length > 0 ? (
+          <div className={styles.likesList}>
+            {likes.map((like, index) => {
+              // Generate a unique key even if user_id is undefined
+              const uniqueKey = like.user_id 
+                ? `${like.user_id}-${like.created_at || Date.now()}`
+                : `like-${index}-${Date.now()}`;
+
+              return (
+                <div 
+                  key={uniqueKey}
+                  className={styles.likeItem}
+                >
+                  <MdPerson className={styles.userIcon} />
+                  <span className={styles.username}>{like.username || 'Anonymous'}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            No likes yet
+          </div>
+        )}
       </div>
-    </Portal>
+    </>
   );
 };
 

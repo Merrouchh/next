@@ -1,269 +1,70 @@
-/* Base wrapper styles */
-.videoPlayerWrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #000;
-  overflow: hidden;
-}
-
-/* Vidstack specific styles - all global styles must be wrapped in a local class */
-.vidstackWrapper {
+.videoWrapper {
   position: relative;
   width: 100%;
-  height: 100%;
-
-  /* Brand colors */
-  --video-brand: #FFD700;
-  --video-focus-ring: 2px solid var(--video-brand);
-  --video-focus-ring-offset: 2px;
-  
-  /* Controls styling */
-  --video-controls-color: #f5f5f5;
-  --video-controls-bg: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-  --video-controls-border-radius: 8px;
-  --video-controls-padding: 12px;
-  
-  /* Slider styling */
-  --video-slider-track-color: rgba(255, 255, 255, 0.2);
-  --video-slider-track-focus-color: var(--video-brand);
-  --video-slider-thumb-color: var(--video-brand);
-  --video-slider-progress-color: var(--video-brand);
-  --video-slider-height: 4px;
-  --video-slider-hover-height: 6px;
-  
-  /* Button styling */
-  --video-button-size: 36px;
-  --video-button-icon-size: 75%;
-  --video-button-hover-bg: rgba(255, 255, 255, 0.1);
-  --video-button-hover-transform: scale(1.05);
-  --video-button-hover-transition: all 0.2s ease;
-  --video-button-active-bg: rgba(255, 255, 255, 0.2);
-}
-
-/* Vidstack layout styles */
-.vidstackWrapper :global(.vds-video-layout) {
-  width: 100% !important;
-  height: 100% !important;
-  --video-view-type: video !important;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  background: var(--background-primary, #0f0f0f);
 }
 
-/* Poster styles */
-.vidstackWrapper :global(.vds-poster) {
-  object-fit: contain;
+.mediaController {
+  font-family: var(--font-inter);
+  position: relative;
   width: 100%;
-  height: 100%;
 }
 
-/* Time slider styles */
-.vidstackWrapper :global(.vds-time-slider) {
-  --slider-height: var(--video-slider-height);
-  --slider-hover-height: var(--video-slider-hover-height);
-  --slider-thumb-size: 12px;
-  --slider-thumb-hover-size: 14px;
-  --slider-track-color: var(--video-slider-track-color);
-  --slider-value-color: var(--video-slider-progress-color);
-  transition: height 0.2s ease;
-}
-
-.vidstackWrapper :global(.vds-time-slider:hover) {
-  --slider-height: var(--video-slider-hover-height);
-}
-
-/* Volume slider styles */
-.vidstackWrapper :global(.vds-volume-slider) {
-  --slider-height: 4px;
-  --slider-thumb-size: 12px;
-  width: 64px;
-  transition: width 0.2s ease;
-}
-
-/* Add hover effect for the volume slider */
-.vidstackWrapper :global(.vds-volume-slider:hover) {
-  width: 80px;
-}
-
-/* Button styles */
-.vidstackWrapper :global(.vds-button) {
-  --media-button-color: var(--video-controls-color);
-  --media-button-size: var(--video-button-size);
-  --media-button-icon-size: var(--video-button-icon-size);
-  --media-button-padding: 6px;
-  --media-button-hover-bg: var(--video-button-hover-bg);
-  --media-button-hover-transform: var(--video-button-hover-transform);
-  transition: var(--video-button-hover-transition);
-}
-
-/* Add styles for the controls container */
-.vidstackWrapper :global(.vds-controls) {
-  background: var(--video-controls-bg);
-  padding: var(--video-controls-padding);
-  transition: opacity 0.2s ease;
-}
-
-/* Update time display */
-.vidstackWrapper :global(.vds-time-group) {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--video-controls-color);
-  opacity: 0.9;
-}
-
-/* Loading/buffering overlay */
-.bufferingOverlay {
+.video {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--background-primary);
 }
 
-.bufferingText {
-  color: #ffffff;
-  margin-top: 10px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.bufferingSpinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid transparent;
-  border-top-color: #FFD700;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));
-}
-
-/* Error overlay */
 .errorOverlay {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  text-align: center;
-  padding: 1rem;
-  z-index: 20;
+  background: var(--background-tertiary);
+  z-index: 100;
 }
 
 .errorOverlay button {
-  margin-top: 1rem;
   padding: 0.5rem 1rem;
-  background: var(--video-brand);
-  border: none;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  color: black;
+  color: var(--text-primary);
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Thumbnail container */
-.thumbnailContainer {
-  position: relative;
+.errorOverlay button:hover {
+  background: var(--background-tertiary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.loadingWrapper {
   width: 100%;
   height: 100%;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--background-primary);
 }
 
-.thumbnail {
+.poster {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-
-.playButton {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 215, 0, 0.9);
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  transition: transform 0.2s ease;
-}
-
-.playButton:hover {
-  transform: scale(1.1);
-}
-
-.playIcon {
-  color: black;
-  margin-left: 4px;
-}
-
-/* Mobile optimizations */
-@media (max-width: 576px) {
-  .vidstackWrapper {
-    --video-button-size: 44px;
-    --video-controls-padding: 15px;
-  }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Add these styles to your existing VideoPlayer.module.css */
-.loadingContainer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #000;
-}
-
-.loadingContent {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  text-align: center;
-}
-
-/* Add these to your existing styles */
-.pageContainer {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 0 20px;
-}
-
-.playerContainer {
-  width: 100%;
-  margin: 0 auto;
-  position: relative;
-  aspect-ratio: 16/9;
-}
-
-/* Add these styles */
-.loadingWrapper {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #000;
+  background: var(--background-primary);
 }

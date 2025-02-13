@@ -1,12 +1,13 @@
 import { MdDelete, MdClose } from 'react-icons/md';
 import styles from '../styles/DeleteClipModal.module.css';
+import cardStyles from '../styles/ClipCard.module.css';
 
 const DeleteClipModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.deleteModalOverlay}>
-      <div className={styles.deleteModal}>
+    <div className={`${styles.deleteModalOverlay} ${cardStyles.deleteModalOverlay}`}>
+      <div className={`${styles.deleteModal} ${cardStyles.deleteModal}`}>
         <div className={styles.modalHeader}>
           <h3>Delete Clip</h3>
           <button onClick={onClose} className={styles.closeButton}>

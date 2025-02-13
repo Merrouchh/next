@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import { 
   AiOutlineEnvironment, 
-  AiOutlineDesktop, 
-  AiOutlineWifi,
-  AiOutlineTeam,
   AiOutlineInstagram, 
   AiOutlinePhone
 } from 'react-icons/ai';
 import { MdExplore } from 'react-icons/md';
 import dynamic from 'next/dynamic';
-import { FaGamepad, FaTrophy, FaBolt, FaDiscord, FaInstagram } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import Head from 'next/head';
 
 // Components
 import LoadingScreen from '../components/LoadingScreen';
@@ -29,45 +24,8 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
 });
 
-// Constants
-const FEATURES = [
-  {
-    icon: <AiOutlineDesktop size={32} />,
-    title: "High-End Gaming Rigs",
-    description: "Ryzen 7 7700, RTX 3070 Graphics & 180Hz Pro Displays"
-  },
-  {
-    icon: <AiOutlineWifi size={32} />,
-    title: "200 Mbps Internet",
-    description: "Ultra-Low Ping for Competitive Gaming"
-  },
-  {
-    icon: <AiOutlineTeam size={32} />,
-    title: "Gaming Community Hub",
-    description: "Local Tournaments & Events"
-  }
-];
-
-const GALLERY_IMAGES = [
-  { 
-    src: '/top.jpg', 
-    alt: 'High-End Gaming Setup',
-    title: 'Premium Gaming Experience' 
-  },
-  { 
-    src: '/top2.jpg', 
-    alt: 'Professional Gaming Environment',
-    title: 'Professional Environment'
-  },
-  { 
-    src: '/top3.jpg', 
-    alt: 'Gaming Community Space',
-    title: 'Community Gaming'
-  }
-];
-
 // Main Home component first
-export default function Home() {
+const Home = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [_progress, setProgress] = useState(0);
@@ -75,37 +33,13 @@ export default function Home() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
+  // Add effect to handle redirection
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      console.log('Home: User is logged in, redirecting to dashboard');
+      router.replace('/dashboard');
     }
-  }, [loading, user, router]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const pixelsFromTop = window.scrollY;
-      const pageHeight = document.documentElement.scrollHeight;
-      const windowHeight = window.innerHeight;
-      const scrollableHeight = pageHeight - windowHeight;
-      const percentage = (pixelsFromTop / scrollableHeight) * 100;
-      setProgress(percentage);
-    };
-
-    window.addEventListener('scroll', onScroll);
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [router]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const currentProgress = (window.scrollY / totalScroll) * 100;
-      setScrollProgress(Math.min(currentProgress, 100));
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [user, loading, router]);
 
   const handleCheckAvailability = () => {
     if (!user) {
@@ -124,183 +58,144 @@ export default function Home() {
   if (user) return <LoadingScreen message="Redirecting..." />;
 
   return (
-    <ProtectedPageWrapper progress={scrollProgress}>
-      <DynamicMeta
-        title="Cyber Merrouch Gaming Center | Best Gaming Center in Tangier"
-        description="Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco."
-        image="https://merrouchgaming.com/top.jpg"
-        url="https://merrouchgaming.com"
-        type="website"
-      />
+    <>
+      <Head>
+        <title>Merrouch Gaming - Your Gaming Community</title>
+        <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
+      </Head>
 
-      <main className={styles.mainWrapper}>
-        <HeroSection 
-          onCheckAvailability={handleCheckAvailability}
-          router={router}
+      <ProtectedPageWrapper progress={scrollProgress}>
+        <DynamicMeta
+          title="Cyber Merrouch Gaming Center | Best Gaming Center in Tangier"
+          description="Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco."
+          image="https://merrouchgaming.com/top.jpg"
+          url="https://merrouchgaming.com"
+          type="website"
         />
 
-        {/* Cards Section */}
-        <div className={styles.cardContainer}>
-          {/* Highlights Card */}
-          <div className={styles.cardHighlight}>
-            <div 
-              className={styles.highlightContent}
-              onClick={() => router.push('/discover')}
-            >
-              <div className={styles.highlightIcon}>
-                <MdExplore size={24} />
-              </div>
-              <h2>GAMING HIGHLIGHTS</h2>
-              <p>Watch amazing moments from our community</p>
-            </div>
-            <div className={styles.contactInfo}>
-              <a 
-                href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1?entry=ttu&g_ep=EgoyMDI1MDExMC4wIKXMDSoASAFQAw%3D%3D"
-                target="_blank"
-                rel="noopener noreferrer" 
-                className={styles.contactItem}
+        <main className={styles.mainWrapper}>
+          <HeroSection 
+            onCheckAvailability={handleCheckAvailability}
+            router={router}
+          />
+
+          {/* Cards Section */}
+          <div className={styles.cardContainer}>
+            {/* Highlights Card */}
+            <div className={styles.cardHighlight}>
+              <div 
+                className={styles.highlightContent}
+                onClick={() => router.push('/discover')}
               >
-                <AiOutlineEnvironment />&nbsp;
-                Avenue Abi Elhassan Chadili, Tangier
-              </a>
-              <div className={styles.contactItem}>
-                <AiOutlinePhone />&nbsp;
-                <NumberDisplay number="0531098983" />
+                <div className={styles.highlightIcon}>
+                  <MdExplore size={24} />
+                </div>
+                <h2>GAMING HIGHLIGHTS</h2>
+                <p>Watch amazing moments from our community</p>
               </div>
-              <div className={styles.contactItem}>
-                <AiOutlineInstagram />&nbsp;
+              <div className={styles.contactInfo}>
                 <a 
-                  href="https://instagram.com/merrouchgaming" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.socialLink}
+                  href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1?entry=ttu&g_ep=EgoyMDI1MDExMC4wIKXMDSoASAFQAw%3D%3D"
+                  target="_blank"
+                  rel="noopener noreferrer" 
+                  className={styles.contactItem}
                 >
-                  @merrouchgaming
+                  <AiOutlineEnvironment />&nbsp;
+                  Avenue Abi Elhassan Chadili, Tangier
                 </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Map Card */}
-          <div className={styles.cardMap}>
-            <div className={styles.mapWrapper}>
-              <DarkModeMap />
-            </div>
-          </div>
-        </div>
-
-        {/* Packages Section */}
-        <section className={styles.packages}>
-          <div className={styles.containerNarrow}>
-            <h2 className={styles.sectionTitle}>Gaming Packages</h2>
-            <div className={styles.packagesGrid}>
-              {/* Normal PC Card */}
-              <div className={`${styles.pricingCard} ${styles.glowEffect}`}>
-                <div className={styles.pricingHeader}>
-                  <h3>Normal PC</h3>
-                  <div className={styles.price}>15 MAD<span>/hour</span></div>
+                <div className={styles.contactItem}>
+                  <AiOutlinePhone />&nbsp;
+                  <NumberDisplay number="0531098983" />
                 </div>
-                <ul className={styles.pricingFeatures}>
-                  <li>I5 10400F, 2060, 144Hz</li>
-                  <li>Premium Peripherals</li>
-                  <li>Fun Gaming</li>
-                </ul>
-              </div>
-              {/* VIP PC Card */}
-              <div className={`${styles.pricingCard} ${styles.featured} ${styles.glowEffect}`}>
-                <div className={styles.pricingHeader}>
-                  <h3>VIP PC</h3>
-                  <div className={styles.price}>18 MAD<span>/hour</span></div>
+                <div className={styles.contactItem}>
+                  <AiOutlineInstagram />&nbsp;
+                  <a 
+                    href="https://instagram.com/merrouchgaming" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.socialLink}
+                  >
+                    @merrouchgaming
+                  </a>
                 </div>
-                <ul className={styles.pricingFeatures}>
-                  <li>Ryzen 7 7700, RTX 3070, 180Hz </li>
-                  <li>Premium Peripherals</li>
-                  <li>Serious Gaming</li>
-                </ul>
               </div>
             </div>
-            <div className={styles.learnMoreButton}>
-              <button 
-                className={styles.primaryButton}
-                onClick={() => router.push('/shop')}
-              >
-                Learn More About Our Packages
-              </button>
+
+            {/* Map Card */}
+            <div className={styles.cardMap}>
+              <div className={styles.mapWrapper}>
+                <DarkModeMap />
+              </div>
             </div>
           </div>
-        </section>
 
-        
-      </main>
+          {/* Packages Section */}
+          <section className={styles.packages}>
+            <div className={styles.containerNarrow}>
+              <h2 className={styles.sectionTitle}>Gaming Packages</h2>
+              <div className={styles.packagesGrid}>
+                {/* Normal PC Card */}
+                <div className={`${styles.pricingCard} ${styles.glowEffect}`}>
+                  <div className={styles.pricingHeader}>
+                    <h3>Normal PC</h3>
+                    <div className={styles.price}>15 MAD<span>/hour</span></div>
+                  </div>
+                  <ul className={styles.pricingFeatures}>
+                    <li>I5 10400F, 2060, 144Hz</li>
+                    <li>Premium Peripherals</li>
+                    <li>Fun Gaming</li>
+                  </ul>
+                </div>
+                {/* VIP PC Card */}
+                <div className={`${styles.pricingCard} ${styles.featured} ${styles.glowEffect}`}>
+                  <div className={styles.pricingHeader}>
+                    <h3>VIP PC</h3>
+                    <div className={styles.price}>18 MAD<span>/hour</span></div>
+                  </div>
+                  <ul className={styles.pricingFeatures}>
+                    <li>Ryzen 7 7700, RTX 3070, 180Hz </li>
+                    <li>Premium Peripherals</li>
+                    <li>Serious Gaming</li>
+                  </ul>
+                </div>
+              </div>
+              <div className={styles.learnMoreButton}>
+                <button 
+                  className={styles.primaryButton}
+                  onClick={() => router.push('/shop')}
+                >
+                  Learn More About Our Packages
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
 
-      {/* Modals */}
-      {showAccountPrompt && (
-        <AccountPromptModal 
-          onClose={() => setShowAccountPrompt(false)} 
-          onLogin={handleLogin} 
+        {/* Modals */}
+        {showAccountPrompt && (
+          <AccountPromptModal 
+            onClose={() => setShowAccountPrompt(false)} 
+            onLogin={handleLogin} 
+          />
+        )}
+        <LoginModal 
+          isOpen={isLoginModalOpen} 
+          onClose={() => setIsLoginModalOpen(false)} 
         />
-      )}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)} 
-      />
-    </ProtectedPageWrapper>
+      </ProtectedPageWrapper>
+    </>
   );
-}
+};
 
-export async function getServerSideProps() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "name": "Merrouch Gaming Center",
-    "image": "https://merrouchgaming.com/top.jpg",
-    "description": "Professional Gaming Center in Tangier with RTX 3070 PCs and 200Mbps internet. The best gaming café experience.",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Avenue Abi Elhassan Chadili",
-      "addressLocality": "Tangier",
-      "addressCountry": "MA"
-    },
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": "35.7686846",
-      "longitude": "-5.8101584"
-    },
-    "url": "https://merrouchgaming.com",
-    "telephone": "+212531098983",
-    "priceRange": "$$",
-    "openingHours": "Mo-Su 10:00-00:00",
-    "sameAs": [
-      "https://instagram.com/merrouchgaming"
-    ],
-    "offers": [
-      {
-        "@type": "Offer",
-        "name": "Normal PC Gaming",
-        "price": "15",
-        "priceCurrency": "MAD",
-        "description": "I5 10400F, 2060, 144Hz Gaming Setup"
-      },
-      {
-        "@type": "Offer",
-        "name": "VIP PC Gaming",
-        "price": "18",
-        "priceCurrency": "MAD",
-        "description": "Ryzen 7 7700, RTX 3070, 180Hz Gaming Setup"
-      }
-    ]
-  };
+export default Home;
+
+export async function getServerSideProps({ res }) {
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=3600, stale-while-revalidate=86400'
+  );
 
   return {
-    props: {
-      metaData: {
-        title: "Cyber Merrouch Gaming Center | Best Gaming Center in Tangier",
-        description: "Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco.",
-        image: "https://merrouchgaming.com/top.jpg",
-        url: "https://merrouchgaming.com",
-        type: "website",
-        structuredData: JSON.stringify(structuredData)
-      }
-    }
+    props: {}
   };
 }

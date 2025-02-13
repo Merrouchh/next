@@ -1,1 +1,0 @@
-// Delete this file as we'll use clips.js instead 

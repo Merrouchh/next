@@ -1,46 +1,33 @@
 /* Base modal styles */
 .modalOverlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
+  z-index: 10;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
 }
 
-.modal {
-  background: #1a1a1a;
+.likesModal {
+  background: var(--background-secondary, #1a1a1a);
   border-radius: 12px;
-  width: 95%;
-  max-width: 400px;
+  width: 300px;
   position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   height: auto;
-  max-height: 80vh;
+  max-height: 320px;
   min-height: 200px;
   animation: modalFadeIn 0.2s ease-out;
 }
 
-/* Add animation keyframes */
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* Modal header */
 .modalHeader {
-  padding: 20px 24px;
-  border-bottom: 1px solid #333;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #333);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -48,9 +35,8 @@
 
 .modalHeader h3 {
   margin: 0;
-  color: white;
-  font-size: 1.25rem;
-  font-weight: 600;
+  color: var(--text-primary, white);
+  font-size: 1.1rem;
 }
 
 /* Close button */
@@ -68,72 +54,130 @@
   color: white;
 }
 
-/* Modal content */
-.modalContent {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  padding: 20px 24px;
-}
-
 /* Likes list */
 .likesList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .likeItem {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  color: white;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
 }
 
-/* Avatar styles */
-.userAvatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 12px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #333;
+.likeItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.userIcon {
+  color: var(--accent-primary, #FFD700);
+  font-size: 1.2rem;
+}
+
+.username {
+  color: var(--text-primary, white);
+  font-size: 0.95rem;
+}
+
+/* Loading and empty states */
+.loadingState {
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: #888;
+  align-items: center;
+  padding: 24px;
 }
 
-.userAvatar svg {
+.spinner {
   width: 24px;
   height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent-primary, #FFD700);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-/* Username and states */
-.username {
-  font-size: 1rem;
-  color: white;
-}
-
-.noLikes {
+.emptyState {
   text-align: center;
-  color: #888;
-  padding: 20px;
+  padding: 24px 16px;
+  color: var(--text-secondary);
+}
+
+/* Animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .modal {
-    width: 90%;
-    max-height: 70vh;
+  .likesModal {
+    max-width: min(95%, 280px);
   }
-  
+
   .modalHeader {
-    padding: 16px 20px;
+    padding: 10px 14px;
   }
-  
-  .modalContent {
-    padding: 16px 20px;
+
+  .modalHeader h3 {
+    font-size: 1rem;
+  }
+
+  .likesList {
+    padding: 12px;
+    max-height: 250px;
+  }
+
+  .likeItem {
+    padding: 6px;
+  }
+
+  .userIcon {
+    font-size: 1.1rem;
+  }
+
+  .username {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .likesModal {
+    max-width: min(98%, 260px);
+  }
+
+  .modalHeader {
+    padding: 8px 12px;
+  }
+
+  .likesList {
+    padding: 10px;
+    max-height: 200px;
+  }
+
+  .likeItem {
+    padding: 5px;
+  }
+
+  .userIcon {
+    font-size: 1rem;
+  }
+
+  .username {
+    font-size: 0.85rem;
   }
 } 

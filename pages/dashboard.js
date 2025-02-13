@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import styles from '../styles/dashboard.module.css';
+import { createClient as createServerClient } from '../utils/supabase/server-props';
+import { useAuth } from '../contexts/AuthContext';
+import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import DynamicMeta from '../components/DynamicMeta';
+import LoadingScreen from '../components/LoadingScreen';
+import styles from '../styles/Dashboard.module.css';
 import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera } from 'react-icons/ai';
-import { MdPlayArrow, MdPerson } from 'react-icons/md';
+import UserSearch from '../components/UserSearch';
 import { 
   fetchActiveUserSessions, 
   fetchTopUsers, 
-  fetchTopClipOfWeek,
   fetchGizmoId,
   fetchUserPoints,
   fetchUserTimeInfo,
@@ -15,65 +18,23 @@ import {
   fetchUserPicture,
   uploadUserPicture
 } from '../utils/api';
-import LoadingScreen from '../components/LoadingScreen';
-import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import UserSearch from '../components/UserSearch';
-import DynamicMeta from '../components/DynamicMeta';
-import { createClient as createServerClient } from '../utils/supabase/server-props';
 
-export async function getServerSideProps({ req, res }) {
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=0, s-maxage=0, must-revalidate'
-  );
 
-  const supabase = createServerClient({ req, res });
+export async function getServerSideProps() {
+  // Simplified to only return meta data since auth check is handled by ProtectedPageWrapper
+  const metaData = {
+    title: 'My Dashboard | Merrouch Gaming',
+    description: 'Manage your gaming clips and profile on Merrouch Gaming.',
+    url: 'https://merrouchgaming.com/dashboard',
+    type: 'website',
+    image: 'https://merrouchgaming.com/top.jpg'
+  };
 
-  try {
-    // Check session server-side
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      return {
-        redirect: {
-          destination: '/',
-          permanent: false,
-        },
-      };
+  return {
+    props: {
+      metaData
     }
-
-    // Get user's clips for initial render
-    const { data: userClips } = await supabase
-      .from('clips')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(12);
-
-    const metaData = {
-      title: 'My Dashboard | Merrouch Gaming',
-      description: 'Manage your gaming clips and profile on Merrouch Gaming.',
-      url: 'https://merrouchgaming.com/dashboard',
-      type: 'website',
-      image: 'https://merrouchgaming.com/top.jpg'
-    };
-
-    return {
-      props: {
-        initialSession: session,
-        initialClips: userClips || [],
-        metaData
-      }
-    };
-  } catch (error) {
-    console.error('Error in getServerSideProps:', error);
-    return {
-      redirect: {
-        destination: '/',
-        permanent: false,
-      },
-    };
-  }
+  };
 }
 
 // Add helper function before ActiveSessionsCard
@@ -81,38 +42,6 @@ const formatSessionCount = (activeCount) => {
   const totalCapacity = 14;
   return `${activeCount}/${totalCapacity}`;
 };
-
-// Add this constant at the top of the file
-const API_TIMEOUT = 10000; // 10 seconds timeout
-
-// Add this helper function
-const timeoutPromise = (promise, ms) => {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timed out')), ms)
-    )
-  ]);
-};
-
-// Add this near the top of the file
-const LoadingState = ({ error }) => (
-  <div className={styles.loadingState}>
-    {error ? (
-      <div className={styles.errorMessage}>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className={styles.retryButton}
-        >
-          Retry
-        </button>
-      </div>
-    ) : (
-      <LoadingScreen message="Loading dashboard..." />
-    )}
-  </div>
-);
 
 // Modify the Active Sessions Card component to remove unused router prop
 const ActiveSessionsCard = ({ activeSessions, handleNavigation }) => (
@@ -142,184 +71,117 @@ const ActiveSessionsCard = ({ activeSessions, handleNavigation }) => (
 
 const Dashboard = ({ _initialClips, metaData }) => {
   const router = useRouter();
-  const { isLoggedIn, user, supabase, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [pageState, setPageState] = useState({
     loading: true,
     error: null,
-    data: {
-      activeSessions: [],
-      topUsers: [],
-      userPoints: null,
-      timeInfo: null,
-      balanceInfo: null,
-      userPicture: null
-    }
+    data: null
   });
-  const [topClip, setTopClip] = useState(null);
 
-  // Move topClip fetch into the main initialization effect
   useEffect(() => {
-    let mounted = true;
+    if (pageState.data) return;
+    if (!user?.gizmo_id) return;
 
     const initialize = async () => {
-      // Auth check
-      if (!loading && !isLoggedIn) {
-        router.replace('/');
-        return;
-      }
+      try {
+        console.log('🚀 Starting actual data fetch...');
 
-      // Only proceed if logged in and supabase is available
-      if (isLoggedIn && user && supabase) {
-        try {
-          await initializePage();
-          // Fetch top clip only if component is still mounted
-          if (mounted) {
-            const clip = await fetchTopClipOfWeek(supabase);
-            setTopClip(clip);
-          }
-        } catch (error) {
-          console.error('Error initializing dashboard:', error);
-        }
-      }
-    };
+        const [
+          activeSessions,
+          topUsers,
+          points,
+          timeInfo,
+          balanceInfo,
+          userPicture
+        ] = await Promise.all([
+          fetchActiveUserSessions(),
+          fetchTopUsers(5),
+          fetchUserPoints(user.gizmo_id),
+          fetchUserTimeInfo(user.gizmo_id),
+          fetchUserBalanceWithDebt(user.gizmo_id),
+          fetchUserPicture(user.gizmo_id)
+        ]);
 
-    initialize();
+        console.log('✅ Data fetch completed successfully');
 
-    return () => {
-      mounted = false;
-    };
-  }, [loading, isLoggedIn, user, supabase]); // Include all dependencies
-
-  const initializePage = useCallback(async () => {
-    if (!user) return;
-
-    let mounted = true;
-    
-    try {
-      setPageState(prev => ({
-        ...prev,
-        loading: true,
-        error: null
-      }));
-
-      // First get the gizmo ID with timeout
-      const gizmoIdPromise = timeoutPromise(
-        fetchGizmoId(user.username),
-        API_TIMEOUT
-      );
-
-      const { gizmoId } = await gizmoIdPromise;
-      
-      if (!gizmoId) {
-        throw new Error('No Gizmo ID found');
-      }
-
-      // Fetch all data in parallel with timeouts
-      const promises = [
-        timeoutPromise(fetchActiveUserSessions(), API_TIMEOUT),
-        timeoutPromise(fetchTopUsers(5), API_TIMEOUT),
-        timeoutPromise(fetchUserPoints(gizmoId), API_TIMEOUT),
-        timeoutPromise(fetchUserTimeInfo(gizmoId), API_TIMEOUT),
-        timeoutPromise(fetchUserBalanceWithDebt(gizmoId), API_TIMEOUT),
-        timeoutPromise(fetchUserPicture(gizmoId), API_TIMEOUT)
-      ];
-
-      // Use Promise.allSettled instead of Promise.all to handle partial failures
-      const results = await Promise.allSettled(promises);
-      
-      const [
-        sessionsResult,
-        topUsersResult,
-        pointsResult,
-        timeInfoResult,
-        balanceInfoResult,
-        userPictureResult
-      ] = results;
-
-      if (mounted) {
         setPageState({
           loading: false,
           error: null,
           data: {
-            activeSessions: sessionsResult.status === 'fulfilled' ? sessionsResult.value : [],
-            topUsers: topUsersResult.status === 'fulfilled' ? topUsersResult.value : [],
-            userPoints: pointsResult.status === 'fulfilled' ? pointsResult.value?.points || 0 : 0,
-            timeInfo: timeInfoResult.status === 'fulfilled' ? timeInfoResult.value : null,
-            balanceInfo: balanceInfoResult.status === 'fulfilled' ? balanceInfoResult.value : null,
-            userPicture: userPictureResult.status === 'fulfilled' ? userPictureResult.value : null
+            activeSessions,
+            topUsers,
+            userPoints: points?.points || 0,
+            timeInfo,
+            balanceInfo,
+            userPicture,
+            needsProfileSetup: false
           }
         });
-
-        // Check if any critical data failed to load
-        const criticalFailures = [sessionsResult, pointsResult, timeInfoResult]
-          .filter(result => result.status === 'rejected');
-        
-        if (criticalFailures.length > 0) {
-          console.error('Some critical data failed to load:', 
-            criticalFailures.map(f => f.reason));
-          setPageState(prev => ({
-            ...prev,
-            error: 'Some data failed to load. Please refresh the page.'
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing dashboard:', error);
-      if (mounted) {
-        setPageState(prev => ({
-          ...prev,
+      } catch (error) {
+        console.error('❌ Dashboard initialization error:', error);
+        setPageState({
           loading: false,
-          error: error.message === 'Request timed out' 
-            ? 'Dashboard is taking too long to load. Please refresh.'
-            : 'Failed to load dashboard data'
-        }));
+          error: error.message,
+          data: null
+        });
       }
-    }
-
-    return () => {
-      mounted = false;
     };
-  }, [user]);
 
-  // Update loading check
-  if (loading || pageState.loading) {
-    return <LoadingState error={pageState.error} />;
+    initialize();
+  }, [user?.gizmo_id, pageState.data]);
+
+  // Show loading state when no data or during auth
+  if (authLoading || !pageState.data) {
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.loadingState}>
+          {pageState.error ? (
+            <div className={styles.errorMessage}>
+              <p>{pageState.error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className={styles.retryButton}
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <LoadingScreen message="Loading dashboard..." />
+          )}
+        </div>
+      </ProtectedPageWrapper>
+    );
   }
 
-  // Add immediate return if not authenticated
-  if (!isLoggedIn || !user) {
-    return null; // Router will handle redirect
+  // Show setup required state
+  if (pageState.data?.needsProfileSetup) {
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.setupRequired}>
+          <h2>Profile Setup Required</h2>
+          <p>Please complete your profile setup to access the dashboard.</p>
+          <button 
+            onClick={() => router.push('/profile/setup')}
+            className={styles.setupButton}
+          >
+            Complete Setup
+          </button>
+        </div>
+      </ProtectedPageWrapper>
+    );
   }
 
-  // Destructure page state for easier access
-  const { topUsers, userPoints } = pageState.data;
-
-  // Add this helper function at the top level of your component
   const getMedalEmoji = (index) => {
     switch (index) {
-      case 0:
-        return '🥇';
-      case 1:
-        return '🥈';
-      case 2:
-        return '🥉';
-      default:
-        return '';
+      case 0: return '🥇';
+      case 1: return '🥈';
+      case 2: return '🥉';
+      default: return '';
     }
   };
 
   const getPointsColor = (points) => {
     return points <= 72 ? styles.lowPoints : styles.highPoints;
-  };
-
-  // Update button click handlers to prevent default and use async/await
-  const handleNavigation = (path) => async (e) => {
-    if (e) e.preventDefault();
-    try {
-      await router.push(path);
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
   };
 
   const formatDebt = (amount) => {
@@ -333,6 +195,15 @@ const Dashboard = ({ _initialClips, metaData }) => {
         {isNegative ? '-' : ''}{absAmount} DH
       </span>
     );
+  };
+
+  const handleNavigation = (path) => async (e) => {
+    if (e) e.preventDefault();
+    try {
+      await router.push(path);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const handlePictureUpload = async (event) => {
@@ -354,7 +225,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
       const success = await uploadUserPicture(gizmoId, file);
 
       if (success) {
-        // Refresh the user picture
         const newPicture = await fetchUserPicture(gizmoId);
         setPageState(prev => ({
           ...prev,
@@ -392,7 +262,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
         </section>
 
         <div className={styles.statsGrid}>
-          {/* Profile Card */}
           <div className={`${styles.statCard} ${styles.largeCard}`}>
             <div className={styles.statHeader}>
               <div className={styles.statIcon}>
@@ -403,7 +272,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
             <div className={styles.profileInfo}>
               <div className={styles.userPictureWrapper}>
                 <div className={styles.userPictureContainer}>
-                  {pageState.data.userPicture ? (
+                  {pageState.data?.userPicture ? (
                     <img 
                       src={pageState.data.userPicture} 
                       alt={`${user?.username}'s profile picture`}
@@ -425,205 +294,95 @@ const Dashboard = ({ _initialClips, metaData }) => {
                   <AiOutlineCamera size={24} />
                 </label>
               </div>
+              
               <p>
                 <strong>Username:</strong>
-                <span>{user?.username}</span>
+                <span>{user?.username || 'N/A'}</span>
               </p>
               <p>
                 <strong>Email:</strong>
-                <span>{user?.email}</span>
+                <span>{user?.email || 'N/A'}</span>
               </p>
               <p>
                 <strong>Points:</strong>
-                <span className={userPoints !== null ? getPointsColor(userPoints) : ''}>
-                  {userPoints !== null ? userPoints : 'Loading...'}
+                <span className={pageState.data.userPoints !== null ? getPointsColor(pageState.data.userPoints) : ''}>
+                  {pageState.data.userPoints ?? '0'}
                 </span>
               </p>
               {pageState.data.balanceInfo && (
                 <p className={styles.debtInfo}>
                   <strong>Outstanding Balance:</strong>
-                  {formatDebt(pageState.data.balanceInfo.rawBalance)}
-                </p>
-              )}
-              {user?.is_admin && (
-                <p>
-                  <strong>Role:</strong>
-                  <span>Admin</span>
+                  {formatDebt(pageState.data.balanceInfo.rawBalance || 0)}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Top Clip Card - Moved here */}
           <div className={`${styles.statCard} ${styles.mediumCard}`}>
-            <div className={styles.statHeader}>
-              <h3>Top Clip of the Week</h3>
-            </div>
-            
-            {topClip ? (
-              <div className={styles.topClipContainer}>
-                <div 
-                  className={styles.topClipWrapper}
-                  onClick={() => router.push(`/clip/${topClip.id}`)}
-                >
-                  <div className={styles.topClipHeader}>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/profile/${topClip.username}`);
-                      }}
-                      className={styles.userLink}
-                    >
-                      <MdPerson />
-                      <span>{topClip.username}</span>
-                    </button>
-                    <span className={styles.likeCount}>
-                      ❤️ {topClip.likes_count || 0}
-                    </span>
-                  </div>
-                  
-                  <div className={styles.videoThumbnail}>
-                    <img 
-                      src={topClip.thumbnailUrl} 
-                      alt="Top clip thumbnail"
-                      className={styles.thumbnail}
-                    />
-                    <div className={styles.playButton}>
-                      <MdPlayArrow />
-                    </div>
-                  </div>
-                  
-                  <h4 className={styles.clipTitle}>
-                    {topClip.title || 'Untitled Clip'}
-                  </h4>
-                </div>
-              </div>
-            ) : (
-              <div className={styles.noClipMessage}>
-                <p>No top clips yet this week!</p>
-                <p>Be the first to share an amazing gaming moment.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Time Remaining Card */}
-          <div className={`${styles.statCard} ${styles.mediumCard}`} role="region" aria-labelledby="time-section">
             <div className={styles.statHeader}>
               <div className={styles.statIcon}>
                 <AiOutlineClockCircle size={24} />
               </div>
-              <h3 id="time-section" className={styles.statTitle}>Time Remaining</h3>
+              <h3 className={styles.statTitle}>Time Remaining</h3>
             </div>
-            {pageState.data.timeInfo ? (
-              <div className={styles.timeInfoContainer}>
-                {(pageState.data.timeInfo.vip.hours > 0 || pageState.data.timeInfo.vip.minutes > 0) && (
-                  <div className={styles.timePackage}>
-                    <div className={styles.packageLabel}>VIP</div>
-                    <div className={styles.packageTime}>
-                      <span className={styles.vipTime}>
-                        {pageState.data.timeInfo.vip.hours}h {pageState.data.timeInfo.vip.minutes}m
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {(pageState.data.timeInfo.normal.hours > 0 || pageState.data.timeInfo.normal.minutes > 0) && (
-                  <div className={styles.timePackage}>
-                    <div className={styles.packageLabel}>Normal</div>
-                    <div className={styles.packageTime}>
-                      <span className={styles.normalTime}>
-                        {pageState.data.timeInfo.normal.hours}h {pageState.data.timeInfo.normal.minutes}m
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {(pageState.data.timeInfo.bonus.hours > 0 || pageState.data.timeInfo.bonus.minutes > 0) && (
-                  <div className={styles.timePackage}>
-                    <div className={styles.packageLabel}>Bonus</div>
-                    <div className={styles.packageTime}>
-                      <span className={styles.bonusTime}>
-                        {pageState.data.timeInfo.bonus.hours}h {pageState.data.timeInfo.bonus.minutes}m
-                      </span>
-                    </div>
-                  </div>
-                )}
-                {!pageState.data.timeInfo.vip.hours && 
-                 !pageState.data.timeInfo.normal.hours && 
-                 !pageState.data.timeInfo.bonus.hours && 
-                 !pageState.data.timeInfo.vip.minutes && 
-                 !pageState.data.timeInfo.normal.minutes && 
-                 !pageState.data.timeInfo.bonus.minutes && (
-                  <div className={styles.noTimeContainer}>
-                    <p className={styles.noTime}>No Time Remaining!</p>
-                    <p className={styles.noTimeMessage}>
-                      Your account needs to be recharged to continue gaming.
-                    </p>
-                    <button 
-                      className={styles.rechargeButton}
-                      onClick={handleNavigation('/shop')}
-                    >
-                      Recharge Now
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className={styles.timeInfoLoading}>
-                <p>Loading time information...</p>
-              </div>
-            )}
+            <div className={styles.timeInfoContainer}>
+              {pageState.data.timeInfo ? (
+                <>
+                  {Object.entries(pageState.data.timeInfo).map(([type, time]) => {
+                    if (time?.hours > 0 || time?.minutes > 0) {
+                      return (
+                        <div key={type} className={styles.timePackage}>
+                          <div className={styles.packageLabel}>{type.toUpperCase()}</div>
+                          <div className={styles.packageTime}>
+                            <span className={styles[`${type}Time`]}>
+                              {time.hours}h {time.minutes}m
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </>
+              ) : (
+                <div className={styles.noTimeContainer}>
+                  <p className={styles.noTime}>No Time Remaining!</p>
+                  <p className={styles.noTimeMessage}>
+                    Your account needs to be recharged to continue gaming.
+                  </p>
+                  <button 
+                    className={styles.rechargeButton}
+                    onClick={handleNavigation('/shop')}
+                  >
+                    Recharge Now
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Top Players Card */}
-          <div 
-            className={`${styles.statCard} ${styles.mediumCard}`} 
-            role="button"
-            tabIndex={0}
-            data-clickable="true"
-            onClick={handleNavigation('/topusers?from=dashboard')}
-            onKeyDown={(e) => e.key === 'Enter' && handleNavigation('/topusers?from=dashboard')()}
-            aria-label="View all top players"
-          >
+          <div className={`${styles.statCard} ${styles.mediumCard}`}>
             <div className={styles.statHeader}>
               <div className={styles.statIcon}>
                 <AiOutlineTrophy size={24} />
               </div>
-              <h3 id="top-players-section" className={styles.statTitle}>Top Players</h3>
+              <h3 className={styles.statTitle}>Top Players</h3>
             </div>
-            {pageState.loading ? (
-              <p>Loading top players...</p>
-            ) : pageState.error ? (
-              <p>{pageState.error}</p>
-            ) : topUsers.length === 0 ? (
-              <p>No top players found</p>
-            ) : (
-              <ul className={styles.topUsersList}>
-                {topUsers.map((user, index) => (
-                  <li 
-                    key={index} 
-                    className={styles.topUserItem}
-                  >
-                    <span className={`${styles.topUserRank} ${
-                      index === 0 ? styles.firstPlace :
-                      index === 1 ? styles.secondPlace :
-                      index === 2 ? styles.thirdPlace : ''
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <span className={styles.topUserName}>
-                      {user.name || user.username}
-                    </span>
-                    <span className={styles.topUserMedal}>
-                      {getMedalEmoji(index)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ul className={styles.topUsersList}>
+              {pageState.data.topUsers?.map((user, index) => (
+                <li key={index} className={styles.topUserItem}>
+                  <span className={styles.topUserRank}>{index + 1}</span>
+                  <span className={styles.topUserName}>{user.name || user.username}</span>
+                  <span className={styles.topUserMedal}>{getMedalEmoji(index)}</span>
+                </li>
+              )) || (
+                <li className={styles.noDataMessage}>No top players available</li>
+              )}
+            </ul>
           </div>
 
-          {/* Active Sessions Card */}
           <ActiveSessionsCard 
-            activeSessions={pageState.data.activeSessions} 
+            activeSessions={pageState.data.activeSessions || []} 
             handleNavigation={handleNavigation}
           />
         </div>

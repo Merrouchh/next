@@ -14,7 +14,6 @@ const TopUsers = () => {
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 2000; // 2 seconds
 
-  // Wrap getTopUsers in useCallback
   const getTopUsers = useCallback(async (isRetry = false) => {
     try {
       const data = await fetchTopUsers(10);
@@ -48,7 +47,6 @@ const TopUsers = () => {
     }
   }, [retryCount]); // Add retryCount as dependency
 
-  // Combine data fetching and timer setup
   useEffect(() => {
     let mounted = true;
     let timerInterval;

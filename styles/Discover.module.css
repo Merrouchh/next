@@ -120,25 +120,41 @@
 }
 
 .discoverMain {
-  min-height: 100vh;
-  background: #0f0f0f;
-  padding: 0 1rem 2rem 1rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: calc(100vh - var(--header-height));
+  background: var(--bg-color);
 }
 
 .feedContainer {
-  max-width: 800px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding-top: 2rem;
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 100px;
+}
+
+.clipWrapper {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .clipContainer {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.2s;
 }
 
 .clipContainer:hover {
@@ -146,14 +162,17 @@
 }
 
 .clipInfo {
-  padding: 1rem;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  flex: 1;
+  min-height: 80px;
 }
 
 .clipHeader {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  padding: 12px;
 }
 
 .userLink {
@@ -188,8 +207,10 @@
 }
 
 .clipTitle {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 1rem;
+  font-weight: 500;
   color: #fff;
 }
 
@@ -199,12 +220,10 @@
 }
 
 .clipStats {
+  padding: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
 }
 
 .statsContainer {
@@ -348,60 +367,18 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-/* Responsive design */
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .discoverMain {
-    padding: 0 0.5rem 1rem 0.5rem;
+    padding: 10px;
   }
 
-  .navigationButtons {
-    margin: 1.5rem auto 1rem;
-    padding: 0 0.75rem;
-  }
-
-  .clipContainer {
-    margin-bottom: 1rem;
-  }
-
-  .clipHeader {
-    flex-wrap: wrap;
-  }
-
-  .clipTitle {
-    font-size: 1.1rem;
-  }
-
-  .actionButton,
-  .likeButton {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
+  .feedContainer {
+    max-width: 100%;
   }
 
   .clipWrapper {
-    margin-bottom: 1.5rem;
-  }
-
-  .myClipsButton {
-    padding: 0.7rem 1.2rem;
-    font-size: 0.95rem;
-  }
-
-  .feedContainer {
-    padding-top: 1.5rem;
-  }
-
-  .clipWrapper:first-child {
-    margin-top: 0.75rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .feedContainer {
-    padding-top: 3rem;
-  }
-
-  .clipWrapper:first-child {
-    margin-top: 1.5rem;
+    width: 100%;
   }
 }
 
@@ -475,13 +452,12 @@
   }
 }
 
-.clipWrapper {
-  margin-bottom: 2rem;
+.clipWrapper:first-child {
+  margin-top: 0;
 }
 
-/* Add specific padding for the first clip */
-.clipWrapper:first-child {
-  margin-top: 1rem;
+.clipWrapper {
+  margin-bottom: 0;
 }
 
 .loaderContainer {
@@ -507,23 +483,133 @@
   animation: spin 1s linear infinite;
 }
 
-.loadMoreButton {
-  background: #FFD700;
-  color: #000;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s ease;
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  margin-top: 1rem;
 }
 
-.loadMoreButton:hover {
-  background: #FFC107;
+.loadMoreButton {
+  background: var(--accent-color, #FFD700);
+  color: var(--text-dark, #000);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.loadMoreButton:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+}
+
+.loadMoreButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.noMoreClips {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.loadingContainer {
+  width: 100%;
+  height: calc(100vh - var(--header-height));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-color);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 215, 0, 0.1);
+  border-left-color: #FFD700;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  position: relative;
+  min-height: 100px;
+  flex-direction: column;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.endMessage {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  animation: fadeIn 0.5s ease-in-out;
+  margin: 2rem 0;
+}
+
+.endIcon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 1rem;
+  animation: bounce 2s infinite;
+}
+
+.endMessage p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.endSubtext {
+  font-size: 0.9rem !important;
+  color: var(--text-tertiary, #666);
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

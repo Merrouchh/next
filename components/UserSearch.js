@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import { createClient } from '../utils/supabase/component';
 import styles from '../styles/UserSearch.module.css';
 import { AiOutlineSearch, AiOutlineUser } from 'react-icons/ai';
+import { createClient } from '../utils/supabase/component';
 
 const UserSearch = () => {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -48,7 +46,7 @@ const UserSearch = () => {
     }
   }, [supabase]);
 
-  const handleUserClick = async (selectedUsername) => {
+  const handleUserClick = (selectedUsername) => {
     // Clear search results and query
     setSearchResults([]);
     setSearchQuery('');
@@ -57,13 +55,8 @@ const UserSearch = () => {
     // Force loading state before navigation
     setIsSearching(true);
     
-    // Use router.replace instead of push to force a new server-side render
-    await router.replace(`/profile/${selectedUsername}`, undefined, { 
-      shallow: false 
-    });
-    
-    // Reset search state after navigation
-    setIsSearching(false);
+    // Use direct URL navigation to force a full page load
+    window.location.href = `/profile/${selectedUsername}`;
   };
 
   const handleInputChange = (e) => {

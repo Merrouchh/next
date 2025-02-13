@@ -1,0 +1,238 @@
+.main {
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.clipContainer {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.privateContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height));
+  padding: 2rem;
+}
+
+.privateMessage {
+  text-align: center;
+  background: var(--background-secondary, rgba(0, 0, 0, 0.5));
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 400px;
+  border: 1px solid var(--border-primary);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.privateMessage h1 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+}
+
+.privateMessage p {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.homeButton {
+  background: var(--accent-primary, #FFD700);
+  color: var(--text-inverse, #000);
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.homeButton:hover {
+  background: var(--accent-hover, #FFC107);
+  transform: translateY(-2px);
+}
+
+.discoverButton {
+  background: var(--background-tertiary, #333);
+  color: var(--text-primary, #fff);
+}
+
+.discoverButton:hover {
+  background: var(--background-hover, #444);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Error container styles */
+.errorContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - var(--header-height));
+  padding: 2rem;
+  background: var(--background-color);
+}
+
+.errorMessage {
+  text-align: center;
+  background: var(--background-secondary);
+  padding: 2.5rem;
+  border-radius: 12px;
+  max-width: 450px;
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+.errorMessage h1 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.errorMessage p {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Back button styles */
+.backButton {
+  background: var(--accent-primary, #FFD700);
+  color: var(--text-inverse, #000);
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+  background: var(--accent-hover, #FFC107);
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Status-specific styles */
+.errorMessage.notFound h1 {
+  color: var(--error-color, #ff4444);
+}
+
+.errorMessage.private h1 {
+  color: var(--warning-color, #ffa500);
+}
+
+.errorMessage.error h1 {
+  color: var(--error-color, #ff4444);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main {
+    padding: 16px;
+  }
+
+  .privateMessage {
+    padding: 1.5rem;
+    margin: 0 1rem;
+  }
+
+  .privateMessage h1 {
+    font-size: 1.25rem;
+  }
+
+  .errorMessage {
+    padding: 2rem;
+    margin: 0 1rem;
+  }
+
+  .errorMessage h1 {
+    font-size: 1.5rem;
+  }
+
+  .errorMessage p {
+    font-size: 0.95rem;
+  }
+
+  .backButton {
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 12px;
+  }
+
+  .privateMessage {
+    padding: 1rem;
+  }
+
+  .buttonGroup {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .homeButton {
+    width: 100%;
+    padding: 0.5rem 1.5rem;
+  }
+
+  .errorMessage {
+    padding: 1.5rem;
+  }
+
+  .errorMessage h1 {
+    font-size: 1.3rem;
+  }
+
+  .errorMessage p {
+    font-size: 0.9rem;
+  }
+
+  .backButton {
+    width: 100%;
+    justify-content: center;
+  }
+} 

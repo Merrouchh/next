@@ -15,43 +15,59 @@ export default async function handler(req, res) {
   try {
     console.log('Starting Gizmo ID fetch for username:', username);
     
-    // Create Basic Auth header from environment variables
-    const auth = process.env.API_AUTH;
-    if (!auth) {
-      throw new Error('API_AUTH environment variable is not set');
-    }
-    
-    const authHeader = 'Basic ' + Buffer.from(auth).toString('base64');
-    const apiUrl = process.env.API_BASE_URL;
-    
-    // Use the correct endpoint format
-    const gizmoResponse = await fetch(`${apiUrl}/users/${username}/userid`, {
+    const apiUrl = process.env.GIZMO_API_URL;
+    const authHeader = `Basic ${Buffer.from(
+      `${process.env.GIZMO_API_USERNAME}:${process.env.GIZMO_API_PASSWORD}`
+    ).toString('base64')}`;
+
+    // Add timeout and retry logic
+    const fetchWithRetry = async (url, options, retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              return await response.json();
+            } else {
+              throw new Error(`Invalid content type: ${contentType}`);
+            }
+          }
+
+          if (response.status === 522) {
+            throw new Error('Connection timed out');
+          }
+
+          throw new Error(`API responded with status: ${response.status}`);
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+      }
+    };
+
+    const gizmoData = await fetchWithRetry(`${apiUrl}/users/${username}/userid`, {
       headers: {
         'Authorization': authHeader,
         'Accept': 'application/json'
       }
     });
 
-    console.log('Gizmo API Response Status:', gizmoResponse.status);
-    const gizmoData = await gizmoResponse.json();
-    console.log('Gizmo API Response:', gizmoData);
-
-    if (!gizmoResponse.ok) {
-      return res.status(gizmoResponse.status).json({ 
-        error: 'Gizmo API error',
-        details: gizmoData
-      });
+    if (!gizmoData || !gizmoData.id) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if we got a valid user ID
-    if (!gizmoData.result) {
-      return res.status(404).json({ 
-        error: 'User not found in Gizmo',
-        details: 'No user ID in response'
-      });
-    }
-
-    const gizmoId = gizmoData.result; // The ID is directly in result
+    const gizmoId = gizmoData.id;
     console.log('Found Gizmo ID:', gizmoId);
 
     // Update Supabase with the Gizmo ID using the API client
@@ -68,16 +84,26 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({ 
-      gizmo_id: gizmoId,
-      message: 'Gizmo ID successfully stored'
-    });
+    return res.status(200).json({ gizmoId: gizmoId });
 
   } catch (error) {
-    console.error('Server error:', error);
+    console.error('Error fetching gizmo ID:', error);
+    
+    // More specific error responses
+    if (error.message.includes('ECONNRESET') || error.message.includes('timed out')) {
+      return res.status(503).json({ 
+        error: 'Service temporarily unavailable. Please try again.' 
+      });
+    }
+
+    if (error.message.includes('content type')) {
+      return res.status(502).json({ 
+        error: 'Invalid response from server. Please try again.' 
+      });
+    }
+
     return res.status(500).json({ 
-      error: 'Internal server error',
-      details: error.message
+      error: 'Failed to fetch user ID. Please try again later.' 
     });
   }
 }

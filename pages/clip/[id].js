@@ -1,16 +1,17 @@
 import { useRouter } from 'next/router';
 import { createClient as createServerClient } from '../../utils/supabase/server-props';
-import { createClient } from '../../utils/supabase/component';
+import { createClient as createBrowserClient } from '../../utils/supabase/component';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
-import VideoPlayer from '../../components/VideoPlayer';
 import DynamicMeta from '../../components/DynamicMeta';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import ClipCard from '../../components/ClipCard';
+import styles from '../../styles/ClipPage.module.css';
 
 export async function getServerSideProps({ req, res, params }) {
   res.setHeader(
     'Cache-Control',
-    'public, max-age=0, s-maxage=0, must-revalidate'
+    'public, max-age=300, stale-while-revalidate=3600'
   );
 
   const supabase = createServerClient({ req, res });
@@ -18,7 +19,7 @@ export async function getServerSideProps({ req, res, params }) {
 
   try {
     // Get session to check ownership
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
     // Get clip data
     const { data: clip, error } = await supabase
@@ -27,294 +28,255 @@ export async function getServerSideProps({ req, res, params }) {
       .eq('id', id)
       .single();
 
-    if (error || !clip) {
-      return { notFound: true };
-    }
+    console.log('Clip data:', clip);
 
-    // Get user's username from session if logged in
-    let username = null;
-    if (session?.user?.id) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('username')
-        .eq('id', session.user.id)
-        .single();
-      username = userData?.username;
-    }
-
-    // Check ownership based on username
-    const isOwner = username?.toLowerCase() === clip.username?.toLowerCase();
-    const isPrivate = clip.visibility === 'private';
-
-    // Allow access if clip is public OR if user is the owner
-    if (!isPrivate || isOwner) {
-      // Generate video and thumbnail URLs
-      const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-      const thumbnailUrl = clip.thumbnail_path
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
-        : 'https://merrouchgaming.com/top.jpg';
-
-      // Generate rich description
-      const description = `Watch this amazing ${clip.game} gameplay clip by ${clip.username}. ${
-        clip.description || ''
-      } Shared on Merrouch Gaming with ${clip.views_count || 0} views and ${
-        clip.likes_count || 0
-      } likes.`;
-
-      // Prepare meta data with rich snippets
-      const metaData = {
-        title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
-        description,
-        image: thumbnailUrl,
-        url: `https://merrouchgaming.com/clip/${id}`,
-        type: 'video.other',
-        structuredData: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "VideoObject",
-          "name": clip.title,
-          "description": description,
-          "thumbnailUrl": thumbnailUrl,
-          "uploadDate": clip.uploaded_at,
-          "contentUrl": videoUrl,
-          "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
-          "interactionStatistic": [
-            {
-              "@type": "InteractionCounter",
-              "interactionType": "http://schema.org/WatchAction",
-              "userInteractionCount": clip.views_count || 0
-            },
-            {
-              "@type": "InteractionCounter",
-              "interactionType": "http://schema.org/LikeAction",
-              "userInteractionCount": clip.likes_count || 0
-            }
-          ],
-          "author": {
-            "@type": "Person",
-            "name": clip.username,
-            "url": `https://merrouchgaming.com/profile/${clip.username}`
-          },
-          "publisher": {
-            "@type": "Organization",
-            "name": "Merrouch Gaming",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://merrouchgaming.com/logo.png"
-            }
-          },
-          "genre": clip.game,
-          "keywords": [clip.game, "gaming", "gameplay", "highlights", clip.username].join(",")
-        }),
-        openGraph: {
-          title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
-          description,
-          url: `https://merrouchgaming.com/clip/${id}`,
-          type: 'video.other',
-          video: {
-            url: videoUrl,
-            type: 'video/mp4',
-            width: 1280,
-            height: 720
-          },
-          images: [
-            {
-              url: thumbnailUrl,
-              width: 1280,
-              height: 720,
-              alt: `${clip.title} - ${clip.game} gameplay by ${clip.username}`
-            }
-          ],
-          site_name: 'Merrouch Gaming'
-        },
-        twitter: {
-          card: 'player',
-          site: '@merrouchgaming',
-          title: `${clip.title} by ${clip.username}`,
-          description,
-          image: thumbnailUrl,
-          player: {
-            url: `https://merrouchgaming.com/clip/${id}`,
-            width: 1280,
-            height: 720
+    // Handle different scenarios
+    if (error?.code === 'PGRST116') {
+      // PGRST116 means no rows returned - clip doesn't exist
+      console.log('Clip not found');
+      return {
+        props: {
+          status: 'not_found',
+          metaData: {
+            title: 'Clip Not Found | Merrouch Gaming',
+            description: 'This clip may have been deleted or does not exist.',
+            type: 'website',
+            image: 'https://merrouchgaming.com/top.jpg',
+            url: `https://merrouchgaming.com/clip/${id}`
           }
         }
       };
+    }
 
+    if (error) {
+      // Other database errors
+      console.error('Database error:', error);
       return {
         props: {
-          initialSession: session,
-          clip,
-          metaData,
-          isOwnClip: !!isOwner,
-          isPrivate: !!isPrivate
+          status: 'error',
+          error: 'Failed to load clip',
+          metaData: {
+            title: 'Error | Merrouch Gaming',
+            description: 'An error occurred while loading this clip.',
+            type: 'website',
+            image: 'https://merrouchgaming.com/top.jpg',
+            url: `https://merrouchgaming.com/clip/${id}`
+          }
         }
       };
     }
 
-    // If clip is private and user is not owner, return private clip page
+    // Check ownership and visibility
+    const isOwner = user?.id === clip.user_id;
+    const isPrivate = clip.visibility === 'private';
+
+    // Block access to private clips for non-owners
+    if (isPrivate && !isOwner) {
+      console.log('Private clip, access denied');
+      return {
+        props: {
+          status: 'private',
+          isPrivate: true,
+          isOwnClip: false,
+          metaData: {
+            title: 'Private Clip | Merrouch Gaming',
+            description: 'This clip is private and can only be viewed by its owner.',
+            type: 'video.other',
+            image: 'https://merrouchgaming.com/top.jpg',
+            url: `https://merrouchgaming.com/clip/${id}`
+          }
+        }
+      };
+    }
+
+    // Generate video and thumbnail URLs
+    const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+    const thumbnailUrl = clip.thumbnail_path
+      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
+      : 'https://merrouchgaming.com/top.jpg';
+
+    // Rich description for SEO
+    const description = `Watch this amazing ${clip.game} gameplay clip by ${clip.username}. ${
+      clip.description || ''
+    } Shared on Merrouch Gaming with ${clip.views_count || 0} views and ${
+      clip.likes_count || 0
+    } likes.`;
+
     return {
       props: {
-        isPrivate: true,
-        isOwnClip: false,
+        clip,
+        status: 'success',
+        isOwnClip: isOwner,
+        isPrivate,
         metaData: {
-          title: 'Private Clip | Merrouch Gaming',
-          description: 'This content is private',
+          title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
+          description,
+          image: thumbnailUrl,
+          url: `https://merrouchgaming.com/clip/${id}`,
           type: 'video.other',
+          structuredData: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            "name": clip.title,
+            "description": description,
+            "thumbnailUrl": thumbnailUrl,
+            "uploadDate": clip.uploaded_at,
+            "contentUrl": videoUrl,
+            "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
+            "interactionStatistic": [
+              {
+                "@type": "InteractionCounter",
+                "interactionType": "http://schema.org/WatchAction",
+                "userInteractionCount": clip.views_count || 0
+              },
+              {
+                "@type": "InteractionCounter",
+                "interactionType": "http://schema.org/LikeAction",
+                "userInteractionCount": clip.likes_count || 0
+              }
+            ],
+            "author": {
+              "@type": "Person",
+              "name": clip.username,
+              "url": `https://merrouchgaming.com/profile/${clip.username}`
+            }
+          })
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error in getServerSideProps:', error);
+    return {
+      props: {
+        status: 'error',
+        error: 'An unexpected error occurred',
+        metaData: {
+          title: 'Error | Merrouch Gaming',
+          description: 'An error occurred while loading this clip.',
+          type: 'website',
           image: 'https://merrouchgaming.com/top.jpg',
           url: `https://merrouchgaming.com/clip/${id}`
         }
       }
     };
-
-  } catch (error) {
-    console.error('Error in getServerSideProps:', error);
-    return { notFound: true };
   }
 }
 
-const ClipPage = ({ clip, metaData, isOwnClip, isPrivate }) => {
+const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
-  const supabase = createClient();
+  const { isLoggedIn, user } = useAuth();
+  const [shouldShowClip, setShouldShowClip] = useState(true);
 
-  // Add debug logging
+  // Effect to handle visibility when auth state changes
   useEffect(() => {
-    console.log('Client side checks:');
-    console.log('Is Owner:', isOwnClip);
-    console.log('Is Private:', isPrivate);
-    console.log('Current user:', user?.username);
-    console.log('Clip owner:', clip?.username);
-  }, [isOwnClip, isPrivate, user, clip]);
-
-  const handleClipDelete = async () => {
-    if (!isLoggedIn || !isOwnClip) {
-      router.push('/login');
-      return;
+    if (!isLoggedIn && clip?.visibility === 'private') {
+      console.log('User logged out and clip is private, hiding clip');
+      setShouldShowClip(false);
     }
+  }, [isLoggedIn, clip?.visibility]);
 
-    try {
-      const { error } = await supabase
-        .from('clips')
-        .delete()
-        .eq('id', clip.id)
-        .eq('username', clip.username);
+  // Effect to handle real-time visibility changes
+  useEffect(() => {
+    if (!clip?.id) return;
 
-      if (error) throw error;
+    const supabase = createBrowserClient();
+    
+    const subscription = supabase
+      .channel(`clip-${clip.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clips',
+          filter: `id=eq.${clip.id}`
+        },
+        (payload) => {
+          console.log('Clip update:', payload);
+          if (payload.new.visibility === 'private' && !isLoggedIn) {
+            console.log('Clip changed to private and user not logged in, hiding clip');
+            setShouldShowClip(false);
+          }
+        }
+      )
+      .subscribe();
 
-      await router.push('/dashboard');
-    } catch (error) {
-      console.error('Error deleting clip:', error);
-      alert('Failed to delete clip');
-    }
-  };
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [clip?.id, isLoggedIn]);
 
-  // Add handler for visibility updates
-  const handleClipUpdate = async (updatedClip) => {
-    if (!isLoggedIn || !isOwnClip) return;
-
-    try {
-      const { error } = await supabase
-        .from('clips')
-        .update({ visibility: updatedClip.visibility })
-        .eq('id', updatedClip.id)
-        .eq('username', clip.username);
-
-      if (error) throw error;
-
-      // Update local state
-      router.replace(router.asPath); // Refresh the page to get updated data
-    } catch (error) {
-      console.error('Error updating clip:', error);
-      alert('Failed to update clip visibility');
-    }
-  };
-
-  if (isPrivate && (!isLoggedIn || !isOwnClip)) {
+  if (!shouldShowClip || status === 'private') {
     return (
       <ProtectedPageWrapper>
         <DynamicMeta {...metaData} />
-        <main className="private-clip-container">
-          <div className="private-message">
-            <h1>This clip is private</h1>
-            <p>This content is only visible to its owner.</p>
-            <button onClick={() => router.push('/')}>
-              Go Home
+        <main className={styles.errorContainer}>
+          <div className={`${styles.errorMessage} ${styles.private}`}>
+            <h1>Private Clip</h1>
+            <p>This clip is private and can only be viewed by its owner.</p>
+            <button 
+              onClick={() => router.push('/discover')}
+              className={styles.backButton}
+            >
+              Discover Public Clips
             </button>
           </div>
-          <style jsx>{`
-            .private-clip-container {
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 60vh;
-              padding: 2rem;
-            }
-            .private-message {
-              text-align: center;
-              background: rgba(0, 0, 0, 0.5);
-              padding: 2rem;
-              border-radius: 8px;
-              max-width: 400px;
-            }
-            .private-message h1 {
-              margin-bottom: 1rem;
-              color: #fff;
-            }
-            .private-message p {
-              margin-bottom: 1.5rem;
-              color: #ccc;
-            }
-            button {
-              background: #FFD700;
-              color: #000;
-              border: none;
-              padding: 0.5rem 1.5rem;
-              border-radius: 4px;
-              cursor: pointer;
-              font-weight: bold;
-              transition: all 0.3s ease;
-            }
-            button:hover {
-              background: #FFC107;
-              transform: translateY(-2px);
-            }
-          `}</style>
         </main>
       </ProtectedPageWrapper>
     );
   }
 
+  if (status === 'not_found') {
+    return (
+      <ProtectedPageWrapper>
+        <DynamicMeta {...metaData} />
+        <main className={styles.errorContainer}>
+          <div className={`${styles.errorMessage} ${styles.notFound}`}>
+            <h1>Clip Not Found</h1>
+            <p>This clip may have been deleted or does not exist.</p>
+            <button 
+              onClick={() => router.push('/discover')}
+              className={styles.backButton}
+            >
+              Discover More Clips
+            </button>
+          </div>
+        </main>
+      </ProtectedPageWrapper>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <ProtectedPageWrapper>
+        <DynamicMeta {...metaData} />
+        <main className={styles.errorContainer}>
+          <div className={`${styles.errorMessage} ${styles.error}`}>
+            <h1>Error</h1>
+            <p>{error}</p>
+            <button 
+              onClick={() => router.push('/discover')}
+              className={styles.backButton}
+            >
+              Back to Discover
+            </button>
+          </div>
+        </main>
+      </ProtectedPageWrapper>
+    );
+  }
+
+  // Normal clip render
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <main>
-        <div className="clip-container">
-          <VideoPlayer
+      <main className={styles.main}>
+        <div className={styles.clipContainer}>
+          <ClipCard
             clip={clip}
-            user={user}
-            supabase={supabase}
-            isOwner={isOwnClip}
-            onClipDelete={handleClipDelete}
-            onClipUpdate={handleClipUpdate}
+            isFullWidth={true}
           />
         </div>
-        <style jsx>{`
-          .clip-container {
-            width: 100%;
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 1rem;
-            display: flex;
-            justify-content: center;
-          }
-
-          @media (max-width: 768px) {
-            .clip-container {
-              margin: 20px auto;
-              padding: 0 10px;
-            }
-          }
-        `}</style>
       </main>
     </ProtectedPageWrapper>
   );
