@@ -183,24 +183,15 @@ export async function getServerSideProps({ req, res, params }) {
 
 const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   const router = useRouter();
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, supabase } = useAuth();
+  const [localClip, setLocalClip] = useState(clip);
   const [shouldShowClip, setShouldShowClip] = useState(true);
 
-  // Effect to handle visibility when auth state changes
-  useEffect(() => {
-    if (!isLoggedIn && clip?.visibility === 'private') {
-      console.log('User logged out and clip is private, hiding clip');
-      setShouldShowClip(false);
-    }
-  }, [isLoggedIn, clip?.visibility]);
-
-  // Effect to handle real-time visibility changes
+  // Effect to handle real-time updates
   useEffect(() => {
     if (!clip?.id) return;
-
-    const supabase = createBrowserClient();
     
-    const subscription = supabase
+    const channel = supabase
       .channel(`clip-${clip.id}`)
       .on(
         'postgres_changes',
@@ -211,19 +202,46 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
           filter: `id=eq.${clip.id}`
         },
         (payload) => {
-          console.log('Clip update:', payload);
-          if (payload.new.visibility === 'private' && !isLoggedIn) {
-            console.log('Clip changed to private and user not logged in, hiding clip');
-            setShouldShowClip(false);
+          console.log('Clip update received:', payload);
+          
+          switch (payload.eventType) {
+            case 'UPDATE':
+              // Update clip data
+              setLocalClip(payload.new);
+              // Handle visibility changes
+              if (payload.new.visibility === 'private' && !isLoggedIn) {
+                console.log('Clip changed to private, hiding for non-owner');
+                setShouldShowClip(false);
+              }
+              break;
+              
+            case 'DELETE':
+              console.log('Clip was deleted');
+              // Redirect to discover page with a message
+              router.replace({
+                pathname: '/discover',
+                query: { message: 'The clip has been deleted' }
+              });
+              break;
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Clip subscription status:', status);
+      });
 
     return () => {
-      supabase.removeChannel(subscription);
+      console.log('Cleaning up clip subscription');
+      supabase.removeChannel(channel);
     };
-  }, [clip?.id, isLoggedIn]);
+  }, [clip?.id, isLoggedIn, supabase, router]);
+
+  // Effect to handle auth state changes
+  useEffect(() => {
+    if (!isLoggedIn && localClip?.visibility === 'private') {
+      setShouldShowClip(false);
+    }
+  }, [isLoggedIn, localClip?.visibility]);
 
   if (!shouldShowClip || status === 'private') {
     return (
@@ -292,8 +310,13 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
       <main className={styles.main}>
         <div className={styles.clipContainer}>
           <ClipCard
-            clip={clip}
+            clip={localClip}
             isFullWidth={true}
+            onClipUpdate={(clipId, action) => {
+              if (action === 'delete') {
+                router.replace('/discover');
+              }
+            }}
           />
         </div>
       </main>

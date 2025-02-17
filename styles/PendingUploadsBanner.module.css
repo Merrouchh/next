@@ -5,17 +5,137 @@
 }
 
 .banner {
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid #ffd700;
+  background: var(--bg-gradient, linear-gradient(to right, #1a1a1a, #2d2d2d));
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.header h3 {
+  color: #fff;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.uploadsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.uploadItem {
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 1rem;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
   transition: all 0.3s ease;
-  opacity: 1;
-  transform: translateY(0);
+}
+
+.uploadItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.uploadInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.game {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.statusContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--progress-color, #4CAF50);
+  transition: width 0.3s ease;
+}
+
+.status {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+/* Status-specific colors */
+.uploadItem[data-status='error'] .progressFill {
+  background: #f44336;
+}
+
+.uploadItem[data-status='ready'] .progressFill {
+  background: #4CAF50;
+}
+
+/* Animation for processing state */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.uploadItem[data-status='processing'] .progressFill {
+  animation: pulse 2s infinite;
+}
+
+.icon {
+  color: var(--dark-accent-primary);
+  font-size: 1.2rem;
+}
+
+.details {
+  border-top: 1px solid var(--dark-border);
+  padding: 12px 16px;
+}
+
+.clipStatus {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.status.uploading {
+  color: var(--info-color);
+}
+
+.status.processing {
+  color: var(--warning-color);
+}
+
+.status.ready {
+  color: var(--success-color);
+}
+
+.status.error {
+  color: var(--error-color);
 }
 
 /* Status-specific banner styles */
@@ -54,20 +174,6 @@
   background: rgba(34, 197, 94, 0.2);
 }
 
-.icon {
-  color: #ffd700;
-  font-size: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.banner.processing .icon {
-  color: #3b82f6;
-}
-
-.banner.completed .icon {
-  color: #22c55e;
-}
-
 .rotating {
   animation: rotate 2s linear infinite;
 }
@@ -96,31 +202,6 @@
   flex-wrap: wrap;
 }
 
-.game {
-  color: #ffd700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px;
-}
-
-.banner.processing .game {
-  color: #3b82f6;
-}
-
-.banner.completed .game {
-  color: #22c55e;
-}
-
-.status {
-  color: #fff;
-  opacity: 0.7;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
-}
-
 .status::before {
   content: '';
   display: inline-block;
@@ -138,21 +219,6 @@
 .banner.completed .status::before {
   background: #22c55e;
   animation: none;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 @keyframes rotate {

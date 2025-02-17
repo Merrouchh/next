@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Upload.module.css';
@@ -9,17 +9,22 @@ import { useDropzone } from 'react-dropzone';
 import UploadProgress from '../components/UploadProgress';
 import PendingUploadsBanner from '../components/PendingUploadsBanner';
 import dynamic from 'next/dynamic';
+import { useVideoUpload } from '../hooks/useVideoUpload';
+import { v4 as uuidv4 } from 'uuid';
 
 // Dynamically import the VideoThumbnail component with no SSR
 const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
   ssr: false,
-  loading: () => (
-    <div className={styles.previewLoading}>
-      <div className={styles.spinner}></div>
-      <p>Preparing preview... sbar</p>
-    </div>
-  )
+  loading: () => <ThumbnailLoader />
 });
+
+// Extract loading component
+const ThumbnailLoader = memo(() => (
+  <div className={styles.previewLoading}>
+    <div className={styles.spinner}></div>
+    <p>Preparing preview...</p>
+  </div>
+));
 
 const _updatedUploadStyles = {
   uploadMain: {
@@ -64,55 +69,144 @@ const UploadPage = () => {
   const [visibility, setVisibility] = useState('public');
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, success, error, cancelled
   const { user, isLoggedIn, supabase } = useAuth();
   const router = useRouter();
-  const xhrRef = useRef(null);
-  const [pendingUploads, setPendingUploads] = useState([]);
   const [username, setUsername] = useState(null);
+  const currentUploadUid = useRef(null);
+  const sessionId = useRef(uuidv4()).current;
 
-  // Wrap fetchPendingUploads in useCallback
-  const fetchPendingUploads = useCallback(async () => {
-    if (!user) return;
+  const { 
+    uploadStatus, 
+    uploadProgress, 
+    uploadFile, 
+    cancelUpload,
+    resetForm 
+  } = useVideoUpload();
 
-    const { data, error } = await supabase
-      .from('media_clips')
-      .select('id, title, game, status, queue_number')
-      .in('status', ['uploaded', 'processing', 'completed'])
-      .eq('user_id', user.id)
-      .order('uploaded_at', { ascending: false });
+  // Memoize handlers
+  const handleDrop = useCallback((files) => {
+    // ... drop handling logic ...
+  }, []);
 
-    if (error) {
-      console.error('Error fetching pending uploads:', error);
-      return;
+  const logEvent = useCallback((event, details) => {
+    // ... logging logic ...
+  }, [username, sessionId]);
+
+  // Remove the old handleCancelUpload and use the one from the hook directly
+  const handleCancelUpload = useCallback(async () => {
+    try {
+      await cancelUpload();
+      // Clean up preview if exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      // Reset form fields
+      setTitle('');
+      setGame('');
+      setVisibility('public');
+      setSelectedFile(null);
+      setShowProgress(false);
+    } catch (error) {
+      console.error('Error canceling upload:', error);
     }
+  }, [cancelUpload, previewUrl]);
 
-    console.log('Fetched pending uploads:', data);
-    setPendingUploads(data);
-  }, [user, supabase]);
+  // Connection monitoring effect - Simplified
+  useEffect(() => {
+    const handleOnline = () => {
+      logEvent('CONNECTION_RESTORED');
+    };
 
-  // Wrap handleCancelUpload in useCallback
-  const handleCancelUpload = useCallback(() => {
-    if (xhrRef.current) {
-      xhrRef.current.abort();
-      xhrRef.current = null;
-      setUploadStatus('cancelled');
-    }
-    // Clear all fields
-    setTitle('');
-    setGame('');
-    setVisibility('public');
-    // Clean up video preview
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
-    setSelectedFile(null);
-    setUploadProgress(0);
-    setShowProgress(false);
-  }, [previewUrl]);
+    const handleOffline = async () => {
+      logEvent('CONNECTION_LOST');
+      if (uploadStatus === 'uploading') {
+        logEvent('CONNECTION_LOSS_DURING_UPLOAD');
+        await handleCancelUpload();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [uploadStatus, handleCancelUpload, logEvent]);
+
+  // Page visibility and unload handling
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (uploadStatus === 'uploading') {
+        logEvent('PAGE_CLOSE_ATTEMPTED_DURING_UPLOAD');
+        e.preventDefault();
+        e.returnValue = 'Upload in progress. Are you sure you want to leave?';
+        
+        if (currentUploadUid.current) {
+          logEvent('SENDING_CLEANUP_BEACON', {
+            uid: currentUploadUid.current
+          });
+          navigator.sendBeacon(
+            `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`,
+            new Blob([], { type: 'application/json' })
+          );
+        }
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden' && uploadStatus === 'uploading') {
+        if (currentUploadUid.current) {
+          try {
+            navigator.sendBeacon(
+              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`,
+              new Blob([], { type: 'application/json' })
+            );
+          } catch (error) {
+            console.error('Error during visibility change cleanup:', error);
+          }
+        }
+      }
+    };
+
+    const handleRouteChange = async () => {
+      if (uploadStatus === 'uploading') {
+        const confirm = window.confirm('Upload in progress. Are you sure you want to leave?');
+        if (!confirm) {
+          router.events.emit('routeChangeError');
+          throw 'routeChange aborted';
+        } else {
+          await handleCancelUpload();
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    router.events.on('routeChangeStart', handleRouteChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      router.events.off('routeChangeStart', handleRouteChange);
+      
+      if (uploadStatus === 'uploading' && currentUploadUid.current) {
+        const cleanup = async () => {
+          try {
+            await fetch(`/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`, {
+              method: 'DELETE'
+            });
+          } catch (error) {
+            console.error('Error during unmount cleanup:', error);
+          }
+        };
+        
+        cleanup();
+      }
+    };
+  }, [uploadStatus, handleCancelUpload, router, logEvent]);
 
   // Fetch username from users table
   useEffect(() => {
@@ -139,73 +233,33 @@ const UploadPage = () => {
     fetchUsername();
   }, [user, supabase]);
 
-  // Handle page navigation/close
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (uploadStatus === 'uploading') {
-        e.preventDefault();
-        e.returnValue = 'Upload in progress. Are you sure you want to leave?';
-      }
-    };
-
-    const handleRouteChange = () => {
-      if (uploadStatus === 'uploading') {
-        const confirm = window.confirm('Upload in progress. Are you sure you want to leave?');
-        if (!confirm) {
-          router.events.emit('routeChangeError');
-          throw 'routeChange aborted';
-        } else {
-          handleCancelUpload();
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    router.events.on('routeChangeStart', handleRouteChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      router.events.off('routeChangeStart', handleRouteChange);
-    };
-  }, [uploadStatus, router, handleCancelUpload]);
-
-  // Subscribe to changes effect
-  useEffect(() => {
-    fetchPendingUploads();
-
-    const subscription = supabase
-      .channel('media_clips_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'media_clips',
-          filter: `user_id=eq.${user?.id}`
-        },
-        () => {
-          fetchPendingUploads();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [user, supabase, fetchPendingUploads]);
-
+  // File selection logging
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
-    if (!file) return;
+    if (!file) {
+      logEvent('FILE_DROP_REJECTED', { reason: 'No file provided' });
+      return;
+    }
 
-    // Clean up previous preview URL
+    logEvent('FILE_SELECTED', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    });
+
+    // Clean up previous preview
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
+      logEvent('PREVIEW_CLEANUP', { oldPreviewUrl: previewUrl });
     }
 
     setSelectedFile(file);
     setTitle(file.name.split('.')[0]);
-  }, [previewUrl]);
+    logEvent('FILE_PREPARED', { 
+      title: file.name.split('.')[0],
+      readyForUpload: true 
+    });
+  }, [previewUrl, logEvent]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -217,123 +271,117 @@ const UploadPage = () => {
     maxFiles: 1
   });
 
+  const handleCloseProgress = useCallback(() => {
+    // Only close if not uploading
+    if (uploadStatus !== 'uploading') {
+      setShowProgress(false);
+      resetForm();
+    }
+  }, [uploadStatus, resetForm]);
+
+  // Upload handling
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedFile) {
-      alert('Please select a video file');
-      return;
-    }
-
-    if (!user) {
-      alert('You must be logged in to upload');
-      return;
-    }
-
-    // Check if username is fetched
-    if (!username) {
-      alert('Username not found. Please try again.');
-      return;
-    }
-
-    setUploadStatus('uploading');
-    setShowProgress(true);
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    
-    const metadata = {
+    logEvent('UPLOAD_INITIATED', {
       title,
       game,
       visibility,
-      username
-    };
-    formData.append('metadata', JSON.stringify(metadata));
+      fileInfo: selectedFile ? {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      } : null
+    });
 
-    const xhr = new XMLHttpRequest();
-    xhrRef.current = xhr;
+    if (!selectedFile || !user || !username) {
+      logEvent('UPLOAD_VALIDATION_FAILED', {
+        hasFile: !!selectedFile,
+        isLoggedIn: !!user,
+        hasUsername: !!username
+      });
+      alert('Please ensure you are logged in and have selected a file');
+      return;
+    }
 
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded * 100) / event.total);
-        setUploadProgress(progress);
+    setShowProgress(true);
+    logEvent('PROGRESS_MODAL_OPENED');
+
+    try {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${username}_${Date.now()}_${game.replace(/\s+/g, '_')}.${fileExt}`;
+      
+      logEvent('UPLOAD_STARTED', {
+        fileName,
+        fileExtension: fileExt
+      });
+
+      const uploadedUid = await uploadFile(selectedFile, {
+        title,
+        game,
+        visibility,
+        username,
+        fileName
+      });
+
+      logEvent('UPLOAD_COMPLETED', {
+        uid: uploadedUid,
+        duration: `${Date.now() - new Date()}ms`
+      });
+
+      // Remove the setTimeout and call handleSuccess directly
+      handleSuccess();
+      
+    } catch (error) {
+      if (error.message === 'Upload cancelled') {
+        logEvent('UPLOAD_CANCELLED', {
+          reason: 'User initiated',
+          stage: 'during_upload'
+        });
+      } else {
+        logEvent('UPLOAD_FAILED', {
+          error: error.message,
+          stack: error.stack
+        });
+        console.error('Upload error:', error);
+        alert(`Upload failed: ${error.message}`);
       }
-    };
-
-    xhr.onload = () => {
-      try {
-        const response = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && response.clip) {
-          setUploadStatus('success');
-          setUploadProgress(100);
-          
-          // Reset form after successful upload
-          setTimeout(() => {
-            // Reset all form fields
-            setTitle('');
-            setGame('');
-            setVisibility('public');
-            setSelectedFile(null);
-            if (previewUrl) {
-              URL.revokeObjectURL(previewUrl);
-              setPreviewUrl(null);
-            }
-            setUploadProgress(0);
-            setShowProgress(false);
-            setUploadStatus('idle');
-          }, 2000); // Wait 2 seconds to show success message before closing
-        } else {
-          console.error('Upload failed:', response.error || 'Unknown error');
-          setUploadStatus('error');
-        }
-      } catch (error) {
-        console.error('Error parsing response:', error);
-        setUploadStatus('error');
-      }
-    };
-
-    xhr.onerror = () => {
-      console.error('Network error during upload');
-      setUploadStatus('error');
-    };
-
-    xhr.onabort = () => {
-      console.log('Upload cancelled by user');
-      setUploadStatus('cancelled');
-    };
-
-    xhr.open('POST', '/api/upload', true);
-    xhr.send(formData);
-  };
-
-  const handleCloseProgress = () => {
-    if (uploadStatus !== 'uploading') {
-      setShowProgress(false);
-      setUploadProgress(0);
-      setUploadStatus('idle');
     }
   };
 
+  // Clean up unmount effect - Simplified
   useEffect(() => {
     return () => {
-      if (xhrRef.current) {
-        xhrRef.current.abort();
-      }
-      // Clean up any file previews
+      logEvent('COMPONENT_UNMOUNTING', {
+        hasActiveUpload: uploadStatus === 'uploading'
+      });
+      
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
     };
-  }, [previewUrl]);
+  }, [previewUrl, uploadStatus, logEvent]);
+
+  // Handle successful upload without cancellation
+  const handleSuccess = useCallback(() => {
+    setTitle('');
+    setGame('');
+    setVisibility('public');
+    setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    resetForm();
+    setShowProgress(false);
+  }, [previewUrl, resetForm]);
 
   return (
     <ProtectedPageWrapper>
       <Head>
-        <title>Upload Gaming Highlight</title>
-        <meta name="description" content="Upload your gaming highlights" />
+        <title>Upload Clip - MerrouchGaming</title>
       </Head>
-
       <main className={styles.uploadMain}>
-        <PendingUploadsBanner pendingUploads={pendingUploads} />
+        <PendingUploadsBanner userId={user?.id} />
         <div className={styles.uploadCard}>
           <header className={styles.header}>
             <MdGamepad className={styles.gameIcon} />
@@ -452,17 +500,19 @@ const UploadPage = () => {
             </button>
           </form>
         </div>
-
-        <UploadProgress
-          progress={uploadProgress}
-          isOpen={showProgress}
-          onClose={handleCloseProgress}
-          status={uploadStatus}
-          onCancel={handleCancelUpload}
-          title={title}
-          game={game}
-        />
       </main>
+      
+      <UploadProgress
+        progress={uploadProgress}
+        isOpen={showProgress}
+        onClose={handleCloseProgress}
+        status={uploadStatus}
+        onCancel={handleCancelUpload}
+        onReset={handleSuccess}
+        title={title}
+        game={game}
+        allowClose={uploadStatus !== 'uploading'}
+      />
     </ProtectedPageWrapper>
   );
 }

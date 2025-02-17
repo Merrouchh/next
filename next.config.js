@@ -7,6 +7,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
   },
 
   // Image optimization settings
@@ -308,6 +309,14 @@ const nextConfig = {
     }
   })
 };
+
+// Validate required environment variables
+const requiredEnvs = ['VIDEO_OPTIMIZER_URL'];
+for (const env of requiredEnvs) {
+  if (!process.env[env]) {
+    throw new Error(`${env} environment variable is required`);
+  }
+}
 
 // Add proper error handling for process events
 ['SIGTERM', 'SIGINT', 'uncaughtException', 'unhandledRejection'].forEach(signal => {

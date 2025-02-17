@@ -1,73 +1,134 @@
-import React from 'react';
-import styles from '../styles/UploadProgress.module.css';
+import React, { memo } from 'react';
+import styles from './UploadProgress.module.css';
 import { MdClose, MdCheckCircle, MdError, MdCancel } from 'react-icons/md';
+import { createPortal } from 'react-dom';
 
-const UploadProgress = ({ progress, isOpen, onClose, status, onCancel, title, game }) => {
+const UploadProgress = memo(({ 
+  progress, 
+  isOpen, 
+  onClose, 
+  status, 
+  onCancel,
+  onReset,
+  title,
+  game,
+  allowClose 
+}) => {
   if (!isOpen) return null;
 
-  const getStatusContent = () => {
+  const getStatusInfo = () => {
     switch (status) {
       case 'uploading':
-        return (
-          <>
-            <div className={styles.details}>
-              <h3>{title}</h3>
-              <p>{game}</p>
-            </div>
-            <div className={styles.progressBar}>
-              <div 
-                className={styles.progressFill} 
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className={styles.progressText}>{progress}% uploaded</p>
-            <button onClick={onCancel} className={styles.cancelButton}>
-              Cancel Upload
-            </button>
-          </>
-        );
+        return {
+          text: 'Uploading...',
+          color: '#2196F3',
+          showCancel: true
+        };
       case 'success':
-        return (
-          <div className={styles.statusMessage}>
-            <MdCheckCircle className={styles.successIcon} />
-            <p>Upload Complete!</p>
-          </div>
-        );
+        return {
+          text: 'Upload Complete!',
+          color: '#4CAF50',
+          icon: <MdCheckCircle />,
+          showClose: true,
+          showDone: true
+        };
       case 'error':
-        return (
-          <div className={styles.statusMessage}>
-            <MdError className={styles.errorIcon} />
-            <p>Upload Failed. Please try again.</p>
-          </div>
-        );
+        return {
+          text: 'Upload Failed',
+          color: '#f44336',
+          icon: <MdError />,
+          showClose: true
+        };
       case 'cancelled':
-        return (
-          <div className={styles.statusMessage}>
-            <MdCancel className={styles.cancelIcon} />
-            <p>Upload Cancelled</p>
-          </div>
-        );
+        return {
+          text: 'Upload Cancelled',
+          color: '#757575',
+          icon: <MdCancel />,
+          showClose: true
+        };
       default:
-        return null;
+        return {
+          text: 'Processing...',
+          color: '#FFA000'
+        };
     }
   };
 
-  return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <button 
-          className={styles.closeButton} 
-          onClick={onClose}
-          disabled={status === 'uploading'}
-        >
-          <MdClose />
-        </button>
+  const handleDone = () => {
+    onReset();
+    onClose();
+  };
+
+  const statusInfo = getStatusInfo();
+
+  const modalContent = (
+    <div className={styles.modalOverlay} onClick={allowClose ? onClose : undefined}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.header}>
+          <h3 title={title || 'Uploading Video'}>
+            {title || 'Uploading Video'}
+          </h3>
+          {allowClose && (
+            <button 
+              className={styles.closeButton} 
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <MdClose />
+            </button>
+          )}
+        </div>
+
         <div className={styles.content}>
-          {getStatusContent()}
+          {game && <p className={styles.game}>{game}</p>}
+          
+          <div className={styles.progressContainer}>
+            <div 
+              className={styles.progressBar}
+              style={{
+                '--progress': `${progress}%`,
+                '--status-color': statusInfo.color
+              }}
+            >
+              <div className={styles.progressFill} />
+            </div>
+            <div className={styles.statusText} style={{ color: statusInfo.color }}>
+              {statusInfo.icon && <span className={styles.icon}>{statusInfo.icon}</span>}
+              <span>{statusInfo.text}</span>
+              {progress > 0 && progress < 100 && (
+                <span className={styles.percentage}>{Math.round(progress)}%</span>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.actions}>
+            {statusInfo.showCancel && (
+              <button 
+                className={styles.cancelButton}
+                onClick={onCancel}
+              >
+                Cancel Upload
+              </button>
+            )}
+            {statusInfo.showDone && (
+              <button 
+                className={styles.doneButton}
+                onClick={handleDone}
+              >
+                Done
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
-};
+
+  // Use createPortal to render the modal at the root level
+  return createPortal(
+    modalContent,
+    document.body
+  );
+});
 
 export default UploadProgress; 

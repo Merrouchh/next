@@ -15,7 +15,7 @@
 /public/uploads
 /video-optimizer/temp
 /video-optimizer/node_modules
-
+/cloudflare-video-optimizer/node_modules
 # production
 /build
 

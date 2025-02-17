@@ -1,0 +1,266 @@
+.banner {
+  background: var(--bg-gradient, linear-gradient(to right, #1a1a1a, #2d2d2d));
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.header h3 {
+  color: #fff;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.uploadsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.uploadItem {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.uploadItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.uploadInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  color: #fff;
+  font-weight: 500;
+}
+
+.game {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.statusContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.progressBar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.status {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+/* Status-specific styles */
+.uploadItem[data-status='error'] {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.uploadItem[data-status='error'] .progressFill {
+  background: #f44336;
+}
+
+.uploadItem[data-status='ready'] {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.uploadItem[data-status='ready'] .progressFill {
+  background: #4CAF50;
+}
+
+/* Processing animation */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.uploadItem[data-status='processing'] .progressFill {
+  animation: pulse 2s infinite;
+  background: #2196F3;
+}
+
+/* Queue number style */
+.queueNumber {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  padding: 2px 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 0.85em;
+  color: #fff;
+}
+
+.fadeOut {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Update the processing animation */
+.uploadItem[data-status='processing'] .progressFill,
+.uploadItem[data-status='inprogress'] .progressFill {
+  animation: progressPulse 2s infinite;
+}
+
+.uploadItem[data-status='pendingupload'] .status,
+.uploadItem[data-status='queued'] .status {
+  animation: textPulse 1.5s infinite;
+}
+
+@keyframes progressPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes textPulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* Add these styles */
+.metadata {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.resolution, .duration {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Add pulsing animation for queued state */
+.progressFill.pulse {
+  animation: progressPulse 2s infinite;
+  opacity: 0.8;
+}
+
+/* Update the queued state styling */
+.uploadItem[data-status='queued'] {
+  background: rgba(255, 152, 0, 0.05);
+}
+
+.uploadItem[data-status='queued'] .progressBar {
+  position: relative;
+  overflow: visible;
+}
+
+.uploadItem[data-status='queued'] .progressFill {
+  position: relative;
+}
+
+.uploadItem[data-status='queued'] .progressFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 4px;
+  background: inherit;
+  border-radius: 2px;
+  animation: queuePulse 1.5s infinite;
+}
+
+@keyframes queuePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 152, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+  }
+}
+
+/* Add these status-specific styles */
+.uploadItem[data-status='pendingupload'] {
+  background: rgba(255, 160, 0, 0.05);
+}
+
+.uploadItem[data-status='inprogress'],
+.uploadItem[data-status='processing'] {
+  background: rgba(33, 150, 243, 0.05);
+}
+
+/* Update the pulse animations */
+.progressFill.pulse {
+  animation: progressPulse 2s infinite;
+  opacity: 0.8;
+}
+
+/* Status-specific progress bar colors */
+.uploadItem[data-status='pendingupload'] .progressFill {
+  background: #FFA000;
+  width: 5% !important; /* Show minimal progress */
+}
+
+.uploadItem[data-status='inprogress'] .progressFill,
+.uploadItem[data-status='processing'] .progressFill {
+  background: #2196F3;
+}
+
+/* Add loading indicator for pending states */
+.uploadItem[data-status='pendingupload'] .status::after,
+.uploadItem[data-status='queued'] .status::after {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-left: 4px;
+  border-radius: 50%;
+  animation: loadingDots 1.4s infinite;
+}
+
+@keyframes loadingDots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+} 

@@ -1,0 +1,28 @@
+.statusContainer {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  background: var(--dark-bg-elevated);
+  border: 1px solid var(--dark-border);
+}
+
+.statusInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.state {
+  font-size: 0.9rem;
+  color: var(--dark-text-secondary);
+}
+
+.error {
+  color: var(--error-color);
+  font-size: 0.9rem;
+}
+
+.ready {
+  color: var(--success-color);
+  font-weight: 500;
+} 

@@ -201,13 +201,75 @@ export async function getServerSideProps({ req, res, params }) {
 // Memoize the clips grid
 const ClipsGrid = memo(({ clips, loading, hasMore, ...props }) => {
   const parentRef = useRef();
+  const [localClips, setLocalClips] = useState(clips);
+  const { supabase } = useAuth();
   
+  // Update localClips when clips prop changes
+  useEffect(() => {
+    setLocalClips(clips);
+  }, [clips]);
+
+  // Add real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('profile-clips')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'clips',
+          filter: `username=eq.${props.username}`
+        },
+        (payload) => {
+          console.log('Clip change received:', payload);
+          
+          switch (payload.eventType) {
+            case 'INSERT':
+              // Add new clip to the beginning of the list
+              setLocalClips(prev => [payload.new, ...prev]);
+              break;
+              
+            case 'DELETE':
+              // Remove deleted clip
+              setLocalClips(prev => prev.filter(clip => clip.id !== payload.old.id));
+              break;
+              
+            case 'UPDATE':
+              // Update modified clip
+              setLocalClips(prev => 
+                prev.map(clip => 
+                  clip.id === payload.new.id ? payload.new : clip
+                )
+              );
+              break;
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    // Cleanup subscription
+    return () => {
+      console.log('Cleaning up subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, props.username]);
+
   const rowVirtualizer = useVirtualizer({
-    count: clips.length,
+    count: localClips.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 300,
     overscan: 5
   });
+
+  // Handle clip deletion
+  const handleClipUpdate = useCallback((clipId, action) => {
+    if (action === 'delete') {
+      setLocalClips(prevClips => prevClips.filter(clip => clip.id !== clipId));
+    }
+  }, []);
 
   const [error, setError] = useState(null);
 
@@ -219,17 +281,9 @@ const ClipsGrid = memo(({ clips, loading, hasMore, ...props }) => {
     );
   }
 
-  const [renderedClips, setRenderedClips] = useState(clips);
-  
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setRenderedClips(clips);
-    });
-  }, [clips]);
-
   return (
     <div className={styles.clipsGrid}>
-      {renderedClips.map((clip, index) => (
+      {localClips.map((clip, index) => (
         <div 
           key={`clip-${clip.id}-${index}`}
           className={styles.clipWrapper}
@@ -237,6 +291,7 @@ const ClipsGrid = memo(({ clips, loading, hasMore, ...props }) => {
           <ClipCard 
             clip={clip}
             isOwner={props.isOwner}
+            onClipUpdate={handleClipUpdate}
           />
         </div>
       ))}
@@ -253,7 +308,7 @@ const ClipsGrid = memo(({ clips, loading, hasMore, ...props }) => {
         </div>
       )}
 
-      {!loading && clips.length === 0 && (
+      {!loading && localClips.length === 0 && (
         <div className={styles.noClipsMessage}>
           {props.isOwner 
             ? "You haven't shared any clips yet"

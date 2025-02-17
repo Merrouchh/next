@@ -12,8 +12,7 @@ import ShareModal from './ShareModal';
 import { useRouter } from 'next/router';
 import ExpandedTitleModal from './ExpandedTitleModal';
 
-const ClipCard = ({ clip, isFullWidth }) => {
-  const [_isPlaying, setIsPlaying] = useState(false);
+const ClipCard = ({ clip, isFullWidth, onClipUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [showFullTitle, setShowFullTitle] = useState(false);
@@ -41,10 +40,6 @@ const ClipCard = ({ clip, isFullWidth }) => {
 
   const isOwner = user?.id === clipData.user_id;
   const isPublic = clipData.visibility === 'public';
-
-  const handlePlayingChange = useCallback((playing) => {
-    setIsPlaying(playing);
-  }, []);
 
   const handleLoadingChange = useCallback((loading) => {
     setIsLoading(loading);
@@ -163,10 +158,8 @@ const ClipCard = ({ clip, isFullWidth }) => {
   };
 
   const handleDelete = async () => {
-    if (isUpdating) return;
-    
-    setIsUpdating(true);
     try {
+      setIsUpdating(true);
       const { error } = await supabase
         .from('clips')
         .delete()
@@ -174,22 +167,11 @@ const ClipCard = ({ clip, isFullWidth }) => {
 
       if (error) throw error;
 
-      // Delete files from storage
-      if (clipData.file_path) {
-        await supabase.storage
-          .from('highlight-clips')
-          .remove([clipData.file_path]);
-      }
-      if (clipData.thumbnail_path) {
-        await supabase.storage
-          .from('highlight-clips')
-          .remove([clipData.thumbnail_path]);
-      }
-
-      // Hide the card with animation
-      setClipData(null);
+      // Call onClipUpdate after successful deletion
+      onClipUpdate?.(clipData.id, 'delete');
+      
     } catch (error) {
-      console.error('Failed to delete clip:', error);
+      console.error('Error deleting clip:', error);
     } finally {
       setIsUpdating(false);
       setShowDeleteModal(false);
@@ -236,7 +218,6 @@ const ClipCard = ({ clip, isFullWidth }) => {
         <div className={styles.videoContainer}>
           <VideoPlayer
             clip={clipData}
-            onPlayingChange={handlePlayingChange}
             onLoadingChange={handleLoadingChange}
           />
           {isLoading && (

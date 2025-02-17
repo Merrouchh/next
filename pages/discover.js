@@ -6,6 +6,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import ClipCard from '../components/ClipCard';
 import DynamicMeta from '../components/DynamicMeta';
 import styles from '../styles/Discover.module.css';
+import { VideoProvider } from '../contexts/VideoContext';
 
 const CLIPS_PER_PAGE = 5;
 
@@ -43,7 +44,8 @@ export async function getServerSideProps({ req, res }) {
         views_count,
         file_path,
         uploaded_at,
-        user_id
+        user_id,
+        cloudflare_uid
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
@@ -52,8 +54,8 @@ export async function getServerSideProps({ req, res }) {
     if (error) throw error;
 
     const featuredClip = clips?.[0];
-    const previewImage = featuredClip?.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${featuredClip.thumbnail_path}`
+    const previewImage = featuredClip?.cloudflare_uid
+      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${featuredClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : 'https://merrouchgaming.com/top.jpg';
 
     return {
@@ -121,7 +123,8 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
           views_count,
           file_path,
           uploaded_at,
-          user_id
+          user_id,
+          cloudflare_uid
         `)
         .eq('visibility', 'public')
         .order('uploaded_at', { ascending: false })
@@ -193,11 +196,9 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
 
           switch (payload.eventType) {
             case 'INSERT':
-              // Only add new clips that are public
-              if (payload.new.visibility === 'public') {
+              if (payload.new.visibility === 'public' && payload.new.cloudflare_uid) {
                 console.log('Adding new public clip:', payload.new.id);
                 setClips(prevClips => {
-                  // Check if clip already exists
                   if (prevClips.some(clip => clip.id === payload.new.id)) {
                     return prevClips;
                   }
@@ -259,36 +260,38 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <main className={styles.discoverMain}>
-        <div className={styles.feedContainer}>
-          {clips.length > 0 ? (
-            <>
-              {clips.map(clip => (
-                <ClipCard
-                  key={clip.id}
-                  clip={clip}
-                />
-              ))}
-              <div className={styles.loadingMore}>
-                {isLoading && (
-                  <div className={styles.spinner} />
-                )}
-                {!hasMore && (
-                  <div className={styles.endMessage}>
-                    <span className={styles.endIcon}>🎮</span>
-                    <p>You've seen all the clips!</p>
-                    <p className={styles.endSubtext}>Check back later for more gaming moments</p>
-                  </div>
-                )}
+      <VideoProvider>
+        <main className={styles.discoverMain}>
+          <div className={styles.feedContainer}>
+            {clips.length > 0 ? (
+              <>
+                {clips.map(clip => (
+                  <ClipCard
+                    key={clip.id}
+                    clip={clip}
+                  />
+                ))}
+                <div className={styles.loadingMore}>
+                  {isLoading && (
+                    <div className={styles.spinner} />
+                  )}
+                  {!hasMore && (
+                    <div className={styles.endMessage}>
+                      <span className={styles.endIcon}>🎮</span>
+                      <p>You've seen all the clips!</p>
+                      <p className={styles.endSubtext}>Check back later for more gaming moments</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className={styles.noClips}>
+                No clips available at the moment
               </div>
-            </>
-          ) : (
-            <div className={styles.noClips}>
-              No clips available at the moment
-            </div>
-          )}
-        </div>
-      </main>
+            )}
+          </div>
+        </main>
+      </VideoProvider>
     </ProtectedPageWrapper>
   );
 };

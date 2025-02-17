@@ -1,145 +1,113 @@
-import { useEffect, useState, useRef } from 'react';
-import { MdPlayArrow } from 'react-icons/md';
-import styles from '@/styles/VideoThumbnail.module.css';
+import { useState, useEffect } from 'react';
+import styles from '../styles/VideoThumbnail.module.css';
+import { MdPlayCircle } from 'react-icons/md';
 
-const VideoThumbnail = ({ file, onThumbnailGenerated, onError, width = 320, height = 180, quality = 0.8 }) => {
-    const [thumbnailUrl, setThumbnailUrl] = useState(null);
-    const [error, setError] = useState(null);
-    const videoUrlRef = useRef(null);
-  
-    useEffect(() => {
-      if (!file) return;
-  
-      let mounted = true;
-  
-      const cleanup = () => {
-        if (videoUrlRef.current) {
-          URL.revokeObjectURL(videoUrlRef.current);
-          videoUrlRef.current = null;
-        }
-        const video = document.querySelector('video');
-        if (video) {
-          video.onloadedmetadata = null;
-          video.onerror = null;
-          video.onseeked = null;
-          video.src = '';
-          video.remove();
-        }
-      };
-  
+const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
+  const [thumbnail, setThumbnail] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!file) {
+      setThumbnail(null);
+      setLoading(false);
+      return;
+    }
+
+    const generateThumbnail = async () => {
       try {
-        // Set up video element
+        // Create a temporary URL for the video file
+        const videoUrl = URL.createObjectURL(file);
         const video = document.createElement('video');
+        
+        // Set video properties
+        video.src = videoUrl;
         video.preload = 'metadata';
+        video.muted = true; // Required for autoplay
         video.playsInline = true;
-        video.muted = true;
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'contain';
-  
-        const generateThumbnail = () => {
-          if (!mounted) return;
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-  
-          try {
-            const scale = Math.max(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
-            const x = (canvas.width - video.videoWidth * scale) / 2;
-            const y = (canvas.height - video.videoHeight * scale) / 2;
-  
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(video, x, y, video.videoWidth * scale, video.videoHeight * scale);
+
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = () => {
+            // Seek to 1 second or 25% of video duration, whichever is less
+            const seekTime = Math.min(1, video.duration * 0.25);
+            video.currentTime = seekTime;
+          };
+
+          video.onseeked = () => {
+            // Create a canvas to capture the thumbnail
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
             
-            const thumbnail = canvas.toDataURL('image/jpeg', quality);
-            if (mounted) {
-              setThumbnailUrl(thumbnail);
-              if (onThumbnailGenerated) onThumbnailGenerated(thumbnail);
+            // Draw the current frame
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to data URL
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
+            setThumbnail(thumbnailUrl);
+            if (onThumbnailGenerated) {
+              onThumbnailGenerated(thumbnailUrl);
             }
-          } catch (err) {
-            if (mounted) {
-              console.warn('Thumbnail generation failed:', err);
-              setError('Could not generate preview');
-              if (onError) onError(err);
+            setLoading(false);
+            resolve();
+          };
+
+          video.onerror = (error) => {
+            if (onError) {
+              onError(error);
             }
-          } finally {
-            canvas.remove();
-          }
-        };
-  
-        video.onloadedmetadata = () => {
-          if (mounted) video.currentTime = 0.1;
-        };
-  
-        video.onseeked = generateThumbnail;
-  
-        video.onerror = (e) => {
-          if (mounted) {
-            console.warn('Video loading failed:', e);
-            setError('Preview not available');
-            if (onError) onError(e);
-          }
-          cleanup();
-        };
-  
-        // Only create new URL if needed
-        if (!videoUrlRef.current) {
-          videoUrlRef.current = URL.createObjectURL(file);
+            console.error('Error loading video:', error);
+            setLoading(false);
+            reject(error);
+          };
+        });
+
+        // Clean up
+        URL.revokeObjectURL(videoUrl);
+
+      } catch (error) {
+        console.error('Error generating thumbnail:', error);
+        setLoading(false);
+        if (onError) {
+          onError(error);
         }
-        video.src = videoUrlRef.current;
-  
-      } catch (err) {
-        if (mounted) {
-          console.error('Setup failed:', err);
-          setError('Could not setup preview');
-          if (onError) onError(err);
-        }
-        cleanup();
       }
-  
-      return () => {
-        mounted = false;
-        cleanup();
-      };
-    }, [file, width, height, quality, onThumbnailGenerated, onError]);
-  
-    if (error) {
-      return (
-        <div className={styles.error}>
-          <p>{error}</p>
-        </div>
-      );
-    }
-  
-    if (!thumbnailUrl) {
-      return (
+    };
+
+    generateThumbnail();
+  }, [file, onThumbnailGenerated, onError]);
+
+  if (!file) return null;
+
+  return (
+    <div className={styles.thumbnailContainer}>
+      {loading ? (
         <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Loading preview...</p>
+          <div className={styles.spinner} />
+          <span>Generating preview...</span>
         </div>
-      );
-    }
-  
-    return (
-      <div className={styles.preview}>
-        <img 
-          src={thumbnailUrl} 
-          alt="Video preview" 
-          className={styles.thumbnailImage}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain'
-          }}
-        />
-        <div className={styles.playIcon}>
-          <MdPlayArrow />
+      ) : thumbnail ? (
+        <div className={styles.thumbnailWrapper}>
+          <img 
+            src={thumbnail} 
+            alt="Video thumbnail" 
+            className={styles.thumbnail}
+            onError={() => {
+              if (onError) onError(new Error('Failed to load thumbnail'));
+            }}
+          />
+          <div className={styles.overlay}>
+            <MdPlayCircle className={styles.playIcon} />
+          </div>
         </div>
-      </div>
-    );
-  };
-  
+      ) : (
+        <div className={styles.fallback}>
+          <MdPlayCircle className={styles.playIcon} />
+          <span>Preview not available</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default VideoThumbnail; 
