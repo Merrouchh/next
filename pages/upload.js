@@ -77,7 +77,7 @@ const UploadPage = () => {
   const currentUploadUid = useRef(null);
   const sessionId = useRef(uuidv4()).current;
   const videoRef = useRef(null);
-  const blobUrlRef = useRef(null); // Track current blob URL
+  const blobUrlRef = useRef(null);
 
   const { 
     uploadStatus, 
@@ -87,37 +87,48 @@ const UploadPage = () => {
     resetForm 
   } = useVideoUpload();
 
-  // Clean up blob URL when component unmounts or new file is selected
-  const cleanupBlobUrl = () => {
+  // Simplified blob cleanup
+  const cleanupBlobUrl = useCallback(() => {
     if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
+      try {
+        URL.revokeObjectURL(blobUrlRef.current);
+      } catch (error) {
+        console.warn('Failed to revoke blob URL:', error);
+      }
       blobUrlRef.current = null;
     }
-  };
-
-  useEffect(() => {
-    return () => {
-      cleanupBlobUrl(); // Cleanup on unmount
-    };
   }, []);
 
-  const handleFileChange = (event) => {
+  // Simplified title change handler - no debounce needed
+  const handleTitleChange = useCallback((e) => {
+    setTitle(e.target.value);
+  }, []);
+
+  // Cleanup on unmount - simplified
+  useEffect(() => {
+    return () => {
+      cleanupBlobUrl();
+    };
+  }, [cleanupBlobUrl]);
+
+  // Handle file selection
+  const handleFileChange = useCallback((event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('video/')) {
-      cleanupBlobUrl(); // Clean up old blob URL
-      const newBlobUrl = URL.createObjectURL(file);
-      blobUrlRef.current = newBlobUrl;
-      setPreviewUrl(newBlobUrl);
-      setSelectedFile(file);
+      cleanupBlobUrl(); // Cleanup old blob
+      try {
+        const newBlobUrl = URL.createObjectURL(file);
+        blobUrlRef.current = newBlobUrl;
+        setPreviewUrl(newBlobUrl);
+        setSelectedFile(file);
+      } catch (error) {
+        console.error('Error creating blob URL:', error);
+        // Fallback for Edge
+        setSelectedFile(file);
+        setPreviewUrl(''); // Will use file directly in video element
+      }
     }
-  };
-
-  const handleTitleChange = useCallback(
-    debounce((value) => {
-      setTitle(value);
-    }, 300), // Debounce title changes
-    []
-  );
+  }, [cleanupBlobUrl]);
 
   // Memoize handlers
   const handleDrop = useCallback((files) => {
@@ -452,7 +463,7 @@ const UploadPage = () => {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
+                onChange={handleTitleChange}
                 placeholder="Give your clip a title"
                 className={styles.input}
                 required
