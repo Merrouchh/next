@@ -11,6 +11,7 @@ import PendingUploadsBanner from '../components/PendingUploadsBanner';
 import dynamic from 'next/dynamic';
 import { useVideoUpload } from '../hooks/useVideoUpload';
 import { v4 as uuidv4 } from 'uuid';
+import debounce from 'lodash/debounce';
 
 // Dynamically import the VideoThumbnail component with no SSR
 const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
@@ -68,13 +69,15 @@ const UploadPage = () => {
   const [game, setGame] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
   const [showProgress, setShowProgress] = useState(false);
   const { user, isLoggedIn, supabase } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState(null);
   const currentUploadUid = useRef(null);
   const sessionId = useRef(uuidv4()).current;
+  const videoRef = useRef(null);
+  const blobUrlRef = useRef(null); // Track current blob URL
 
   const { 
     uploadStatus, 
@@ -83,6 +86,38 @@ const UploadPage = () => {
     cancelUpload,
     resetForm 
   } = useVideoUpload();
+
+  // Clean up blob URL when component unmounts or new file is selected
+  const cleanupBlobUrl = () => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      cleanupBlobUrl(); // Cleanup on unmount
+    };
+  }, []);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('video/')) {
+      cleanupBlobUrl(); // Clean up old blob URL
+      const newBlobUrl = URL.createObjectURL(file);
+      blobUrlRef.current = newBlobUrl;
+      setPreviewUrl(newBlobUrl);
+      setSelectedFile(file);
+    }
+  };
+
+  const handleTitleChange = useCallback(
+    debounce((value) => {
+      setTitle(value);
+    }, 300), // Debounce title changes
+    []
+  );
 
   // Memoize handlers
   const handleDrop = useCallback((files) => {
@@ -417,7 +452,7 @@ const UploadPage = () => {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="Give your clip a title"
                 className={styles.input}
                 required
