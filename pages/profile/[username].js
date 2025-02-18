@@ -114,19 +114,13 @@ export async function getServerSideProps({ req, res, params }) {
     // Process clips to ensure proper thumbnail URLs
     const processedClips = initialClips?.map(clip => ({
       ...clip,
-      // Add all required fields for ClipCard component
       thumbnail_url: clip.cloudflare_uid 
         ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-        : 'https://merrouchgaming.com/top.jpg',
-      video_url: clip.cloudflare_uid
-        ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`
-        : null,
-      // Ensure all required fields are present
-      likes_count: clip.likes_count || 0,
-      views_count: clip.views_count || 0,
-      visibility: clip.visibility || 'public',
-      uploaded_at: clip.uploaded_at || new Date().toISOString()
+        : 'https://merrouchgaming.com/top.jpg'
     }));
+
+    // Get the latest clip's thumbnail for the meta image
+    const latestClipThumbnail = processedClips?.[0]?.thumbnail_url || 'https://merrouchgaming.com/top.jpg';
 
     // Generate description
     const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
@@ -158,7 +152,7 @@ export async function getServerSideProps({ req, res, params }) {
         metaData: {
           title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
           description: `Check out ${profileData.username}'s gaming highlights and clips. ${totalPublicClips} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,
-          image: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
+          image: latestClipThumbnail,
           url: `https://merrouchgaming.com/profile/${username}`,
           type: 'profile',
           openGraph: {
@@ -166,10 +160,10 @@ export async function getServerSideProps({ req, res, params }) {
             description: `Gaming highlights and clips by ${profileData.username}. Join our gaming community!`,
             images: [
               {
-                url: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
+                url: latestClipThumbnail,
                 width: 1200,
                 height: 630,
-                alt: `${profileData.username}'s Profile`
+                alt: `${profileData.username}'s Latest Gaming Clip`
               }
             ]
           },
