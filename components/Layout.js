@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen';
 import React from 'react';
-import BusinessInfo from './BusinessInfo';
 import FAQSchema from './FAQSchema';
 import styles from '../styles/Layout.module.css';
 
@@ -70,7 +69,6 @@ const Layout = ({ children }) => {
     <div className={styles.layoutWrapper}>
       <div className={`${styles.layoutContent} ${isTransitioning ? styles.transitioning : ''}`}>
         <main className={styles.mainContent}>
-          <BusinessInfo />
           <FAQSchema />
           {children}
         </main>

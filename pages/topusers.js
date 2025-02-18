@@ -4,6 +4,7 @@ import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { NextSeo } from 'next-seo';
+import DynamicMeta from '../components/DynamicMeta';
 
 export async function getServerSideProps({ res }) {
   // Set cache headers for top users page
@@ -18,12 +19,39 @@ export async function getServerSideProps({ res }) {
 
   return {
     props: {
-      timestamp: Date.now() // Force revalidation
+      timestamp: Date.now(),
+      metaData: {
+        title: "Gaming Community Leaderboard | Merrouch Gaming Center",
+        description: "Join our monthly gaming competitions and earn rewards! Discover Tangier's most active gamers and become part of our thriving gaming community. Free gaming time rewards for top performers.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: "https://merrouchgaming.com/topusers",
+        type: "website",
+        openGraph: {
+          title: "Gaming Community Leaderboard | Merrouch Gaming Center",
+          description: "Join our monthly gaming competitions and earn rewards! Discover Tangier's most active gamers and become part of our thriving community.",
+          images: [
+            {
+              url: "https://merrouchgaming.com/top.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Merrouch Gaming Community Leaderboard"
+            }
+          ],
+          type: "website"
+        },
+        twitter: {
+          card: "summary_large_image",
+          site: "@merrouchgaming",
+          title: "Gaming Community Leaderboard | Merrouch Gaming Center",
+          description: "Monthly gaming competitions with rewards! Join our active gaming community in Tangier and compete for free gaming time.",
+          image: "https://merrouchgaming.com/top.jpg"
+        }
+      }
     }
   };
 }
 
-const TopUsers = () => {
+const TopUsers = ({ metaData }) => {
   const [topUsers, setTopUsers] = useState([]);
   const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
@@ -144,29 +172,14 @@ const TopUsers = () => {
 
   return (
     <ProtectedPageWrapper>
-      <NextSeo
-        title="Top Gamers & Rewards | Merrouch Gaming Center"
-        description="Discover our top gamers in Tangier and their rewards. Monthly gaming competitions with free gaming hours as prizes. Meilleurs joueurs et récompenses à Tanger."
-        openGraph={{
-          title: 'Top Gamers & Rewards | Merrouch Gaming Center',
-          description: 'Monthly gaming competitions and rewards at Merrouch Gaming',
-          images: [
-            {
-              url: 'https://merrouchgaming.com/gaming-center-banner.jpg',
-              width: 1200,
-              height: 630,
-              alt: 'Top Gamers at Merrouch Gaming',
-            },
-          ],
-        }}
-      />
+      <DynamicMeta {...metaData} />
       <div className={styles.container}>
         <Head>
           <title>Top Users</title>
           <meta name="robots" content="index, follow" />
         </Head>
         <main className={styles.main}>
-          <h2 className={styles.heading}>Top Users of the Month</h2>
+          <h2 className={styles.heading}>Community Leaderboard</h2>
           <p className={styles.counterText}>
             {`Current Month: ${currentMonth} | Time Left Until Next Month: ${timeLeft}`}
           </p>

@@ -76,11 +76,7 @@ const nextConfig = {
       {
         source: '/storage/:path*',
         destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/:path*`,
-      },
-      {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap',
-      },
+      }
     ];
   },
 

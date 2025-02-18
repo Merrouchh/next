@@ -7,6 +7,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
+import DynamicMeta from '../components/DynamicMeta';
 
 // We can remove cache headers since they're handled globally in next.config.js
 export const getServerSideProps = async ({ res }) => {
@@ -24,6 +25,27 @@ export const getServerSideProps = async ({ res }) => {
       props: {
         computers,
         timestamp: Date.now(), // Keep timestamp to force revalidation
+        metaData: {
+          title: "Computer Status | Merrouch Gaming Center",
+          description: "Real-time status of gaming computers. Monitor availability of Normal and VIP PCs.",
+          image: "https://merrouchgaming.com/top.jpg",
+          url: "https://merrouchgaming.com/avcomputers",
+          type: "website",
+          noindex: true, // Tell search engines not to index this page
+          openGraph: {
+            title: "Computer Status | Merrouch Gaming Center",
+            description: "Real-time computer availability dashboard",
+            images: [
+              {
+                url: "https://merrouchgaming.com/top.jpg",
+                width: 1200,
+                height: 630,
+                alt: "Merrouch Gaming Computer Status"
+              }
+            ],
+            type: "website"
+          }
+        }
       },
     };
   } catch (error) {
@@ -35,6 +57,12 @@ export const getServerSideProps = async ({ res }) => {
           vip: []
         },
         timestamp: Date.now(),
+        metaData: {
+          title: "Computer Status | Merrouch Gaming Center",
+          description: "Real-time status of gaming computers",
+          noindex: true,
+          type: "website"
+        }
       },
     };
   }
@@ -120,7 +148,7 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
 };
 
 // Main component
-const AvailableComputers = () => {
+const AvailableComputers = ({ metaData }) => {
   const { user } = useAuth();  // Simplified auth usage
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
@@ -268,11 +296,7 @@ const AvailableComputers = () => {
 
   return (
     <ProtectedPageWrapper>
-      <Head>
-        <title>Available Computers</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
+      <DynamicMeta {...metaData} />
       <main className={styles.mainContainer}>
         <h2 className={styles.sectionHeading}>Normal Computers</h2>
         <div className={styles.computerGrid}>

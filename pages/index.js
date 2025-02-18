@@ -19,6 +19,7 @@ import NumberDisplay from '../components/NumberDisplay';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import HeroSection from '../components/HeroSection';
+import FAQSchema from '../components/FAQSchema';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -64,9 +65,11 @@ const Home = ({ metaData }) => {
         <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
       </Head>
 
-      <ProtectedPageWrapper progress={scrollProgress}>
-        <DynamicMeta {...metaData} />
+      <DynamicMeta {...metaData} />
 
+      <FAQSchema />
+
+      <ProtectedPageWrapper progress={scrollProgress}>
         <main className={styles.mainWrapper}>
           <HeroSection 
             onCheckAvailability={handleCheckAvailability}
@@ -183,24 +186,11 @@ const Home = ({ metaData }) => {
 
 export default Home;
 
-export async function getServerSideProps({ res }) {
-  // Different cache strategies based on path
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=300, stale-while-revalidate=3600'
-  );
-  res.setHeader(
-    'Surrogate-Control',
-    'public, max-age=300, stale-while-revalidate=3600'
-  );
-  // Add Vary header to handle different cached versions
-  res.setHeader('Vary', 'Cookie, Accept-Encoding');
-
+export async function getServerSideProps() {
   return {
     props: {
-      timestamp: Date.now(),
       metaData: {
-        title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
+        title: "Merrouch Gaming Center | Premium Gaming Experience",
         description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community. Share highlights, connect with gamers, and enjoy top-tier gaming equipment.",
         image: "https://merrouchgaming.com/top.jpg",
         url: "https://merrouchgaming.com",

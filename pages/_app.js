@@ -8,6 +8,8 @@ import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import { VideoProvider } from '../contexts/VideoContext';
 import { Toaster } from 'react-hot-toast';
+import { DefaultSeo } from 'next-seo';
+import { defaultSEO } from '../utils/seo-config';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -92,6 +94,7 @@ function MyApp({ Component, pageProps }) {
       <StrictMode>
         <ErrorBoundary>
           <div suppressHydrationWarning>
+            <DefaultSeo {...defaultSEO} />
             <AuthProvider onError={handleLockError}>
               <VideoProvider>
                 <Toaster 
@@ -131,7 +134,12 @@ function MyApp({ Component, pageProps }) {
     );
   }
 
-  return <Component {...pageProps} />;
+  return (
+    <>
+      <DefaultSeo {...defaultSEO} />
+      <Component {...pageProps} />
+    </>
+  );
 }
 
 export default MyApp;

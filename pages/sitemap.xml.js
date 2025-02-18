@@ -30,7 +30,7 @@ async function generateSiteMap() {
    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
            xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
            xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-     <!-- Static Pages -->
+     <!-- Public Pages -->
      <url>
        <loc>${EXTERNAL_DATA_URL}</loc>
        <lastmod>${lastMod}</lastmod>
@@ -41,15 +41,21 @@ async function generateSiteMap() {
        <loc>${EXTERNAL_DATA_URL}/shop</loc>
        <lastmod>${lastMod}</lastmod>
        <changefreq>weekly</changefreq>
-       <priority>0.7</priority>
-     </url>
-     <url>
-       <loc>${EXTERNAL_DATA_URL}/avcomputers</loc>
-       <lastmod>${lastMod}</lastmod>
-       <changefreq>hourly</changefreq>
        <priority>0.8</priority>
      </url>
-     
+     <url>
+       <loc>${EXTERNAL_DATA_URL}/discover</loc>
+       <lastmod>${lastMod}</lastmod>
+       <changefreq>daily</changefreq>
+       <priority>0.9</priority>
+     </url>
+     <url>
+       <loc>${EXTERNAL_DATA_URL}/topusers</loc>
+       <lastmod>${lastMod}</lastmod>
+       <changefreq>hourly</changefreq>
+       <priority>0.7</priority>
+     </url>
+
      <!-- Public Clips -->
      ${clips ? clips.map(clip => `
        <url>
@@ -57,6 +63,12 @@ async function generateSiteMap() {
          <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
          <changefreq>weekly</changefreq>
          <priority>0.7</priority>
+         <video:video>
+           <video:title>${clip.title}</video:title>
+           <video:description>Gaming clip shared on Merrouch Gaming</video:description>
+           <video:player_loc>${EXTERNAL_DATA_URL}/clip/${clip.id}</video:player_loc>
+           <video:thumbnail_loc>${EXTERNAL_DATA_URL}/top.jpg</video:thumbnail_loc>
+         </video:video>
        </url>
      `).join('') : ''}
 

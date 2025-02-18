@@ -21,7 +21,7 @@ import {
 
 
 export async function getServerSideProps({ res }) {
-  // Set cache control headers
+  // Keep existing cache headers
   res.setHeader(
     'Cache-Control',
     'no-store, no-cache, must-revalidate, proxy-revalidate'
@@ -29,17 +29,36 @@ export async function getServerSideProps({ res }) {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
 
-  const metaData = {
-    title: 'My Dashboard | Merrouch Gaming',
-    description: 'Manage your gaming clips and profile on Merrouch Gaming.',
-    url: 'https://merrouchgaming.com/dashboard',
-    type: 'website',
-    image: 'https://merrouchgaming.com/top.jpg'
-  };
-
   return {
     props: {
-      metaData
+      metaData: {
+        title: "Gaming Dashboard | Merrouch Gaming Center",
+        description: "Access your gaming profile, check remaining time, view active sessions, and track your rewards. Manage your gaming experience at Merrouch Gaming Center.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: "https://merrouchgaming.com/dashboard",
+        type: "website",
+        noindex: true, // Prevent indexing of private dashboard
+        openGraph: {
+          title: "Gaming Dashboard | Merrouch Gaming Center",
+          description: "Manage your gaming profile and track your gaming sessions at Merrouch Gaming Center.",
+          images: [
+            {
+              url: "https://merrouchgaming.com/top.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Merrouch Gaming Dashboard"
+            }
+          ],
+          type: "website"
+        },
+        twitter: {
+          card: "summary_large_image",
+          site: "@merrouchgaming",
+          title: "Gaming Dashboard | Merrouch Gaming Center",
+          description: "Your personal gaming hub at Merrouch Gaming Center.",
+          image: "https://merrouchgaming.com/top.jpg"
+        }
+      }
     }
   };
 }
