@@ -56,25 +56,25 @@ export function AuthProvider({ children, onError }) {
 
   // Initialize auth state
   useEffect(() => {
-    if (!mounted) return;
-    if (initRef.current) return;
-    initRef.current = true;
-
-    const getInitialSession = async () => {
+    if (!mounted || initRef.current) return;
+    
+    const initializeAuth = async () => {
       try {
+        initRef.current = true;
         const { data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession();
-        
-        console.log('Auth: Session check', session); // Debug session
 
         if (sessionError) {
           console.error('Session error:', sessionError);
           if (onError) onError(sessionError);
+          setAuthState(prev => ({
+            ...prev,
+            loading: false,
+            initialized: true
+          }));
           return;
         }
-        
+
         if (session?.user) {
-          console.log('Auth: Found existing session, getting user data');
-          // Get user data in one go
           const { data: userData, error: userError } = await supabaseRef.current
             .from('users')
             .select('*')
@@ -83,10 +83,13 @@ export function AuthProvider({ children, onError }) {
 
           if (userError) {
             console.error('Error fetching user data:', userError);
+            setAuthState(prev => ({
+              ...prev,
+              loading: false,
+              initialized: true
+            }));
             return;
           }
-
-          console.log('Auth: User data loaded:', userData); // Debug user data
 
           setAuthState({
             isLoggedIn: true,
@@ -95,7 +98,6 @@ export function AuthProvider({ children, onError }) {
             initialized: true
           });
         } else {
-          console.log('Auth: No session found');
           setAuthState({
             isLoggedIn: false,
             user: null,
@@ -114,8 +116,8 @@ export function AuthProvider({ children, onError }) {
       }
     };
 
-    getInitialSession();
-  }, [mounted]);
+    initializeAuth();
+  }, [mounted, onError]);
 
   // Session check function
   const checkSession = useCallback(async () => {

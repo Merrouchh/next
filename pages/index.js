@@ -29,53 +29,45 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 const Home = ({ metaData }) => {
   const { user, loading, initialized } = useAuth();
   const router = useRouter();
-  const [_progress, setProgress] = useState(0);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Wait for auth to initialize before redirecting
+  // Handle auth state and routing
   useEffect(() => {
-    if (!initialized) return; // Don't do anything until auth is initialized
-    
-    if (!loading && user) {
-      router.replace('/dashboard', undefined, { shallow: true })
-        .catch(error => {
+    if (!initialized) return; // Wait for auth to initialize
+
+    const handleRedirect = async () => {
+      if (!loading && user) {
+        try {
+          await router.replace('/dashboard');
+        } catch (error) {
           console.error('Navigation error:', error);
-          // Fallback if navigation fails
+          // Fallback to window.location if router fails
           window.location.href = '/dashboard';
-        });
-    }
+        }
+      }
+    };
+
+    handleRedirect();
   }, [user, loading, initialized, router]);
 
-  // Show loading state while checking auth
+  // Show loading states
   if (!initialized || loading) {
     return <LoadingScreen message="Loading..." />;
   }
 
-  // Show loading state during redirect
+  // Show redirect state
   if (user) {
-    return <LoadingScreen message="Redirecting..." />;
+    return <LoadingScreen message="Redirecting to dashboard..." />;
   }
-
-  const handleCheckAvailability = () => {
-    if (!user) {
-      setShowAccountPrompt(true);
-    } else {
-      router.push('/avcomputers');
-    }
-  };
-
-  const handleLogin = () => {
-    setShowAccountPrompt(false);
-    setIsLoginModalOpen(true);
-  };
 
   return (
     <>
       <Head>
         <title>Merrouch Gaming - Your Gaming Community</title>
         <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <DynamicMeta {...metaData} />
@@ -85,7 +77,7 @@ const Home = ({ metaData }) => {
       <ProtectedPageWrapper progress={scrollProgress}>
         <main className={styles.mainWrapper}>
           <HeroSection 
-            onCheckAvailability={handleCheckAvailability}
+            onCheckAvailability={() => setShowAccountPrompt(true)}
             router={router}
           />
 
@@ -181,11 +173,13 @@ const Home = ({ metaData }) => {
           </section>
         </main>
 
-        {/* Modals */}
         {showAccountPrompt && (
           <AccountPromptModal 
             onClose={() => setShowAccountPrompt(false)} 
-            onLogin={handleLogin} 
+            onLogin={() => {
+              setShowAccountPrompt(false);
+              setIsLoginModalOpen(true);
+            }} 
           />
         )}
         <LoginModal 
