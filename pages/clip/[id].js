@@ -110,8 +110,8 @@ export async function getServerSideProps({ req, res, params }) {
 
     // Generate video and thumbnail URLs
     const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-    const thumbnailUrl = clip.thumbnail_path
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`
+    const thumbnailUrl = clip.cloudflare_uid
+      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : 'https://merrouchgaming.com/top.jpg';
 
     // Rich description for SEO

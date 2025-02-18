@@ -123,8 +123,8 @@ export async function getServerSideProps({ req, res, params }) {
         metaData: {
           title: `${profileData.username}'s Profile | Merrouch Gaming`,
           description,
-          image: latestClip?.thumbnail_path 
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${latestClip.thumbnail_path}`
+          image: latestClip?.cloudflare_uid 
+            ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
             : 'https://merrouchgaming.com/top.jpg',
           url: `https://merrouchgaming.com/profile/${username}`,
           type: 'profile',
@@ -161,7 +161,9 @@ export async function getServerSideProps({ req, res, params }) {
             description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
             images: [
               {
-                url: 'https://merrouchgaming.com/top.jpg',
+                url: latestClip?.cloudflare_uid 
+                  ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+                  : 'https://merrouchgaming.com/top.jpg',
                 width: 1200,
                 height: 630,
                 alt: `${profileData.username}'s profile thumbnail`
@@ -177,7 +179,9 @@ export async function getServerSideProps({ req, res, params }) {
             site: '@merrouchgaming',
             title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
             description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
-            image: 'https://merrouchgaming.com/top.jpg'
+            image: latestClip?.cloudflare_uid 
+              ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+              : 'https://merrouchgaming.com/top.jpg'
           }
         }
       }
