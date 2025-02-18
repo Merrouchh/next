@@ -3,7 +3,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import '../styles/globals.css';
-import { Inter, Orbitron, Zen_Dots } from 'next/font/google';
+import { Inter, Orbitron } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import { VideoProvider } from '../contexts/VideoContext';
@@ -20,12 +20,6 @@ const inter = Inter({
 const orbitron = Orbitron({
   subsets: ['latin'],
   variable: '--font-orbitron',
-});
-
-const zenDots = Zen_Dots({
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-zen-dots',
 });
 
 // Add error handler for lock failures
@@ -137,7 +131,7 @@ function MyApp({ Component, pageProps }) {
                   }}
                 />
                 <Layout>
-                  <main className={`${inter.variable} ${orbitron.variable} ${zenDots.variable}`} suppressHydrationWarning>
+                  <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
                     <Component {...pageProps} />
                   </main>
                 </Layout>
@@ -163,7 +157,7 @@ function MyApp({ Component, pageProps }) {
             <VideoProvider>
               <Toaster />
               <Layout>
-                <main className={`${inter.variable} ${orbitron.variable} ${zenDots.variable}`}>
+                <main className={`${inter.variable} ${orbitron.variable}`}>
                   <Component {...pageProps} />
                 </main>
               </Layout>

@@ -20,54 +20,85 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 // Remove getStaticPaths and getStaticProps
 // Add getServerSideProps
 export async function getServerSideProps({ req, res, params }) {
-  try {
-    const { username } = params;
-    const normalizedUsername = username.toLowerCase();
-    const supabase = createClient({ req, res });
-    const session = await supabase.auth.getSession();
+  const supabase = createClient({ req, res });
+  const { username } = params;
+  const normalizedUsername = username.toLowerCase();
 
-    // Fetch user data from users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')  // Changed from 'profiles' to 'users'
+  try {
+    // Get session data
+    const { data, error: sessionError } = await supabase.auth.getSession();
+    const session = data?.session;
+
+    // Get profile data
+    const { data: profileData, error: profileError } = await supabase
+      .from('users')
       .select('*')
       .eq('username', normalizedUsername)
       .single();
 
-    if (userError) {
-      console.error('User fetch error:', userError);
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
       return { notFound: true };
     }
 
-    // Get total clips count
-    const { count: totalClips } = await supabase
-      .from('clips')
-      .select('id', { count: 'exact' })
-      .eq('username', normalizedUsername)
-      .eq('visibility', 'public');
+    // Set cache headers based on authentication status
+    if (session?.user?.id === profileData.id) {
+      // Owner viewing their profile: no cache
+      res.setHeader(
+        'Cache-Control',
+        'private, no-cache, no-store, must-revalidate'
+      );
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Public viewing profile: short cache
+      res.setHeader(
+        'Cache-Control',
+        'public, max-age=10, stale-while-revalidate=59'
+      );
+    }
 
-    // Fetch initial clips
-    const { data: initialClips, error: clipsError } = await supabase
+    // Get current user's full data if logged in
+    let currentUserData = null;
+    let isOwner = false;
+
+    if (session?.user?.id) {
+      const { data: userData, error: userDataError } = await supabase
+        .from('users')
+        .select('username, id, email')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!userDataError) {
+        currentUserData = userData;
+        isOwner = currentUserData?.username?.toLowerCase() === normalizedUsername;
+      }
+    }
+
+    // Build clips query - always filter by visibility for non-owners
+    let clipsQuery = supabase
       .from('clips')
-      .select(`
-        id,
-        title,
-        game,
-        username,
-        visibility,
-        uploaded_at,
-        views_count,
-        likes_count,
-        cloudflare_uid
-      `)
+      .select('*', { count: 'exact' })
       .eq('username', normalizedUsername)
-      .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
-      .limit(3);
+      .range(0, 2);
+
+    // If not owner or not logged in, only show public clips
+    if (!isOwner) {
+      console.log('Showing only public clips');
+      clipsQuery = clipsQuery.eq('visibility', 'public');
+    } else {
+      console.log('Owner, showing all clips');
+    }
+
+    const { data: initialClips, count: totalClips, error: clipsError } = await clipsQuery;
 
     if (clipsError) {
       console.error('Clips fetch error:', clipsError);
       return { notFound: true };
     }
+
+    const latestClip = initialClips?.[0];
 
     // Process clips to ensure proper thumbnail URLs
     const processedClips = initialClips?.map(clip => ({
@@ -77,15 +108,11 @@ export async function getServerSideProps({ req, res, params }) {
         : 'https://merrouchgaming.com/top.jpg'
     }));
 
-    const latestClip = processedClips?.[0];
-    const totalViews = processedClips?.reduce((total, clip) => total + (clip.views_count || 0), 0) || 0;
-    const totalLikes = processedClips?.reduce((total, clip) => total + (clip.likes_count || 0), 0) || 0;
-
-    // Generate rich description
-    const description = `Check out ${userData.username}'s gaming profile on Merrouch Gaming. ${
-      totalClips ? `${totalClips} clips shared with ${totalViews} total views. ` : ''
+    // Generate description
+    const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
+      totalClips ? `${totalClips} clips shared. ` : ''
     }${latestClip ? `Latest clip: ${latestClip.title} (${latestClip.game})` : ''
-    }. Watch amazing gaming moments captured on our RTX 3070 PCs.`;
+    }Join our gaming community to watch and share your best gaming moments.`;
 
     // Set cache headers
     res.setHeader(
@@ -93,16 +120,14 @@ export async function getServerSideProps({ req, res, params }) {
       'public, s-maxage=60, stale-while-revalidate=300'
     );
 
-    const isOwner = session?.session?.user?.id === userData.id;
-
     return {
       props: {
         initialSession: session,
-        profile: userData,  // Changed from profileData to userData
+        profile: profileData,
         isOwnProfile: isOwner,
         isAuthenticated: !!session,
         userData: {
-          ...userData,
+          ...profileData,
           username: normalizedUsername,
           clipsCount: totalClips || 0,
           initialClips: processedClips || [],
@@ -111,43 +136,38 @@ export async function getServerSideProps({ req, res, params }) {
         },
         userClips: processedClips || [],
         metaData: {
-          title: `${userData.username}'s Gaming Profile | Merrouch Gaming`,
-          description,
-          image: latestClip?.thumbnail_url || userData.avatar_url || 'https://merrouchgaming.com/top.jpg',
+          title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+          description: `Check out ${profileData.username}'s gaming highlights and clips. ${initialClips.length} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,
+          image: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
           url: `https://merrouchgaming.com/profile/${username}`,
           type: 'profile',
           openGraph: {
-            title: `${userData.username} - Gaming Profile`,
-            description: `Gaming highlights and clips by ${userData.username}. ${totalClips} clips shared with ${totalViews} views and ${totalLikes} likes.`,
+            title: `${profileData.username} - Gaming Profile`,
+            description: `Gaming highlights and clips by ${profileData.username}. Join our gaming community!`,
             images: [
               {
-                url: latestClip?.thumbnail_url || userData.avatar_url || 'https://merrouchgaming.com/top.jpg',
+                url: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
                 width: 1200,
                 height: 630,
-                alt: `${userData.username}'s Gaming Profile`
+                alt: `${profileData.username}'s Profile`
               }
             ]
           },
           structuredData: {
             "@context": "https://schema.org",
             "@type": "ProfilePage",
-            "name": `${userData.username}'s Gaming Profile`,
-            "description": description,
+            "name": `${profileData.username}'s Gaming Profile`,
+            "description": `Gaming profile and highlights of ${profileData.username}`,
             "author": {
               "@type": "Person",
-              "name": userData.username,
+              "name": profileData.username,
               "url": `https://merrouchgaming.com/profile/${username}`
             },
             "interactionStatistic": [
               {
                 "@type": "InteractionCounter",
                 "interactionType": "http://schema.org/WatchAction",
-                "userInteractionCount": totalViews
-              },
-              {
-                "@type": "InteractionCounter",
-                "interactionType": "http://schema.org/LikeAction",
-                "userInteractionCount": totalLikes
+                "userInteractionCount": initialClips.reduce((total, clip) => total + (clip.views_count || 0), 0)
               }
             ]
           }

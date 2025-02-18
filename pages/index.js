@@ -27,51 +27,42 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 
 // Main Home component first
 const Home = ({ metaData }) => {
-  const { user, loading, initialized } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const [_progress, setProgress] = useState(0);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Handle auth state and routing
+  // Add effect to handle redirection
   useEffect(() => {
-    if (!initialized) return;
+    if (!loading && user) {
+      console.log('Home: User is logged in, redirecting to dashboard');
+      router.replace('/dashboard');
+    }
+  }, [user, loading, router]);
 
-    const handleRedirect = async () => {
-      if (!loading && user) {
-        try {
-          // Add a small delay to ensure auth state is fully processed
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await router.replace('/dashboard');
-        } catch (error) {
-          console.error('Navigation error:', error);
-          // Use a timeout for the fallback to prevent immediate redirect
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 100);
-        }
-      }
-    };
+  const handleCheckAvailability = () => {
+    if (!user) {
+      setShowAccountPrompt(true);
+    } else {
+      router.push('/avcomputers');
+    }
+  };
 
-    handleRedirect();
-  }, [user, loading, initialized, router]);
+  const handleLogin = () => {
+    setShowAccountPrompt(false);
+    setIsLoginModalOpen(true);
+  };
 
-  // Show loading states with proper checks
-  if (!initialized || loading) {
-    return <LoadingScreen message="Loading..." />;
-  }
-
-  // Only redirect if we have a valid user
-  if (user?.id) {
-    return <LoadingScreen message="Redirecting to dashboard..." />;
-  }
+  if (loading) return <LoadingScreen message="Loading..." />;
+  if (user) return <LoadingScreen message="Redirecting..." />;
 
   return (
     <>
       <Head>
         <title>Merrouch Gaming - Your Gaming Community</title>
         <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <DynamicMeta {...metaData} />
@@ -81,7 +72,7 @@ const Home = ({ metaData }) => {
       <ProtectedPageWrapper progress={scrollProgress}>
         <main className={styles.mainWrapper}>
           <HeroSection 
-            onCheckAvailability={() => setShowAccountPrompt(true)}
+            onCheckAvailability={handleCheckAvailability}
             router={router}
           />
 
@@ -177,13 +168,11 @@ const Home = ({ metaData }) => {
           </section>
         </main>
 
+        {/* Modals */}
         {showAccountPrompt && (
           <AccountPromptModal 
             onClose={() => setShowAccountPrompt(false)} 
-            onLogin={() => {
-              setShowAccountPrompt(false);
-              setIsLoginModalOpen(true);
-            }} 
+            onLogin={handleLogin} 
           />
         )}
         <LoginModal 
@@ -195,13 +184,9 @@ const Home = ({ metaData }) => {
   );
 };
 
-export async function getServerSideProps({ res }) {
-  // Set proper cache headers
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=60, stale-while-revalidate=300'
-  );
+export default Home;
 
+export async function getServerSideProps() {
   return {
     props: {
       metaData: {
@@ -226,5 +211,3 @@ export async function getServerSideProps({ res }) {
     }
   };
 }
-
-export default Home;

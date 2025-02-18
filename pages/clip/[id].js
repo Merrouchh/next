@@ -114,11 +114,12 @@ export async function getServerSideProps({ req, res, params }) {
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : 'https://merrouchgaming.com/top.jpg';
 
-    // Rich description for SEO with stats
+    // Rich description for SEO
     const description = `Watch this amazing ${clip.game} gameplay clip by ${clip.username}. ${
-      clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
-    }${clip.likes_count ? ` and ${clip.likes_count.toLocaleString()} likes` : ''
-    }. Captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`;
+      clip.description || ''
+    } Shared on Merrouch Gaming with ${clip.views_count || 0} views and ${
+      clip.likes_count || 0
+    } likes.`;
 
     return {
       props: {
@@ -128,16 +129,13 @@ export async function getServerSideProps({ req, res, params }) {
         isPrivate,
         metaData: {
           title: `${clip.title} | Gaming Clip by ${clip.username}`,
-          description,
+          description: `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. High-quality gaming clips from our RTX 3070 gaming PCs.`,
           image: thumbnailUrl,
           url: `https://merrouchgaming.com/clip/${clip.id}`,
           type: 'video.other',
           openGraph: {
             title: `${clip.title} - Gaming Highlight`,
-            description: `Amazing ${clip.game} moment by ${clip.username}. ${
-              clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
-            }${clip.likes_count ? ` • ${clip.likes_count.toLocaleString()} likes` : ''
-            }`,
+            description: `Amazing gaming moment by ${clip.username} at Merrouch Gaming`,
             videos: [{
               url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
               width: 1280,
