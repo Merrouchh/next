@@ -94,7 +94,10 @@ export async function getServerSideProps({ req, res, params }) {
         views_count,
         uploaded_at,
         username,
-        cloudflare_uid
+        cloudflare_uid,
+        user_id,
+        file_path,
+        thumbnail_path
       `)
       .eq('username', normalizedUsername)
       .eq('visibility', 'public')
@@ -111,9 +114,18 @@ export async function getServerSideProps({ req, res, params }) {
     // Process clips to ensure proper thumbnail URLs
     const processedClips = initialClips?.map(clip => ({
       ...clip,
+      // Add all required fields for ClipCard component
       thumbnail_url: clip.cloudflare_uid 
         ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-        : 'https://merrouchgaming.com/top.jpg'
+        : 'https://merrouchgaming.com/top.jpg',
+      video_url: clip.cloudflare_uid
+        ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`
+        : null,
+      // Ensure all required fields are present
+      likes_count: clip.likes_count || 0,
+      views_count: clip.views_count || 0,
+      visibility: clip.visibility || 'public',
+      uploaded_at: clip.uploaded_at || new Date().toISOString()
     }));
 
     // Generate description
