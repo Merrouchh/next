@@ -58,19 +58,51 @@ export async function getServerSideProps({ req, res }) {
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${featuredClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : 'https://merrouchgaming.com/top.jpg';
 
+    // Set cache headers
+    res.setHeader(
+      'Cache-Control',
+      'public, s-maxage=30, stale-while-revalidate=120'
+    );
+
     return {
       props: {
         initialClips: clips || [],
         totalClips: count || 0,
         hasMore: (clips?.length || 0) < (count || 0),
         metaData: {
-          title: 'Discover Gaming Clips | Merrouch Gaming',
-          description: featuredClip
-            ? `Watch the latest gaming highlights at Merrouch Gaming! Featured: ${featuredClip.title} - an amazing ${featuredClip.game} clip by ${featuredClip.username}.`
-            : 'Explore amazing gaming moments from the Merrouch Gaming community.',
-          image: previewImage,
-          url: 'https://merrouchgaming.com/discover',
-          type: 'website'
+          title: "Discover Gaming Highlights | RTX 3070 Gaming Clips",
+          description: "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.",
+          image: "https://merrouchgaming.com/discover-preview.jpg",
+          url: "https://merrouchgaming.com/discover",
+          type: "website",
+          openGraph: {
+            title: "Gaming Highlights & Clips | Merrouch Gaming",
+            description: "Discover amazing gaming moments from our RTX 3070 gaming setups. Watch, share, and create your own highlights!",
+            images: [
+              {
+                url: "https://merrouchgaming.com/discover-preview.jpg",
+                width: 1200,
+                height: 630,
+                alt: "Gaming Highlights"
+              }
+            ]
+          },
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Gaming Highlights & Clips",
+            "description": "Collection of gaming highlights from Merrouch Gaming Center",
+            "provider": {
+              "@type": "Organization",
+              "name": "Merrouch Gaming",
+              "url": "https://merrouchgaming.com"
+            },
+            "about": {
+              "@type": "Thing",
+              "name": "Gaming Highlights",
+              "description": "High-quality gaming clips recorded on RTX 3070 PCs"
+            }
+          }
         }
       }
     };

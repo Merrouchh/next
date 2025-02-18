@@ -106,6 +106,12 @@ export async function getServerSideProps({ req, res, params }) {
     }${latestClip ? `Latest clip: ${latestClip.title} (${latestClip.game})` : ''
     }Join our gaming community to watch and share your best gaming moments.`;
 
+    // Set cache headers
+    res.setHeader(
+      'Cache-Control',
+      'public, s-maxage=60, stale-while-revalidate=300'
+    );
+
     return {
       props: {
         initialSession: session,
@@ -120,68 +126,42 @@ export async function getServerSideProps({ req, res, params }) {
           hasMore: totalClips > 3,
           latestClip: latestClip || null
         },
+        userClips: initialClips || [],
         metaData: {
-          title: `${profileData.username}'s Profile | Merrouch Gaming`,
-          description,
-          image: latestClip?.cloudflare_uid 
-            ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-            : 'https://merrouchgaming.com/top.jpg',
+          title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
+          description: `Check out ${profileData.username}'s gaming highlights and clips. ${initialClips.length} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,
+          image: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
           url: `https://merrouchgaming.com/profile/${username}`,
           type: 'profile',
-          structuredData: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ProfilePage",
-            "mainEntity": {
-              "@type": "Person",
-              "name": profileData.username,
-              "url": `https://merrouchgaming.com/profile/${profileData.username}`,
-              "description": `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
-              "interactionStatistic": [
-                {
-                  "@type": "InteractionCounter",
-                  "interactionType": "http://schema.org/CreateAction",
-                  "userInteractionCount": 0,
-                  "name": "Clips Shared"
-                }
-              ],
-              "potentialAction": {
-                "@type": "ViewAction",
-                "target": `https://merrouchgaming.com/profile/${profileData.username}`
-              }
-            },
-            "about": {
-              "@type": "VideoGallery",
-              "name": `${profileData.username}'s Gaming Clips`,
-              "numberOfItems": 0,
-              "url": `https://merrouchgaming.com/profile/${profileData.username}`
-            }
-          }),
           openGraph: {
-            title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
-            description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
+            title: `${profileData.username} - Gaming Profile`,
+            description: `Gaming highlights and clips by ${profileData.username}. Join our gaming community!`,
             images: [
               {
-                url: latestClip?.cloudflare_uid 
-                  ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-                  : 'https://merrouchgaming.com/top.jpg',
+                url: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
                 width: 1200,
                 height: 630,
-                alt: `${profileData.username}'s profile thumbnail`
+                alt: `${profileData.username}'s Profile`
               }
-            ],
-            type: 'profile',
-            profile: {
-              username: profileData.username
-            }
+            ]
           },
-          twitter: {
-            card: 'summary_large_image',
-            site: '@merrouchgaming',
-            title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
-            description: `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. Join our gaming community to watch and share your best gaming moments.`,
-            image: latestClip?.cloudflare_uid 
-              ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-              : 'https://merrouchgaming.com/top.jpg'
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "name": `${profileData.username}'s Gaming Profile`,
+            "description": `Gaming profile and highlights of ${profileData.username}`,
+            "author": {
+              "@type": "Person",
+              "name": profileData.username,
+              "url": `https://merrouchgaming.com/profile/${username}`
+            },
+            "interactionStatistic": [
+              {
+                "@type": "InteractionCounter",
+                "interactionType": "http://schema.org/WatchAction",
+                "userInteractionCount": initialClips.reduce((total, clip) => total + (clip.views_count || 0), 0)
+              }
+            ]
           }
         }
       }
