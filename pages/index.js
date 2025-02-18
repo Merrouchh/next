@@ -35,16 +35,20 @@ const Home = ({ metaData }) => {
 
   // Handle auth state and routing
   useEffect(() => {
-    if (!initialized) return; // Wait for auth to initialize
+    if (!initialized) return;
 
     const handleRedirect = async () => {
       if (!loading && user) {
         try {
+          // Add a small delay to ensure auth state is fully processed
+          await new Promise(resolve => setTimeout(resolve, 100));
           await router.replace('/dashboard');
         } catch (error) {
           console.error('Navigation error:', error);
-          // Fallback to window.location if router fails
-          window.location.href = '/dashboard';
+          // Use a timeout for the fallback to prevent immediate redirect
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 100);
         }
       }
     };
@@ -52,13 +56,13 @@ const Home = ({ metaData }) => {
     handleRedirect();
   }, [user, loading, initialized, router]);
 
-  // Show loading states
+  // Show loading states with proper checks
   if (!initialized || loading) {
     return <LoadingScreen message="Loading..." />;
   }
 
-  // Show redirect state
-  if (user) {
+  // Only redirect if we have a valid user
+  if (user?.id) {
     return <LoadingScreen message="Redirecting to dashboard..." />;
   }
 

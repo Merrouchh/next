@@ -74,7 +74,7 @@ export function AuthProvider({ children, onError }) {
           return;
         }
 
-        if (session?.user) {
+        if (session?.user?.id) {
           const { data: userData, error: userError } = await supabaseRef.current
             .from('users')
             .select('*')
@@ -91,12 +91,21 @@ export function AuthProvider({ children, onError }) {
             return;
           }
 
-          setAuthState({
-            isLoggedIn: true,
-            user: userData,
-            loading: false,
-            initialized: true
-          });
+          if (userData) {
+            setAuthState({
+              isLoggedIn: true,
+              user: userData,
+              loading: false,
+              initialized: true
+            });
+          } else {
+            setAuthState({
+              isLoggedIn: false,
+              user: null,
+              loading: false,
+              initialized: true
+            });
+          }
         } else {
           setAuthState({
             isLoggedIn: false,
