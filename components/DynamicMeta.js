@@ -5,7 +5,8 @@ export default function DynamicMeta({
   description, 
   image = 'https://merrouchgaming.com/top.jpg',
   url,
-  type = 'website'
+  type = 'website',
+  noindex = false
 }) {
   const currentTime = new Date().toISOString();
   const imageWithTimestamp = `${image}?t=${currentTime}`;
@@ -15,6 +16,7 @@ export default function DynamicMeta({
       title={title}
       description={description}
       canonical={url}
+      noindex={noindex}
       openGraph={{
         title,
         description,
@@ -35,6 +37,12 @@ export default function DynamicMeta({
         site: '@merrouchgaming',
         cardType: 'summary_large_image',
       }}
+      additionalMetaTags={[
+        {
+          name: 'keywords',
+          content: `gaming center tangier, ${title.toLowerCase()}, gaming morocco`
+        }
+      ]}
     />
   );
 } 

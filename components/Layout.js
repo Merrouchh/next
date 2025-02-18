@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen';
 import React from 'react';
 import FAQSchema from './FAQSchema';
+import PriceRangeSchema from './PriceRangeSchema';
 import styles from '../styles/Layout.module.css';
 
 const Layout = ({ children }) => {
@@ -12,6 +13,7 @@ const Layout = ({ children }) => {
   const { loading: _authLoading, isLoggedIn: _isLoggedIn, initialized } = useAuth();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const isHomePage = router.pathname === '/';
 
   const shouldHideFooter = useCallback(() => {
     if (!router?.pathname) return true;
@@ -69,7 +71,13 @@ const Layout = ({ children }) => {
     <div className={styles.layoutWrapper}>
       <div className={`${styles.layoutContent} ${isTransitioning ? styles.transitioning : ''}`}>
         <main className={styles.mainContent}>
-          <FAQSchema />
+          {/* Include schemas only on homepage */}
+          {isHomePage && (
+            <>
+              <FAQSchema />
+              <PriceRangeSchema />
+            </>
+          )}
           {children}
         </main>
         {!shouldHideFooter() && <Footer />}

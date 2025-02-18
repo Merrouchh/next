@@ -190,14 +190,14 @@ export async function getServerSideProps() {
   return {
     props: {
       metaData: {
-        title: "Merrouch Gaming Center | Premium Gaming Experience",
+        title: "Merrouch Gaming Center | RTX 3070 Gaming PCs in Tangier",
         description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community. Share highlights, connect with gamers, and enjoy top-tier gaming equipment.",
         image: "https://merrouchgaming.com/top.jpg",
         url: "https://merrouchgaming.com",
         type: "website",
         openGraph: {
-          title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
-          description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community.",
+          title: "Premium Gaming Center in Tangier | RTX 3070 PCs",
+          description: "Join Tangier's premier gaming community. RTX 3070 PCs, 200Mbps internet, competitive prices.",
           images: [
             {
               url: "https://merrouchgaming.com/top.jpg",
@@ -205,15 +205,7 @@ export async function getServerSideProps() {
               height: 630,
               alt: "Merrouch Gaming Center"
             }
-          ],
-          type: "website"
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
-          description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices.",
-          image: "https://merrouchgaming.com/top.jpg"
+          ]
         }
       }
     }

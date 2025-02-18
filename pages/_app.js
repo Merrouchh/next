@@ -10,6 +10,7 @@ import { VideoProvider } from '../contexts/VideoContext';
 import { Toaster } from 'react-hot-toast';
 import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
+import DynamicMeta from '../components/DynamicMeta';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -89,12 +90,20 @@ function MyApp({ Component, pageProps }) {
     };
   }, [router.events, mounted]);
 
+  // Determine if it's a public page
+  const isPublicPage = ['/'].includes(router.pathname);
+
   if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
     return (
       <StrictMode>
         <ErrorBoundary>
           <div suppressHydrationWarning>
+            {/* Base SEO - lowest priority */}
             <DefaultSeo {...defaultSEO} />
+            
+            {/* Page-specific SEO will override DefaultSeo */}
+            {pageProps?.metaData && <DynamicMeta {...pageProps.metaData} />}
+            
             <AuthProvider onError={handleLockError}>
               <VideoProvider>
                 <Toaster 
@@ -135,10 +144,28 @@ function MyApp({ Component, pageProps }) {
   }
 
   return (
-    <>
-      <DefaultSeo {...defaultSEO} />
-      <Component {...pageProps} />
-    </>
+    <StrictMode>
+      <ErrorBoundary>
+        <div suppressHydrationWarning>
+          {/* Base SEO - lowest priority */}
+          <DefaultSeo {...defaultSEO} />
+          
+          {/* Page-specific SEO will override DefaultSeo */}
+          {pageProps?.metaData && <DynamicMeta {...pageProps.metaData} />}
+          
+          <AuthProvider onError={handleLockError}>
+            <VideoProvider>
+              <Toaster />
+              <Layout>
+                <main className={`${inter.variable} ${orbitron.variable}`}>
+                  <Component {...pageProps} />
+                </main>
+              </Layout>
+            </VideoProvider>
+          </AuthProvider>
+        </div>
+      </ErrorBoundary>
+    </StrictMode>
   );
 }
 

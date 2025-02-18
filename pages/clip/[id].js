@@ -128,38 +128,21 @@ export async function getServerSideProps({ req, res, params }) {
         isOwnClip: isOwner,
         isPrivate,
         metaData: {
-          title: `${clip.title} by ${clip.username} | Merrouch Gaming`,
-          description,
-          image: thumbnailUrl,
-          url: `https://merrouchgaming.com/clip/${id}`,
+          title: `${clip.title} | Gaming Clip by ${clip.username}`,
+          description: `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. High-quality gaming clips from our RTX 3070 gaming PCs.`,
+          image: clip.thumbnail_url,
+          url: `https://merrouchgaming.com/clip/${clip.id}`,
           type: 'video.other',
-          structuredData: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "VideoObject",
-            "name": clip.title,
-            "description": description,
-            "thumbnailUrl": thumbnailUrl,
-            "uploadDate": clip.uploaded_at,
-            "contentUrl": videoUrl,
-            "embedUrl": `https://merrouchgaming.com/clip/${clip.id}`,
-            "interactionStatistic": [
-              {
-                "@type": "InteractionCounter",
-                "interactionType": "http://schema.org/WatchAction",
-                "userInteractionCount": clip.views_count || 0
-              },
-              {
-                "@type": "InteractionCounter",
-                "interactionType": "http://schema.org/LikeAction",
-                "userInteractionCount": clip.likes_count || 0
-              }
-            ],
-            "author": {
-              "@type": "Person",
-              "name": clip.username,
-              "url": `https://merrouchgaming.com/profile/${clip.username}`
-            }
-          })
+          openGraph: {
+            title: `${clip.title} - Gaming Highlight`,
+            description: `Amazing gaming moment by ${clip.username} at Merrouch Gaming`,
+            videos: [{
+              url: clip.video_url,
+              width: 1280,
+              height: 720,
+              type: 'application/x-mpegURL'
+            }]
+          }
         }
       }
     };
