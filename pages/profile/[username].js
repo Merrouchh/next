@@ -100,6 +100,14 @@ export async function getServerSideProps({ req, res, params }) {
 
     const latestClip = initialClips?.[0];
 
+    // Process clips to ensure proper thumbnail URLs
+    const processedClips = initialClips?.map(clip => ({
+      ...clip,
+      thumbnail_url: clip.cloudflare_uid 
+        ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+        : 'https://merrouchgaming.com/top.jpg'
+    }));
+
     // Generate description
     const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
       totalClips ? `${totalClips} clips shared. ` : ''
@@ -122,11 +130,11 @@ export async function getServerSideProps({ req, res, params }) {
           ...profileData,
           username: normalizedUsername,
           clipsCount: totalClips || 0,
-          initialClips: initialClips || [],
+          initialClips: processedClips || [],
           hasMore: totalClips > 3,
-          latestClip: latestClip || null
+          latestClip: processedClips?.[0] || null
         },
-        userClips: initialClips || [],
+        userClips: processedClips || [],
         metaData: {
           title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
           description: `Check out ${profileData.username}'s gaming highlights and clips. ${initialClips.length} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,

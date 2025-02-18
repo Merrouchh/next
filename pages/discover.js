@@ -53,10 +53,16 @@ export async function getServerSideProps({ req, res }) {
 
     if (error) throw error;
 
-    const featuredClip = clips?.[0];
-    const previewImage = featuredClip?.cloudflare_uid
-      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${featuredClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-      : 'https://merrouchgaming.com/top.jpg';
+    // Process clips to ensure proper thumbnail URLs
+    const processedClips = clips?.map(clip => ({
+      ...clip,
+      thumbnail_url: clip.cloudflare_uid 
+        ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+        : 'https://merrouchgaming.com/top.jpg'
+    }));
+
+    const featuredClip = processedClips?.[0];
+    const previewImage = featuredClip?.thumbnail_url || 'https://merrouchgaming.com/top.jpg';
 
     // Set cache headers
     res.setHeader(
@@ -66,13 +72,13 @@ export async function getServerSideProps({ req, res }) {
 
     return {
       props: {
-        initialClips: clips || [],
+        initialClips: processedClips || [],
         totalClips: count || 0,
         hasMore: (clips?.length || 0) < (count || 0),
         metaData: {
           title: "Discover Gaming Highlights | RTX 3070 Gaming Clips",
           description: "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.",
-          image: "https://merrouchgaming.com/discover-preview.jpg",
+          image: previewImage,
           url: "https://merrouchgaming.com/discover",
           type: "website",
           openGraph: {
