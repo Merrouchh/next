@@ -8,7 +8,7 @@ async function generateSiteMap() {
   );
   const lastMod = new Date().toISOString();
 
-  // Fetch only public clips with better ordering
+  // Fetch only public clips
   const { data: clips } = await supabase
     .from('clips')
     .select(`
@@ -16,23 +16,21 @@ async function generateSiteMap() {
       uploaded_at,
       title,
       username,
-      file_name,
-      thumbnail_path,
-      duration,
-      cloudflare_uid
+      cloudflare_uid,
+      duration
     `)
     .eq('visibility', 'public')
     .order('uploaded_at', { ascending: false })
     .limit(1000);
 
-  // Process clips to ensure all required fields
+  // Process clips to use Cloudflare Stream URLs
   const processedClips = clips?.map(clip => ({
     ...clip,
-    video_url: `${EXTERNAL_DATA_URL}/storage/highlight-clips/${clip.file_name}`,
-    thumbnail_url: clip.thumbnail_path 
-      ? `${EXTERNAL_DATA_URL}/storage/highlight-clips/${clip.thumbnail_path}`
-      : `${EXTERNAL_DATA_URL}/top.jpg`,
-    duration: clip.duration || 30 // Default to 30 seconds if no duration
+    // Use Cloudflare Stream thumbnail URL directly
+    thumbnail_url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`,
+    // Use Cloudflare Stream player URL
+    player_url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
+    duration: clip.duration || 30
   }));
 
   // Fetch only users who have public clips
@@ -86,7 +84,7 @@ async function generateSiteMap() {
            <video:thumbnail_loc>${clip.thumbnail_url}</video:thumbnail_loc>
            <video:title>${clip.title}</video:title>
            <video:description>Gaming clip shared by ${clip.username} on Merrouch Gaming</video:description>
-           <video:player_loc allow_embed="yes">${EXTERNAL_DATA_URL}/clip/${clip.id}/embed</video:player_loc>
+           <video:player_loc allow_embed="yes">${clip.player_url}</video:player_loc>
            <video:duration>${clip.duration}</video:duration>
            <video:publication_date>${new Date(clip.uploaded_at).toISOString()}</video:publication_date>
            <video:family_friendly>yes</video:family_friendly>
