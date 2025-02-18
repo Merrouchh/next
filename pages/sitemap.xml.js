@@ -11,10 +11,29 @@ async function generateSiteMap() {
   // Fetch only public clips with better ordering
   const { data: clips } = await supabase
     .from('clips')
-    .select('id, uploaded_at, title, video_url, thumbnail_url, duration')
+    .select(`
+      id,
+      uploaded_at,
+      title,
+      username,
+      file_name,
+      thumbnail_path,
+      duration,
+      cloudflare_uid
+    `)
     .eq('visibility', 'public')
     .order('uploaded_at', { ascending: false })
     .limit(1000);
+
+  // Process clips to ensure all required fields
+  const processedClips = clips?.map(clip => ({
+    ...clip,
+    video_url: `${EXTERNAL_DATA_URL}/storage/highlight-clips/${clip.file_name}`,
+    thumbnail_url: clip.thumbnail_path 
+      ? `${EXTERNAL_DATA_URL}/storage/highlight-clips/${clip.thumbnail_path}`
+      : `${EXTERNAL_DATA_URL}/top.jpg`,
+    duration: clip.duration || 30 // Default to 30 seconds if no duration
+  }));
 
   // Fetch only users who have public clips
   const { data: users } = await supabase
@@ -57,18 +76,18 @@ async function generateSiteMap() {
      </url>
 
      <!-- Public Clips -->
-     ${clips ? clips.map(clip => `
+     ${processedClips ? processedClips.map(clip => `
        <url>
          <loc>${EXTERNAL_DATA_URL}/clip/${clip.id}</loc>
          <lastmod>${new Date(clip.uploaded_at).toISOString()}</lastmod>
          <changefreq>weekly</changefreq>
          <priority>0.7</priority>
          <video:video>
-           <video:thumbnail_loc>${clip.thumbnail_url || `${EXTERNAL_DATA_URL}/top.jpg`}</video:thumbnail_loc>
+           <video:thumbnail_loc>${clip.thumbnail_url}</video:thumbnail_loc>
            <video:title>${clip.title}</video:title>
-           <video:description>Gaming clip shared on Merrouch Gaming</video:description>
+           <video:description>Gaming clip shared by ${clip.username} on Merrouch Gaming</video:description>
            <video:player_loc allow_embed="yes">${EXTERNAL_DATA_URL}/clip/${clip.id}/embed</video:player_loc>
-           <video:duration>${clip.duration || 30}</video:duration>
+           <video:duration>${clip.duration}</video:duration>
            <video:publication_date>${new Date(clip.uploaded_at).toISOString()}</video:publication_date>
            <video:family_friendly>yes</video:family_friendly>
            <video:live>no</video:live>
