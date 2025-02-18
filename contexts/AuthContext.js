@@ -46,26 +46,34 @@ export function AuthProvider({ children, onError }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const supabaseRef = useRef(null);
 
-  // Initialize Supabase client only on client side
+  // Add mounted state check
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Initialize client-side only
   useEffect(() => {
-    if (typeof window !== 'undefined' && !supabaseRef.current) {
-      supabaseRef.current = createClient();
-    }
-    setMounted(true);
+    setIsMounted(true);
   }, []);
 
-  // Initialize auth state
+  // Initialize auth state with better production handling
   useEffect(() => {
-    if (!mounted || initRef.current) return;
-    
+    if (!isMounted || initRef.current) return;
+
     const initializeAuth = async () => {
       try {
         initRef.current = true;
+
+        // Ensure we're on client side
+        if (typeof window === 'undefined') return;
+
+        // Initialize Supabase client if needed
+        if (!supabaseRef.current) {
+          supabaseRef.current = createClient();
+        }
+
         const { data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession();
 
         if (sessionError) {
           console.error('Session error:', sessionError);
-          if (onError) onError(sessionError);
           setAuthState(prev => ({
             ...prev,
             loading: false,
@@ -74,31 +82,33 @@ export function AuthProvider({ children, onError }) {
           return;
         }
 
+        // Add production-safe checks
         if (session?.user?.id) {
-          const { data: userData, error: userError } = await supabaseRef.current
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          try {
+            const { data: userData, error: userError } = await supabaseRef.current
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          if (userError) {
-            console.error('Error fetching user data:', userError);
-            setAuthState(prev => ({
-              ...prev,
-              loading: false,
-              initialized: true
-            }));
-            return;
-          }
-
-          if (userData) {
-            setAuthState({
-              isLoggedIn: true,
-              user: userData,
-              loading: false,
-              initialized: true
-            });
-          } else {
+            if (!userError && userData) {
+              setAuthState({
+                isLoggedIn: true,
+                user: userData,
+                loading: false,
+                initialized: true
+              });
+            } else {
+              // Handle error case
+              setAuthState({
+                isLoggedIn: false,
+                user: null,
+                loading: false,
+                initialized: true
+              });
+            }
+          } catch (error) {
+            console.error('User data fetch error:', error);
             setAuthState({
               isLoggedIn: false,
               user: null,
@@ -116,7 +126,6 @@ export function AuthProvider({ children, onError }) {
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        if (onError) onError(error);
         setAuthState(prev => ({
           ...prev,
           loading: false,
@@ -125,8 +134,9 @@ export function AuthProvider({ children, onError }) {
       }
     };
 
-    initializeAuth();
-  }, [mounted, onError]);
+    // Wrap in setTimeout to ensure client-side execution
+    setTimeout(initializeAuth, 0);
+  }, [isMounted]);
 
   // Session check function
   const checkSession = useCallback(async () => {
@@ -327,16 +337,37 @@ export function AuthProvider({ children, onError }) {
     }
   };
 
+  // Update the navigation handling
+  const handleNavigation = useCallback(async (path) => {
+    if (!mounted) return;
+
+    try {
+      await router.push(path, undefined, { 
+        shallow: true,
+        scroll: false
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Use setTimeout for the fallback to prevent immediate redirect
+      setTimeout(() => {
+        window.location.href = path;
+      }, 100);
+    }
+  }, [router, mounted]);
+
+  // Update logout function
   const logout = async () => {
+    if (!mounted) return;
+
     try {
       setIsLoggingOut(true);
 
-      // Clear stored data first
+      // Clear stored data
       if (typeof window !== 'undefined') {
         localStorage.removeItem('supabase.auth.token');
       }
 
-      // Update state before navigation
+      // Update state
       setAuthState(prev => ({
         ...prev,
         user: null,
@@ -345,33 +376,20 @@ export function AuthProvider({ children, onError }) {
         initialized: true
       }));
 
-      // Add delay before signOut
+      // Add delay
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Perform signOut
-      const { error } = await supabaseRef.current?.auth.signOut({
-        scope: 'local'
-      });
-      
-      if (error) throw error;
-
-      // Add delay before navigation
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Check current route before redirecting
-      if (router.pathname && !isPublicRoute(router.pathname)) {
-        try {
-          await router.push('/', undefined, { shallow: true });
-        } catch (error) {
-          console.error('Navigation error:', error);
-          // Fallback
-          window.location.href = '/';
-        }
+      if (supabaseRef.current) {
+        await supabaseRef.current.auth.signOut();
       }
 
+      // Handle navigation
+      if (router.pathname && !isPublicRoute(router.pathname)) {
+        await handleNavigation('/');
+      }
     } catch (error) {
       console.error('Logout error:', error);
-      if (onError) onError(error);
     } finally {
       setIsLoggingOut(false);
     }
