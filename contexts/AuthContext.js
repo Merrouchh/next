@@ -331,34 +331,47 @@ export function AuthProvider({ children, onError }) {
     try {
       setIsLoggingOut(true);
 
-      // Clear any stored data first
+      // Clear stored data first
       if (typeof window !== 'undefined') {
         localStorage.removeItem('supabase.auth.token');
       }
 
-      // Update auth state immediately before signOut
-      setAuthState({
+      // Update state before navigation
+      setAuthState(prev => ({
+        ...prev,
         user: null,
         isLoggedIn: false,
         loading: false,
         initialized: true
-      });
+      }));
 
-      // Perform the signOut
-      const { error } = await supabaseRef.current.auth.signOut({
+      // Add delay before signOut
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Perform signOut
+      const { error } = await supabaseRef.current?.auth.signOut({
         scope: 'local'
       });
       
       if (error) throw error;
 
-      // Only redirect to home if we're not on a public route
-      if (!isPublicRoute(router.pathname)) {
-        await router.push('/');
+      // Add delay before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Check current route before redirecting
+      if (router.pathname && !isPublicRoute(router.pathname)) {
+        try {
+          await router.push('/', undefined, { shallow: true });
+        } catch (error) {
+          console.error('Navigation error:', error);
+          // Fallback
+          window.location.href = '/';
+        }
       }
 
     } catch (error) {
       console.error('Logout error:', error);
-      setError(AUTH_ERRORS.GENERIC_ERROR);
+      if (onError) onError(error);
     } finally {
       setIsLoggingOut(false);
     }
@@ -454,24 +467,40 @@ export function AuthProvider({ children, onError }) {
     }
   };
 
-  // Update the storage listener to be more robust
+  // Update the storage listener
   useEffect(() => {
     const handleStorageChange = async (event) => {
-      // Check for both token removal and SIGNED_OUT message
-      if ((event.key === 'supabase.auth.token' && !event.newValue) ||
-          (event.key === 'auth-sync' && event.newValue === 'SIGNED_OUT')) {
-        
-        setAuthState({
-          user: null,
-          isLoggedIn: false,
-          loading: false,
-          initialized: true
-        });
+      try {
+        // Check for both token removal and SIGNED_OUT message
+        if ((event.key === 'supabase.auth.token' && !event.newValue) ||
+            (event.key === 'auth-sync' && event.newValue === 'SIGNED_OUT')) {
+          
+          // Set state before navigation
+          setAuthState(prev => ({
+            ...prev,
+            user: null,
+            isLoggedIn: false,
+            loading: false,
+            initialized: true
+          }));
 
-        // Only redirect to home if we're not on a public route
-        if (!isPublicRoute(router.pathname) && isProtectedRoute(router.pathname)) {
-          await router.push('/');
+          // Add delay before navigation
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Check if we need to redirect
+          if (router.pathname && !isPublicRoute(router.pathname) && isProtectedRoute(router.pathname)) {
+            try {
+              await router.push('/', undefined, { shallow: true });
+            } catch (error) {
+              console.error('Navigation error:', error);
+              // Fallback
+              window.location.href = '/';
+            }
+          }
         }
+      } catch (error) {
+        console.error('Storage change handler error:', error);
+        if (onError) onError(error);
       }
     };
 
