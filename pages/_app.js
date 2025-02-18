@@ -93,6 +93,12 @@ function MyApp({ Component, pageProps }) {
   // Determine if it's a public page
   const isPublicPage = ['/'].includes(router.pathname);
 
+  // Add safety check for metaData
+  const safeMetaData = pageProps?.metaData || {
+    title: defaultSEO.defaultTitle,
+    description: defaultSEO.description
+  };
+
   if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
     return (
       <StrictMode>
@@ -102,7 +108,7 @@ function MyApp({ Component, pageProps }) {
             <DefaultSeo {...defaultSEO} />
             
             {/* Page-specific SEO will override DefaultSeo */}
-            {pageProps?.metaData && <DynamicMeta {...pageProps.metaData} />}
+            <DynamicMeta {...safeMetaData} />
             
             <AuthProvider onError={handleLockError}>
               <VideoProvider>
@@ -151,7 +157,7 @@ function MyApp({ Component, pageProps }) {
           <DefaultSeo {...defaultSEO} />
           
           {/* Page-specific SEO will override DefaultSeo */}
-          {pageProps?.metaData && <DynamicMeta {...pageProps.metaData} />}
+          <DynamicMeta {...safeMetaData} />
           
           <AuthProvider onError={handleLockError}>
             <VideoProvider>

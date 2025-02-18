@@ -1,15 +1,19 @@
 import { NextSeo } from 'next-seo';
 
 export default function DynamicMeta({ 
-  title, 
-  description, 
+  title = '',
+  description = '',
   image = 'https://merrouchgaming.com/top.jpg',
-  url,
+  url = '',
   type = 'website',
   noindex = false
 }) {
   const currentTime = new Date().toISOString();
   const imageWithTimestamp = `${image}?t=${currentTime}`;
+
+  if (!title && !description) {
+    return null;
+  }
 
   return (
     <NextSeo
@@ -28,7 +32,7 @@ export default function DynamicMeta({
             url: imageWithTimestamp,
             width: 1200,
             height: 630,
-            alt: title,
+            alt: title || 'Merrouch Gaming',
           },
         ],
       }}
@@ -40,7 +44,7 @@ export default function DynamicMeta({
       additionalMetaTags={[
         {
           name: 'keywords',
-          content: `gaming center tangier, ${title.toLowerCase()}, gaming morocco`
+          content: `gaming center tangier, ${(title || '').toLowerCase()}, gaming morocco`
         }
       ]}
     />

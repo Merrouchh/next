@@ -46,7 +46,7 @@ const nextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     config.infrastructureLogging = { level: 'error' };
 
     config.resolve.fallback = {
@@ -60,6 +60,15 @@ const nextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         punycode: false,
+      };
+    }
+
+    // Only in production client bundle
+    if (!isServer && !dev) {
+      config.optimization.splitChunks.cacheGroups = {
+        ...config.optimization.splitChunks.cacheGroups,
+        // Disable framework chunk
+        framework: false
       };
     }
 
@@ -270,6 +279,15 @@ const nextConfig = {
           {
             key: 'Vary',
             value: 'Cookie, Accept-Encoding'
+          }
+        ]
+      },
+      {
+        source: '/service-worker.js',
+        headers: [
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/'
           }
         ]
       }
