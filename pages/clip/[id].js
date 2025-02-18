@@ -108,17 +108,17 @@ export async function getServerSideProps({ req, res, params }) {
       };
     }
 
-    // Generate video and thumbnail URLs
-    const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-    const thumbnailUrl = clip.cloudflare_uid
-      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-      : 'https://merrouchgaming.com/top.jpg';
-
     // Generate rich description with stats
     const description = `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. ${
       clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
     }${clip.likes_count ? `, ${clip.likes_count.toLocaleString()} likes` : ''
     }. High-quality gaming clips from our RTX 3070 gaming PCs.`;
+
+    // Generate video and thumbnail URLs
+    const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+    const thumbnailUrl = clip.cloudflare_uid
+      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+      : 'https://merrouchgaming.com/top.jpg';
 
     return {
       props: {

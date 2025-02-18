@@ -75,13 +75,31 @@ export async function getServerSideProps({ req, res, params }) {
       }
     }
 
-    // Fetch all public clips instead of limiting to 3
-    const { data: initialClips, error: clipsError, count: totalClips } = await supabase
+    // Get total count of public clips for this user
+    const { count: totalPublicClips } = await supabase
       .from('clips')
-      .select('*, profiles!inner(*)', { count: 'exact' })
+      .select('id', { count: 'exact' })
+      .eq('username', normalizedUsername)
+      .eq('visibility', 'public');
+
+    // Fetch initial clips with proper thumbnail URLs
+    const { data: initialClips, error: clipsError } = await supabase
+      .from('clips')
+      .select(`
+        id,
+        title,
+        game,
+        visibility,
+        likes_count,
+        views_count,
+        uploaded_at,
+        username,
+        cloudflare_uid
+      `)
       .eq('username', normalizedUsername)
       .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false });
+      .order('uploaded_at', { ascending: false })
+      .limit(3);
 
     if (clipsError) {
       console.error('Clips fetch error:', clipsError);
@@ -100,7 +118,7 @@ export async function getServerSideProps({ req, res, params }) {
 
     // Generate description
     const description = `Check out ${profileData.username}'s gaming profile on Merrouch Gaming. ${
-      totalClips ? `${totalClips} clips shared. ` : ''
+      totalPublicClips ? `${totalPublicClips} clips shared. ` : ''
     }${latestClip ? `Latest clip: ${latestClip.title} (${latestClip.game})` : ''
     }Join our gaming community to watch and share your best gaming moments.`;
 
@@ -119,15 +137,15 @@ export async function getServerSideProps({ req, res, params }) {
         userData: {
           ...profileData,
           username: normalizedUsername,
-          clipsCount: totalClips || 0,
+          clipsCount: totalPublicClips || 0,
           initialClips: processedClips || [],
-          hasMore: false, // Since we're loading all clips
+          hasMore: totalPublicClips > 3,
           latestClip: processedClips?.[0] || null
         },
         userClips: processedClips || [],
         metaData: {
           title: `${profileData.username}'s Gaming Profile | Merrouch Gaming`,
-          description: `Check out ${profileData.username}'s gaming highlights and clips. ${initialClips.length} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,
+          description: `Check out ${profileData.username}'s gaming highlights and clips. ${totalPublicClips} amazing moments captured at Merrouch Gaming Center using RTX 3070 gaming PCs.`,
           image: profileData.avatar_url || 'https://merrouchgaming.com/top.jpg',
           url: `https://merrouchgaming.com/profile/${username}`,
           type: 'profile',
