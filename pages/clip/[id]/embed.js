@@ -1,17 +1,7 @@
 import { useRouter } from 'next/router';
-import dynamic from 'next/dynamic';
 import { createClient } from '@supabase/supabase-js';
 import Head from 'next/head';
 import styles from '../../../styles/Embed.module.css';
-
-const VideoPlayer = dynamic(() => import('../../../components/VideoPlayer'), {
-  ssr: false,
-  loading: () => (
-    <div className={styles.loading}>
-      Loading player...
-    </div>
-  )
-});
 
 export default function ClipEmbed({ clip }) {
   const router = useRouter();
@@ -42,13 +32,15 @@ export default function ClipEmbed({ clip }) {
       </Head>
       <div className={styles.container}>
         <div className={styles.playerWrapper}>
-          <VideoPlayer 
-            cloudflareUID={clip.cloudflare_uid}
-            autoPlay
-            controls
-            isEmbed
-            loop
-            muted={false}
+          <iframe
+            src={`https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`}
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none'
+            }}
           />
         </div>
       </div>
