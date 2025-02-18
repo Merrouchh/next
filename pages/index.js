@@ -25,7 +25,7 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 });
 
 // Main Home component first
-const Home = () => {
+const Home = ({ metaData }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [_progress, setProgress] = useState(0);
@@ -65,13 +65,7 @@ const Home = () => {
       </Head>
 
       <ProtectedPageWrapper progress={scrollProgress}>
-        <DynamicMeta
-          title="Cyber Merrouch Gaming Center | Best Gaming Center in Tangier"
-          description="Experience premium gaming with RTX 3070 PCs and 200Mbps internet. The best gaming café in Tangier, Morocco."
-          image="https://merrouchgaming.com/top.jpg"
-          url="https://merrouchgaming.com"
-          type="website"
-        />
+        <DynamicMeta {...metaData} />
 
         <main className={styles.mainWrapper}>
           <HeroSection 
@@ -204,7 +198,34 @@ export async function getServerSideProps({ res }) {
 
   return {
     props: {
-      timestamp: Date.now() // Force revalidation when needed
+      timestamp: Date.now(),
+      metaData: {
+        title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
+        description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community. Share highlights, connect with gamers, and enjoy top-tier gaming equipment.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: "https://merrouchgaming.com",
+        type: "website",
+        openGraph: {
+          title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
+          description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community.",
+          images: [
+            {
+              url: "https://merrouchgaming.com/top.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Merrouch Gaming Center"
+            }
+          ],
+          type: "website"
+        },
+        twitter: {
+          card: "summary_large_image",
+          site: "@merrouchgaming",
+          title: "Merrouch Gaming Center | Premium Gaming Experience in Tangier",
+          description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices.",
+          image: "https://merrouchgaming.com/top.jpg"
+        }
+      }
     }
   };
 }
