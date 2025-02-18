@@ -11,7 +11,6 @@ import VisibilityModal from './VisibilityModal';
 import ShareModal from './ShareModal';
 import { useRouter } from 'next/router';
 import ExpandedTitleModal from './ExpandedTitleModal';
-import Image from 'next/image';
 
 const ClipCard = ({ clip, isFullWidth, onClipUpdate }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -193,10 +192,6 @@ const ClipCard = ({ clip, isFullWidth, onClipUpdate }) => {
     }, 200);
   };
 
-  const thumbnailUrl = clipData.cloudflare_uid 
-    ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clipData.cloudflare_uid}/thumbnails/thumbnail.jpg`
-    : 'https://merrouchgaming.com/top.jpg';
-
   // If clip is deleted or made private (on discover page), don't render anything
   if (!clipData) return null;
 
@@ -221,12 +216,6 @@ const ClipCard = ({ clip, isFullWidth, onClipUpdate }) => {
         </div>
 
         <div className={styles.videoContainer}>
-          <Image
-            src={thumbnailUrl}
-            alt={clipData.title}
-            width={300}
-            height={169}
-          />
           <VideoPlayer
             clip={clipData}
             onLoadingChange={handleLoadingChange}
