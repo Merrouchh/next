@@ -75,23 +75,13 @@ export async function getServerSideProps({ req, res, params }) {
       }
     }
 
-    // Build clips query - always filter by visibility for non-owners
-    let clipsQuery = supabase
+    // Fetch all public clips instead of limiting to 3
+    const { data: initialClips, error: clipsError, count: totalClips } = await supabase
       .from('clips')
-      .select('*', { count: 'exact' })
+      .select('*, profiles!inner(*)', { count: 'exact' })
       .eq('username', normalizedUsername)
-      .order('uploaded_at', { ascending: false })
-      .range(0, 2);
-
-    // If not owner or not logged in, only show public clips
-    if (!isOwner) {
-      console.log('Showing only public clips');
-      clipsQuery = clipsQuery.eq('visibility', 'public');
-    } else {
-      console.log('Owner, showing all clips');
-    }
-
-    const { data: initialClips, count: totalClips, error: clipsError } = await clipsQuery;
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false });
 
     if (clipsError) {
       console.error('Clips fetch error:', clipsError);
@@ -131,7 +121,7 @@ export async function getServerSideProps({ req, res, params }) {
           username: normalizedUsername,
           clipsCount: totalClips || 0,
           initialClips: processedClips || [],
-          hasMore: totalClips > 3,
+          hasMore: false, // Since we're loading all clips
           latestClip: processedClips?.[0] || null
         },
         userClips: processedClips || [],

@@ -33,6 +33,10 @@ class MyDocument extends Document {
             href="https://fonts.gstatic.com" 
             crossOrigin="anonymous"
           />
+          <link 
+            href="https://fonts.googleapis.com/css2?family=Zen+Dots&display=swap" 
+            rel="stylesheet"
+          />
           
           {/* PWA */}
           <link rel="manifest" href="/manifest.json" />
