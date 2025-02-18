@@ -27,20 +27,36 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 
 // Main Home component first
 const Home = ({ metaData }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
   const router = useRouter();
   const [_progress, setProgress] = useState(0);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Add effect to handle redirection
+  // Wait for auth to initialize before redirecting
   useEffect(() => {
+    if (!initialized) return; // Don't do anything until auth is initialized
+    
     if (!loading && user) {
-      console.log('Home: User is logged in, redirecting to dashboard');
-      router.replace('/dashboard');
+      router.replace('/dashboard', undefined, { shallow: true })
+        .catch(error => {
+          console.error('Navigation error:', error);
+          // Fallback if navigation fails
+          window.location.href = '/dashboard';
+        });
     }
-  }, [user, loading, router]);
+  }, [user, loading, initialized, router]);
+
+  // Show loading state while checking auth
+  if (!initialized || loading) {
+    return <LoadingScreen message="Loading..." />;
+  }
+
+  // Show loading state during redirect
+  if (user) {
+    return <LoadingScreen message="Redirecting..." />;
+  }
 
   const handleCheckAvailability = () => {
     if (!user) {
@@ -54,9 +70,6 @@ const Home = ({ metaData }) => {
     setShowAccountPrompt(false);
     setIsLoginModalOpen(true);
   };
-
-  if (loading) return <LoadingScreen message="Loading..." />;
-  if (user) return <LoadingScreen message="Redirecting..." />;
 
   return (
     <>
@@ -184,9 +197,13 @@ const Home = ({ metaData }) => {
   );
 };
 
-export default Home;
+export async function getServerSideProps({ res }) {
+  // Set proper cache headers
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=60, stale-while-revalidate=300'
+  );
 
-export async function getServerSideProps() {
   return {
     props: {
       metaData: {
@@ -211,3 +228,5 @@ export async function getServerSideProps() {
     }
   };
 }
+
+export default Home;

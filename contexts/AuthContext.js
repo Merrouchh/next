@@ -30,7 +30,7 @@ export function useAuth() {
   return context;
 }
 
-export const AuthProvider = ({ children, onError }) => {
+export function AuthProvider({ children, onError }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const initRef = useRef(false);
@@ -68,6 +68,7 @@ export const AuthProvider = ({ children, onError }) => {
 
         if (sessionError) {
           console.error('Session error:', sessionError);
+          if (onError) onError(sessionError);
           return;
         }
         
@@ -104,6 +105,7 @@ export const AuthProvider = ({ children, onError }) => {
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        if (onError) onError(error);
         setAuthState(prev => ({
           ...prev,
           loading: false,
@@ -473,16 +475,20 @@ export const AuthProvider = ({ children, onError }) => {
     };
   }, [router]);
 
+  // Error handling effect
   useEffect(() => {
-    try {
-      // Your auth initialization code
-    } catch (error) {
+    const handleError = (error) => {
       if (onError) {
         onError(error);
       } else {
         console.error('Auth error:', error);
       }
-    }
+    };
+
+    // Set up error listener if needed
+    return () => {
+      // Clean up if needed
+    };
   }, [onError]);
 
   if (shouldShowLoading()) {
@@ -514,4 +520,4 @@ export const AuthProvider = ({ children, onError }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
