@@ -11,7 +11,7 @@ async function generateSiteMap() {
   // Fetch only public clips with better ordering
   const { data: clips } = await supabase
     .from('clips')
-    .select('id, uploaded_at, title')
+    .select('id, uploaded_at, title, video_url, thumbnail_url')
     .eq('visibility', 'public')
     .order('uploaded_at', { ascending: false })
     .limit(1000);
@@ -64,10 +64,14 @@ async function generateSiteMap() {
          <changefreq>weekly</changefreq>
          <priority>0.7</priority>
          <video:video>
+           <video:thumbnail_loc>${clip.thumbnail_url || `${EXTERNAL_DATA_URL}/top.jpg`}</video:thumbnail_loc>
            <video:title>${clip.title}</video:title>
            <video:description>Gaming clip shared on Merrouch Gaming</video:description>
-           <video:player_loc>${EXTERNAL_DATA_URL}/clip/${clip.id}</video:player_loc>
-           <video:thumbnail_loc>${EXTERNAL_DATA_URL}/top.jpg</video:thumbnail_loc>
+           <video:content_loc>${clip.video_url}</video:content_loc>
+           <video:duration>30</video:duration>
+           <video:publication_date>${new Date(clip.uploaded_at).toISOString()}</video:publication_date>
+           <video:family_friendly>yes</video:family_friendly>
+           <video:live>no</video:live>
          </video:video>
        </url>
      `).join('') : ''}
