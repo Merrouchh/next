@@ -1,0 +1,1161 @@
+.clipContainer {
+  width: 100%;
+  height: 100%;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevent overflow */
+}
+
+.clipContainer.fullWidth {
+  max-width: 1000px;
+}
+
+.clipContainer:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(230, 207, 0, 0.1);
+  border-color: rgba(230, 207, 0, 0.2);
+}
+
+.clipHeader {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(to bottom, rgba(230, 207, 0, 0.05), transparent);
+  border-bottom: 1px solid var(--border-primary);
+  min-height: 50px; /* Add fixed height */
+}
+
+.clipTitle {
+  padding: 12px 16px;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+/* Title container to prevent overlap */
+.titleContainer {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+.title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.title:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.title.clickable {
+  cursor: pointer;
+}
+
+/* New expanded title styles */
+.title.expanded {
+  position: absolute;
+  inset: -12px; /* Negative margin to cover the card padding */
+  width: auto;
+  height: auto;
+  white-space: normal;
+  background: var(--background-secondary);
+  padding: 16px;
+  border-radius: inherit;
+  z-index: 100;
+  animation: expandTitle 0.2s ease-out;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Add a backdrop when title is expanded */
+.title.expanded::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: -1;
+}
+
+/* Style for the expanded title content */
+.title.expanded .titleContent {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: auto;
+}
+
+/* Close button for expanded title */
+.expandButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 101;
+}
+
+.expandButton:hover {
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* Animation for expanding title */
+@keyframes expandTitle {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation for closing title */
+.title.expanded.closing {
+  animation: closeTitle 0.2s ease-out forwards;
+}
+
+@keyframes closeTitle {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .title {
+    font-size: 0.9rem;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 0.85rem;
+    padding: 3px 6px;
+  }
+}
+
+/* Title container to prevent overlap */
+.titleContainer {
+  padding: 8px 0;
+  margin: 0;
+  background: var(--background-secondary);
+  position: relative;
+  z-index: 1;
+}
+
+/* Fallback for browsers that don't support -webkit-line-clamp */
+@supports not (-webkit-line-clamp: 2) {
+  .clipTitle {
+    position: relative;
+    max-height: calc(1rem * 1.2 * 2);
+    overflow: hidden;
+    padding-right: 1rem;
+  }
+
+  .clipTitle::after {
+    content: '...';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding-left: 0.5rem;
+    background: var(--background-secondary);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .clipContainer {
+    border-radius: 6px;
+  }
+
+  .clipHeader {
+    padding: 10px 12px;
+  }
+
+  .clipTitle {
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    min-height: calc(0.9rem * 1.2 * 2);
+  }
+
+  .clipStats {
+    padding: 10px 12px;
+  }
+}
+
+.userLink {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #fff;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.userLink:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.gameTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(230, 207, 0, 0.1);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #e6cf00;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.gameTag:hover {
+  background: rgba(230, 207, 0, 0.15);
+}
+
+/* Video wrapper */
+.videoWrapper {
+  width: 100%;
+  position: relative;
+  aspect-ratio: 16/9;
+  background: var(--background-primary);
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-top: auto; /* Push video down */
+}
+
+/* Video player styles */
+.videoWrapper :global(.vds-player) {
+  width: 100% !important;
+  height: 100% !important;
+  background-color: var(--background-primary);
+  font-family: var(--font-inter);
+}
+
+.videoWrapper :global(.vds-video-layout) {
+  --video-bg: var(--background-primary);
+  --video-border-radius: var(--video-controls-border-radius);
+  --video-border: 1px solid var(--border-primary);
+  border-radius: var(--video-controls-border-radius);
+  overflow: hidden;
+}
+
+/* Video element */
+.videoWrapper video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  background: var(--background-primary);
+}
+
+
+/* Stats and actions section */
+.clipStats {
+  margin-top: auto; /* Push to bottom */
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(230, 207, 0, 0.05);
+}
+
+.statsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+}
+
+.viewCount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #888;
+  font-size: 1rem;
+}
+
+.viewCount svg {
+  color: #e6cf00;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ownerActions {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.actionButton:hover:not(:disabled) {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Specific button colors */
+.actionButton[title*="Delete"]:hover {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.actionButton[title*="public"] {
+  color: #4CAF50;
+}
+
+.actionButton[title*="private"] {
+  color: #FFC107;
+}
+
+.actionButton[title*="Share"]:hover {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.actionButton[title*="Copy"]:hover {
+  color: #2196F3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.likeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.likeButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.likeButton:hover {
+  transform: scale(1.1);
+  color: #e6cf00;
+}
+
+.likeButton.liked {
+  color: #e6cf00;
+  animation: likeAnimation 0.3s ease;
+}
+
+.likesCount {
+  font-weight: 500;
+  color: #fff;
+  font-size: 1rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.likesCount:hover {
+  background: rgba(230, 207, 0, 0.1);
+}
+
+.copyIdWrapper {
+  position: relative;
+}
+
+.copyTooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--background-secondary);
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.modal p {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modalActions .deleteButton {
+  background: rgba(255, 68, 68, 0.1) !important;
+  color: #ff4444 !important;
+}
+
+.modalActions .cancelButton {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Even smaller screens */
+@media (max-width: 480px) {
+  .clipContainer {
+    border-radius: 6px;
+  }
+
+  .clipHeader {
+    padding: 10px 12px;
+  }
+
+  .gameTag {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+
+  .userLink {
+    font-size: 0.85rem;
+  }
+}
+
+/* Make sure all content fits */
+.clipContainer > * {
+  max-width: 100%;
+  min-width: 0;
+  word-wrap: break-word;
+}
+
+.clipCard {
+  position: relative;
+  width: 100%;
+  background: var(--card-background);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clipCardInner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Video container styles */
+.clipCard :global(.video-container) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Header styles */
+.clipHeader {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Stats and actions container */
+.clipStats {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.fullWidth {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.videoContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  background: var(--background-secondary);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--border-primary);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  border-color: var(--accent-primary, #FFD700);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--background-tertiary, rgba(0, 0, 0, 0.2));
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.userInfo:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.username {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.userInfo svg {
+  color: var(--accent-primary, #FFD700);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.titleContainer {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+.title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.title:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.title.clickable {
+  cursor: pointer;
+}
+
+.videoContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.likeContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.stat,
+.statButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
+}
+
+.statButton {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.statButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+.statButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.statButton.liked {
+  color: var(--accent-color, #ff4757);
+}
+
+.gameTag {
+  margin-left: auto;
+  padding: 4px 12px;
+  background: var(--accent-color-light, rgba(255, 71, 87, 0.1));
+  color: var(--accent-color, #ff4757);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .card {
+    border-radius: 14px;
+  }
+
+  .cardHeader {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    border-radius: 12px;
+  }
+
+  .cardHeader {
+    padding: 10px 12px;
+  }
+
+  .userInfo {
+    padding: 4px 8px;
+  }
+
+  .username {
+    font-size: 0.9rem;
+  }
+
+  .title {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    border-radius: 10px;
+  }
+
+  .cardHeader {
+    padding: 8px 10px;
+  }
+
+  .userInfo {
+    padding: 3px 6px;
+  }
+
+  .username {
+    font-size: 0.85rem;
+  }
+
+  .title {
+    font-size: 0.85rem;
+  }
+}
+
+/* Add smooth transitions */
+.card, .title, .actionButton, .stats {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Improve hover states */
+.actionButton:hover:not(:disabled) {
+  transform: scale(1.1);
+  background: var(--background-hover, rgba(255, 255, 255, 0.1));
+}
+
+.title:hover.clickable {
+  background: var(--background-hover, rgba(255, 255, 255, 0.1));
+}
+
+.showLikesButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #999);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.showLikesButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+.modalContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.modalContainer > div {
+  pointer-events: auto;
+}
+
+.modalContainer .deleteModalOverlay {
+  position: absolute !important;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalContainer .deleteModal {
+  width: 100%;
+  max-width: min(90%, 320px) !important;
+  margin: 0 auto;
+  transform-origin: center;
+  animation: modalPop 0.2s ease-out;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments for the modal */
+@media (max-width: 768px) {
+  .modalContainer .deleteModal {
+    max-width: min(95%, 280px) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalContainer .deleteModalOverlay {
+    padding: 12px;
+  }
+
+  .modalContainer .deleteModal {
+    max-width: min(98%, 260px) !important;
+  }
+}
+
+.updating {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Animation for when card is being removed */
+.card.removing {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Add this if you want a smooth height animation when removing */
+.card {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Update visibility button colors */
+.actionButton[title*="Change visibility"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Public icon style */
+.actionButton[title*="Change visibility"] svg[data-visibility="public"] {
+  color: var(--accent-primary, #FFD700);
+  transition: all 0.2s ease;
+}
+
+.actionButton[title*="Change visibility"]:hover svg[data-visibility="public"] {
+  color: #4CAF50;
+  transform: scale(1.1);
+}
+
+/* Private icon style */
+.actionButton[title*="Change visibility"] svg[data-visibility="private"] {
+  color: #FFA726;
+  transition: all 0.2s ease;
+}
+
+.actionButton[title*="Change visibility"]:hover svg[data-visibility="private"] {
+  color: #FF7043;
+  transform: scale(1.1);
+}
+
+.likesModal {
+  position: relative;
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 300px;
+  max-height: 350px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.likesModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 9; /* Lower than the modal wrapper */
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+  .likesModalWrapper {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    z-index: 10; /* Ensure it's above the overlay */
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .likesModalWrapper {
+    position: fixed; /* Change to fixed for mobile */
+    top: 0;         /* Add back for mobile */
+    left: 0;        /* Add back for mobile */
+    right: 0;       /* Full width on mobile */
+    bottom: 0;      /* Full height on mobile */
+    width: 100vw;   /* Full viewport width */
+    height: 100vh;  /* Full viewport height */
+  }
+
+  .likesModal {
+    width: 90%;
+    max-width: 300px;
+  }
+}
+
+/* Modal content with better spacing */
+.modalContent {
+  position: relative;
+  padding: 1rem 0;
+  
+  /* When scrollable */
+  &.hasScroll {
+    padding-right: 1rem;
+  }
+}
+
+/* Modal header */
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.modalHeader h3 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+/* Close button */
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+}
+
+/* Modal content */
+.likesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.likeItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.likeItem:hover {
+  background: var(--background-hover);
+}
+
+.cardContainer {
+  position: relative;
+  width: 100%;
+}
+
+.likesModalWrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.likesModal {
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 90%;
+  max-width: 300px;
+  max-height: 180px; /* Fixed height to match your screenshot */
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  /* Yellow scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary, #FFD700) transparent;
+}
+
+/* Custom scrollbar for Webkit browsers */
+.likesModal::-webkit-scrollbar {
+  width: 4px; /* Thinner scrollbar */
+}
+
+.likesModal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.likesModal::-webkit-scrollbar-thumb {
+  background-color: var(--accent-primary, #FFD700);
+  border-radius: 2px;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .likesModal {
+    max-height: 300px; /* Taller on mobile */
+  }
+}
+
+/* Desktop styles - specific for profile grid */
+@media (min-width: 768px) {
+  /* When inside profile grid */
+  .Profile_clipsGrid__* .likesModal {
+    max-height: 180px; /* Even smaller for grid view */
+  }
+} 

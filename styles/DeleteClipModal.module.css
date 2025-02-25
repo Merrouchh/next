@@ -1,0 +1,178 @@
+.deleteModalOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.deleteModal {
+  background: var(--background-secondary, #1a1a1a);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary, #333);
+  animation: slideIn 0.3s ease-out;
+}
+
+.modalHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #333);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: var(--text-primary, white);
+  font-size: 1.1rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: white;
+}
+
+.modalContent {
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.deleteIcon {
+  font-size: 2.5rem;
+  color: #ff4444;
+  margin-bottom: 12px;
+}
+
+.modalContent p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-primary, white);
+}
+
+.warning {
+  color: #ff4444 !important;
+  font-size: 0.85rem !important;
+  margin-top: 8px !important;
+}
+
+.modalActions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-primary, #333);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modalActions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid #666;
+  color: white;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #888;
+}
+
+.deleteButton {
+  background: #ff4444;
+  border: 1px solid #ff4444;
+  color: white;
+}
+
+.deleteButton:hover {
+  background: #ff6666;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .modalHeader {
+    padding: 10px 14px;
+  }
+
+  .modalHeader h3 {
+    font-size: 1rem;
+  }
+
+  .modalContent {
+    padding: 16px 14px;
+  }
+
+  .deleteIcon {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+
+  .modalContent p {
+    font-size: 0.9rem;
+  }
+
+  .warning {
+    font-size: 0.8rem !important;
+  }
+
+  .modalActions {
+    padding: 10px 14px;
+  }
+
+  .modalActions button {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalHeader {
+    padding: 8px 12px;
+  }
+
+  .modalContent {
+    padding: 14px 12px;
+  }
+
+  .deleteIcon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .modalActions {
+    padding: 8px 12px;
+  }
+} 

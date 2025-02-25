@@ -1,0 +1,144 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: #242424;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.5rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.closeButton:hover:not(:disabled) {
+  opacity: 1;
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.content {
+  text-align: center;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background-color: #333;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #ffd700;
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  color: #fff;
+  margin: 0.5rem 0 1rem;
+  font-size: 1rem;
+}
+
+.statusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: #fff;
+}
+
+.successIcon {
+  color: #4CAF50;
+  font-size: 3rem;
+}
+
+.errorIcon {
+  color: #ff4444;
+  font-size: 3rem;
+}
+
+.details {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.details h3 {
+  font-size: 1.2rem;
+  color: #ffd700;
+  margin: 0 0 0.5rem 0;
+  word-break: break-word;
+}
+
+.details p {
+  font-size: 1rem;
+  color: #fff;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.cancelButton {
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: #ff6666;
+}
+
+.cancelIcon {
+  color: #ff9800;
+  font-size: 3rem;
+}
+
+.cancelledIcon {
+  color: #ff4444;
+  font-size: 3rem;
+} 

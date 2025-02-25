@@ -1,0 +1,33 @@
+.videoWrapper {
+  position: relative;
+  padding-top: 56.25%; /* height / width = 9/16 = 0.5625 */
+}
+
+.video {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  border: none;
+}
+
+.errorOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.errorOverlay button {
+  padding: 8px 16px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}

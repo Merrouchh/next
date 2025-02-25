@@ -1,0 +1,401 @@
+/* DarkModeMap.module.css */
+.mapContainer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1a1f2c;
+  border: 1px solid #FFD700; /* Reduced border size */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  min-height: 300px; /* Ensure minimum height */
+  z-index: 1; /* Lower z-index than header */
+}
+
+.mapContainer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 17, 25, 0.3); /* Dark overlay */
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.mapContainer.loading::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Ensure Leaflet container fills the space */
+.mapContainer :global(.leaflet-container) {
+  width: 100% !important;
+  height: 100% !important;
+  background: #1a1f2c;
+  min-height: 300px;
+}
+
+.mapContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FF4655, transparent);
+  opacity: 0.3;
+  z-index: 1000;
+}
+
+.customPopup {
+  background: rgba(26, 31, 44, 0.98) !important;
+  border: 2px solid rgba(255, 70, 85, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 1rem !important;
+  color: #e1e1e1 !important;
+  font-family: 'Inter', sans-serif !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.3s ease-in-out;
+}
+
+.customPopup h3 {
+  color: #FF4655;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.customPopup p {
+  margin: 0.5rem 0;
+  opacity: 0.9;
+}
+
+.customPopup a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 70, 85, 0.1);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: 8px;
+  color: #FF4655;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.customPopup a:hover {
+  background: #FF4655;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.pulseMarker {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* Marker Styling */
+.markerIcon {
+  background: none !important;
+  border: none !important;
+}
+
+.pulse {
+  position: relative;
+  width: 30px;
+  height: 30px;
+}
+
+.markerDot {
+  width: 16px;
+  height: 16px;
+  background: #FF4655;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  transition: all 0.3s ease-in-out;
+}
+
+.markerRing {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border: 2px solid #FFD700;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  transition: all 0.3s ease-in-out;
+}
+
+.markerContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  transform-origin: center;
+  animation: float 3s ease-in-out infinite;
+}
+
+.markerLogo {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border-radius: 50%;
+  background: #000;
+  padding: 5px;
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255, 70, 85, 0.4);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Popup Styling */
+.popup {
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.popup h3 {
+  font-size: 1.2rem;
+  color: #FF4655;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.popup p {
+  color: #e1e1e1;
+  
+}
+
+.popup a {
+  display: inline-block;
+  background: rgba(255, 70, 85, 0.1);
+  color: #FF4655;
+  text-decoration: none;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  transition: all 0.3s ease;
+}
+
+.popup a:hover {
+  background: #FF4655;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 70, 85, 0.3);
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.popupContainer {
+  background: #1a1f2c;
+  color: #FFD700;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #FFD700;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.popupTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.popupText {
+  margin: 5px 0 10px;
+  font-size: 0.9rem;
+}
+
+.popupLink {
+  display: inline-block;
+  color: #000;
+  background: #FFD700;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 10px 15px;
+  border-radius: 5px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.popupLink:hover {
+  background: #FFC000;
+  color: #000;
+}
+
+.tooltip {
+  position: absolute;
+  top: -40px; /* Adjusted position */
+  left: 50%;
+  transform: translateX(-50%);
+  background: #FFD700;
+  color: #000;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 1; /* Always visible */
+  text-decoration: none;
+}
+
+.markerContainer:hover .tooltip {
+  opacity: 1;
+}
+
+.leaflet-control-attribution.leaflet-control {
+  display: none;
+}
+
+/* Mobile specific styles */
+@media (max-width: 768px) {
+  .mapContainer {
+    height: 300px;
+    border-radius: 16px;
+  }
+
+  .mapContainer,
+  .mapContainer :global(.leaflet-container) {
+    position: relative;
+    height: 350px;  /* Increased height for better mobile visibility */
+    border-radius: 12px;  /* Smaller border radius for mobile */
+  }
+
+  .mapContainer {
+    min-height: 250px;
+  }
+
+  .mapContainer :global(.leaflet-container) {
+    min-height: 250px;
+  }
+
+  .customPopup {
+    max-width: 250px !important;  /* Increased from 200px */
+    font-size: 0.9rem !important;
+    padding: 0.8rem !important;
+  }
+
+  .popup {
+    padding: 1rem;
+  }
+  
+  .popup h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .popup a {
+    padding: 0.75rem 1rem;
+    width: 100%;  /* Full width button on mobile */
+    text-align: center;
+    margin-top: 0.75rem;
+  }
+
+  .markerDot {
+    width: 14px;  /* Slightly smaller on mobile */
+    height: 14px;
+  }
+
+  .markerRing {
+    width: 26px;  /* Slightly smaller on mobile */
+    height: 26px;
+  }
+}
+
+/* Improve touch interactions */
+@media (hover: none) {
+  .popup a:active {
+    transform: scale(0.98);
+    background: #FF4655;
+    color: white;
+  }
+  
+  .customPopup {
+    backdrop-filter: none;  /* Remove for better performance on mobile */
+    background: rgba(26, 31, 44, 0.98) !important;  /* More solid background for mobile */
+  }
+}
+
+.mapWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  z-index: 1; /* Lower z-index than header */
+}
+
+.mapLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.mapContainer {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+.leaflet-control-container {
+  z-index: 1 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
+
+/* Force all leaflet elements to stay below headers */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1 !important;
+}

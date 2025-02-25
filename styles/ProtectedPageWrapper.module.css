@@ -1,0 +1,392 @@
+/* Base variables */
+.wrapper {
+  --background-primary: #0f0f0f;
+  --background-secondary: #1a1a1a;
+  --background-tertiary: rgba(26, 26, 26, 0.95);
+  --accent-primary: #FFD700;
+  --accent-hover: #FFC800;
+  --accent-glow: rgba(255, 215, 0, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-tertiary: rgba(255, 255, 255, 0.7);
+  --border-primary: rgba(255, 215, 0, 0.1);
+  --border-secondary: rgba(255, 215, 0, 0.2);
+  --shadow-primary: rgba(0, 0, 0, 0.3);
+  --shadow-accent: rgba(255, 215, 0, 0.1);
+  --header-height: 60px;
+  --dashboard-header-height: 60px;
+  --search-header-height: 60px;
+  --nav-button-height: 60px;
+
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  isolation: isolate;
+  z-index: 1;
+}
+
+.headerWrapper {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  transform: translateZ(0);
+  height: var(--header-height);
+}
+
+.dashboardWrapper {
+  position: sticky;
+  top: var(--header-height);
+  width: 100%;
+  z-index: 99;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  transform: translateZ(0);
+  height: var(--dashboard-header-height);
+}
+
+.mainContent {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  background: var(--background-primary);
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.hasBottomNav {
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  .wrapper {
+    padding-bottom: var(--bottom-nav-height);
+  }
+  
+  .mainContent.hasBottomNav {
+    min-height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+  }
+
+  .mainContent.withSearch {
+    padding-top: 60px; /* Add space for search bar on mobile */
+  }
+
+  .userSearchWrapper {
+    position: fixed;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    background-color: var(--background-secondary);
+    height: var(--search-header-height, 50px);
+    z-index: 97;
+  }
+}
+
+/* Single header (just main header) */
+.singleHeaderPadding {
+  padding-top: var(--desktop-padding);
+}
+
+/* Double header (main + dashboard headers) */
+.doubleHeaderPadding {
+  padding-top: var(--desktop-padding);
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .singleHeaderPadding,
+  .doubleHeaderPadding {
+    padding-top: var(--tablet-padding);
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .singleHeaderPadding,
+  .doubleHeaderPadding {
+    padding-top: var(--mobile-padding);
+  }
+}
+
+.contentLoading {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-primary);
+}
+
+.content {
+  padding-top: 2px; /* Add small padding to account for progress bar */
+}
+
+/* Progress bar styles */
+.progressBarContainer {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--background-tertiary);
+  z-index: 1003;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: width 0.2s ease-out;
+}
+
+/* Modal root styles */
+#modal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modal-root > * {
+  pointer-events: auto;
+}
+
+/* Add a new class for modal backdrop */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1999;
+}
+
+/* Update navigation loading wrapper */
+.navigationLoadingWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Media queries */
+@media (min-width: 768px) {
+  .wrapper {
+    --header-height: 70px;
+    --dashboard-header-height: 70px;
+    --search-header-height: 60px;
+  }
+}
+
+/* Dark mode specific */
+@media (prefers-color-scheme: dark) {
+  .wrapper {
+    --background-primary: #0f0f0f;
+    --background-secondary: #1a1a1a;
+    --background-tertiary: rgba(26, 26, 26, 0.95);
+  }
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--header-height, 60px));
+}
+
+.headerSection {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--background-color, #fff);
+}
+
+.userSearchWrapper {
+  position: fixed;
+  width: 100%;
+  z-index: 98;
+  background-color: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  padding: 0.5rem 1rem;
+  transform: translateZ(0);
+  height: var(--search-header-height);
+}
+
+/* When user is not logged in */
+.userSearchWrapper:not(.withDashboardHeader) {
+  top: var(--header-height);
+}
+
+/* When user is logged in */
+.withDashboardHeader {
+  top: calc(var(--header-height) + var(--dashboard-header-height));
+}
+
+@media (max-width: 768px) {
+  .userSearchWrapper {
+    position: fixed;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    background-color: var(--background-secondary);
+    height: var(--search-header-height, 50px);
+    z-index: 97;
+  }
+
+  /* Adjust positions based on login state */
+  .userSearchWrapper:not(.withDashboardHeader) {
+    top: var(--header-height);
+  }
+
+  .withDashboardHeader {
+    top: calc(var(--header-height) + var(--dashboard-header-height));
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+  .userSearchWrapper {
+    position: sticky;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .userSearchWrapper > div {
+    max-width: 600px;
+    width: 100%;
+  }
+
+  .userSearchWrapper:not(.withDashboardHeader) {
+    top: var(--header-height);
+  }
+
+  .withDashboardHeader {
+    top: calc(var(--header-height) + var(--dashboard-header-height));
+  }
+
+  /* Profile page specific layout */
+  .profilePage {
+    display: grid;
+    grid-template-columns: 300px 1fr; /* Sidebar + main content */
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Move UserSearch to sidebar on profile pages */
+  .profilePage .userSearchWrapper {
+    position: sticky;
+    top: calc(var(--header-height) + 2rem);
+    height: fit-content;
+    grid-column: 1;
+    width: 100%;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+  }
+
+  /* Main content area */
+  .profilePage .mainContent {
+    grid-column: 2;
+    padding-top: 0;
+  }
+}
+
+.contentWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+@media (min-width: 769px) {
+  .mainContent {
+    padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainContent.hasBottomNav {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 60px;
+  background: #0f0f0f;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottomNav .navButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 8px 0;
+  height: 100%;
+}
+
+.bottomNav .icon {
+  font-size: 20px;
+}
+
+.bottomNav .label {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Update active state to match top nav */
+.bottomNav .navButton.active {
+  background: #FFD700 !important;
+  color: #000000 !important;
+  font-weight: 600;
+}
+
+.bottomNav .navButton.active .icon,
+.bottomNav .navButton.active .label {
+  color: #000000;
+} 

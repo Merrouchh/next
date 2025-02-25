@@ -1,0 +1,290 @@
+/* Import gaming-themed fonts */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Base styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: rgb(15, 15, 15);
+  color: #ffffff;
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  transition: opacity 0.3s ease;
+  scroll-behavior: instant;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  min-height: 100vh;
+  /* For mobile browsers */
+  min-height: -webkit-fill-available;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Orbitron', sans-serif;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 2.5rem;
+  color: #FFD700;
+}
+
+h3 {
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+p {
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  line-height: 1.8;
+}
+
+/* Links and Buttons */
+a {
+  color: #FFD700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: #FFC107;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+button {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+/* Progress bar with gaming theme */
+.progress-bar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 215, 0, 0.1);
+  z-index: 99999;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFC107);
+  width: 0;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Custom gaming scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1119;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FFD700, #FFC107);
+  border-radius: 5px;
+  border: 2px solid #0f1119;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FFC107, #FFD700);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Selection style */
+::selection {
+  background: rgba(255, 215, 0, 0.3);
+  color: #ffffff;
+}
+
+/* Gaming-themed text effects */
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.cyber-text {
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+  }
+
+  p {
+    font-size: 1rem;
+  }
+}
+
+/* Animation keyframes for gaming effects */
+@keyframes glow {
+  0% {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+  100% {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Reduce motion if preferred */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.transitioning {
+  opacity: 0;
+}
+
+.main-content {
+  flex: 1;
+}
+
+/* Page transition animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.page-transition-enter {
+  opacity: 0;
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transition: opacity 300ms ease-in;
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+input, textarea, select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  touch-action: manipulation; /* Prevents double-tap zoom */
+}
+
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important; /* Forces 16px minimum font size */
+  }
+  
+  select:focus,
+  textarea:focus,
+  input:focus {
+    font-size: 16px !important;
+    transform: scale(1); /* Prevents transform zoom */
+  }
+}
+
+/* Modal root container */
+#modal-root {
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+#modal-root > * {
+  pointer-events: auto;
+}
+
+/* Body scroll lock for modals */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Add any other global styles below */
+
+:root {
+  --primary-yellow: #FFD700;
+  --primary-black: #1a1a1a;
+  --primary-black-light: #2a2a2a;
+  --primary-black-transparent: rgba(26, 26, 26, 0.9);
+  --accent-yellow: #FFB700;
+  --text-light: #ffffff;
+  --text-dark: #1a1a1a;
+  --transparent-light: rgba(255, 255, 255, 0.1);
+  --transparent-dark: rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: 70px;
+    --dashboard-header-height: 70px;
+  }
+}
