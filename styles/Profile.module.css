@@ -10,77 +10,34 @@
 }
 
 .profileHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: var(--primary-black);
+  border-radius: 12px;
+  padding: 20px;
   margin-bottom: 20px;
-  transition: all 0.3s ease;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--background-color);
-  padding: 20px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--transparent-light);
 }
 
 .clipsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  gap: 1rem;
   width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: 1rem;
   min-height: auto;
   position: relative;
   transition: opacity 0.3s ease;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  align-items: start;
-  place-items: center;
 }
 
 /* Profile page clip cards */
-.profileClipsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-  width: 100%;
-  min-height: auto;
-  position: relative;
-  transition: opacity 0.3s ease;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  align-items: start;
-  place-items: center;
-  padding-top: 8px;
-}
-
-.profileClipsGrid > div {
-  height: 400px;
-  display: flex;
-  flex-direction: column;
-  transform-origin: center center;
-  transition: transform 0.2s ease;
-}
+/* .profileClipsGrid { ... } */
 
 /* Ensure hover effects have room */
-.profileClipsGrid > div:hover {
-  transform: translateY(-4px);
-  z-index: 1;
-}
-
-/* Add margin to first row */
-.profileClipsGrid > div:nth-child(-n+3) {
-  margin-top: 4px;
-}
-
-/* Add this to ensure consistent card height */
 .clipsGrid > * {
-  height: fit-content;
-  min-height: auto;
-  max-height: fit-content;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -170,31 +127,35 @@
   word-wrap: break-word;
 }
 
-/* Responsive breakpoints */
-@media (max-width: 1200px) {
-  .clipsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 900px;
-  }
-}
-
+/* Mobile styles */
 @media (max-width: 768px) {
   .clipsGrid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 20px;
+    grid-template-columns: 1fr; /* Force single column */
+    gap: 1rem;
+    padding: 0.5rem;
+    max-width: 100%; /* Ensure full width on mobile */
   }
 }
 
-@media (max-width: 480px) {
+/* Tablet styles */
+@media (min-width: 769px) and (max-width: 1024px) {
   .clipsGrid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  .clipsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    max-width: 1200px;
+    margin: 0 auto;
   }
 }
 
 .profileTop {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -204,8 +165,7 @@
 .profileInfo {
   display: flex;
   align-items: center;
-  gap: 2rem;
-  flex: 1;
+  gap: 20px;
 }
 
 .profileDetails {
@@ -229,20 +189,18 @@
 
 .profileImageContainer {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid #ebc725;
-  background-color: #1a1a1a;
-  flex-shrink: 0;
+  background: var(--primary-black-light);
+  border: 2px solid var(--primary-yellow);
 }
 
 .profileImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .profileImagePlaceholder {

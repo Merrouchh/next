@@ -1,43 +1,36 @@
 .searchContainer {
-  position: relative;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  z-index: 1002; /* Higher than the wrapper but lower than headers */
+  position: relative;
 }
 
 .searchInputWrapper {
-  position: relative;
-  width: 100%;
   display: flex;
   align-items: center;
-  background: var(--background-primary);
-  border: 1px solid var(--border-primary);
+  background: var(--primary-black-light);
+  border: 1px solid var(--transparent-light);
   border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.2s ease;
+  padding: 10px 15px;
+  transition: all 0.3s ease;
 }
 
 .searchInputWrapper:focus-within {
-  border-color: #FFD700;
+  border-color: var(--primary-yellow);
   box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
 }
 
 .searchIcon {
-  position: absolute;
-  left: 12px;
-  color: #FFD700; /* Changed to yellow */
-  font-size: 20px;
-  transition: color 0.2s ease;
+  color: var(--primary-yellow);
+  margin-right: 10px;
 }
 
 .searchInput {
-  width: 100%;
-  padding: 12px 12px 12px 40px;
+  flex: 1;
   background: transparent;
   border: none;
-  color: var(--text-primary);
-  font-size: 16px;
+  color: var(--text-light);
+  font-size: 1rem;
   outline: none;
 }
 
@@ -56,16 +49,13 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--background-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--primary-black);
+  border: 1px solid var(--transparent-light);
   border-radius: 8px;
-  margin-top: 8px;
+  margin-top: 5px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1003;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
 }
 
 .searchResultItem {
@@ -104,7 +94,6 @@
   font-size: 14px;
 }
 
-/* Mobile specific styles */
 @media (max-width: 768px) {
   .searchContainer {
     max-width: 100%;
@@ -112,20 +101,22 @@
 
   .searchResults {
     position: fixed;
-    top: calc(var(--search-header-height)); /* Simplified positioning */
     left: 0;
     right: 0;
     margin: 0;
     border-radius: 0;
-    border-top: 1px solid var(--border-primary);
     border-left: none;
     border-right: none;
-    max-height: calc(100vh - var(--search-header-height));
+    background: var(--primary-black);
+    border-top: 1px solid var(--border-primary);
+    top: var(--search-header-height);
+    max-height: calc(100vh - var(--header-height) - var(--search-header-height));
   }
 
-  /* Remove the negative margin since we're positioning relative to the search input */
+  /* When dashboard header is present */
   .searchResults.withDashboardHeader {
-    top: var(--search-header-height);
+    top: calc(var(--dashboard-header-height) + var(--search-header-height));
+    max-height: calc(100vh - var(--header-height) - var(--dashboard-header-height) - var(--search-header-height));
   }
 
   .searchResultItem {

@@ -303,42 +303,42 @@
 .inputContainer {
   display: flex;
   align-items: center;
-  background: #242424;
+  background: var(--primary-black-light);
+  border: 1px solid var(--transparent-light);
   border-radius: 8px;
-  padding: 0.5rem;
-  margin-top: 0.5rem;
-  border: 1px solid rgba(255, 215, 0, 0.1);
-  position: relative;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.inputContainer:hover {
+  border-color: var(--primary-yellow);
+  background: var(--primary-black);
 }
 
 .inputContainer input {
+  flex: 1;
   background: transparent;
   border: none;
-  color: #e1e1e1;
-  flex: 1;
-  padding: 0.5rem;
-  padding-right: 3rem;
+  color: var(--text-light);
+  font-size: 1rem;
+  padding: 0;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.inputContainer input:focus {
+  outline: none;
 }
 
 .copyIcon {
-  position: absolute;
-  right: 0.75rem;
-  font-size: 1.25rem;
-  color: #FFD700;
-  cursor: pointer;
-  padding: 0.5rem;
-  transition: all 0.3s ease;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--primary-yellow);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
 }
 
-.copyIcon:hover {
-  color: #FFC000;
-  transform: scale(1.1);
-  background: rgba(0, 0, 0, 0.4);
+.inputContainer:hover .copyIcon {
+  opacity: 1;
 }
 
 .copySuccess {

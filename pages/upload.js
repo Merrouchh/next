@@ -426,7 +426,7 @@ const UploadPage = () => {
       <Head>
         <title>Upload Clip - MerrouchGaming</title>
       </Head>
-      <main className={styles.uploadMain}>
+      <div className={styles.uploadMain}>
         <PendingUploadsBanner userId={user?.id} />
         <div className={styles.uploadCard}>
           <header className={styles.header}>
@@ -546,7 +546,7 @@ const UploadPage = () => {
             </button>
           </form>
         </div>
-      </main>
+      </div>
       
       <UploadProgress
         progress={uploadProgress}

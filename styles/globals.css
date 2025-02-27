@@ -8,6 +8,11 @@
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 /* Base styles */
@@ -280,11 +285,60 @@ body.modal-open {
   --text-dark: #1a1a1a;
   --transparent-light: rgba(255, 255, 255, 0.1);
   --transparent-dark: rgba(0, 0, 0, 0.1);
+  --header-height: 70px;
+  --dashboard-header-height: 70px;
+  --search-header-height: 60px;
 }
 
 @media (min-width: 768px) {
   :root {
     --header-height: 70px;
     --dashboard-header-height: 70px;
+  }
+}
+
+/* Allow text selection for specific elements where needed */
+input,
+textarea,
+[contenteditable="true"],
+.allow-select {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+}
+
+/* Keep pointer cursor for clickable elements */
+button,
+a,
+[role="button"],
+.clickable {
+  cursor: pointer;
+}
+
+/* Show not-allowed cursor for disabled elements */
+button:disabled,
+[role="button"][aria-disabled="true"],
+.disabled {
+  cursor: not-allowed;
+}
+
+/* Allow text selection in code blocks if you have any */
+pre,
+code {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+}
+
+/* Update mobile variables */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 60px;
+    --dashboard-header-height: 60px;
+    --search-header-height: 50px;
   }
 }

@@ -5,6 +5,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
+import toast from 'react-hot-toast';
 
 export async function getServerSideProps({ res }) {
   // Set cache headers for shop page
@@ -64,7 +65,6 @@ const Shop = ({ metaData }) => {
   const [isNormalSectionOpen, setIsNormalSectionOpen] = useState(false);
   const [isVIPSectionOpen, setIsVIPSectionOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [copyFeedback, setCopyFeedback] = useState('');
 
   useEffect(() => {
     // Fetch the conversion rate from an API
@@ -143,9 +143,24 @@ const Shop = ({ metaData }) => {
   };
 
   const copyToClipboard = (text, field) => {
-    navigator.clipboard.writeText(text);
-    setCopyFeedback(`${field} copied!`);
-    setTimeout(() => setCopyFeedback(''), 2000);
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${field} copied to clipboard!`, {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+      });
+    }).catch(() => {
+      toast.error('Failed to copy text', {
+        position: 'top-right'
+      });
+    });
   };
 
   const handleTabClick = (tab) => {
@@ -506,30 +521,29 @@ const Shop = ({ metaData }) => {
         {activeTab === 'bank' && (
           <section className={styles.section}>
             <div className={styles.bankTransferDetails}>
-              {copyFeedback && <div className={styles.copySuccess}>{copyFeedback}</div>}
               <h3 className={styles.bankTransferHeading}>CIH Bank Users</h3>
               <div className={styles.bankTransferItem}>
                 <label>Name:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('MERROUCH MOKHTAR', 'Name')}
+                  title="Click to copy"
+                >
                   <input type="text" value="MERROUCH MOKHTAR" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('MERROUCH MOKHTAR', 'Name')}
-                    title="Copy name"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>Account Number:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('4273566211028100', 'Account Number')}
+                  title="Click to copy"
+                >
                   <input type="text" value="4273566211028100" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('4273566211028100', 'Account Number')}
-                    title="Copy account number"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>
@@ -538,52 +552,52 @@ const Shop = ({ metaData }) => {
               <h3 className={styles.bankTransferHeading}>Other Bank Users</h3>
               <div className={styles.bankTransferItem}>
                 <label>Name:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('MOKHTAR MERROUCH', 'Name')}
+                  title="Click to copy"
+                >
                   <input type="text" value="MOKHTAR MERROUCH" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('MOKHTAR MERROUCH', 'Name')}
-                    title="Copy name"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>RIB:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('230 640 4273566211028100 66', 'RIB')}
+                  title="Click to copy"
+                >
                   <input type="text" value="230 640 4273566211028100 66" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('230 640 4273566211028100 66', 'RIB')}
-                    title="Copy RIB"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>IBAN:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066', 'IBAN')}
+                  title="Click to copy"
+                >
                   <input type="text" value="MA64 2306 4042 7356 6211 0281 0066" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066', 'IBAN')}
-                    title="Copy IBAN"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>
               </div>
               <div className={styles.bankTransferItem}>
                 <label>Code SWIFT:</label>
-                <div className={styles.inputContainer}>
+                <div 
+                  className={styles.inputContainer}
+                  onClick={() => copyToClipboard('CIHMMAMC', 'Code SWIFT')}
+                  title="Click to copy"
+                >
                   <input type="text" value="CIHMMAMC" readOnly />
-                  <div 
-                    className={styles.copyIcon}
-                    onClick={() => copyToClipboard('CIHMMAMC', 'Code SWIFT')}
-                    title="Copy code SWIFT"
-                  >
+                  <div className={styles.copyIcon}>
                     <AiOutlineCopy size={20} />
                   </div>
                 </div>

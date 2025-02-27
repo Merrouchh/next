@@ -133,17 +133,17 @@
   .vipComputers {
     display: flex;
     overflow-x: auto;
-    grid-template-columns: none;
-    -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    justify-content: flex-start;
+    gap: 1rem;
+    padding: 0 1rem;
   }
 
   .vipPcBox {
-    flex: 0 0 calc(50% - 0.25rem);
-    min-width: calc(50% - 0.25rem);
+    flex: 0 0 calc(50% - 0.5rem);
+    scroll-snap-align: start;
   }
 
   .vipComputers::-webkit-scrollbar {
@@ -252,4 +252,100 @@
     padding-right: max(1rem, env(safe-area-inset-right));
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
+}
+
+/* Add these new styles */
+.liveIndicator {
+  position: fixed;
+  top: calc(var(--header-height) + var(--dashboard-header-height) + 1rem);
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background: #ff0000;
+  border-radius: 50%;
+  animation: livePulse 2s infinite;
+}
+
+.liveText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes livePulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Update swipe indicator styles */
+.swipeControls {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  margin: 8px 0;
+  min-height: 40px;
+}
+
+.swipeButton {
+  opacity: 1;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.swipeButton:hover:not(.edgeDisabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.swipeButton.edgeDisabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(255, 0, 0, 0.1);
+  border-color: rgba(255, 0, 0, 0.2);
+  color: rgba(255, 0, 0, 0.8);
+}
+
+.swipeArrow {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.swipeButton:not(.edgeDisabled):hover .swipeArrow {
+  transform: scale(1.2);
+}
+
+/* If the video is in the avcomputers page */
+.videoContainer {
+  width: 100%;
+  margin: 0 auto;
+  background: #000;
 }

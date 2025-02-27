@@ -59,17 +59,11 @@ const Layout = ({ children }) => {
     };
   }, [router.events, mounted]);
 
-  // Pass these through context or props
-  const layoutContextValue = {
-    closeLoginModal
-  };
-
-  // Return consistent loading screen structure
   if (!mounted || !initialized) {
     return (
       <>
         <div className={styles.layoutWrapper}>
-          <div className={styles.loadingContainer} suppressHydrationWarning>
+          <div className={styles.loadingContainer}>
             <LoadingScreen type="auth" />
           </div>
         </div>
@@ -81,9 +75,8 @@ const Layout = ({ children }) => {
   return (
     <>
       <div className={styles.layoutWrapper}>
-        <div className={`${styles.layoutContent} ${isTransitioning ? styles.transitioning : ''}`}>
+        <div className={styles.layoutContent}>
           <main className={styles.mainContent}>
-            {/* Include schemas only on homepage */}
             {isHomePage && (
               <>
                 <FAQSchema />

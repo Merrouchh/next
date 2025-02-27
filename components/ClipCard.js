@@ -219,15 +219,7 @@ const ClipCard = ({
         </div>
 
         <div className={styles.videoContainer}>
-          <VideoPlayer
-            clip={clipData}
-            onLoadingChange={handleLoadingChange}
-          />
-          {isLoading && (
-            <div className={styles.loadingOverlay}>
-              <div className={styles.spinner} />
-            </div>
-          )}
+          <VideoPlayer clip={clip} user={user} onLoadingChange={setIsLoading} />
         </div>
 
         <div className={styles.stats}>

@@ -19,8 +19,14 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   const { isLoginModalOpen } = useModal();
   const routeConfig = getRouteConfig(router.pathname);
 
-  // Get route configuration
+  // Add console.log to debug
+  console.log('Current path:', router.pathname);
+  console.log('Route config:', routeConfig);
+  console.log('Has search header:', routeConfig.hasSearchHeader);
+
   const hasNavigation = routeConfig.showNavigation;
+  const showDashboardHeader = user && hasNavigation;
+  const hasSearchHeader = routeConfig.hasSearchHeader;
 
   // Calculate main content style
   const mainContentStyle = {
@@ -32,21 +38,14 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   // Handle authentication-based routing
   useEffect(() => {
     if (loading) return;
-
-    // Redirect authenticated users from home page to dashboard
     if (user && router.pathname === '/') {
       router.replace('/dashboard');
       return;
     }
-
-    // Redirect unauthenticated users from protected routes to home
     if (!user && routeConfig.requireAuth) {
       router.replace('/');
     }
   }, [loading, user, router, routeConfig.requireAuth, router.pathname]);
-
-  const showDashboardHeader = user && hasNavigation;
-  const showUserSearch = routeConfig.showSearch || (router.pathname === '/' && !user);
 
   // Show loading spinner during authentication check for protected routes
   if (loading && routeConfig.requireAuth) {
@@ -60,7 +59,11 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
 
   return (
     <div className={styles.wrapper} suppressHydrationWarning>
-      <div className={styles.contentWrapper}>
+      <div 
+        className={styles.contentWrapper}
+        data-has-search={hasSearchHeader}
+        data-has-dashboard={showDashboardHeader}
+      >
         <div className={styles.headerWrapper}>
           <Header />
           {router.pathname === '/' && (
@@ -79,25 +82,23 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
           </div>
         )}
 
-        {showUserSearch && (
-          <div className={`
-            ${styles.userSearchWrapper} 
-            ${showDashboardHeader ? styles.withDashboardHeader : ''}
-          `}>
+        {/* Add console.log to debug */}
+        {console.log('Should show search header:', hasSearchHeader)}
+        {hasSearchHeader && (
+          <div className={`${styles.userSearchWrapper} ${showDashboardHeader ? styles.withDashboard : ''}`}>
             <UserSearch />
           </div>
         )}
         
         <main 
-          className={`${styles.mainContent} ${hasNavigation ? styles.hasBottomNav : ''} ${showUserSearch ? styles.withSearch : ''}`}
-          style={mainContentStyle}
+          className={styles.mainContent}
+          data-has-nav={hasNavigation}
         >
           {children}
         </main>
 
-        {/* Bottom Navigation - Only show when user is logged in */}
         {isMobile && user && hasNavigation && (
-          <div className={styles.bottomNav}>
+          <nav className={styles.bottomNav}>
             <button
               onClick={() => router.push('/discover')}
               className={`${styles.navButton} ${router.pathname === '/discover' ? styles.active : ''}`}
@@ -119,7 +120,7 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
               <span className={styles.icon}><AiOutlineVideoCamera size={20} /></span>
               <span className={styles.label}>Profile</span>
             </button>
-          </div>
+          </nav>
         )}
       </div>
     </div>

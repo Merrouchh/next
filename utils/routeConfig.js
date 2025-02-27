@@ -3,8 +3,8 @@ export const ROUTE_CONFIG = {
   '/': {
     public: true,
     requireAuth: false,
-    showNavigation: true,
-    showSearch: true
+    showNavigation: false,
+    hasSearchHeader: true
   },
 
   '/discover': {
@@ -53,7 +53,7 @@ export const ROUTE_CONFIG = {
     public: true,
     requireAuth: false,
     showNavigation: true,
-    showSearch: true
+    hasSearchHeader: true
   },
 
   // Default configuration
@@ -82,4 +82,10 @@ export const isPublicRoute = (pathname) => {
 export const isProtectedRoute = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.requireAuth;
+};
+
+// Add hasSearchHeader to the helper functions
+export const hasSearchHeader = (pathname) => {
+  const config = getRouteConfig(pathname);
+  return config.hasSearchHeader || false;
 }; 

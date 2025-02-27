@@ -1,4 +1,7 @@
 .uploadMain {
+  width: 100%;
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
   padding: 2rem;
   background-color: #0a0a0a;
   min-height: calc(100vh - 120px);

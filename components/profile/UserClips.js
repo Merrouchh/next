@@ -131,7 +131,7 @@ const UserClips = ({ userId, isOwner }) => {
         </div>
       )}
 
-      <div className={`${styles.profileClipsGrid} ${isFiltering ? styles.filtering : ''}`}>
+      <div className={`${styles.clipsGrid} ${isFiltering ? styles.filtering : ''}`}>
         {isFiltering ? (
           <div className={styles.filterLoading}>
             <div className={styles.spinner}></div>

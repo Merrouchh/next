@@ -8,6 +8,7 @@ import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
 import DynamicMeta from '../components/DynamicMeta';
+import { MdChevronRight } from 'react-icons/md';
 
 // We can remove cache headers since they're handled globally in next.config.js
 export const getServerSideProps = async ({ res }) => {
@@ -112,26 +113,86 @@ const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
 // VIP Computers section
 const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
   const vipContainerRef = useRef(null);
-  const initialScrollDone = useRef(false);
+  const [isAtEnd, setIsAtEnd] = useState(false);
+  const [isAtStart, setIsAtStart] = useState(true);
+  const [currentPair, setCurrentPair] = useState(0);
 
+  const totalPairs = Math.ceil(computers.length / 2) - 1;
+
+  // Memoize handleScroll to prevent recreating on every render
+  const handleScroll = useCallback((e) => {
+    if (!e.target) return;
+    const container = e.target;
+    
+    const pairWidth = container.clientWidth;
+    const currentScrollPosition = container.scrollLeft;
+    const currentPairIndex = Math.round(currentScrollPosition / pairWidth);
+    
+    setCurrentPair(currentPairIndex);
+    setIsAtStart(currentPairIndex === 0);
+    setIsAtEnd(currentPairIndex === totalPairs);
+  }, [totalPairs]); // Add totalPairs as dependency
+
+  // Memoize handleScrollButton
+  const handleScrollButton = useCallback((direction) => {
+    if (!vipContainerRef.current) return;
+    
+    const container = vipContainerRef.current;
+    const pairWidth = container.clientWidth;
+    
+    const newPairIndex = direction === 'left' ? 
+      Math.max(0, currentPair - 1) : 
+      Math.min(totalPairs, currentPair + 1);
+    
+    container.scrollTo({
+      left: newPairIndex * pairWidth,
+      behavior: 'smooth'
+    });
+    
+    setCurrentPair(newPairIndex);
+    setIsAtStart(newPairIndex === 0);
+    setIsAtEnd(newPairIndex === totalPairs);
+  }, [currentPair, totalPairs]);
+
+  // Clean up scroll event listeners
   useEffect(() => {
-    if (!initialScrollDone.current && vipContainerRef.current && computers.length > 0) {
-      const container = vipContainerRef.current;
-      const totalWidth = container.scrollWidth;
-      const visibleWidth = container.offsetWidth;
-      const scrollToMiddle = (totalWidth - visibleWidth) / 2;
+    const container = vipContainerRef.current;
+    if (!container) return;
 
-      setTimeout(() => {
-        container.scrollLeft = scrollToMiddle;
-        initialScrollDone.current = true;
-      }, 100);
-    }
-  }, [computers]);
+    // Add passive scroll listener for better performance
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [handleScroll]);
 
   return (
     <div className={styles.vipWrapper}>
       <div className={styles.vipSection}>
-        <div ref={vipContainerRef} className={styles.vipComputers}>
+        <h2 className={styles.sectionHeading}>VIP PCs</h2>
+        <div className={styles.swipeControls}>
+          <button 
+            onClick={() => handleScrollButton('left')} 
+            className={`${styles.swipeButton} ${isAtStart ? styles.edgeDisabled : ''}`}
+            disabled={isAtStart}
+          >
+            <span className={styles.swipeArrow}>←</span>
+          </button>
+          
+          <button 
+            onClick={() => handleScrollButton('right')} 
+            className={`${styles.swipeButton} ${isAtEnd ? styles.edgeDisabled : ''}`}
+            disabled={isAtEnd}
+          >
+            <span className={styles.swipeArrow}>→</span>
+          </button>
+        </div>
+
+        <div 
+          ref={vipContainerRef} 
+          className={styles.vipComputers}
+        >
           {computers.map(computer => (
             <ComputerBox 
               key={computer.id} 
@@ -149,7 +210,7 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
 
 // Main component
 const AvailableComputers = ({ metaData }) => {
-  const { user } = useAuth();  // Simplified auth usage
+  const { user } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
@@ -298,6 +359,11 @@ const AvailableComputers = ({ metaData }) => {
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
       <main className={styles.mainContainer}>
+        <div className={styles.liveIndicator}>
+          <div className={styles.liveDot}></div>
+          <span className={styles.liveText}>Live</span>
+        </div>
+
         <h2 className={styles.sectionHeading}>Normal Computers</h2>
         <div className={styles.computerGrid}>
           {computers.normal.map(computer => (
@@ -311,7 +377,6 @@ const AvailableComputers = ({ metaData }) => {
           ))}
         </div>
 
-        <h2 className={styles.sectionHeading}>VIP PCs</h2>
         <VIPComputers 
           computers={computers.vip} 
           lastUpdate={lastUpdate}

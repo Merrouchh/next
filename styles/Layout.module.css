@@ -19,6 +19,13 @@
 .mainContent {
   flex: 1;
   width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.mainContent.withSearchHeader {
+  padding-top: calc(var(--header-height) + var(--search-height) + 1rem);
 }
 
 .loadingContainer {

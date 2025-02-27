@@ -5,7 +5,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/Dashboard.module.css';
-import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera } from 'react-icons/ai';
+import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload } from 'react-icons/ai';
 import DashboardUserSearch from '../components/DashboardUserSearch';
 import { 
   fetchActiveUserSessions, 
@@ -16,6 +16,7 @@ import {
   fetchUserPicture,
   uploadUserPicture
 } from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 
 export async function getServerSideProps({ res }) {
@@ -128,6 +129,26 @@ const TopUsersCard = ({ topUsers, handleNavigation }) => (
         <li className={styles.noDataMessage}>No top players available</li>
       )}
     </ul>
+  </div>
+);
+
+const RefreshCard = ({ onRefresh, isLoading }) => (
+  <div className={`${styles.statCard} ${styles.smallCard}`}>
+    <div className={styles.statHeader}>
+      <div className={styles.statIcon}>
+        <AiOutlineReload size={24} />
+      </div>
+      <h3 className={styles.statTitle}>Refresh Data</h3>
+    </div>
+    <button 
+      onClick={onRefresh}
+      disabled={isLoading}
+      className={`${styles.refreshButton} ${isLoading ? styles.refreshing : ''}`}
+      aria-label="Refresh dashboard data"
+    >
+      <AiOutlineReload size={20} />
+      {isLoading ? 'Refreshing...' : 'Refresh'}
+    </button>
   </div>
 );
 
@@ -313,6 +334,64 @@ const Dashboard = ({ _initialClips, metaData }) => {
     router.push('/editprofile');
   };
 
+  const handleRefresh = async () => {
+    setPageState(prev => ({ ...prev, loading: true }));
+    try {
+      const [
+        activeSessions,
+        topUsers,
+        points,
+        timeInfo,
+        balanceInfo,
+        userPicture
+      ] = await Promise.all([
+        fetchActiveUserSessions(),
+        fetchTopUsers(5),
+        fetchUserPoints(user.gizmo_id),
+        fetchUserTimeInfo(user.gizmo_id),
+        fetchUserBalanceWithDebt(user.gizmo_id),
+        fetchUserPicture(user.gizmo_id)
+      ]);
+
+      setPageState({
+        loading: false,
+        error: null,
+        data: {
+          ...pageState.data,
+          activeSessions,
+          topUsers,
+          userPoints: points?.points || 0,
+          timeInfo,
+          balanceInfo,
+          userPicture
+        }
+      });
+
+      toast.success('Dashboard refreshed!', {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      setPageState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to refresh data'
+      }));
+      toast.error('Failed to refresh data', {
+        position: 'top-right'
+      });
+    }
+  };
+
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
@@ -389,7 +468,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
                     {formatDebt(pageState.data.balanceInfo.rawBalance || 0)}
                   </p>
                 )}
-                {/* Edit Profile Button - Temporarily Hidden
                 <button 
                   onClick={handleEditProfile}
                   className={styles.editProfileRow}
@@ -400,7 +478,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
                     <span>Edit</span>
                   </div>
                 </button>
-                */}
+                
               </div>
             </div>
           </div>
@@ -456,6 +534,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
           <ActiveSessionsCard 
             activeSessions={pageState.data.activeSessions || []} 
             handleNavigation={handleNavigation}
+          />
+
+          <RefreshCard 
+            onRefresh={handleRefresh}
+            isLoading={pageState.loading}
           />
         </div>
       </main>

@@ -73,6 +73,11 @@
   overflow: hidden;
   backdrop-filter: blur(10px);
   color: var(--text-light);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .statCard:hover {
@@ -86,6 +91,11 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .statIcon {
@@ -100,6 +110,11 @@
   color: var(--text-light);
   font-weight: 600;
   margin: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 /* Card Sizes with Mobile Responsiveness */
@@ -285,6 +300,11 @@
   border-radius: 8px;
   background: var(--primary-black-light);
   transition: all 0.3s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .profileDetails p:hover {
@@ -310,6 +330,11 @@
   margin-top: 15px;
   transition: background 0.2s ease;
   color: var(--text-light);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .editProfileRow:hover {
@@ -339,6 +364,11 @@
   border: 1px solid var(--transparent-light);
   transition: transform 0.2s ease;
   color: var(--text-light);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .timePackage:hover {
@@ -353,12 +383,22 @@
   margin-bottom: 8px;
   font-weight: 600;
   text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .packageTime {
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--text-light);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .noTimeContainer {
@@ -385,6 +425,11 @@
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .rechargeButton:hover {
@@ -506,6 +551,11 @@
   padding: 20px;
   background: var(--primary-black-transparent);
   border-radius: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .sessionNumber {
@@ -513,12 +563,22 @@
   font-weight: bold;
   color: var(--primary-yellow);
   margin-bottom: 10px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .sessionLabel {
   color: var(--text-light);
   font-size: 1.1rem;
   font-weight: 500;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 /* Top Users Card */
@@ -537,6 +597,11 @@
   margin-bottom: 10px;
   transition: transform 0.2s ease;
   border: 1px solid var(--transparent-light);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .topUserItem:hover {
@@ -560,12 +625,22 @@
   margin-right: 15px;
   font-weight: bold;
   color: var(--primary-yellow);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .topUserName {
   flex: 1;
   color: var(--text-light);
   font-weight: 500;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .topUserMedal {
@@ -616,6 +691,11 @@
   margin-top: 15px;
   cursor: pointer;
   transition: background 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .retryButton:hover {
@@ -642,6 +722,11 @@
   cursor: pointer;
   transition: background 0.2s ease;
   font-weight: 500;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
 }
 
 .setupButton:hover {
@@ -652,5 +737,53 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
+}
+
+.refreshButton {
+  width: 100%;
+  padding: 12px;
+  background: #ffd000;
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
+}
+
+.refreshButton:hover {
+  background: #ffdb33;
+  transform: translateY(-2px);
+}
+
+.refreshButton:active {
+  transform: translateY(0);
+}
+
+.refreshButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.refreshing svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
