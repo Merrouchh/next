@@ -56,33 +56,121 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
     
     const tech = playerRef.current.tech({ IWillNotUseThisInPlugins: true });
     if (tech && tech.vhs) {
+      // Disable user interaction during quality change
+      playerRef.current.controls(false);
+      
       const representations = tech.vhs.representations();
       
-      // Force disable all qualities first
-      representations.forEach(rep => {
-        rep.enabled(false);
-      });
-
-      // Then enable only the selected quality by ID
-      const selectedRep = representations.find(rep => rep.id === selectedQuality.id);
-      if (selectedRep) {
-        selectedRep.enabled(true);
-        
-        // Update stats
-        setVideoStats(prev => ({
-          ...prev,
-          currentQuality: `${selectedQuality.height}p`,
-          resolution: `${selectedQuality.width}x${selectedQuality.height}`,
-          bandwidth: Math.round(selectedQuality.bandwidth / 1000) + ' Kbps'
-        }));
-
-        // Force the player to switch to the new quality
-        tech.vhs.representations().forEach(rep => {
-          if (rep.id === selectedQuality.id) {
-            tech.vhs.playlists.media(rep.playlist);
-          }
+      try {
+        // Force disable all qualities first
+        representations.forEach(rep => {
+          rep.enabled(false);
         });
+
+        // Then enable only the selected quality by ID
+        const selectedRep = representations.find(rep => rep.id === selectedQuality.id);
+        if (selectedRep) {
+          selectedRep.enabled(true);
+          
+          // Store current time and playing state
+          const currentTime = playerRef.current.currentTime();
+          const wasPlaying = !playerRef.current.paused();
+          
+          // Force reload with original HLS URL
+          playerRef.current.src({
+            src: `https://videodelivery.net/${clip.cloudflare_uid}/manifest/video.m3u8`,
+            type: 'application/x-mpegURL',
+            withCredentials: false
+          });
+
+          // After reload, set quality and restore position
+          playerRef.current.one('loadedmetadata', () => {
+            try {
+              // Re-enable selected quality
+              const newTech = playerRef.current.tech({ IWillNotUseThisInPlugins: true });
+              if (newTech && newTech.vhs) {
+                const newRepresentations = newTech.vhs.representations();
+                newRepresentations.forEach(rep => {
+                  rep.enabled(rep.id === selectedQuality.id);
+                });
+
+                // Monitor quality changes to ensure it sticks
+                const handleMediaChange = () => {
+                  try {
+                    newRepresentations.forEach(rep => {
+                      rep.enabled(rep.id === selectedQuality.id);
+                    });
+                  } catch (err) {
+                    console.warn('Quality change monitoring error:', err);
+                  }
+                };
+
+                newTech.vhs.on('mediachange', handleMediaChange);
+                
+                // Clean up listener when quality changes again
+                playerRef.current.one('qualitychange', () => {
+                  newTech.vhs.off('mediachange', handleMediaChange);
+                });
+              }
+
+              // Restore position and play state
+              playerRef.current.currentTime(currentTime);
+              if (wasPlaying) {
+                playerRef.current.play().catch(console.warn);
+              }
+
+              // Update stats with selected quality
+              setVideoStats(prev => ({
+                ...prev,
+                currentQuality: `${selectedQuality.height}p`,
+                resolution: `${selectedQuality.width}x${selectedQuality.height}`,
+                bandwidth: Math.round(selectedQuality.bandwidth / 1000) + ' Kbps',
+                availableQualities: prev.availableQualities
+              }));
+            } catch (err) {
+              console.warn('Quality change error:', err);
+            } finally {
+              // Re-enable controls
+              if (playerRef.current) {
+                playerRef.current.controls(true);
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Quality change error:', err);
+        // Re-enable controls on error
+        if (playerRef.current) {
+          playerRef.current.controls(true);
+        }
       }
+    }
+  };
+
+  const getHighestQualityStream = async (id) => {
+    try {
+      const url = `https://videodelivery.net/${id}`;
+      const res = await fetch(`${url}/manifest/video.m3u8`);
+      const streamText = await res.text();
+      
+      // Find all quality streams
+      const streams = [...streamText.matchAll(/#EXT-X-STREAM-INF:.*RESOLUTION=(\d+x\d+).*\n(.*)/g)]
+        .map(([_, resolution, file]) => {
+          const [width, height] = resolution.split('x').map(Number);
+          return { height, file };
+        })
+        .sort((a, b) => b.height - a.height);
+
+      // Get highest quality stream
+      if (streams.length > 0) {
+        return `${url}/manifest/${streams[0].file}`;
+      }
+      
+      // Fallback to default manifest if no streams found
+      return `${url}/manifest/video.m3u8`;
+    } catch (err) {
+      console.warn('Error getting highest quality stream:', err);
+      return `https://videodelivery.net/${id}/manifest/video.m3u8`;
     }
   };
 
@@ -99,7 +187,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
 
     const initializePlayer = async () => {
       try {
-        // VideoJS configuration
+        // Get highest quality stream URL first
+        const highQualityUrl = await getHighestQualityStream(clip.cloudflare_uid);
+
         const options = {
           controls: true,
           fluid: true,
@@ -107,30 +197,22 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
           aspectRatio: '16:9',
           playsinline: true,
           preload: 'auto',
-          controlBar: {
-            children: [
-              'playToggle',
-              'volumePanel',
-              'currentTimeDisplay',
-              'timeDivider',
-              'durationDisplay',
-              'progressControl',
-              'fullscreenToggle'
-            ]
-          },
           html5: {
             vhs: {
               overrideNative: true,
               fastQualityChange: true,
-              enableLowInitialPlaylist: false,
-              limitRenditionByPlayerDimensions: false,
-              bandwidth: 20000000,
+              enableLowInitialPlaylist: false
             }
           }
         };
 
-        // Initialize video.js player
         const player = videojs(videoRef.current, options);
+
+        // Set source to highest quality stream directly
+        player.src({
+          src: highQualityUrl,
+          type: 'application/x-mpegURL'
+        });
 
         // Remove any existing stats buttons from the control bar
         const controlBar = player.getChild('ControlBar');
@@ -156,51 +238,42 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
           }
         }
 
-        // Set sources after player initialization
-        player.src({
-          src: `https://videodelivery.net/${clip.cloudflare_uid}/manifest/video.m3u8`,
-          type: 'application/x-mpegURL',
-          withCredentials: false
-        });
-
         // Set poster
         player.poster(`https://videodelivery.net/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg?time=1s&height=1080&width=1920`);
 
-        // Keep the quality monitoring and stats display
-        player.on('loadedmetadata', () => {
-          const tech = player.tech({ IWillNotUseThisInPlugins: true });
-          if (tech && tech.vhs) {
-            const representations = tech.vhs.representations();
-            if (representations.length > 0) {
-              const qualities = representations.map(rep => ({
-                id: rep.id,
-                width: rep.width,
-                height: rep.height,
-                bandwidth: rep.bandwidth
-              }));
-
-              // Sort by bandwidth (highest first)
-              qualities.sort((a, b) => b.bandwidth - a.bandwidth);
+        // Add a loading state until we get the highest quality
+        player.ready(() => {
+          player.one('loadedmetadata', () => {
+            const tech = player.tech({ IWillNotUseThisInPlugins: true });
+            if (tech && tech.vhs) {
+              // Wait for highest quality to be loaded before playing
+              tech.vhs.representations().sort((a, b) => b.bandwidth - a.bandwidth);
+              const highestQuality = tech.vhs.representations()[0];
               
-              // Set initial highest quality
-              representations.forEach(rep => {
-                rep.enabled(rep.id === qualities[0].id);
-              });
-              
-              // Update stats
-              setVideoStats(prev => ({
-                ...prev,
-                availableQualities: qualities,
-                currentQuality: `${qualities[0].height}p`,
-                resolution: `${qualities[0].width}x${qualities[0].height}`,
-                bandwidth: Math.round(qualities[0].bandwidth / 1000) + ' Kbps'
-              }));
+              if (highestQuality) {
+                // Enable only highest quality
+                tech.vhs.representations().forEach(rep => {
+                  rep.enabled(rep.id === highestQuality.id);
+                });
 
-              // Remove automatic quality changes
-              tech.vhs.autoLevelCapping = -1;
+                // Disable auto quality switching
+                tech.vhs.autoLevelCapping = -1;
+
+                // Wait for buffer to fill with highest quality
+                const waitForBuffer = () => {
+                  if (player.buffered().length) {
+                    const bufferedEnd = player.buffered().end(0);
+                    if (bufferedEnd >= 1) { // Wait for at least 1 second of buffer
+                      onLoadingChange?.(false);
+                      return;
+                    }
+                  }
+                  setTimeout(waitForBuffer, 50);
+                };
+                waitForBuffer();
+              }
             }
-          }
-          onLoadingChange?.(false);
+          });
         });
 
         playerRef.current = player;
@@ -208,22 +281,22 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
 
         // Event handlers
         player.on('play', async () => {
-          try {
-            await pauseOthers(clip.id);
-            if (!hasTrackedView && mounted) {
-              await trackView(clip.id, user?.id);
-              setHasTrackedView(true);
+            try {
+              await pauseOthers(clip.id);
+              if (!hasTrackedView && mounted) {
+                await trackView(clip.id, user?.id);
+                setHasTrackedView(true);
+              }
+            } catch (err) {
+              console.error('Error handling play event:', err);
             }
-          } catch (err) {
-            console.error('Error handling play event:', err);
-          }
         });
 
         player.on('waiting', () => mounted && onLoadingChange?.(true));
         player.on('canplay', () => mounted && onLoadingChange?.(false));
         player.on('error', () => {
           console.error('Video playback error:', player.error());
-          setError('Failed to load video');
+            setError('Failed to load video');
         });
 
       } catch (err) {
@@ -232,7 +305,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
       }
     };
 
-    setTimeout(initializePlayer, 0);
+    initializePlayer();
 
     return () => {
       mounted = false;
