@@ -90,9 +90,6 @@ const DashboardUserSearch = () => {
           onChange={handleSearch}
           className={styles.searchInput}
         />
-        <button type="submit" className={styles.searchButton}>
-          <MdSearch />
-        </button>
       </form>
 
       {showResults && (searchResults.length > 0 || isSearching) && (

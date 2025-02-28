@@ -17,7 +17,6 @@
   font-size: 1.25rem;
   position: sticky;
   top: 0;
-  background: #121212;
   padding: 0.5rem 0;
   z-index: 1;
   text-align: center;
@@ -193,14 +192,12 @@
   }
 
   .sectionHeading {
-    background: #121212;
     color: #fff;
   }
 }
 
 @media (prefers-color-scheme: light) {
   .sectionHeading {
-    background: #1a1a1a;
     color: #fff;
   }
 }
@@ -303,11 +300,17 @@
 
 /* Update swipe indicator styles */
 .swipeControls {
-  display: flex;
+  display: none;
   justify-content: space-between;
+  align-items: center;
+  margin: 0.5rem 0;
   padding: 0 1rem;
-  margin: 8px 0;
-  min-height: 40px;
+}
+
+@media (max-width: 768px) {
+  .swipeControls {
+    display: flex;
+  }
 }
 
 .swipeButton {

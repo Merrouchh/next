@@ -22,26 +22,51 @@
 /* Welcome Section */
 .welcomeSection {
   width: 100%;
-  background: linear-gradient(to right, var(--primary-black), var(--primary-black-light));
-  padding: 30px;
-  border-radius: 10px;
-  margin-bottom: 30px;
-  color: white;
-  backdrop-filter: blur(10px);
-  position: relative;
-  z-index: 46;
-  border: 1px solid var(--primary-yellow);
-  box-sizing: border-box;
+  padding: 20px 0;
 }
 
 .welcomeContent {
-  text-align: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: transparent;
 }
 
 .welcomeText {
-  font-size: 2rem;
-  margin: 0;
-  margin-bottom: 10px;
+  font-size: 1.8rem !important;
+  font-weight: 600 !important;
+  color: var(--text-light) !important;
+  text-align: center !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-transform: none !important;
+  font-family: inherit !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+
+.welcomeText .username,
+.username {
+  color: var(--primary-yellow) !important;
+  font-weight: 700 !important;
+  display: inline-block !important;
+  text-transform: none !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+  border: none !important;
+  background: none !important;
 }
 
 .welcomeSubtitle {
@@ -784,6 +809,21 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .welcomeSection {
+    padding: 15px 0;
+  }
+
+  .welcomeContent {
+    padding: 0 15px;
+    gap: 15px;
+  }
+
+  .welcomeText {
+    font-size: 1.5rem;
   }
 }
 

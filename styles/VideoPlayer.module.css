@@ -22,24 +22,137 @@
   font-family: -apple-system, system-ui, sans-serif !important;
 }
 
-/* Custom Big Play Button */
-.videoWrapper :global(.vjs-big-play-button) {
-  border-color: #ffd700 !important;
+/* Enhanced Big Play Button */
+.videoWrapper :global(.video-js .vjs-big-play-button) {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 100px !important;
+  height: 100px !important;
+  border: 3px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 50% !important;
   background-color: rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  z-index: 2 !important;
+  opacity: 1 !important;
+}
+
+/* Play Icon within the button */
+.videoWrapper :global(.video-js .vjs-big-play-button .vjs-icon-placeholder) {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.videoWrapper :global(.video-js .vjs-big-play-button .vjs-icon-placeholder:before) {
+  content: "" !important;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>') !important;
+  background-size: 50% !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 60px !important;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+  position: static !important;
+}
+
+/* Hover state */
+.videoWrapper :global(.video-js .vjs-big-play-button:hover) {
+  background-color: rgba(255, 215, 0, 0.9) !important;
+  border-color: #ffffff !important;
+  transform: translate(-50%, -50%) scale(1.1) !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) !important;
+}
+
+/* Active/Focus state */
+.videoWrapper :global(.video-js .vjs-big-play-button:active),
+.videoWrapper :global(.video-js .vjs-big-play-button:focus) {
+  background-color: rgba(255, 215, 0, 1) !important;
+  border-color: #ffffff !important;
+  transform: translate(-50%, -50%) scale(0.95) !important;
+}
+
+/* Ensure button shows/hides properly */
+.videoWrapper :global(.video-js.vjs-paused .vjs-big-play-button) {
+  display: flex !important;
+  opacity: 1 !important;
+}
+
+.videoWrapper :global(.video-js.vjs-playing .vjs-big-play-button) {
+  display: none !important;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .videoWrapper :global(.video-js .vjs-big-play-button) {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .videoWrapper :global(.video-js .vjs-big-play-button .vjs-icon-placeholder:before) {
+    font-size: 40px !important;
+    line-height: 80px !important;
+  }
 }
 
 /* Custom Control Bar */
 .videoWrapper :global(.vjs-control-bar) {
   background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.7)) !important;
+  opacity: 1 !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+/* Control bar visibility states */
+.videoWrapper :global(.video-js.vjs-user-inactive:not(.vjs-paused) .vjs-control-bar) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+.videoWrapper :global(.video-js.vjs-user-active .vjs-control-bar),
+.videoWrapper :global(.video-js.vjs-paused .vjs-control-bar) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure progress bar is always accessible */
+.videoWrapper :global(.video-js .vjs-progress-control) {
+  position: absolute !important;
+  width: 100% !important;
+  height: 3em !important;
+  top: -2em !important;
+  opacity: 1 !important;
+  z-index: 4 !important;
+  pointer-events: auto !important;
+  transition: none !important;
+}
+
+.videoWrapper :global(.video-js .vjs-progress-control:hover) {
+  opacity: 1;
 }
 
 /* Progress Bar Customization */
 .videoWrapper :global(.vjs-progress-holder) {
+  height: 0.5em !important;
   background: rgba(255,255,255,0.2) !important;
+  margin: 0 !important;
+  z-index: 4 !important;
+  pointer-events: auto !important;
 }
 
 .videoWrapper :global(.vjs-play-progress) {
   background-color: #ffd700 !important;
+  height: 0.5em !important;
 }
 
 /* Volume Bar Customization */
@@ -175,7 +288,82 @@
     display: none;
   }
   
-  .videoWrapper :global(.video-js .vjs-volume-panel) {
-    width: 60px;
+  /* Hide volume panel completely on mobile */
+  .videoWrapper :global(.video-js .vjs-volume-panel),
+  .videoWrapper :global(.video-js .vjs-volume-control),
+  .videoWrapper :global(.video-js .vjs-volume-bar),
+  .videoWrapper :global(.video-js .vjs-mute-control) {
+    display: none !important;
   }
+
+  /* Adjust control bar spacing without volume controls */
+  .videoWrapper :global(.video-js .vjs-control-bar) {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+}
+
+.videoWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.mobileOverlay {
+  display: none; /* Hidden by default */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Leave space for control bar at bottom */
+  bottom: 50px; /* Control bar height + some extra space */
+  z-index: 2;
+  cursor: pointer;
+}
+
+/* Only show overlay on mobile devices */
+@media (max-width: 768px) {
+  .mobileOverlay {
+    display: block;
+  }
+}
+
+/* Ensure controls stay above the overlay */
+:global(.video-js) .vjs-control-bar {
+  z-index: 3;
+}
+
+:global(.video-js) .vjs-big-play-button {
+  z-index: 3;
+}
+
+/* Make sure progress bar is clickable */
+:global(.video-js) .vjs-progress-control {
+  z-index: 3;
+  pointer-events: auto !important;
+}
+
+:global(.video-js) .vjs-progress-holder {
+  z-index: 3;
+  pointer-events: auto !important;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  .videoWrapper :global(.video-js .vjs-progress-control) {
+    top: -1.5em !important;
+    height: 2em !important;
+  }
+  
+  .videoWrapper :global(.video-js .vjs-progress-holder) {
+    height: 0.4em !important;
+  }
+  
+  .videoWrapper :global(.video-js .vjs-play-progress) {
+    height: 0.4em !important;
+  }
+}
+
+/* Hide Picture-in-Picture button on all devices */
+.videoWrapper :global(.video-js .vjs-picture-in-picture-control) {
+  display: none !important;
 }

@@ -116,14 +116,26 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [isAtStart, setIsAtStart] = useState(true);
   const [currentPair, setCurrentPair] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   const totalPairs = Math.ceil(computers.length / 2) - 1;
 
-  // Memoize handleScroll to prevent recreating on every render
-  const handleScroll = useCallback((e) => {
-    if (!e.target) return;
-    const container = e.target;
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
     
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Only run scroll handling on mobile
+  const handleScroll = useCallback((e) => {
+    if (!isMobile || !e.target) return;
+    
+    const container = e.target;
     const pairWidth = container.clientWidth;
     const currentScrollPosition = container.scrollLeft;
     const currentPairIndex = Math.round(currentScrollPosition / pairWidth);
@@ -131,11 +143,10 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
     setCurrentPair(currentPairIndex);
     setIsAtStart(currentPairIndex === 0);
     setIsAtEnd(currentPairIndex === totalPairs);
-  }, [totalPairs]); // Add totalPairs as dependency
+  }, [isMobile, totalPairs]);
 
-  // Memoize handleScrollButton
   const handleScrollButton = useCallback((direction) => {
-    if (!vipContainerRef.current) return;
+    if (!isMobile || !vipContainerRef.current) return;
     
     const container = vipContainerRef.current;
     const pairWidth = container.clientWidth;
@@ -152,20 +163,17 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
     setCurrentPair(newPairIndex);
     setIsAtStart(newPairIndex === 0);
     setIsAtEnd(newPairIndex === totalPairs);
-  }, [currentPair, totalPairs]);
+  }, [isMobile, currentPair, totalPairs]);
 
-  // Clean up scroll event listeners
   useEffect(() => {
     const container = vipContainerRef.current;
-    if (!container) return;
+    if (!container || !isMobile) return;
 
-    // Add passive scroll listener for better performance
     container.addEventListener('scroll', handleScroll, { passive: true });
-
     return () => {
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [handleScroll]);
+  }, [handleScroll, isMobile]);
 
   return (
     <div className={styles.vipWrapper}>

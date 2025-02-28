@@ -20,10 +20,25 @@ const getSessionId = () => {
   return sessionId;
 };
 
-export const trackView = async (clipId, userId = null) => {
+export const trackView = async (clipId, viewerId = null, isAnonymous = false) => {
+  console.log('trackView called with:', { clipId, viewerId, isAnonymous });
+  
+  if (!clipId || !viewerId) {
+    console.error('Missing required parameters:', { clipId, viewerId });
+    throw new Error('Missing required parameters: clipId and viewerId are required');
+  }
+
   try {
     const fingerprint = await getFingerprint();
     const sessionId = getSessionId();
+
+    console.log('Sending view tracking request:', {
+      clipId,
+      viewerId,
+      isAnonymous,
+      fingerprint: fingerprint.substring(0, 8) + '...',
+      sessionId
+    });
 
     const response = await fetch('/api/clips/track-view', {
       method: 'POST',
@@ -32,16 +47,34 @@ export const trackView = async (clipId, userId = null) => {
       },
       body: JSON.stringify({
         clipId,
-        userId,
+        viewerId,
+        isAnonymous,
         fingerprint,
         sessionId,
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('View tracking request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
+    
+    if (data.error) {
+      console.error('View tracking API error:', data.error);
+      throw new Error(data.error);
+    }
+
+    console.log('View tracking successful:', data);
     return data.viewCount;
   } catch (error) {
-    console.error('Failed to track view:', error);
-    return null;
+    console.error('View tracking failed:', error);
+    throw error;
   }
 }; 

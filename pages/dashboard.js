@@ -398,8 +398,9 @@ const Dashboard = ({ _initialClips, metaData }) => {
       <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
-            <h1 className={styles.welcomeText}>Welcome back, {user?.username}!</h1>
-            <p className={styles.welcomeSubtitle}>Here's what's happening at Merrouch Gaming</p>
+            <h1 className={styles.welcomeText}>
+              Hey <span className={styles.username}>{user?.username}</span>!
+            </h1>
             <DashboardUserSearch />
           </div>
         </section>

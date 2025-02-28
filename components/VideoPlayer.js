@@ -38,8 +38,14 @@ if (!videojs.getComponent('StatsButton')) {
 
 const VideoPlayer = ({ clip, user, onLoadingChange }) => {
   const [hasTrackedView, setHasTrackedView] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [isActuallyPlaying, setIsActuallyPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const playbackTimerRef = useRef(null);
+  const anonymousIdRef = useRef(null);
   const videoRef = useRef(null);
   const playerRef = useRef(null);
+  const trackingAttemptedRef = useRef(false);
   const { registerPlayer, unregisterPlayer, pauseOthers } = useVideo();
   const [error, setError] = useState(null);
   const [showStats, setShowStats] = useState(false);
@@ -49,6 +55,120 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
     bandwidth: 0,
     availableQualities: []
   });
+
+  // Reset tracking state when clip changes
+  useEffect(() => {
+    console.log('Clip changed, resetting tracking state for clip:', clip?.id);
+    setHasTrackedView(false);
+    setPlaybackTime(0);
+    setIsActuallyPlaying(false);
+    trackingAttemptedRef.current = false;
+    if (playbackTimerRef.current) {
+      clearInterval(playbackTimerRef.current);
+      playbackTimerRef.current = null;
+    }
+  }, [clip?.id]);
+
+  // Generate or retrieve anonymous ID for non-logged-in users
+  useEffect(() => {
+    if (!user) {
+      let anonId = localStorage.getItem('anonymousViewerId');
+      if (!anonId) {
+        anonId = 'anon_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        localStorage.setItem('anonymousViewerId', anonId);
+      }
+      anonymousIdRef.current = anonId;
+      console.log('Using anonymous ID:', anonId);
+    }
+  }, [user]);
+
+  // Handle actual playback tracking
+  const startPlaybackTracking = () => {
+    console.log('Starting playback tracking');
+    if (playbackTimerRef.current) {
+      clearInterval(playbackTimerRef.current);
+    }
+
+    playbackTimerRef.current = setInterval(() => {
+      if (playerRef.current && !playerRef.current.paused() && !isBuffering) {
+        const currentTime = playerRef.current.currentTime();
+        const previousTime = playerRef.current.previousTime || currentTime;
+        
+        // Only increment if time has actually advanced
+        if (currentTime > previousTime) {
+          setPlaybackTime(prev => {
+            const newTime = prev + 1;
+            console.log('Playback time:', newTime, 'for clip:', clip?.id);
+            return newTime;
+          });
+        }
+        
+        playerRef.current.previousTime = currentTime;
+      }
+    }, 1000);
+  };
+
+  const stopPlaybackTracking = () => {
+    console.log('Stopping playback tracking');
+    if (playbackTimerRef.current) {
+      clearInterval(playbackTimerRef.current);
+      playbackTimerRef.current = null;
+    }
+  };
+
+  // Track view after 5 seconds of actual playback
+  useEffect(() => {
+    const handleViewTracking = async () => {
+      if (!clip?.id || hasTrackedView || !isActuallyPlaying || isBuffering) return;
+
+      console.log('View tracking check:', {
+        playbackTime,
+        hasTrackedView,
+        clipId: clip.id,
+        userId: user?.id,
+        isActuallyPlaying,
+        isBuffering,
+        playerExists: !!playerRef.current
+      });
+
+      if (playbackTime >= 5) {
+        console.log('View tracking conditions met, attempting to track view');
+        try {
+          const viewerId = user?.id || anonymousIdRef.current;
+          if (viewerId) {
+            console.log('Tracking view with:', {
+              clipId: clip.id,
+              viewerId,
+              isAnonymous: !user
+            });
+            const viewCount = await trackView(clip.id, viewerId, !user);
+            console.log('View tracked successfully:', viewCount);
+            setHasTrackedView(true);
+          }
+        } catch (err) {
+          console.error('Error tracking view:', err);
+        }
+      }
+    };
+
+    handleViewTracking();
+  }, [playbackTime, hasTrackedView, clip?.id, user?.id, isActuallyPlaying, isBuffering]);
+
+  // Clean up player on unmount or clip change
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        try {
+          playerRef.current.dispose();
+          unregisterPlayer(clip?.id);
+        } catch (err) {
+          console.warn('Error disposing player:', err);
+        }
+        playerRef.current = null;
+      }
+      stopPlaybackTracking();
+    };
+  }, [clip?.id]);
 
   // Move handleQualityChange outside useEffect
   const handleQualityChange = (selectedQuality) => {
@@ -175,18 +295,30 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
   };
 
   useEffect(() => {
-    if (playerRef.current) {
-      playerRef.current.dispose();
-      unregisterPlayer(clip?.id);
-      playerRef.current = null;
-    }
-
-    if (!clip?.cloudflare_uid) return;
-
     let mounted = true;
+    let player = null;
 
     const initializePlayer = async () => {
       try {
+        // First, dispose of any existing player instances
+        if (videoRef.current) {
+          const existingPlayers = videojs.getAllPlayers();
+          existingPlayers.forEach(p => {
+            if (p.el() === videoRef.current || p.tech_.el() === videoRef.current) {
+              p.dispose();
+            }
+          });
+        }
+
+        // Clear any existing references
+        if (playerRef.current) {
+          playerRef.current.dispose();
+          unregisterPlayer(clip?.id);
+          playerRef.current = null;
+        }
+
+        if (!clip?.cloudflare_uid || !videoRef.current || !mounted) return;
+
         // Get highest quality stream URL first
         const highQualityUrl = await getHighestQualityStream(clip.cloudflare_uid);
 
@@ -197,123 +329,211 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
           aspectRatio: '16:9',
           playsinline: true,
           preload: 'auto',
+          autoplay: false,
+          inactivityTimeout: 3000,
+          bigPlayButton: true,
           html5: {
             vhs: {
               overrideNative: true,
               fastQualityChange: true,
-              enableLowInitialPlaylist: false
+              useBandwidthFromLocalStorage: true,
+              enableLowInitialPlaylist: false,
+              limitRenditionByPlayerDimensions: false
+            },
+            nativeAudioTracks: false,
+            nativeVideoTracks: false
+          },
+          controlBar: {
+            playToggle: true
+          },
+          userActions: {
+            click: true,
+            hotkeys: true
+          }
+        };
+
+        // Create new player instance
+        player = videojs(videoRef.current, options);
+        playerRef.current = player;
+
+        // Add playback monitoring
+        const handlePlaybackIssue = () => {
+          if (!player) return;
+          
+          const tech = player.tech({ IWillNotUseThisInPlugins: true });
+          if (tech) {
+            // Force video element refresh
+            const videoEl = tech.el();
+            if (videoEl) {
+              videoEl.style.display = 'none';
+              setTimeout(() => {
+                videoEl.style.display = 'block';
+              }, 50);
             }
           }
         };
 
-        const player = videojs(videoRef.current, options);
+        // Monitor playback issues
+        player.on('stalled', handlePlaybackIssue);
+        player.on('waiting', () => {
+          if (mounted) {
+            onLoadingChange?.(true);
+            handlePlaybackIssue();
+          }
+        });
+        
+        player.on('canplay', () => {
+          if (mounted) {
+            onLoadingChange?.(false);
+          }
+        });
 
-        // Set source to highest quality stream directly
+        player.on('error', (error) => {
+          console.error('Video playback error:', error);
+          if (player && player.error) {
+            console.error('Player error details:', player.error());
+          }
+          setError('Failed to load video');
+        });
+
+        // Set source using regular manifest URL to ensure audio tracks are included
         player.src({
-          src: highQualityUrl,
+          src: `https://videodelivery.net/${clip.cloudflare_uid}/manifest/video.m3u8`,
           type: 'application/x-mpegURL'
         });
 
-        // Remove any existing stats buttons from the control bar
-        const controlBar = player.getChild('ControlBar');
-        if (controlBar) {
-          // Find and remove any existing stats buttons
-          const existingStatsButton = controlBar.getChild('StatsButton');
-          if (existingStatsButton) {
-            controlBar.removeChild(existingStatsButton);
+        // Basic audio initialization
+        const initAudio = () => {
+          const tech = player.tech({ IWillNotUseThisInPlugins: true });
+          
+          // Unmute at both player and tech level
+          if (tech) {
+            tech.setMuted(false);
           }
+          player.muted(false);
+          player.volume(1.0);
+        };
 
-          // Add our single stats button
-          const fullscreenToggle = controlBar.getChild('FullscreenToggle');
-          const statsButton = controlBar.addChild('StatsButton', {
-            onStatsClick: () => setShowStats(prev => !prev)
-          });
-
-          // Move it before the fullscreen button
-          if (fullscreenToggle && statsButton) {
-            controlBar.el().insertBefore(
-              statsButton.el(),
-              fullscreenToggle.el()
-            );
+        // Set up audio handling
+        player.on('ready', () => {
+          // Initial audio setup
+          initAudio();
+          
+          // Handle tech-specific setup
+          const tech = player.tech({ IWillNotUseThisInPlugins: true });
+          if (tech) {
+            // Add playing event listener
+            tech.el().addEventListener('playing', () => {
+              initAudio();
+            });
           }
-        }
+        });
+
+        // Ensure audio is enabled at key points
+        player.on('loadeddata', initAudio);
+        player.on('play', initAudio);
+
+        // Handle volume changes
+        player.on('volumechange', () => {
+          if (player.muted()) {
+            player.muted(false);
+          }
+        });
 
         // Set poster
         player.poster(`https://videodelivery.net/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg?time=1s&height=1080&width=1920`);
 
-        // Add a loading state until we get the highest quality
-        player.ready(() => {
-          player.one('loadedmetadata', () => {
-            const tech = player.tech({ IWillNotUseThisInPlugins: true });
-            if (tech && tech.vhs) {
-              // Wait for highest quality to be loaded before playing
-              tech.vhs.representations().sort((a, b) => b.bandwidth - a.bandwidth);
-              const highestQuality = tech.vhs.representations()[0];
-              
-              if (highestQuality) {
-                // Enable only highest quality
-                tech.vhs.representations().forEach(rep => {
-                  rep.enabled(rep.id === highestQuality.id);
-                });
-
-                // Disable auto quality switching
-                tech.vhs.autoLevelCapping = -1;
-
-                // Wait for buffer to fill with highest quality
-                const waitForBuffer = () => {
-                  if (player.buffered().length) {
-                    const bufferedEnd = player.buffered().end(0);
-                    if (bufferedEnd >= 1) { // Wait for at least 1 second of buffer
-                      onLoadingChange?.(false);
-                      return;
-                    }
-                  }
-                  setTimeout(waitForBuffer, 50);
-                };
-                waitForBuffer();
-              }
-            }
-          });
-        });
-
         playerRef.current = player;
         registerPlayer(clip.id, player);
 
-        // Event handlers
-        player.on('play', async () => {
-            try {
-              await pauseOthers(clip.id);
-              if (!hasTrackedView && mounted) {
-                await trackView(clip.id, user?.id);
-                setHasTrackedView(true);
-              }
-            } catch (err) {
-              console.error('Error handling play event:', err);
-            }
+        // Set up playback monitoring with buffering detection
+        player.on('playing', () => {
+          if (mounted) {
+            console.log('Video actually playing');
+            setIsActuallyPlaying(true);
+            setIsBuffering(false);
+            startPlaybackTracking();
+          }
         });
 
-        player.on('waiting', () => mounted && onLoadingChange?.(true));
-        player.on('canplay', () => mounted && onLoadingChange?.(false));
-        player.on('error', () => {
-          console.error('Video playback error:', player.error());
-            setError('Failed to load video');
+        player.on('waiting', () => {
+          if (mounted) {
+            console.log('Video buffering');
+            setIsBuffering(true);
+            onLoadingChange?.(true);
+          }
+        });
+
+        player.on('canplay', () => {
+          if (mounted) {
+            console.log('Video can play');
+            setIsBuffering(false);
+            onLoadingChange?.(false);
+          }
+        });
+
+        player.on('pause', () => {
+          if (mounted) {
+            console.log('Video paused');
+            setIsActuallyPlaying(false);
+            stopPlaybackTracking();
+          }
+        });
+
+        player.on('ended', () => {
+          if (mounted) {
+            console.log('Video ended');
+            setIsActuallyPlaying(false);
+            stopPlaybackTracking();
+          }
+        });
+
+        player.on('timeupdate', () => {
+          if (mounted && player && !isBuffering) {
+            const currentTime = Math.floor(player.currentTime());
+            const isPlaying = !player.paused();
+            console.log('Video timeupdate:', { 
+              currentTime, 
+              isPlaying,
+              playbackTime,
+              hasTrackedView,
+              isBuffering 
+            });
+          }
+        });
+
+        // Remove the old play event handler that tracked views immediately
+        player.on('play', async () => {
+          try {
+            await pauseOthers(clip.id);
+          } catch (err) {
+            console.error('Error handling play event:', err);
+          }
         });
 
       } catch (err) {
         console.error('Error initializing player:', err);
-        setError('Failed to initialize video player');
+        if (mounted) {
+          setError('Failed to initialize video player');
+        }
       }
     };
 
     initializePlayer();
 
+    // Cleanup function
     return () => {
       mounted = false;
-      if (playerRef.current) {
-        playerRef.current.dispose();
-        unregisterPlayer(clip?.id);
-        playerRef.current = null;
+      stopPlaybackTracking();
+      if (player) {
+        try {
+          player.dispose();
+          unregisterPlayer(clip?.id);
+        } catch (err) {
+          console.warn('Error during cleanup:', err);
+        }
       }
+      playerRef.current = null;
     };
   }, [clip?.cloudflare_uid]);
 
@@ -330,40 +550,36 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
             web browser that supports HTML5 video
           </p>
         </video>
+        {/* Mobile touch overlay */}
+        <div 
+          className={styles.mobileOverlay}
+          onClick={(e) => {
+            if (!playerRef.current) return;
+            
+            // Don't handle if clicking controls
+            if (
+              e.target.closest('.vjs-control-bar') || 
+              e.target.closest('.vjs-menu') || 
+              e.target.closest('.vjs-volume-panel') ||
+              e.target.closest('.vjs-progress-control')
+            ) {
+              return;
+            }
+
+            // Handle big play button separately
+            if (e.target.closest('.vjs-big-play-button')) {
+              playerRef.current.play().catch(console.warn);
+              return;
+            }
+
+            if (playerRef.current.paused()) {
+              playerRef.current.play().catch(console.warn);
+            } else {
+              playerRef.current.pause();
+            }
+          }}
+        />
       </div>
-      
-      {/* Stats Overlay */}
-      {showStats && (
-        <div className={`${styles.statsOverlay} ${showStats ? styles.active : ''}`}>
-          <button 
-            className={styles.closeStats}
-            onClick={() => setShowStats(false)}
-            aria-label="Close stats"
-          >
-            <MdClose size={20} />
-          </button>
-          <div className={styles.statsContent}>
-            <h3>Video Stats</h3>
-            <div className={styles.statsInfo}>
-              <p>Current Quality: {videoStats.currentQuality}</p>
-              <p>Resolution: {videoStats.resolution}</p>
-              <p>Bandwidth: {videoStats.bandwidth}</p>
-            </div>
-            <ul>
-              {videoStats.availableQualities.map(quality => (
-                <li 
-                  key={quality.id}
-                  className={quality.height + 'p' === videoStats.currentQuality ? styles.active : ''}
-                  onClick={() => handleQualityChange(quality)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {quality.height}p
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
 
       {/* Error overlay */}
       {error && (
