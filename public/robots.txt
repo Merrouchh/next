@@ -1,0 +1,54 @@
+# Global rules
+User-agent: *
+Allow: /
+
+# Protected and private routes
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /avcomputers
+Disallow: /api/*
+Disallow: /_next/*
+Disallow: /static/*
+
+# Allow media files
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+
+# Allow specific public pages
+Allow: /shop
+Allow: /discover
+Allow: /topusers
+Allow: /clip/*
+Allow: /profile/*
+
+# Sitemaps
+Sitemap: https://merrouchgaming.com/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1
+
+# Additional rules for specific bots
+User-agent: Googlebot
+Crawl-delay: 1
+
+User-agent: Googlebot-Image
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.gif$
+
+User-agent: Bingbot
+Crawl-delay: 2
+
+# Block bad bots
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: / 

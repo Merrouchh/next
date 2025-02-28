@@ -1,0 +1,48 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+/voicehcat/node_modules
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+/public/uploads
+/video-optimizer/temp
+/video-optimizer/node_modules
+/cloudflare-video-optimizer/node_modules
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files (can opt-in for committing if needed)
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Service Worker
+
+public/workbox-*.js
+
+# Go binaries
+/voicehcat/voicechat-server
+/voicehcat/voicechat-server.exe

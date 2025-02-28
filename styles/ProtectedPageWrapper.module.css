@@ -1,0 +1,259 @@
+/* Base variables */
+.wrapper {
+  --header-height: 60px;
+  --dashboard-height: 60px;
+  --search-height: 50px;
+  --content-padding: 1rem;
+  --background-primary: #0f0f0f;
+  --background-secondary: #1a1a1a;
+  --background-tertiary: rgba(26, 26, 26, 0.95);
+  --accent-primary: #FFD700;
+  --accent-hover: #FFC800;
+  --accent-glow: rgba(255, 215, 0, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-tertiary: rgba(255, 255, 255, 0.7);
+  --border-primary: rgba(255, 215, 0, 0.1);
+  --border-secondary: rgba(255, 215, 0, 0.2);
+  --shadow-primary: rgba(0, 0, 0, 0.3);
+  --shadow-accent: rgba(255, 215, 0, 0.1);
+  --nav-button-height: 60px;
+
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  isolation: isolate;
+  z-index: 1;
+}
+
+.contentWrapper {
+  min-height: 100vh;
+  padding-top: var(--header-height);
+}
+
+/* When search header is present */
+.contentWrapper[data-has-search="true"] {
+  padding-top: calc(var(--header-height) + var(--search-header-height));
+}
+
+/* When only dashboard header is present */
+.contentWrapper[data-has-dashboard="true"] {
+  padding-top: calc(var(--header-height) + var(--dashboard-height));
+}
+
+/* When both dashboard and search headers are present */
+.contentWrapper[data-has-search="true"][data-has-dashboard="true"] {
+  padding-top: calc(var(--header-height) + var(--dashboard-height) + var(--search-header-height));
+}
+
+/* Fixed Headers */
+.headerWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  height: var(--header-height);
+}
+
+.dashboardWrapper {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  height: var(--dashboard-height);
+  margin-top: -1px;
+}
+
+/* Search header */
+.userSearchWrapper {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: 998;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  height: var(--search-header-height);
+  margin-top: -1px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.userSearchWrapper.withDashboard {
+  top: calc(var(--header-height) + var(--dashboard-height));
+}
+
+.userSearchWrapper > div {
+  max-width: 600px;
+  width: 100%;
+}
+
+/* Main Content */
+.mainContent {
+  width: 100%;
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
+  padding: var(--content-padding);
+}
+
+/* Bottom Navigation */
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--border-primary);
+  z-index: 997;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.navButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 8px 0;
+  height: 100%;
+}
+
+.navButton .icon {
+  font-size: 20px;
+}
+
+.navButton .label {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.navButton.active {
+  background: #FFD700 !important;
+  color: #000000 !important;
+  font-weight: 600;
+}
+
+.navButton.active .icon,
+.navButton.active .label {
+  color: #000000;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .wrapper {
+    --content-padding: 0.75rem;
+  }
+
+  .mainContent {
+    padding: 0.75rem;
+  }
+
+  /* Add this back for bottom nav padding */
+  .mainContent[data-has-nav="true"] {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + var(--content-padding));
+  }
+}
+
+/* Progress Bar */
+.progressBarContainer {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--background-tertiary);
+  z-index: 1003;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: width 0.2s ease-out;
+}
+
+/* Desktop Adjustments */
+@media (min-width: 769px) {
+  .wrapper {
+    --header-height: 70px;
+    --dashboard-height: 70px;
+    --search-height: 60px;
+    --content-padding: 1.5rem;
+  }
+}
+
+/* Modal root styles */
+#modal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modal-root > * {
+  pointer-events: auto;
+}
+
+/* Add a new class for modal backdrop */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1999;
+}
+
+/* Update navigation loading wrapper */
+.navigationLoadingWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+@media (min-width: 769px) {
+  .mainContent {
+    padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainContent.hasBottomNav {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+} 

@@ -1,0 +1,538 @@
+/* General Styles */
+.main {
+  padding: 2rem;
+  padding-top: 6rem;
+  min-height: 100vh;
+  background: #000000;
+  color: #ffffff;
+  max-width: 1200px;
+  margin-top: 100px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: auto;
+  border: 2px solid rgba(255, 215, 0, 0.1);
+  border-radius: 16px;
+}
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #1a1a1a;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #FFD700;
+  box-shadow: 0 4px 20px rgba(255, 215, 0, 0.2);
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+  max-width: 90%;
+  width: 400px;
+}
+
+.popupContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.popupContent p {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.closeIcon {
+  cursor: pointer;
+  align-self: flex-end;
+  color: white;
+  margin-top: 10px;
+}
+
+.heading {
+  font-size: 2.5rem;
+  text-align: center;
+  margin: 2rem 0;
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* Tab Styles */
+.tabContainer {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #ffffff;
+}
+
+.tab:hover {
+  background: #242424;
+  border-color: #FFD700;
+  transform: translateY(-2px);
+}
+
+.activeTab {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #FFD700;
+  color: #FFD700;
+}
+
+.tab span {
+  margin-top: 5px;
+  font-size: 1rem;
+  text-align: center; /* Center text horizontally */
+}
+
+/* Section Styles */
+.section {
+  background: rgba(26, 26, 26, 0.8);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  backdrop-filter: blur(10px);
+  margin-bottom: 1rem;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section .itemsWrapper {
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.section .itemsWrapper.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Item Styles */
+.itemsWrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
+  opacity: 1;
+  visibility: visible;
+}
+
+.item {
+  background: #1a1f2c;
+  border: 1px solid rgba(255, 70, 85, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.item:hover {
+  border-color: rgba(255, 70, 85, 0.3);
+  transform: translateY(-2px);
+}
+
+.selected {
+  border-color: goldenrod;
+  background-color: #4a4a4a; /* Slightly lighter background for selected items */
+}
+
+.itemName {
+  color: #FF4655;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.price {
+  color: #e1e1e1;
+  opacity: 0.9;
+  margin-bottom: 1rem;
+}
+
+.crownIcon {
+  margin-left: 8px;
+  color: goldenrod;
+}
+
+/* PayPal Button Styles */
+.paypalButton {
+  background: linear-gradient(90deg, #FFD700, #FFC000);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.paypalButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(255, 215, 0, 0.2);
+}
+
+.paypalButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.1);
+}
+
+/* Item Container Styles */
+.itemContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.paypalButtonWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.paypalButton {
+  background: #FF4655;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  width: 100%;
+}
+
+.paypalButton:hover {
+  background: #ff2d55;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 70, 85, 0.3);
+}
+
+.paypalButton:active {
+  transform: scale(0.98);
+}
+
+/* Item Container Styles */
+.itemContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 30px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.paypalButton {
+  background-color: goldenrod;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  min-width: 11.625rem;
+  padding: 0 2rem;
+  height: 2.625rem;
+  font-weight: bold;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.25rem;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Toggle Button Styles */
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #242938;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 70, 85, 0.2);
+}
+
+.toggleButton:hover {
+  background-color: #555;
+}
+
+.arrowIcon {
+  transition: transform 0.3s ease;
+}
+
+.toggleText {
+  color: #e1e1e1;
+  font-weight: 500;
+}
+
+/* Bank Transfer Section Styles */
+.bankTransferDetails {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  margin-bottom: 60px;
+}
+
+.bankTransferItem {
+  margin-bottom: 1.5rem;
+}
+
+.inputContainer {
+  display: flex;
+  align-items: center;
+  background: var(--primary-black-light);
+  border: 1px solid var(--transparent-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.inputContainer:hover {
+  border-color: var(--primary-yellow);
+  background: var(--primary-black);
+}
+
+.inputContainer input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-size: 1rem;
+  padding: 0;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.inputContainer input:focus {
+  outline: none;
+}
+
+.copyIcon {
+  color: var(--primary-yellow);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.inputContainer:hover .copyIcon {
+  opacity: 1;
+}
+
+.copySuccess {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 215, 0, 0.9);
+  color: #000000;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  z-index: 1100;
+  animation: fadeInOut 2s ease;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-20px); }
+  15% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.divider {
+  height: 2px;
+  background-color: goldenrod;
+  margin: 20px 0;
+}
+
+.bankTransferHeading {
+  color: #FF4655;
+  margin-bottom: 1.5rem;
+}
+
+.centeredText {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #f3f3f3; /* Light text color for better readability */
+  margin-top: 20px;
+}
+
+/* Price Table Styles */
+.priceTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.priceTable th,
+.priceTable td {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.priceTable th {
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+}
+
+/* Column alignment */
+.priceTable th:nth-child(1),
+.priceTable td:nth-child(1) {
+  text-align: left;
+  padding-left: 2rem;
+  width: 50%;
+}
+
+.priceTable th:nth-child(2),
+.priceTable td:nth-child(2) {
+  text-align: center;
+  width: 50%;
+}
+
+.priceTable th:nth-child(3),
+.priceTable td:nth-child(3) {
+  text-align: center;
+  width: 50%;
+}
+
+.priceTable tr:hover {
+  background: rgba(255, 215, 0, 0.05);
+  transition: background-color 0.3s ease;
+}
+
+/* Pack name and duration alignment */
+.priceTable td[data-label="Pack"],
+.priceTable td[data-label="Duration"] {
+  text-align: left;
+  padding-left: 2rem;
+}
+
+.priceTable td[data-label="Cost Per Hour"],
+.priceTable td[data-label="Price"] {
+  text-align: center;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.priceTable tr td:first-child {
+  text-align: left;
+  width: 60%;
+}
+
+.priceTable tr td:last-child {
+  text-align: center;
+  font-weight: 600;
+  color: #FFD700;
+  width: 40%;
+}
+
+.priceTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Section Title Styles */
+.centeredText {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #FFD700;
+  margin: 2.5rem 0 1rem 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .main {
+    margin: 60px 10px 10px 10px;
+    padding: 1rem;
+  }
+    
+  .popup {
+    width: 90%;
+    padding: 15px;
+  }
+
+  .popupContent p {
+    font-size: 0.9rem;
+  }
+
+  .tabContainer {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .section {
+    padding: 1rem;
+  }
+
+  .priceTable {
+    margin: 1.5rem 0;
+  }
+
+  .priceTable th,
+  .priceTable td {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .centeredText {
+    font-size: 1.2rem;
+    margin: 2rem 0 0.8rem 0;
+  }
+
+  .itemsWrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .paypalButton {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .bankTransferDetails {
+    margin-bottom: 60px;
+  }
+}
+
+/* Add this to your existing Shop.module.css */
+.shopMain {
+  padding-bottom: 60px; /* Fixed padding for mobile bottom nav */
+}
+
+@media (min-width: 769px) {
+  .shopMain {
+    padding-bottom: 1rem; /* Normal padding for desktop */
+  }
+}

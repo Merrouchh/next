@@ -1,0 +1,354 @@
+.mainContainer {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 1rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.sectionHeading {
+  color: #fff;
+  margin: 0.5rem 0;
+  font-size: 1.25rem;
+  position: sticky;
+  top: 0;
+  padding: 0.5rem 0;
+  z-index: 1;
+  text-align: center;
+}
+
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  flex: 1;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* PC Box Styles */
+.pcSquare, .vipPcBox {
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  scroll-snap-align: start;
+  min-width: 140px;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pcSquare {
+  background: #1a1f2e;
+  border: 2px solid #2a2f3e;
+}
+
+.vipPcBox {
+  background: #2d1f3e;
+  border: 2px solid #3d2f4e;
+}
+
+/* Status Classes */
+.active {
+  background: #1e3a2d !important;
+  border-color: #2e4a3d !important;
+  opacity: 1 !important;
+}
+
+.inactive {
+  opacity: 0.8;
+}
+
+.warning {
+  background: #3a2d1e !important;
+  border-color: #4a3d2e !important;
+  opacity: 1 !important;
+}
+
+.orange {
+  background: #442d1e !important;
+  border-color: #543d2e !important;
+  opacity: 1 !important;
+}
+
+/* Text Styles */
+.pcNumber {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.statusText {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+}
+
+/* VIP Section Styles */
+.vipWrapper {
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.vipSection {
+  width: 100%;
+  max-width: 1200px;
+  overflow: hidden;
+  position: relative;
+  padding: 1rem 0;
+}
+
+.vipComputers {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+/* Adjust VIP box sizes to be smaller to fit */
+.vipPcBox {
+  width: 100%;
+  margin: 0;
+  min-width: 120px;
+}
+
+/* Mobile styles - switch to horizontal scroll */
+@media (max-width: 768px) {
+  .vipComputers {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 1rem;
+    padding: 0 1rem;
+  }
+
+  .vipPcBox {
+    flex: 0 0 calc(50% - 0.5rem);
+    scroll-snap-align: start;
+  }
+
+  .vipComputers::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Error State */
+.error {
+  color: #ff6b6b;
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .computerGrid {
+    gap: 0.5rem;
+  }
+
+  .pcSquare {
+    min-height: 90px;
+    padding: 0.5rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .pcSquare, .vipPcBox {
+    background: #1a1f2e;
+    border-color: #2a2f3e;
+  }
+
+  .active {
+    background: #1e3a2d;
+    border-color: #2e4a3d;
+  }
+
+  .warning {
+    background: #3a2d1e;
+    border-color: #4a3d2e;
+  }
+
+  .statusText {
+    color: #a0a0a0;
+  }
+
+  .sectionHeading {
+    color: #fff;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .sectionHeading {
+    color: #fff;
+  }
+}
+
+@keyframes updatePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+  }
+}
+
+.updated {
+  animation: updatePulse 1s ease-out;
+}
+
+.highlight {
+  animation: pulse 2s ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4);
+  }
+  
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 255, 0, 0);
+  }
+  
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+  }
+}
+
+/* Add support for notched devices */
+@supports (padding: max(0px)) {
+  .mainContainer {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Add these new styles */
+.liveIndicator {
+  position: fixed;
+  top: calc(var(--header-height) + var(--dashboard-header-height) + 1rem);
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background: #ff0000;
+  border-radius: 50%;
+  animation: livePulse 2s infinite;
+}
+
+.liveText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes livePulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Update swipe indicator styles */
+.swipeControls {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.5rem 0;
+  padding: 0 1rem;
+}
+
+@media (max-width: 768px) {
+  .swipeControls {
+    display: flex;
+  }
+}
+
+.swipeButton {
+  opacity: 1;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.swipeButton:hover:not(.edgeDisabled) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.swipeButton.edgeDisabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(255, 0, 0, 0.1);
+  border-color: rgba(255, 0, 0, 0.2);
+  color: rgba(255, 0, 0, 0.8);
+}
+
+.swipeArrow {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.swipeButton:not(.edgeDisabled):hover .swipeArrow {
+  transform: scale(1.2);
+}
+
+/* If the video is in the avcomputers page */
+.videoContainer {
+  width: 100%;
+  margin: 0 auto;
+  background: #000;
+}
