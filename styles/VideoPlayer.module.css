@@ -162,100 +162,143 @@
 
 /* Custom HD Button */
 .videoWrapper :global(.vjs-stats-button) {
-  display: none !important; /* Hide on all screen sizes */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  width: 3em;
+  height: 100%;
+  margin-right: 0.5em;
+  position: relative;
+  z-index: 10;
+  overflow: visible !important;
+}
+
+.videoWrapper :global(.vjs-stats-button .vjs-icon-placeholder) {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #000;
+  background-color: #ffd700;
+  border-radius: 3px;
+  padding: 2px 6px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 11;
+  width: auto !important;
+  height: auto !important;
+}
+
+.videoWrapper :global(.vjs-stats-button:hover .vjs-icon-placeholder) {
+  background-color: #ffcc00;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* Ensure no other elements appear behind the HD button */
+.videoWrapper :global(.vjs-stats-button:before),
+.videoWrapper :global(.vjs-stats-button:after) {
+  display: none !important;
+}
+
+/* Ensure the button doesn't inherit any unwanted styles */
+.videoWrapper :global(.vjs-stats-button) {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure the button is properly positioned in the control bar */
+.videoWrapper :global(.vjs-control-bar .vjs-stats-button) {
+  order: 7;
 }
 
 /* Stats Overlay */
 .statsOverlay {
   position: absolute;
-  bottom: 44px;
-  left: 50%;
-  transform: translateX(-50%) translateY(100%);
+  bottom: 60px;
+  right: 10px;
   width: 300px;
   background: rgba(0, 0, 0, 0.95);
   color: white;
   padding: 16px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.5);
   border-radius: 8px;
-  transition: transform 0.3s ease;
-  z-index: 2;
+  z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.statsOverlay.active {
-  transform: translateX(-50%) translateY(0);
-}
-
-.statsContent {
   font-family: -apple-system, system-ui, sans-serif;
+  max-height: 80%;
+  overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
-.statsContent h3 {
-  color: #ffd700;
-  font-size: 14px;
-  margin: 0 0 12px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-}
-
-.statsInfo {
-  margin-bottom: 12px;
-}
-
-.statsInfo p {
-  margin: 6px 0;
-  font-size: 13px;
+.statsHeader {
   display: flex;
   justify-content: space-between;
-  color: rgba(255, 255, 255, 0.9);
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+  padding-bottom: 8px;
 }
 
-.statsOverlay ul {
-  list-style: none;
-  padding: 0;
+.statsHeader h3 {
   margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.statsOverlay li {
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.statsOverlay li:hover {
-  background: rgba(255, 215, 0, 0.1);
-}
-
-.statsOverlay li.active {
-  background: rgba(255, 215, 0, 0.2);
   color: #ffd700;
+  font-size: 16px;
 }
 
-.closeStats {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+.closeButton {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: white;
+  font-size: 20px;
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.closeButton:hover {
+  color: #ffd700;
+}
+
+.statsContent p {
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+.statsContent strong {
+  color: #ffd700;
+}
+
+.qualityButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.qualityButton {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 4px;
+  font-size: 12px;
+  color: white;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.closeStats:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+.qualityButton:hover {
+  background: rgba(255, 215, 0, 0.3);
+  border-color: #ffd700;
+}
+
+.activeQuality {
+  background: #ffd700;
+  border-color: #ffd700;
+  color: #000;
 }
 
 /* Error Overlay */
@@ -303,21 +346,89 @@
   }
 }
 
+/* Hide volume controls on small players regardless of device */
+@media (max-width: 640px), (max-height: 400px) {
+  .videoWrapper :global(.video-js .vjs-volume-panel),
+  .videoWrapper :global(.video-js .vjs-volume-control),
+  .videoWrapper :global(.video-js .vjs-volume-bar),
+  .videoWrapper :global(.video-js .vjs-mute-control) {
+    display: none !important;
+  }
+  
+  /* Adjust control bar spacing for small players */
+  .videoWrapper :global(.video-js .vjs-control-bar) {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  
+  /* Make time display more compact */
+  .videoWrapper :global(.video-js .vjs-time-control) {
+    padding: 0 5px !important;
+    font-size: 0.8em !important;
+  }
+  
+  /* Ensure HD button is still visible but more compact */
+  .videoWrapper :global(.vjs-stats-button) {
+    width: 2.5em !important;
+    margin-right: 0.2em !important;
+  }
+  
+  /* Make play button more compact */
+  .videoWrapper :global(.video-js .vjs-play-control) {
+    width: 2.5em !important;
+  }
+}
+
+/* Also hide volume controls when player width is below a certain threshold */
+.videoWrapper.small-player :global(.video-js .vjs-volume-panel),
+.videoWrapper.small-player :global(.video-js .vjs-volume-control),
+.videoWrapper.small-player :global(.video-js .vjs-volume-bar),
+.videoWrapper.small-player :global(.video-js .vjs-mute-control) {
+  display: none !important;
+}
+
+/* Adjust control bar for small player class */
+.videoWrapper.small-player :global(.video-js .vjs-control-bar) {
+  display: flex !important;
+  justify-content: space-between !important;
+}
+
+.videoWrapper.small-player :global(.video-js .vjs-time-control) {
+  padding: 0 5px !important;
+  font-size: 0.8em !important;
+}
+
+.videoWrapper.small-player :global(.vjs-stats-button) {
+  width: 2.5em !important;
+  margin-right: 0.2em !important;
+}
+
+.videoWrapper.small-player :global(.video-js .vjs-play-control) {
+  width: 2.5em !important;
+}
+
 .videoWrapper {
   position: relative;
   width: 100%;
+  height: 100%;
+  background-color: #000;
+  overflow: hidden;
 }
 
 .mobileOverlay {
-  display: none; /* Hidden by default */
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  /* Leave space for control bar at bottom */
-  bottom: 50px; /* Control bar height + some extra space */
-  z-index: 2;
-  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  /* Make sure it doesn't interfere with controls */
+  pointer-events: none;
+}
+
+/* Re-enable pointer events for mobile overlay when controls are hidden */
+:global(.vjs-user-inactive) .mobileOverlay {
+  pointer-events: auto;
 }
 
 /* Only show overlay on mobile devices */
@@ -366,4 +477,93 @@
 /* Hide Picture-in-Picture button on all devices */
 .videoWrapper :global(.video-js .vjs-picture-in-picture-control) {
   display: none !important;
+}
+
+/* Make stats overlay responsive for small players */
+@media (max-width: 640px), (max-height: 400px) {
+  .statsOverlay {
+    width: 200px;
+    bottom: 50px;
+    right: 5px;
+    padding: 10px;
+    font-size: 12px;
+    max-height: 60%;
+  }
+  
+  .statsHeader h3 {
+    font-size: 14px;
+  }
+  
+  .statsContent p {
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  
+  .qualityButtons {
+    gap: 4px;
+    margin-top: 6px;
+  }
+  
+  .qualityButton {
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+}
+
+/* Also apply small stats overlay styling when player has small-player class */
+.videoWrapper.small-player .statsOverlay {
+  width: 200px;
+  bottom: 50px;
+  right: 5px;
+  padding: 10px;
+  font-size: 12px;
+  max-height: 60%;
+}
+
+.videoWrapper.small-player .statsHeader h3 {
+  font-size: 14px;
+}
+
+.videoWrapper.small-player .statsContent p {
+  font-size: 11px;
+  margin: 4px 0;
+}
+
+.videoWrapper.small-player .qualityButtons {
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.videoWrapper.small-player .qualityButton {
+  padding: 3px 6px;
+  font-size: 10px;
+}
+
+/* Small stats overlay class for direct application */
+.smallStatsOverlay {
+  width: 200px !important;
+  bottom: 50px !important;
+  right: 5px !important;
+  padding: 10px !important;
+  font-size: 12px !important;
+  max-height: 60% !important;
+}
+
+.smallStatsOverlay .statsHeader h3 {
+  font-size: 14px !important;
+}
+
+.smallStatsOverlay .statsContent p {
+  font-size: 11px !important;
+  margin: 4px 0 !important;
+}
+
+.smallStatsOverlay .qualityButtons {
+  gap: 4px !important;
+  margin-top: 6px !important;
+}
+
+.smallStatsOverlay .qualityButton {
+  padding: 3px 6px !important;
+  font-size: 10px !important;
 }
