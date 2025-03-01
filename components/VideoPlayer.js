@@ -79,6 +79,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
   const [error, setError] = useState(null);
   const [showStats, setShowStats] = useState(false);
   const [isSmallPlayer, setIsSmallPlayer] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [videoStats, setVideoStats] = useState({
     currentQuality: 'Loading...',
     resolution: '',
@@ -89,6 +90,21 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
     buffered: 0,
     playerState: 'Initializing'
   });
+  const [isBufferingForQuality, setIsBufferingForQuality] = useState(false);
+  const [hasBufferedHighQuality, setHasBufferedHighQuality] = useState(false);
+  const initialPlayAttemptRef = useRef(false);
+
+  // Detect if user is on a mobile device
+  useEffect(() => {
+    const detectMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      console.log('Device detection:', { userAgent, isMobile });
+      setIsMobileDevice(isMobile);
+    };
+    
+    detectMobile();
+  }, []);
 
   // Helper function to safely set timeouts that will be cleaned up
   const safeSetTimeout = (callback, delay) => {
@@ -160,6 +176,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
     setHasTrackedView(false);
     setPlaybackTime(0);
     setIsActuallyPlaying(false);
+    setHasBufferedHighQuality(false);
+    initialPlayAttemptRef.current = false;
     trackingAttemptedRef.current = false;
     if (playbackTimerRef.current) {
       clearInterval(playbackTimerRef.current);
@@ -460,17 +478,39 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
               useBandwidthFromLocalStorage: false,
               enableLowInitialPlaylist: false,
               limitRenditionByPlayerDimensions: false,
-              bandwidth: 30000000, // 30 Mbps - Very high initial bandwidth
+              // Set high bandwidth for all devices
+              bandwidth: 200000000, // 200 Mbps for all devices
+              // Disable ABR (Adaptive Bitrate) on all devices to force highest quality
+              abr: {
+                enabled: false // Disable adaptive bitrate for all devices
+              },
               initialPlaylistSelector: function() {
                 // Always select highest quality playlist
                 return function(master) {
-                  // Sort by bandwidth, highest first
-                  const sortedPlaylists = master.playlists.slice().sort((a, b) => {
-                    return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
-                  });
-                  
-                  // Return the highest bandwidth playlist
-                  return sortedPlaylists[0];
+                  try {
+                    // Check if master and playlists are available
+                    if (!master || !master.playlists || !master.playlists.length) {
+                      console.log('Master or playlists not available in initialPlaylistSelector');
+                      return; // Let the player use default selection
+                    }
+                    
+                    // Sort by bandwidth, highest first
+                    const sortedPlaylists = master.playlists.slice().sort((a, b) => {
+                      return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
+                    });
+                    
+                    console.log('initialPlaylistSelector - Selected highest bandwidth playlist:', 
+                      sortedPlaylists[0].attributes.BANDWIDTH / 1000, 'kbps',
+                      sortedPlaylists[0].attributes.RESOLUTION ? 
+                        `${sortedPlaylists[0].attributes.RESOLUTION.width}x${sortedPlaylists[0].attributes.RESOLUTION.height}` : 
+                        'unknown resolution');
+                    
+                    // Return the highest bandwidth playlist
+                    return sortedPlaylists[0];
+                  } catch (err) {
+                    console.warn('Error in initialPlaylistSelector:', err);
+                    return; // Let the player use default selection
+                  }
                 };
               }()
             },
@@ -716,167 +756,284 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
             console.log(`Player metadata loaded size: ${width}x${height}, isSmall: ${isSmall}`);
           }
           
-          try {
-          const tech = player.tech({ IWillNotUseThisInPlugins: true });
-            if (!tech || !tech.vhs) {
-              console.log('VHS tech not available for quality selection');
-              safeSetTimeout(initAudio, 100);
-              return;
-            }
-            
-            // Set extremely high bandwidth to force high quality
-            if (tech.vhs.masterPlaylistController_ && 
-                tech.vhs.masterPlaylistController_.mainSegmentLoader_) {
-              // Set to 100 Mbps - extremely high to ensure highest quality
-              tech.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 100000000;
-              console.log('Set extremely high bandwidth in segment loader: 100 Mbps');
-              
-              // Force immediate playlist update
-              if (typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
-                tech.vhs.masterPlaylistController_.fastQualityChange_();
-                console.log('Forced fast quality change');
+          // Function to set highest quality that can be retried
+          const setHighestQuality = (retryCount = 0) => {
+            try {
+              const tech = player.tech({ IWillNotUseThisInPlugins: true });
+              if (!tech || !tech.vhs) {
+                console.log('VHS tech not available for quality selection');
+                if (retryCount < 3) {
+                  console.log(`Retrying quality selection in 500ms (attempt ${retryCount + 1}/3)`);
+                  safeSetTimeout(() => setHighestQuality(retryCount + 1), 500);
+                }
+                return;
               }
-            } else {
-              console.log('VHS controller or segment loader not available');
-            }
-            
-            // Override playlist selection to always choose highest quality
-            if (typeof tech.vhs.selectPlaylist === 'function') {
-              const originalSelectPlaylist = tech.vhs.selectPlaylist;
-              tech.vhs.selectPlaylist = function() {
-                try {
-                  // Get all playlists
-                  const playlists = tech.vhs.master.playlists;
-                  if (!playlists || !playlists.length) {
-                    console.log('No playlists available, using original selector');
+              
+              // Set extremely high bandwidth to force high quality
+              if (tech.vhs.masterPlaylistController_ && 
+                  tech.vhs.masterPlaylistController_.mainSegmentLoader_) {
+                // Set to 100 Mbps - extremely high to ensure highest quality
+                // Use even higher value for mobile to override mobile optimizations
+                const bandwidthValue = isMobileDevice ? 200000000 : 100000000; // 200 Mbps for mobile, 100 Mbps for desktop
+                tech.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidthValue;
+                console.log(`Set extremely high bandwidth in segment loader: ${bandwidthValue/1000000} Mbps (Mobile: ${isMobileDevice})`);
+                
+                // Force immediate playlist update
+                if (typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
+                  tech.vhs.masterPlaylistController_.fastQualityChange_();
+                  console.log('Forced fast quality change');
+                }
+              } else {
+                console.log('VHS controller or segment loader not available');
+                if (retryCount < 3) {
+                  console.log(`Retrying quality selection in 500ms (attempt ${retryCount + 1}/3)`);
+                  safeSetTimeout(() => setHighestQuality(retryCount + 1), 500);
+                }
+                return;
+              }
+              
+              // Override playlist selection to always choose highest quality
+              if (typeof tech.vhs.selectPlaylist === 'function') {
+                const originalSelectPlaylist = tech.vhs.selectPlaylist;
+                tech.vhs.selectPlaylist = function() {
+                  try {
+                    // Get all playlists
+                    if (!tech.vhs.master || !tech.vhs.master.playlists || !tech.vhs.master.playlists.length) {
+                      console.log('No playlists available in master, using original selector');
+                      return originalSelectPlaylist.apply(this, arguments);
+                    }
+                    
+                    const playlists = tech.vhs.master.playlists;
+                    
+                    // Sort by bandwidth, highest first
+                    const sortedPlaylists = playlists.slice().sort((a, b) => {
+                      return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
+                    });
+                    
+                    console.log('Available playlists:');
+                    sortedPlaylists.forEach((p, i) => {
+                      console.log(`  ${i}: ${p.attributes.BANDWIDTH/1000} kbps, ${p.attributes.RESOLUTION?.width}x${p.attributes.RESOLUTION?.height}`);
+                    });
+                    
+                    console.log('Selected highest bandwidth playlist:', 
+                      sortedPlaylists[0].attributes.BANDWIDTH / 1000, 'kbps',
+                      sortedPlaylists[0].attributes.RESOLUTION ? 
+                        `${sortedPlaylists[0].attributes.RESOLUTION.width}x${sortedPlaylists[0].attributes.RESOLUTION.height}` : 
+                        'unknown resolution');
+                    
+                    // Return the highest bandwidth playlist
+                    return sortedPlaylists[0];
+                  } catch (err) {
+                    console.warn('Error in playlist selection:', err);
                     return originalSelectPlaylist.apply(this, arguments);
                   }
-                  
-                  // Sort by bandwidth, highest first
-                  const sortedPlaylists = playlists.slice().sort((a, b) => {
-                    return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
-                  });
-                  
-                  console.log('Available playlists:');
-                  sortedPlaylists.forEach((p, i) => {
-                    console.log(`  ${i}: ${p.attributes.BANDWIDTH/1000} kbps, ${p.attributes.RESOLUTION?.width}x${p.attributes.RESOLUTION?.height}`);
-                  });
-                  
-                  console.log('Selected highest bandwidth playlist:', 
-                    sortedPlaylists[0].attributes.BANDWIDTH / 1000, 'kbps',
-                    sortedPlaylists[0].attributes.RESOLUTION ? 
-                      `${sortedPlaylists[0].attributes.RESOLUTION.width}x${sortedPlaylists[0].attributes.RESOLUTION.height}` : 
-                      'unknown resolution');
-                  
-                  // Return the highest bandwidth playlist
-                  return sortedPlaylists[0];
-                } catch (err) {
-                  console.warn('Error in playlist selection:', err);
-                  return originalSelectPlaylist.apply(this, arguments);
-                }
-              };
-              console.log('Overrode playlist selection to always choose highest quality');
-            }
-            
-            // Only proceed with representations if they exist
-              const representations = tech.vhs.representations();
-            if (!representations || !representations.length) {
-              console.log('No representations available');
-              safeSetTimeout(initAudio, 100);
-              return;
-            }
-            
-            console.log('Available representations:');
-            representations.forEach((rep, i) => {
-              console.log(`  ${i}: ${rep.id}, ${rep.width}x${rep.height}, ${rep.bandwidth/1000} kbps`);
-            });
-            
-            // Find the highest quality representation
-            let highestQuality = null;
-            let highestHeight = 0;
-            
-                representations.forEach(rep => {
-              try {
-                const height = parseInt(rep.height);
-                if (height > highestHeight) {
-                  highestHeight = height;
-                  highestQuality = rep;
-                }
-                
-                // Initially disable all qualities
-                if (typeof rep.enabled === 'function') {
-                  rep.enabled(false);
-                }
-              } catch (err) {
-                console.warn('Error processing representation:', err);
+                };
+                console.log('Overrode playlist selection to always choose highest quality');
               }
-                });
-            
-            // Enable only the highest quality
-            if (highestQuality && typeof highestQuality.enabled === 'function') {
-              console.log('Setting highest quality:', highestQuality.height + 'p', 
-                `(${highestQuality.width}x${highestQuality.height}, ${Math.round(highestQuality.bandwidth/1000)} kbps)`);
+              
+              // Only proceed with representations if they exist
+              const representations = tech.vhs.representations();
+              if (!representations || !representations.length) {
+                console.log('No representations available');
+                if (retryCount < 3) {
+                  console.log(`Retrying quality selection in 500ms (attempt ${retryCount + 1}/3)`);
+                  safeSetTimeout(() => setHighestQuality(retryCount + 1), 500);
+                }
+                return;
+              }
+              
+              console.log('Available representations:');
+              representations.forEach((rep, i) => {
+                console.log(`  ${i}: ${rep.id}, ${rep.width}x${rep.height}, ${rep.bandwidth/1000} kbps`);
+              });
+              
+              // Find the highest quality representation
+              let highestQuality = null;
+              let highestHeight = 0;
+              
+              representations.forEach(rep => {
+                try {
+                  const height = parseInt(rep.height);
+                  if (height > highestHeight) {
+                    highestHeight = height;
+                    highestQuality = rep;
+                  }
+                  
+                  // Initially disable all qualities
+                  if (typeof rep.enabled === 'function') {
+                    rep.enabled(false);
+                  }
+                } catch (err) {
+                  console.warn('Error processing representation:', err);
+                }
+              });
+              
+              // Enable only the highest quality
+              if (highestQuality && typeof highestQuality.enabled === 'function') {
+                console.log('Setting highest quality:', highestQuality.height + 'p', 
+                  `(${highestQuality.width}x${highestQuality.height}, ${Math.round(highestQuality.bandwidth/1000)} kbps)`);
                 highestQuality.enabled(true);
 
                 // Update stats
-              setVideoStats({
+                setVideoStats({
                   currentQuality: `${highestQuality.height}p`,
                   resolution: `${highestQuality.width}x${highestQuality.height}`,
                   bandwidth: Math.round(highestQuality.bandwidth / 1000) + ' Kbps',
-                availableQualities: representations.map(rep => ({
-                  id: rep.id,
-                  height: rep.height,
-                  width: rep.width,
-                  bandwidth: rep.bandwidth
-                }))
-              });
-              
-              // Force immediate quality update
-              if (tech.vhs.masterPlaylistController_ && 
-                  typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
-                tech.vhs.masterPlaylistController_.fastQualityChange_();
-                console.log('Forced fast quality change after representation selection');
+                  availableQualities: representations.map(rep => ({
+                    id: rep.id,
+                    height: rep.height,
+                    width: rep.width,
+                    bandwidth: rep.bandwidth
+                  }))
+                });
+                
+                // Force immediate quality update
+                if (tech.vhs.masterPlaylistController_ && 
+                    typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
+                  tech.vhs.masterPlaylistController_.fastQualityChange_();
+                  console.log('Forced fast quality change after representation selection');
+                }
+              } else {
+                console.log('No highest quality representation found or cannot be enabled');
+                if (retryCount < 3) {
+                  console.log(`Retrying quality selection in 500ms (attempt ${retryCount + 1}/3)`);
+                  safeSetTimeout(() => setHighestQuality(retryCount + 1), 500);
+                }
               }
-            } else {
-              console.log('No highest quality representation found or cannot be enabled');
+              
+              // Ensure audio is initialized after quality selection
+              safeSetTimeout(initAudio, 100);
+            } catch (err) {
+              console.warn('Error setting initial quality:', err);
+              // Retry up to 3 times with a delay
+              if (retryCount < 3) {
+                console.log(`Retrying quality selection in 500ms (attempt ${retryCount + 1}/3)`);
+                safeSetTimeout(() => setHighestQuality(retryCount + 1), 500);
+              } else {
+                // Still try to initialize audio even if quality setting fails
+                safeSetTimeout(initAudio, 100);
+              }
             }
-            
-            // Ensure audio is initialized after quality selection
-            safeSetTimeout(initAudio, 100);
-          } catch (err) {
-            console.warn('Error setting initial quality:', err);
-            // Still try to initialize audio even if quality setting fails
-            safeSetTimeout(initAudio, 100);
-          }
+          };
+          
+          // Start the quality selection process
+          setHighestQuality(0);
         });
+
+        // Modify the play method to ensure high quality on first play
+        const originalPlay = player.play;
+        player.play = function() {
+          // If this is the first play attempt, ensure we're at highest quality
+          if (!initialPlayAttemptRef.current) {
+            initialPlayAttemptRef.current = true;
+            console.log('First play attempt - ensuring highest quality');
+            
+            try {
+              const tech = player.tech({ IWillNotUseThisInPlugins: true });
+              if (tech && tech.vhs) {
+                // Set extremely high bandwidth
+                if (tech.vhs.masterPlaylistController_ && 
+                    tech.vhs.masterPlaylistController_.mainSegmentLoader_) {
+                  const bandwidthValue = isMobileDevice ? 200000000 : 100000000;
+                  tech.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidthValue;
+                  console.log(`Set bandwidth for first play: ${bandwidthValue/1000000} Mbps`);
+                  
+                  // If master playlist is available, log the selected playlist
+                  if (tech.vhs.master && tech.vhs.master.playlists && tech.vhs.master.playlists.length) {
+                    console.log('Master playlist is available with', tech.vhs.master.playlists.length, 'playlists');
+                  } else {
+                    console.log('Master playlist not available yet during first play');
+                  }
+                }
+                
+                // Force highest quality representation
+                const representations = tech.vhs.representations();
+                if (representations && representations.length) {
+                  // Find highest quality
+                  let highestQuality = null;
+                  let highestHeight = 0;
+                  
+                  representations.forEach(rep => {
+                    try {
+                      const height = parseInt(rep.height);
+                      if (height > highestHeight) {
+                        highestHeight = height;
+                        highestQuality = rep;
+                      }
+                      
+                      // Disable all qualities first
+                      if (typeof rep.enabled === 'function') {
+                        rep.enabled(false);
+                      }
+                    } catch (err) {
+                      console.warn('Error in first play quality setup:', err);
+                    }
+                  });
+                  
+                  // Enable only highest quality
+                  if (highestQuality && typeof highestQuality.enabled === 'function') {
+                    highestQuality.enabled(true);
+                    console.log(`Forced highest quality (${highestHeight}p) for first play`);
+                    
+                    // Force immediate quality update
+                    if (tech.vhs.masterPlaylistController_ && 
+                        typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
+                      tech.vhs.masterPlaylistController_.fastQualityChange_();
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn('Error ensuring high quality on first play:', err);
+            }
+          }
+          
+          // Call the original play method
+          return originalPlay.apply(this, arguments);
+        };
 
         // YouTube-like approach: Preload video data
         player.one('canplaythrough', () => {
           console.log('Video can play through, preloading more data');
+          
           // Preload more video data
           try {
             if (player.tech_ && 
-                player.tech_.vhs && 
-                player.tech_.vhs.masterPlaylistController_ && 
-                player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_) {
-              // Set to 100 Mbps - extremely high to ensure highest quality
-              player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 100000000;
-              console.log('Successfully set bandwidth for preloading: 100 Mbps');
+                player.tech_.vhs) {
               
-              // Force immediate quality update
-              if (typeof player.tech_.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
-                player.tech_.vhs.masterPlaylistController_.fastQualityChange_();
-                console.log('Forced fast quality change during preloading');
+              // Check if masterPlaylistController_ exists
+              if (player.tech_.vhs.masterPlaylistController_ && 
+                  player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_) {
+                // Set to 100 Mbps - extremely high to ensure highest quality
+                // Use even higher value for mobile to override mobile optimizations
+                const bandwidthValue = isMobileDevice ? 200000000 : 100000000; // 200 Mbps for mobile, 100 Mbps for desktop
+                player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidthValue;
+                console.log(`Successfully set bandwidth for preloading: ${bandwidthValue/1000000} Mbps (Mobile: ${isMobileDevice})`);
+                
+                // Force immediate quality update
+                if (typeof player.tech_.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
+                  player.tech_.vhs.masterPlaylistController_.fastQualityChange_();
+                  console.log('Forced fast quality change during preloading');
+                }
+              } else {
+                console.log('VHS masterPlaylistController_ or mainSegmentLoader_ not available for preloading');
               }
               
               // Check current quality and log it
-              const currentQuality = player.tech_.vhs.representations().find(rep => rep.enabled());
-              if (currentQuality) {
-                console.log('Current quality after preloading:', 
-                  `${currentQuality.height}p (${currentQuality.width}x${currentQuality.height}, ${Math.round(currentQuality.bandwidth/1000)} kbps)`);
+              const representations = player.tech_.vhs.representations();
+              if (representations && representations.length > 0) {
+                const currentQuality = representations.find(rep => rep.enabled && typeof rep.enabled === 'function' && rep.enabled());
+                if (currentQuality) {
+                  console.log('Current quality after preloading:', 
+                    `${currentQuality.height}p (${currentQuality.width}x${currentQuality.height}, ${Math.round(currentQuality.bandwidth/1000)} kbps)`);
+                } else {
+                  console.log('No enabled representation found after preloading');
+                }
+              } else {
+                console.log('No representations available for quality check after preloading');
               }
             } else {
-              console.log('VHS segment loader not available for preloading');
+              console.log('VHS tech not fully available for preloading');
             }
           } catch (err) {
             console.warn('Error during preloading:', err);
@@ -884,6 +1041,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
           
           // Initialize audio again
           initAudio();
+          
+          // Mark as buffered high quality
+          setHasBufferedHighQuality(true);
         });
 
         playerRef.current = player;
@@ -966,6 +1126,63 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
                     currentQuality = `${enabledRep.height}p`;
                     resolution = `${enabledRep.width}x${enabledRep.height}`;
                     bandwidth = Math.round(enabledRep.bandwidth / 1000) + ' Kbps';
+                    
+                    // Check if we're not at the highest quality and force it if needed
+                    // This is especially important for mobile devices
+                    if (representations.length > 1) {
+                      // Find the highest quality representation
+                      let highestQuality = null;
+                      let highestHeight = 0;
+                      
+                      representations.forEach(rep => {
+                        try {
+                          const height = parseInt(rep.height);
+                          if (height > highestHeight) {
+                            highestHeight = height;
+                            highestQuality = rep;
+                          }
+                        } catch (err) {
+                          console.warn('Error processing representation:', err);
+                        }
+                      });
+                      
+                      // If we're not at the highest quality, force it
+                      if (highestQuality && enabledRep.id !== highestQuality.id) {
+                        console.log(`Detected quality drop. Current: ${enabledRep.height}p, Highest: ${highestQuality.height}p. Forcing highest quality.`);
+                        
+                        // Disable all qualities first
+                        representations.forEach(rep => {
+                          try {
+                            if (typeof rep.enabled === 'function') {
+                              rep.enabled(false);
+                            }
+                          } catch (err) {
+                            console.warn('Error disabling representation:', err);
+                          }
+                        });
+                        
+                        // Enable only the highest quality
+                        if (typeof highestQuality.enabled === 'function') {
+                          highestQuality.enabled(true);
+                          
+                          // Set bandwidth to extremely high value
+                          if (tech.vhs.masterPlaylistController_ && 
+                              tech.vhs.masterPlaylistController_.mainSegmentLoader_) {
+                            tech.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 200000000; // 200 Mbps
+                            console.log('Reset bandwidth to 200 Mbps to maintain highest quality');
+                            
+                            // Force immediate quality update
+                            if (typeof tech.vhs.masterPlaylistController_.fastQualityChange_ === 'function') {
+                              tech.vhs.masterPlaylistController_.fastQualityChange_();
+                            }
+                          } else {
+                            console.log('VHS masterPlaylistController_ or mainSegmentLoader_ not available for bandwidth adjustment');
+                          }
+                        }
+                      }
+                    }
+                  } else {
+                    console.log('No enabled representation found during stats update');
                   }
                   
                   // Update available qualities
@@ -975,6 +1192,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
                     width: rep.width,
                     bandwidth: rep.bandwidth
                   }));
+                } else {
+                  console.log('No representations available during stats update');
                 }
               }
               
@@ -1183,35 +1402,23 @@ const VideoPlayer = ({ clip, user, onLoadingChange }) => {
                     .sort((a, b) => b.height - a.height)
                     .map(quality => (
                       <button
-                  key={quality.id}
-                        className={`${styles.qualityButton} ${videoStats.currentQuality === `${quality.height}p` ? styles.activeQuality : ''}`}
-                  onClick={() => handleQualityChange(quality)}
-                >
-                  {quality.height}p
+                        key={quality.id}
+                        className={`${styles.qualityButton} ${videoStats.currentQuality === `${quality.height}p` ? styles.active : ''}`}
+                        onClick={() => handleQualityChange(quality)}
+                      >
+                        {quality.height}p
                       </button>
-              ))}
+                    ))}
                 </div>
               </>
             )}
           </div>
         </div>
       )}
-
-      {/* Error overlay */}
+      
       {error && (
         <div className={styles.errorOverlay}>
           <p>{error}</p>
-          <button 
-            onClick={() => {
-              setError(null);
-              if (playerRef.current) {
-                playerRef.current.load();
-              }
-            }}
-            className={styles.retryButton}
-          >
-            Try Again
-          </button>
         </div>
       )}
     </div>
