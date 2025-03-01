@@ -3,7 +3,6 @@ import { validateUserCredentials } from '../utils/api';
 import { useAuth } from "../contexts/AuthContext";
 import styles from '../styles/LoginModal.module.css';
 import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail } from 'react-icons/ai';
-import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '../utils/supabase/component';
 
 const LoginModal = ({ isOpen, onClose }) => {
@@ -521,40 +520,24 @@ const LoginModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div 
-        className={styles.overlay}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div 
-          className={styles.modalBackdrop}
+    <div className={styles.overlay}>
+      <div 
+        className={styles.modalBackdrop}
+        onClick={handleClose}
+      />
+      <div className={styles.modal}>
+        <button 
+          className={styles.closeButton} 
           onClick={handleClose}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        />
-        <motion.div 
-          className={styles.modal}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: "spring", duration: 0.5 }}
+          disabled={isLoading}
         >
-          <button 
-            className={styles.closeButton} 
-            onClick={handleClose}
-            disabled={isLoading}
-          >
-            &times;
-          </button>
-          
-          {error && <div className={styles.error}>{error}</div>}
-          {renderStep()}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          &times;
+        </button>
+        
+        {error && <div className={styles.error}>{error}</div>}
+        {renderStep()}
+      </div>
+    </div>
   );
 };
 
