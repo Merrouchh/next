@@ -76,6 +76,9 @@ export const AuthProvider = ({ children, onError }) => {
           const userData = await fetchUserData(session.user.email);
           
           if (userData) {
+            console.log('Initial user data loaded:', userData);
+            console.log('Admin status:', userData.isAdmin);
+            
             setAuthState({
               isLoggedIn: true,
               user: userData,
@@ -178,9 +181,17 @@ export const AuthProvider = ({ children, onError }) => {
                 .eq('email', refreshData.session.user.email)
                 .single();
 
+              // Map is_admin to isAdmin for consistency
+              const processedUserData = userData ? {
+                ...userData,
+                isAdmin: userData.is_admin
+              } : null;
+
+              console.log('Refreshed user data:', processedUserData);
+
               setAuthState({
                 isLoggedIn: true,
-                user: userData || null,
+                user: processedUserData,
                 loading: false,
                 initialized: true
               });
@@ -288,6 +299,16 @@ export const AuthProvider = ({ children, onError }) => {
         }
         throw error;
       }
+      
+      // Map is_admin to isAdmin for consistency in the frontend
+      if (data) {
+        console.log('Raw user data from DB:', data);
+        return {
+          ...data,
+          isAdmin: data.is_admin // Ensure is_admin is mapped to isAdmin
+        };
+      }
+      
       return data;
     } catch (error) {
       console.error('Error fetching user data:', error);

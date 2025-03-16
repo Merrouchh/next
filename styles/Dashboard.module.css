@@ -285,23 +285,52 @@
   }
 }
 
-/* Loading States */
+/* Enhanced Loading States */
 .userPictureLoading {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f0f0;
+  background: rgba(26, 26, 26, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.userPictureLoading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 215, 0, 0.2),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 .spinner {
   width: 30px;
   height: 30px;
-  border: 3px solid var(--transparent-light);
+  border: 3px solid rgba(255, 215, 0, 0.1);
   border-top: 3px solid var(--primary-yellow);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  position: relative;
+  z-index: 2;
 }
 
 @keyframes spin {
@@ -826,4 +855,100 @@
     font-size: 1.5rem;
   }
 }
+
+.welcomeText .username {
+  color: var(--accent-color, #FFD700);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.adminIndicator {
+  background-color: #FFD700;
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  animation: pulse 2s infinite;
+}
+
+/* Admin Banner - REMOVED */
+
+.adminBadge {
+  background-color: #FFD700;
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Admin Section Styles */
+.adminSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(26, 26, 26, 0.5);
+  border: 1px solid #FFD700;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+.adminSectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.adminSectionHeader h2 {
+  font-size: 1.5rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.adminSectionHeader p {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+}
+
+.adminControls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.adminButton {
+  background: #1a1a1a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.adminButton:hover {
+  background: #FFD700;
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .adminControls {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Super Admin Banner - REMOVED */
 

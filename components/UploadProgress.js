@@ -12,7 +12,8 @@ const UploadProgress = memo(({
   onReset,
   title,
   game,
-  allowClose 
+  allowClose,
+  isNetworkFile = false 
 }) => {
   if (!isOpen) return null;
 
@@ -61,6 +62,40 @@ const UploadProgress = memo(({
 
   const statusInfo = getStatusInfo();
 
+  const getStatusMessage = () => {
+    if (isNetworkFile) {
+      switch (status) {
+        case 'preparing':
+          return 'Preparing network file for upload...';
+        case 'uploading':
+          return 'Uploading from network location (this may take longer)...';
+        case 'processing':
+          return 'Processing your video...';
+        case 'error':
+          return 'Upload failed. Network files can be problematic.';
+        case 'cancelled':
+          return 'Upload cancelled.';
+        default:
+          return 'Upload in progress...';
+      }
+    }
+    
+    switch (status) {
+      case 'preparing':
+        return 'Preparing upload...';
+      case 'uploading':
+        return 'Uploading your video...';
+      case 'processing':
+        return 'Processing your video...';
+      case 'error':
+        return 'Upload failed.';
+      case 'cancelled':
+        return 'Upload cancelled.';
+      default:
+        return 'Upload in progress...';
+    }
+  };
+
   const modalContent = (
     <div className={styles.modalOverlay} onClick={allowClose ? onClose : undefined}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -101,6 +136,8 @@ const UploadProgress = memo(({
             </div>
           </div>
 
+          <p className={styles.statusMessage}>{getStatusMessage()}</p>
+
           <div className={styles.actions}>
             {statusInfo.showCancel && (
               <button 
@@ -119,6 +156,13 @@ const UploadProgress = memo(({
               </button>
             )}
           </div>
+
+          {isNetworkFile && status === 'uploading' && (
+            <div className={styles.networkWarning}>
+              <p>Uploading from a network location may be slower.</p>
+              <p>For faster uploads, consider copying the file to your local drive first.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

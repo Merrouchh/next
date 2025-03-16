@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/DashboardHeader.module.css';
-import { AiOutlineDashboard, AiOutlineDesktop, AiOutlineShop, AiOutlineTrophy, AiOutlineVideoCamera, AiOutlineCompass } from 'react-icons/ai';
+import { AiOutlineDashboard, AiOutlineDesktop, AiOutlineShop, AiOutlineTrophy, AiOutlineVideoCamera, AiOutlineCompass, AiOutlineCalendar } from 'react-icons/ai';
 
 // Update the styles for DashboardHeader
 const _updatedDashboardHeaderStyles = {
@@ -52,6 +52,18 @@ const DashboardHeader = () => {
   ].map((item, _index) => ({
     ...item,
     key: `top-${item.path}`
+  }));
+
+  // Desktop-only navigation items
+  const desktopOnlyItems = [
+    {
+      path: '/events',
+      label: 'Events',
+      icon: <AiOutlineCalendar size={20} />
+    }
+  ].map((item, _index) => ({
+    ...item,
+    key: `desktop-${item.path}`
   }));
 
   const bottomNavigationItems = [
@@ -238,7 +250,7 @@ const DashboardHeader = () => {
     <div className={styles.dashboardHeader}>
       <div className={styles.topNav}>
         <div className={styles.navContainer}>
-          {(isMobile ? topNavigationItems : [...topNavigationItems, ...bottomNavigationItems]).map((item) => (
+          {(isMobile ? topNavigationItems : [...topNavigationItems, ...desktopOnlyItems, ...bottomNavigationItems]).map((item) => (
             <button
               key={item.key}
               data-path={item.path}

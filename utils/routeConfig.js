@@ -37,6 +37,18 @@ export const ROUTE_CONFIG = {
     showNavigation: true
   },
 
+  '/events': {
+    public: false,
+    requireAuth: true,
+    showNavigation: true
+  },
+  
+  '/events/[id]': {
+    public: false,
+    requireAuth: true,
+    showNavigation: true
+  },
+
   '/avcomputers': {
     public: false,
     requireAuth: true,
@@ -69,6 +81,11 @@ export const getRouteConfig = (pathname) => {
   // Special handling for profile pages
   if (pathname.startsWith('/profile/')) {
     return ROUTE_CONFIG['/profile/[username]'];
+  }
+  
+  // Special handling for event detail pages
+  if (pathname.startsWith('/events/') && pathname !== '/events') {
+    return ROUTE_CONFIG['/events/[id]'];
   }
 
   return ROUTE_CONFIG[pathname] || ROUTE_CONFIG.default;

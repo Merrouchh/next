@@ -302,7 +302,10 @@ const nextConfig = {
   // Add this section
   experimental: {
     scrollRestoration: true,
-    forceSwcTransforms: true,
+    // Only apply forceSwcTransforms when not using Turbopack
+    ...(process.env.TURBOPACK !== '1' && {
+      forceSwcTransforms: true,
+    }),
   },
 
   // Add proper process handling

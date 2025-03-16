@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import LoginModal from './LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineArrowLeft } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera } from 'react-icons/ai';
 import styles from '../styles/Header.module.css';
 import Image from 'next/image';
 import LoadingScreen from './LoadingScreen';
@@ -30,7 +30,8 @@ const Header = () => {
     router.pathname.startsWith('/profile/') ||
     router.pathname === '/avcomputers' ||
     router.pathname === '/shop' ||
-    router.pathname === '/topusers'
+    router.pathname === '/topusers' ||
+    router.pathname === '/events'
   );
 
   const showGoBackButton = user && 
@@ -136,7 +137,7 @@ const Header = () => {
 
           <div
             ref={hamburgerRef}
-            className={styles.hamburger}
+            className={`${styles.hamburger} ${isMenuOpen ? styles.open : ''}`}
             onClick={toggleMenu}
           >
             <div className={styles.bar}></div>
@@ -175,12 +176,61 @@ const Header = () => {
       {isMobile && (
         <MobileMenu isOpen={isMenuOpen}>
           <nav ref={navRef} className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}>
+            {/* Navigation Links for Mobile - Only show when user is authenticated */}
+            {user && (
+              <div className={styles.mobileNavLinks}>
+                <button
+                  onClick={() => {
+                    router.push('/discover');
+                    closeMenu();
+                  }}
+                  className={`${styles.navButton} ${router.pathname === '/discover' ? styles.active : ''}`}
+                >
+                  <span className={styles.icon}><AiOutlineCompass size={20} /></span>
+                  <span className={styles.label}>Discover</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    router.push('/avcomputers');
+                    closeMenu();
+                  }}
+                  className={`${styles.navButton} ${router.pathname === '/avcomputers' ? styles.active : ''}`}
+                >
+                  <span className={styles.icon}><AiOutlineDesktop size={20} /></span>
+                  <span className={styles.label}>Computers</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    router.push('/events');
+                    closeMenu();
+                  }}
+                  className={`${styles.navButton} ${router.pathname === '/events' ? styles.active : ''}`}
+                >
+                  <span className={styles.icon}><AiOutlineCalendar size={20} /></span>
+                  <span className={styles.label}>Events</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    router.push(`/profile/${user?.username}`);
+                    closeMenu();
+                  }}
+                  className={`${styles.navButton} ${router.pathname.startsWith('/profile/') ? styles.active : ''}`}
+                >
+                  <span className={styles.icon}><AiOutlineVideoCamera size={20} /></span>
+                  <span className={styles.label}>Profile</span>
+                </button>
+              </div>
+            )}
+
             {user ? (
               <>
-                <span className={styles.usernameBox}>
+                <div className={styles.usernameBox}>
                   {user?.username}
                   {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
-                </span>
+                </div>
                 <button className={styles.logoutButton} onClick={handleLogout}>
                   Logout
                 </button>

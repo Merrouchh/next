@@ -1,0 +1,547 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #FFD700;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.eventsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.eventCard {
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2a2a2a;
+}
+
+.eventCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.eventImageContainer {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* Creates a square aspect ratio (1:1) */
+  background: #141414;
+  overflow: hidden;
+  max-height: none; /* Remove any max-height constraints */
+}
+
+.eventImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.eventCard:hover .eventImage {
+  transform: scale(1.05);
+}
+
+/* Badge container with black background */
+.badgeContainer {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  z-index: 3;
+}
+
+/* Black background for the badge container */
+.badgeContainer::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 10px;
+  right: 10px;
+  bottom: -4px;
+  background-color: rgba(0, 0, 0, 0.75);
+  border-radius: 24px;
+  z-index: -1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Single badge layout */
+.singleBadge {
+  justify-content: center;
+  padding: 0 10px;
+}
+
+/* Two badges layout */
+.twoBadges {
+  justify-content: center;
+  gap: 10px;
+  padding: 0 10px;
+}
+
+/* Three badges layout */
+.threeBadges {
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.eventStatusBadge {
+  position: relative;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  background-color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.registeredBadge {
+  position: relative;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  background-color: #28a745;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.eventModeBadge {
+  position: relative;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  background-color: #6610f2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+/* Remove the individual badge backgrounds since we now have a container background */
+.eventStatusBadge::before,
+.registeredBadge::before,
+.eventModeBadge::before {
+  display: none;
+}
+
+.modeSolo {
+  background-color: #6610f2; /* Purple for solo */
+}
+
+.modeDuo {
+  background-color: #fd7e14; /* Orange for duo */
+}
+
+.modeTeam {
+  background-color: #20c997; /* Teal for team */
+}
+
+.statusUpcoming {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.statusInProgress {
+  background-color: #ffc107;
+  color: black;
+}
+
+.statusCompleted {
+  background-color: #6c757d;
+  color: white;
+}
+
+.fallbackImage {
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eventImagePlaceholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+}
+
+.placeholderText {
+  font-size: 6rem;
+  font-weight: 800;
+  color: #FFD700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.eventContent {
+  padding: 1.5rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.eventTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #FFD700;
+}
+
+.eventTitle a {
+  color: #FFD700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.eventTitle a:hover {
+  color: #FFC107;
+  text-decoration: underline;
+}
+
+.eventMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #e0e0e0;
+}
+
+.eventDate,
+.eventTime,
+.eventLocation,
+.eventGame,
+.eventRegistrations {
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.eventGame {
+  color: #FFD700;
+}
+
+.eventRegistrations {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.metaIcon {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.eventDescription {
+  margin-bottom: 1.5rem;
+  color: #b0b0b0;
+  line-height: 1.5;
+  flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.registerButton {
+  padding: 0.5rem 1.5rem;
+  background-color: #FFD700;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.registerButton:hover:not(:disabled) {
+  background-color: #FFC107;
+  transform: translateY(-2px);
+}
+
+.registerButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.registeredButton {
+  background-color: #28a745;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.registeredButton::before {
+  content: "✓";
+  font-weight: bold;
+}
+
+.nonClickable {
+  cursor: default;
+  pointer-events: none;
+}
+
+.nonClickable:hover:not(:disabled) {
+  background-color: #28a745;
+  transform: none;
+}
+
+.registeredButton:hover:not(:disabled) {
+  background-color: #218838;
+  transform: translateY(-2px);
+}
+
+.loadingButton {
+  background-color: #6c757d;
+  cursor: wait;
+}
+
+.loadingButton:hover:not(:disabled) {
+  background-color: #5a6268;
+  transform: translateY(-2px);
+}
+
+.completedButton {
+  background-color: #6c757d;
+  color: white;
+}
+
+.inProgressButton {
+  background-color: #ffc107;
+  color: black;
+}
+
+.fullButton {
+  background-color: #dc3545;
+  color: white;
+}
+
+.fullButton:hover:not(:disabled) {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.readMoreButton {
+  padding: 0.5rem 1.5rem;
+  background-color: transparent;
+  color: #e0e0e0;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.readMoreButton:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-2px);
+  color: #FFD700;
+  border-color: #FFD700;
+}
+
+.primaryAction {
+  border-color: #FFD700;
+  color: #FFD700;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.3);
+}
+
+.primaryAction:hover {
+  background-color: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #e0e0e0;
+}
+
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+  border: 1px solid #2a2a2a;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.emptyContainer h2 {
+  font-size: 1.8rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+}
+
+.emptyContainer p {
+  color: #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+.resetButton {
+  padding: 0.5rem 1.5rem;
+  background-color: #FFD700;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resetButton:hover {
+  background-color: #FFC107;
+  transform: translateY(-2px);
+}
+
+.loader {
+  border: 4px solid rgba(255, 215, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #FFD700;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.filterButton {
+  background: transparent;
+  color: #e0e0e0;
+  border: 1px solid #2a2a2a;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #FFD700;
+  color: #FFD700;
+}
+
+.filterActive {
+  background: #FFD700;
+  color: #000000;
+  border-color: #FFD700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .eventsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1.5rem 1rem;
+  }
+  
+  .title {
+    font-size: 1.8rem;
+  }
+  
+  .eventCard {
+    border-radius: 8px;
+  }
+  
+  /* Remove fixed height to maintain square aspect ratio */
+  .eventImageContainer {
+    padding-bottom: 100%; /* Maintain square aspect ratio */
+  }
+} 

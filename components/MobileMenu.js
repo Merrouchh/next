@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import styles from '../styles/Header.module.css';
 
 const MobileMenu = memo(({ isOpen, children }) => {
-  if (typeof window === 'undefined' || !isOpen) return null;
-
+  if (typeof window === 'undefined') return null;
+  
   return createPortal(
     <div className={`${styles.mobileMenuPortal} ${isOpen ? styles.open : ''}`}>
       {children}

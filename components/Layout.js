@@ -27,11 +27,13 @@ const Layout = ({ children }) => {
       '/shop', 
       '/upload',
       '/discover',
-      '/topusers'
+      '/topusers',
+      '/events'
     ];
     
     const isProfilePage = router.pathname.startsWith('/profile/');
-    return hideFooterPaths.includes(router.pathname) || isProfilePage;
+    const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
+    return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
   }, [router?.pathname]);
 
   // Initialize component

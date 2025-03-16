@@ -1,0 +1,686 @@
+:root {
+  --background: #0a0a0a;
+  --background-secondary: #1a1a1a;
+  --primary: #2196F3;
+  --primary-rgb: 33, 150, 243;
+  --accent: #FFD700;
+  --accent-rgb: 255, 215, 0;
+  --text: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #999;
+  --border: #333333;
+  --card-bg: #121212;
+  --card-border: #2a2a2a;
+  --success: #4CAF50;
+  --warning: #FFC107;
+  --danger: #F44336;
+}
+
+/* Page Layout */
+.pageContainer {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  background-color: var(--background);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullWidthContent {
+  width: 100%;
+  flex: 1;
+  position: relative;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--background-secondary);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.backLink:hover {
+  color: var(--accent);
+  background-color: rgba(255, 215, 0, 0.1);
+  transform: translateX(-2px);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.eventTypeIcon {
+  font-size: 1.25rem;
+  color: var(--accent);
+}
+
+.generateButton {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--accent);
+  color: #121212;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.buttonLoader {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--accent);
+  animation: spin 1s ease-in-out infinite;
+}
+
+.generateButton:hover:not(:disabled) {
+  background-color: var(--warning);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.generateButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Event Card */
+.eventCard {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--card-border);
+}
+
+.eventCardHeader {
+  padding: 1rem 1.5rem;
+  background-color: rgba(33, 150, 243, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.eventCardHeader:hover {
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+.eventCardTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eventCardContent {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.eventDetailItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.eventDetailIcon {
+  color: var(--primary);
+  font-size: 1.1rem;
+  min-width: 24px;
+}
+
+.eventDetailLabel {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.eventDetailValue {
+  display: block;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Bracket Stats Card */
+.bracketStatsCard {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--card-border);
+}
+
+.bracketStatsHeader {
+  padding: 1rem 1.5rem;
+  background-color: rgba(33, 150, 243, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bracketStatsHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.bracketStatsIcon {
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.bracketStatsContent {
+  padding: 1.25rem;
+}
+
+.bracketStatItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.bracketStatLabel {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.bracketStatValue {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.progressBarContainer {
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin: 1rem 0 0.5rem;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background-color: var(--primary);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progressLabel {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Winner Card */
+.winnerCard {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--card-border);
+  position: relative;
+}
+
+.winnerCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+}
+
+.winnerCardHeader {
+  padding: 1rem 1.5rem;
+  background-color: rgba(255, 215, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.winnerCardHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.trophyIcon {
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.winnerCardContent {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.winnerAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: var(--background-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  overflow: hidden;
+}
+
+.winnerAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.winnerAvatar svg {
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+.winnerName {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.winnerCongrats {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Bracket Container */
+.bracketContainer {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--card-border);
+}
+
+.bracketHeader {
+  padding: 1rem 1.5rem;
+  background-color: rgba(33, 150, 243, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.bracketHeader h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.bracketTip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+.tipIcon {
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.bracketWrapper {
+  padding: 1rem;
+  min-height: 500px;
+  position: relative;
+}
+
+/* Participants Card */
+.participantsCard {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--card-border);
+}
+
+.participantsCardHeader {
+  padding: 1rem 1.5rem;
+  background-color: rgba(33, 150, 243, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.participantsCardHeader:hover {
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+.participantsCardTitle {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.participantsCardContent {
+  padding: 1.25rem;
+}
+
+.participantsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  color: var(--primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.participantCard {
+  background-color: var(--background);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+}
+
+.participantCard:hover {
+  background-color: var(--background-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-color: var(--primary);
+}
+
+.participantNumber {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.participantAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participantAvatarPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--background-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.participantInfo {
+  flex: 1;
+  overflow: hidden;
+}
+
+.participantName {
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+}
+
+.participantTeamMembers {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.25rem;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.loader {
+  border: 4px solid rgba(33, 150, 243, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--primary);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.emptyStateIcon {
+  font-size: 3rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+.emptyState p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .title {
+    font-size: 1.25rem;
+  }
+  
+  .headerActions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .generateButton {
+    width: 100%;
+  }
+  
+  .eventCardContent {
+    padding: 1rem;
+  }
+  
+  .bracketWrapper {
+    min-height: 400px;
+  }
+  
+  .winnerAvatar {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .winnerName {
+    font-size: 1.25rem;
+  }
+  
+  .participantsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .eventDetailItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .bracketStatItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .bracketStatValue {
+    width: 100%;
+  }
+  
+  .bracketHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .bracketTip {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .participantsGrid {
+    grid-template-columns: 1fr;
+  }
+} 

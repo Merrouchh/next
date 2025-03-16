@@ -199,7 +199,7 @@ const ClipCard = ({
   if (!clipData) return null;
 
   return (
-    <div className={styles.cardContainer}>
+    <div className={styles.cardContainer} ref={cardRef}>
       <div className={`${styles.card} ${isUpdating ? styles.updating : ''}`}>
         <div className={styles.cardHeader}>
           <div className={styles.userInfo}>
@@ -219,7 +219,7 @@ const ClipCard = ({
         </div>
 
         <div className={styles.videoContainer}>
-          <VideoPlayer clip={clip} user={user} onLoadingChange={setIsLoading} />
+          <VideoPlayer clip={clip} user={user} onLoadingChange={setIsLoading} isInClipCard={true} />
         </div>
 
         <div className={styles.stats}>

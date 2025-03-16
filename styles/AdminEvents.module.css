@@ -1,0 +1,572 @@
+/* Admin Events Page Styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.titleIcon {
+  color: var(--primary-yellow);
+}
+
+.createButton {
+  background-color: var(--primary-yellow);
+  color: var(--primary-black);
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createButton:hover {
+  background-color: #e6c200;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-light);
+}
+
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 215, 0, 0.1);
+  border-left-color: var(--primary-yellow);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  color: var(--text-light);
+  background: rgba(26, 26, 26, 0.5);
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  color: var(--primary-yellow);
+  margin-bottom: 1rem;
+}
+
+.emptyState h2 {
+  margin-bottom: 0.5rem;
+}
+
+.emptyState p {
+  margin-bottom: 1.5rem;
+  color: #a0a0a0;
+}
+
+/* Events Table */
+.eventsTable {
+  background: rgba(26, 26, 26, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  background: var(--primary-black);
+  padding: 1rem;
+  font-weight: 600;
+  color: var(--primary-yellow);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+  background: rgba(26, 26, 26, 0.8);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableCell {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.eventInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eventTitle {
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.eventDescription {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+}
+
+.eventDate, .eventTime {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+}
+
+.eventLocation {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+}
+
+.eventGame {
+  color: var(--primary-yellow);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.eventStatus {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.statusUpcoming {
+  background-color: rgba(0, 123, 255, 0.1);
+  color: #0d6efd;
+  border: 1px solid #0d6efd;
+}
+
+.statusInProgress {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+
+.statusCompleted {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border: 1px solid #28a745;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton, .deleteButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editButton {
+  background: rgba(0, 123, 255, 0.1);
+  color: #0d6efd;
+  border: 1px solid #0d6efd;
+}
+
+.editButton:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+.deleteButton {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.deleteButton:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.viewButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  border: 1px solid #FFD700;
+}
+
+.viewButton:hover {
+  background: #FFD700;
+  color: #121212;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--primary-black);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalHeader h2 {
+  color: var(--primary-yellow);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #a0a0a0;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-light);
+}
+
+/* Form Styles */
+.eventForm {
+  padding: 1.5rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+.inputError {
+  border-color: #dc3545 !important;
+}
+
+.errorMessage {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.imageUploadContainer {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.fileInput {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.fileInputLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-light);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileInputLabel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-yellow);
+}
+
+.uploadIcon {
+  color: var(--primary-yellow);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.optionalLabel {
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.imageNote {
+  font-size: 0.85rem;
+  color: #a0a0a0;
+  margin-top: 0.5rem;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.cancelButton {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.submitButton {
+  background: var(--primary-yellow);
+  color: var(--primary-black);
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitButton:hover {
+  background: #e6c200;
+}
+
+.submitButton:disabled {
+  background: #ccb100;
+  cursor: not-allowed;
+}
+
+.formGroup select {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+/* Add styles for dropdown options */
+.formGroup select option {
+  background-color: var(--primary-black);
+  color: var(--text-light);
+  padding: 10px;
+}
+
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .tableHeader, .tableRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .tableHeader {
+    display: none;
+  }
+  
+  .tableCell {
+    padding: 0.5rem 0;
+  }
+  
+  .tableCell:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .tableRow {
+    padding: 1rem;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+  }
+  
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.filterContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.filterLabel {
+  font-size: 1rem;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+}
+
+.filterButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filterButton {
+  background: rgba(26, 26, 26, 0.5);
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterButton:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: var(--primary-yellow);
+  color: var(--primary-yellow);
+}
+
+.filterActive {
+  background: var(--primary-yellow);
+  color: var(--primary-black);
+  border-color: var(--primary-yellow);
+}
+
+.filterActive:hover {
+  background: #e6c200;
+  color: var(--primary-black);
+}
+
+.fieldNote {
+  font-size: 0.85rem;
+  color: #FFD700;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: rgba(255, 215, 0, 0.1);
+  border-left: 3px solid #FFD700;
+  border-radius: 0 4px 4px 0;
+} 

@@ -161,6 +161,24 @@ const Dashboard = ({ _initialClips, metaData }) => {
     data: null
   });
 
+  // Log user information to verify admin status
+  useEffect(() => {
+    if (user) {
+      console.log('Current user:', user);
+      console.log('Is admin?', user.isAdmin);
+      
+      // More explicit check for isAdmin property
+      if (user.isAdmin === undefined) {
+        console.warn('isAdmin property is undefined in user object');
+        console.log('Full user object:', JSON.stringify(user));
+      } else if (user.isAdmin === true) {
+        console.log('User is confirmed as an admin');
+      } else {
+        console.log('User is not an admin');
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
     if (pageState.data) return;
     if (!user?.gizmo_id) return;
@@ -169,24 +187,24 @@ const Dashboard = ({ _initialClips, metaData }) => {
       try {
         console.log('🚀 Starting actual data fetch...');
 
+        // First, load essential data without the picture
         const [
           activeSessions,
           topUsers,
           points,
           timeInfo,
           balanceInfo,
-          userPicture
         ] = await Promise.all([
           fetchActiveUserSessions(),
           fetchTopUsers(5),
           fetchUserPoints(user.gizmo_id),
           fetchUserTimeInfo(user.gizmo_id),
           fetchUserBalanceWithDebt(user.gizmo_id),
-          fetchUserPicture(user.gizmo_id)
         ]);
 
-        console.log('✅ Data fetch completed successfully');
+        console.log('✅ Essential data fetch completed successfully');
 
+        // Set initial state with essential data
         setPageState({
           loading: false,
           error: null,
@@ -196,10 +214,46 @@ const Dashboard = ({ _initialClips, metaData }) => {
             userPoints: points?.points || 0,
             timeInfo,
             balanceInfo,
-            userPicture,
+            userPicture: null,
+            isLoadingPicture: true,
             needsProfileSetup: false
           }
         });
+
+        // Then load the picture separately
+        try {
+          console.log('🖼️ Loading user picture...');
+          
+          // Add a timeout for picture loading
+          const picturePromise = fetchUserPicture(user.gizmo_id);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Picture loading timeout')), 5000)
+          );
+          
+          // Race between picture loading and timeout
+          const userPicture = await Promise.race([picturePromise, timeoutPromise]);
+          
+          // Update state with the picture
+          setPageState(prev => ({
+            ...prev,
+            data: {
+              ...prev.data,
+              userPicture,
+              isLoadingPicture: false
+            }
+          }));
+          console.log('✅ Picture loaded successfully');
+        } catch (pictureError) {
+          console.error('❌ Error loading picture:', pictureError);
+          setPageState(prev => ({
+            ...prev,
+            data: {
+              ...prev.data,
+              userPicture: null,
+              isLoadingPicture: false
+            }
+          }));
+        }
       } catch (error) {
         console.error('❌ Dashboard initialization error:', error);
         setPageState({
@@ -235,6 +289,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
       </ProtectedPageWrapper>
     );
   }
+
+  // Debug admin status before rendering
+  console.log('About to render dashboard for:', user?.username);
+  console.log('User admin status in render:', user?.isAdmin);
+  console.log('Should show admin section:', Boolean(user?.isAdmin));
 
   // Show setup required state
   if (pageState.data?.needsProfileSetup) {
@@ -337,22 +396,22 @@ const Dashboard = ({ _initialClips, metaData }) => {
   const handleRefresh = async () => {
     setPageState(prev => ({ ...prev, loading: true }));
     try {
+      // First, load essential data without the picture
       const [
         activeSessions,
         topUsers,
         points,
         timeInfo,
         balanceInfo,
-        userPicture
       ] = await Promise.all([
         fetchActiveUserSessions(),
         fetchTopUsers(5),
         fetchUserPoints(user.gizmo_id),
         fetchUserTimeInfo(user.gizmo_id),
         fetchUserBalanceWithDebt(user.gizmo_id),
-        fetchUserPicture(user.gizmo_id)
       ]);
 
+      // Update state with essential data
       setPageState({
         loading: false,
         error: null,
@@ -363,10 +422,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
           userPoints: points?.points || 0,
           timeInfo,
           balanceInfo,
-          userPicture
+          isLoadingPicture: true
         }
       });
 
+      // Show success toast for main data
       toast.success('Dashboard refreshed!', {
         position: 'top-right',
         style: {
@@ -379,6 +439,37 @@ const Dashboard = ({ _initialClips, metaData }) => {
           secondary: '#333',
         },
       });
+
+      // Then load the picture separately
+      try {
+        // Add a timeout for picture loading
+        const picturePromise = fetchUserPicture(user.gizmo_id);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Picture loading timeout')), 5000)
+        );
+        
+        // Race between picture loading and timeout
+        const userPicture = await Promise.race([picturePromise, timeoutPromise]);
+        
+        // Update state with the picture
+        setPageState(prev => ({
+          ...prev,
+          data: {
+            ...prev.data,
+            userPicture,
+            isLoadingPicture: false
+          }
+        }));
+      } catch (pictureError) {
+        console.error('Error loading picture:', pictureError);
+        setPageState(prev => ({
+          ...prev,
+          data: {
+            ...prev.data,
+            isLoadingPicture: false
+          }
+        }));
+      }
     } catch (error) {
       console.error('Refresh error:', error);
       setPageState(prev => ({
@@ -395,11 +486,13 @@ const Dashboard = ({ _initialClips, metaData }) => {
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
+      
       <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
             <h1 className={styles.welcomeText}>
               Hey <span className={styles.username}>{user?.username}</span>!
+              {user?.isAdmin && <span className={styles.adminIndicator}>Admin</span>}
             </h1>
             <DashboardUserSearch />
           </div>
@@ -412,10 +505,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
                 <AiOutlineUser size={24} />
               </div>
               <h3 className={styles.statTitle}>Profile Info</h3>
+              {user?.isAdmin && <span className={styles.adminBadge}>Admin Account</span>}
             </div>
             <div className={styles.profileInfo}>
               <div className={styles.userPictureContainer}>
-                {pageState.loading ? (
+                {pageState.data.isLoadingPicture ? (
                   <div className={styles.userPictureLoading}>
                     <div className={styles.spinner} />
                   </div>
@@ -439,7 +533,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
                     <AiOutlineUser size={72} />
                   </div>
                 )}
-                {!pageState.loading && (
+                {!pageState.data.isLoadingPicture && (
                   <label className={styles.uploadButtonOverlay}>
                     <input
                       type="file"
@@ -542,6 +636,39 @@ const Dashboard = ({ _initialClips, metaData }) => {
             isLoading={pageState.loading}
           />
         </div>
+
+        {/* Admin Section - Only visible to admin users */}
+        {user?.isAdmin ? (
+          <section className={styles.adminSection}>
+            <div className={styles.adminSectionHeader}>
+              <h2>Admin Controls</h2>
+              <p>Welcome to the admin dashboard. You have access to additional controls and features.</p>
+            </div>
+            <div className={styles.adminControls}>
+              <button 
+                className={styles.adminButton}
+                onClick={() => router.push('/admin/users')}
+              >
+                Manage Users
+              </button>
+              <button 
+                className={styles.adminButton}
+                onClick={() => router.push('/admin/sessions')}
+              >
+                View All Sessions
+              </button>
+              <button 
+                className={styles.adminButton}
+                onClick={() => router.push('/admin/events')}
+              >
+                Manage Events
+              </button>
+            </div>
+          </section>
+        ) : (
+          // Debug message - will only appear in console
+          console.log('User is not an admin, admin section not rendered')
+        )}
       </main>
     </ProtectedPageWrapper>
   );

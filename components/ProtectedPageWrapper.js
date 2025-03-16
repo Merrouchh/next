@@ -10,7 +10,7 @@ import LoadingSpinner from './LoadingSpinner';
 import { useEffect } from 'react';
 import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
-import { AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera } from 'react-icons/ai';
+import { AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineCalendar } from 'react-icons/ai';
 
 const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   const { user, loading } = useAuth();
@@ -27,13 +27,6 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   const hasNavigation = routeConfig.showNavigation;
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
-
-  // Calculate main content style
-  const mainContentStyle = {
-    ...(isMobile && hasNavigation && {
-      paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))'
-    })
-  };
 
   // Handle authentication-based routing
   useEffect(() => {
@@ -96,32 +89,6 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
         >
           {children}
         </main>
-
-        {isMobile && user && hasNavigation && (
-          <nav className={styles.bottomNav}>
-            <button
-              onClick={() => router.push('/discover')}
-              className={`${styles.navButton} ${router.pathname === '/discover' ? styles.active : ''}`}
-            >
-              <span className={styles.icon}><AiOutlineCompass size={20} /></span>
-              <span className={styles.label}>Discover</span>
-            </button>
-            <button
-              onClick={() => router.push('/avcomputers')}
-              className={`${styles.navButton} ${router.pathname === '/avcomputers' ? styles.active : ''}`}
-            >
-              <span className={styles.icon}><AiOutlineDesktop size={20} /></span>
-              <span className={styles.label}>Computers</span>
-            </button>
-            <button
-              onClick={() => router.push(`/profile/${user?.username}`)}
-              className={`${styles.navButton} ${router.pathname.startsWith('/profile/') ? styles.active : ''}`}
-            >
-              <span className={styles.icon}><AiOutlineVideoCamera size={20} /></span>
-              <span className={styles.label}>Profile</span>
-            </button>
-          </nav>
-        )}
       </div>
     </div>
   );

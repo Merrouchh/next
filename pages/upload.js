@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import styles from '../styles/Upload.module.css';
-import { MdGamepad, MdPublic, MdLock, MdCloudUpload } from 'react-icons/md';
+import { MdGamepad, MdPublic, MdLock, MdCloudUpload, MdWarning } from 'react-icons/md';
 import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useDropzone } from 'react-dropzone';
@@ -12,6 +12,14 @@ import dynamic from 'next/dynamic';
 import { useVideoUpload } from '../hooks/useVideoUpload';
 import { v4 as uuidv4 } from 'uuid';
 import debounce from 'lodash/debounce';
+
+// Constants for file validation
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const SUPPORTED_FORMATS = {
+  'video/mp4': ['.mp4'],
+  'video/quicktime': ['.mov'],
+  'video/x-matroska': ['.mkv']
+};
 
 // Dynamically import the VideoThumbnail component with no SSR
 const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
@@ -71,6 +79,8 @@ const UploadPage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [showProgress, setShowProgress] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { user, isLoggedIn, supabase } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState(null);
@@ -78,6 +88,8 @@ const UploadPage = () => {
   const sessionId = useRef(uuidv4()).current;
   const videoRef = useRef(null);
   const blobUrlRef = useRef(null);
+  const processingTimeoutRef = useRef(null);
+  const [fileProcessed, setFileProcessed] = useState(false);
 
   const { 
     uploadStatus, 
@@ -87,7 +99,7 @@ const UploadPage = () => {
     resetForm 
   } = useVideoUpload();
 
-  // Simplified blob cleanup
+  // Improved blob cleanup
   const cleanupBlobUrl = useCallback(() => {
     if (blobUrlRef.current) {
       try {
@@ -99,36 +111,119 @@ const UploadPage = () => {
     }
   }, []);
 
-  // Simplified title change handler - no debounce needed
+  // Debounced title change handler
   const handleTitleChange = useCallback((e) => {
+    // Simply update the title state without affecting the blob URL or preview
     setTitle(e.target.value);
   }, []);
 
-  // Cleanup on unmount - simplified
+  // Cleanup on unmount - improved
   useEffect(() => {
     return () => {
       cleanupBlobUrl();
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
     };
   }, [cleanupBlobUrl]);
 
-  // Handle file selection
+  // Validate file before processing
+  const validateFile = useCallback((file) => {
+    if (!file) return "No file selected";
+    
+    if (file.size > MAX_FILE_SIZE) {
+      return `File is too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+    }
+    
+    if (!Object.keys(SUPPORTED_FORMATS).includes(file.type)) {
+      return "Unsupported file format. Please use MP4, MOV, or MKV";
+    }
+    
+    return null;
+  }, []);
+
+  // Detect if a file is likely from a network path
+  const isNetworkPath = useCallback((file) => {
+    // Check for common indicators of network paths
+    // 1. File access time is significantly slower than local files
+    // 2. Check filename for network path patterns
+    
+    // Check filename for UNC path patterns (Windows network shares)
+    const filename = file.name || '';
+    const path = file.path || '';
+    
+    // Look for patterns like \\server\share or //server/share in the path if available
+    const networkPathRegex = /^(\\\\|\/\/)[^\\\/]+[\\\/][^\\\/]+/;
+    
+    if (path && networkPathRegex.test(path)) {
+      return true;
+    }
+    
+    // If we can't directly detect it, we'll use a performance measurement
+    // to estimate if it's a network file
+    return false;
+  }, []);
+
+  // Handle file selection with validation and optimized processing
   const handleFileChange = useCallback((event) => {
     const file = event.target.files[0];
-    if (file && file.type.startsWith('video/')) {
-      cleanupBlobUrl(); // Cleanup old blob
+    if (!file) return;
+    
+    // Reset previous state
+    setFileError(null);
+    setIsProcessing(true);
+    setFileProcessed(false);
+    
+    // Validate file
+    const error = validateFile(file);
+    if (error) {
+      setFileError(error);
+      setIsProcessing(false);
+      return;
+    }
+    
+    // Check if file is from a network path
+    const networkFile = isNetworkPath(file);
+    if (networkFile) {
+      console.log('Network file detected, using optimized handling');
+      // For network files, we'll skip blob URL creation and thumbnail generation
+      // to prevent UI blocking
+      
+      setSelectedFile(file);
+      setTitle(file.name.split('.')[0]);
+      setIsProcessing(false);
+      setFileProcessed(true);
+      
+      // Show a warning about network files
+      setFileError("Network file detected. Upload may be slower. Consider copying to local drive first for better performance.");
+      return;
+    }
+    
+    // Set a timeout to prevent UI blocking perception
+    processingTimeoutRef.current = setTimeout(() => {
+      // Only create a new blob URL if we don't already have one for this file
+      if (blobUrlRef.current) {
+        cleanupBlobUrl(); // Cleanup old blob
+      }
+      
       try {
         const newBlobUrl = URL.createObjectURL(file);
         blobUrlRef.current = newBlobUrl;
         setPreviewUrl(newBlobUrl);
         setSelectedFile(file);
+        setTitle(file.name.split('.')[0]);
+        setFileProcessed(true);
       } catch (error) {
         console.error('Error creating blob URL:', error);
         // Fallback for Edge
         setSelectedFile(file);
         setPreviewUrl(''); // Will use file directly in video element
+        setFileProcessed(true);
+      } finally {
+        setIsProcessing(false);
       }
-    }
-  }, [cleanupBlobUrl]);
+    }, 50);
+  }, [cleanupBlobUrl, validateFile, isNetworkPath]);
 
   // Memoize handlers
   const handleDrop = useCallback((files) => {
@@ -139,25 +234,25 @@ const UploadPage = () => {
     // ... logging logic ...
   }, [username, sessionId]);
 
-  // Remove the old handleCancelUpload and use the one from the hook directly
+  // Improved cancel upload handler
   const handleCancelUpload = useCallback(async () => {
     try {
       await cancelUpload();
       // Clean up preview if exists
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
+      cleanupBlobUrl();
+      setPreviewUrl(null);
       // Reset form fields
       setTitle('');
       setGame('');
       setVisibility('public');
       setSelectedFile(null);
       setShowProgress(false);
+      setFileError(null);
+      setFileProcessed(false);
     } catch (error) {
       console.error('Error canceling upload:', error);
     }
-  }, [cancelUpload, previewUrl]);
+  }, [cancelUpload, cleanupBlobUrl]);
 
   // Connection monitoring effect - Simplified
   useEffect(() => {
@@ -182,7 +277,7 @@ const UploadPage = () => {
     };
   }, [uploadStatus, handleCancelUpload, logEvent]);
 
-  // Page visibility and unload handling
+  // Page visibility and unload handling - optimized
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (uploadStatus === 'uploading') {
@@ -194,21 +289,26 @@ const UploadPage = () => {
           logEvent('SENDING_CLEANUP_BEACON', {
             uid: currentUploadUid.current
           });
-          navigator.sendBeacon(
-            `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`,
-            new Blob([], { type: 'application/json' })
-          );
+          try {
+            // Use a simple GET request with the beacon API
+            // The server now handles GET requests with status=closed
+            navigator.sendBeacon(
+              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`
+            );
+          } catch (error) {
+            console.error('Error sending beacon:', error);
+          }
         }
       }
     };
 
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && uploadStatus === 'uploading') {
         if (currentUploadUid.current) {
           try {
+            // Use a simple GET request with the beacon API
             navigator.sendBeacon(
-              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`,
-              new Blob([], { type: 'application/json' })
+              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`
             );
           } catch (error) {
             console.error('Error during visibility change cleanup:', error);
@@ -254,7 +354,7 @@ const UploadPage = () => {
     };
   }, [uploadStatus, handleCancelUpload, router, logEvent]);
 
-  // Fetch username from users table
+  // Fetch username from users table - with error handling
   useEffect(() => {
     const fetchUsername = async () => {
       if (!user) return;
@@ -279,11 +379,44 @@ const UploadPage = () => {
     fetchUsername();
   }, [user, supabase]);
 
-  // File selection logging
+  // Optimized file drop handler
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     if (!file) {
       logEvent('FILE_DROP_REJECTED', { reason: 'No file provided' });
+      return;
+    }
+
+    // Reset error state
+    setFileError(null);
+    setIsProcessing(true);
+    setFileProcessed(false);
+    
+    // Validate file
+    const error = validateFile(file);
+    if (error) {
+      setFileError(error);
+      logEvent('FILE_VALIDATION_FAILED', { error });
+      setIsProcessing(false);
+      return;
+    }
+
+    // Check if file is from a network path
+    const networkFile = isNetworkPath(file);
+    if (networkFile) {
+      logEvent('NETWORK_FILE_DETECTED', { 
+        fileName: file.name,
+        fileSize: file.size
+      });
+      
+      // For network files, we'll skip blob URL creation and thumbnail generation
+      setSelectedFile(file);
+      setTitle(file.name.split('.')[0]);
+      setIsProcessing(false);
+      setFileProcessed(true);
+      
+      // Show a warning about network files
+      setFileError("Network file detected. Upload may be slower. Consider copying to local drive first for better performance.");
       return;
     }
 
@@ -294,27 +427,29 @@ const UploadPage = () => {
     });
 
     // Clean up previous preview
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      logEvent('PREVIEW_CLEANUP', { oldPreviewUrl: previewUrl });
+    if (blobUrlRef.current) {
+      cleanupBlobUrl();
+      logEvent('PREVIEW_CLEANUP');
     }
 
-    setSelectedFile(file);
-    setTitle(file.name.split('.')[0]);
-    logEvent('FILE_PREPARED', { 
-      title: file.name.split('.')[0],
-      readyForUpload: true 
-    });
-  }, [previewUrl, logEvent]);
+    // Use setTimeout to prevent UI blocking
+    processingTimeoutRef.current = setTimeout(() => {
+      setSelectedFile(file);
+      setTitle(file.name.split('.')[0]);
+      setFileProcessed(true);
+      logEvent('FILE_PREPARED', { 
+        title: file.name.split('.')[0],
+        readyForUpload: true 
+      });
+      setIsProcessing(false);
+    }, 50);
+  }, [cleanupBlobUrl, logEvent, validateFile, isNetworkPath]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'video/mp4': ['.mp4'],
-      'video/quicktime': ['.mov'],
-      'video/x-matroska': ['.mkv']
-    },
-    maxFiles: 1
+    accept: SUPPORTED_FORMATS,
+    maxFiles: 1,
+    maxSize: MAX_FILE_SIZE
   });
 
   const handleCloseProgress = useCallback(() => {
@@ -325,9 +460,27 @@ const UploadPage = () => {
     }
   }, [uploadStatus, resetForm]);
 
-  // Upload handling
+  // Upload handling - optimized
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate again before upload
+    if (!selectedFile || !user || !username) {
+      logEvent('UPLOAD_VALIDATION_FAILED', {
+        hasFile: !!selectedFile,
+        isLoggedIn: !!user,
+        hasUsername: !!username
+      });
+      alert('Please ensure you are logged in and have selected a file');
+      return;
+    }
+    
+    const error = validateFile(selectedFile);
+    if (error) {
+      setFileError(error);
+      return;
+    }
+
     logEvent('UPLOAD_INITIATED', {
       title,
       game,
@@ -338,16 +491,6 @@ const UploadPage = () => {
         type: selectedFile.type
       } : null
     });
-
-    if (!selectedFile || !user || !username) {
-      logEvent('UPLOAD_VALIDATION_FAILED', {
-        hasFile: !!selectedFile,
-        isLoggedIn: !!user,
-        hasUsername: !!username
-      });
-      alert('Please ensure you are logged in and have selected a file');
-      return;
-    }
 
     setShowProgress(true);
     logEvent('PROGRESS_MODAL_OPENED');
@@ -368,13 +511,14 @@ const UploadPage = () => {
         username,
         fileName
       });
+      
+      currentUploadUid.current = uploadedUid;
 
       logEvent('UPLOAD_COMPLETED', {
         uid: uploadedUid,
         duration: `${Date.now() - new Date()}ms`
       });
 
-      // Remove the setTimeout and call handleSuccess directly
       handleSuccess();
       
     } catch (error) {
@@ -394,18 +538,20 @@ const UploadPage = () => {
     }
   };
 
-  // Clean up unmount effect - Simplified
+  // Clean up unmount effect - Improved
   useEffect(() => {
     return () => {
       logEvent('COMPONENT_UNMOUNTING', {
         hasActiveUpload: uploadStatus === 'uploading'
       });
       
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
+      cleanupBlobUrl();
+      
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
       }
     };
-  }, [previewUrl, uploadStatus, logEvent]);
+  }, [uploadStatus, logEvent, cleanupBlobUrl]);
 
   // Handle successful upload without cancellation
   const handleSuccess = useCallback(() => {
@@ -413,13 +559,13 @@ const UploadPage = () => {
     setGame('');
     setVisibility('public');
     setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    cleanupBlobUrl();
+    setPreviewUrl(null);
     resetForm();
     setShowProgress(false);
-  }, [previewUrl, resetForm]);
+    setFileError(null);
+    setFileProcessed(false);
+  }, [resetForm, cleanupBlobUrl]);
 
   return (
     <ProtectedPageWrapper>
@@ -434,13 +580,23 @@ const UploadPage = () => {
             <h1>Upload Your Highlight</h1>
           </header>
 
-          <div {...getRootProps()} className={`${styles.dropzone} ${isDragActive ? styles.dropzoneActive : ''}`}>
+          <div {...getRootProps()} className={`${styles.dropzone} ${isDragActive ? styles.dropzoneActive : ''} ${fileError ? styles.dropzoneError : ''}`}>
             <input {...getInputProps()} />
-            {selectedFile ? (
+            {isProcessing ? (
+              <div className={styles.processingContainer}>
+                <div className={styles.spinner}></div>
+                <p>Processing file...</p>
+              </div>
+            ) : selectedFile ? (
               <div className={styles.previewContainer}>
                 <VideoThumbnail 
                   file={selectedFile}
-                  onThumbnailGenerated={(url) => setPreviewUrl(url)}
+                  onThumbnailGenerated={(url) => {
+                    // Only set the preview URL if we don't already have one
+                    if (!previewUrl) {
+                      setPreviewUrl(url);
+                    }
+                  }}
                   onError={(error) => console.error('Thumbnail error:', error)}
                 />
                 <p className={styles.fileName}>
@@ -449,11 +605,20 @@ const UploadPage = () => {
               </div>
             ) : (
               <div className={styles.dropzoneContent}>
-                <MdCloudUpload className={styles.uploadIcon} />
-                <p>{isDragActive ? 'Drop your video here' : 'Drag and drop your video here, or click to browse'}</p>
-                <span className={styles.supportedFormats}>
-                  MP4, MOV, or MKV • Max 100MB
-                </span>
+                {fileError ? (
+                  <>
+                    <MdWarning className={styles.errorIcon} />
+                    <p className={styles.errorText}>{fileError}</p>
+                  </>
+                ) : (
+                  <>
+                    <MdCloudUpload className={styles.uploadIcon} />
+                    <p>{isDragActive ? 'Drop your video here' : 'Drag and drop your video here, or click to browse'}</p>
+                    <span className={styles.supportedFormats}>
+                      MP4, MOV, or MKV • Max 100MB
+                    </span>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -467,6 +632,7 @@ const UploadPage = () => {
                 placeholder="Give your clip a title"
                 className={styles.input}
                 required
+                disabled={isProcessing}
               />
             </div>
 
@@ -476,6 +642,7 @@ const UploadPage = () => {
                 onChange={(e) => setGame(e.target.value)}
                 className={styles.select}
                 required
+                disabled={isProcessing}
               >
                 <option value="">Select Game</option>
                 <option value="Counter-Strike 2">Counter-Strike 2</option>
@@ -491,7 +658,7 @@ const UploadPage = () => {
               <div className={styles.visibilityOptions}>
                 <label 
                   className={`${styles.visibilityOption} ${visibility === 'public' ? styles.selected : ''}`}
-                  onClick={() => setVisibility('public')}
+                  onClick={() => !isProcessing && setVisibility('public')}
                 >
                   <input
                     type="radio"
@@ -500,6 +667,7 @@ const UploadPage = () => {
                     checked={visibility === 'public'}
                     onChange={(e) => setVisibility(e.target.value)}
                     className={styles.radioInput}
+                    disabled={isProcessing}
                   />
                   <MdPublic className={styles.visibilityIcon} />
                   <div className={styles.visibilityText}>
@@ -510,7 +678,7 @@ const UploadPage = () => {
 
                 <label 
                   className={`${styles.visibilityOption} ${visibility === 'private' ? styles.selected : ''}`}
-                  onClick={() => setVisibility('private')}
+                  onClick={() => !isProcessing && setVisibility('private')}
                 >
                   <input
                     type="radio"
@@ -519,6 +687,7 @@ const UploadPage = () => {
                     checked={visibility === 'private'}
                     onChange={(e) => setVisibility(e.target.value)}
                     className={styles.radioInput}
+                    disabled={isProcessing}
                   />
                   <MdLock className={styles.visibilityIcon} />
                   <div className={styles.visibilityText}>
@@ -532,7 +701,7 @@ const UploadPage = () => {
             <button 
               type="submit"
               className={styles.uploadButton}
-              disabled={!selectedFile || uploadStatus === 'uploading'}
+              disabled={!selectedFile || uploadStatus === 'uploading' || isProcessing || fileError}
             >
               Upload Clip
             </button>
@@ -541,12 +710,22 @@ const UploadPage = () => {
               type="button"
               onClick={() => router.push('/dashboard')}
               className={styles.backButton}
+              disabled={uploadStatus === 'uploading'}
             >
               Back to Dashboard
             </button>
           </form>
         </div>
       </div>
+      
+      {isProcessing && (
+        <div className={styles.processingOverlay}>
+          <div className={styles.processingContent}>
+            <div className={styles.spinner}></div>
+            <p>Processing file...</p>
+          </div>
+        </div>
+      )}
       
       <UploadProgress
         progress={uploadProgress}
@@ -558,6 +737,7 @@ const UploadPage = () => {
         title={title}
         game={game}
         allowClose={uploadStatus !== 'uploading'}
+        isNetworkFile={fileError && fileError.includes("Network file")}
       />
     </ProtectedPageWrapper>
   );

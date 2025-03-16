@@ -20,7 +20,12 @@ export function VideoProvider({ children }) {
     if (currentPlayingId === currentId) return;
     
     players.forEach((player, id) => {
-      if (id !== currentId) player.pause();
+      if (id !== currentId && player) {
+        // Handle both video.js and Plyr players
+        if (typeof player.pause === 'function') {
+          player.pause();
+        }
+      }
     });
     
     setCurrentPlayingId(currentId);
