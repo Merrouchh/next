@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import styles from '../styles/VideoPlayer.module.css';
 import { trackView } from '../utils/viewTracking';
-import { useVideo } from '../contexts/VideoContext';
 
-// Dynamically import Plyr and hls.js with no SSR
+// Dynamically import the video player component
 const DynamicPlayer = dynamic(() => import('../components/DynamicVideoPlayer'), {
   ssr: false,
   loading: () => (
@@ -25,7 +24,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   const wrapperRef = useRef(null);
   const trackingAttemptedRef = useRef(false);
   const timeoutIdsRef = useRef([]);
-  const { registerPlayer, unregisterPlayer, pauseOthers } = useVideo();
   const [error, setError] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
 
@@ -95,15 +93,15 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   const handlePlayerEvent = (event, data) => {
     console.log('Player event:', event, data);
     switch (event) {
+      case 'playerReady':
+        console.log('Player ready for clip:', clip?.id);
+        playerRef.current = data;
+        break;
       case 'playing':
         setIsActuallyPlaying(true);
         setIsBuffering(false);
+        setError(null); // Clear any previous errors on successful playback
         startPlaybackTracking();
-        try {
-          pauseOthers(clip.id);
-        } catch (err) {
-          console.error('Error handling play event:', err);
-        }
         break;
       case 'waiting':
         setIsBuffering(true);
@@ -122,12 +120,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         stopPlaybackTracking();
         break;
       case 'error':
-        setError(data || 'Failed to load video');
-        break;
-      case 'playerReady':
-        playerRef.current = data;
-        if (data) {
-          registerPlayer(clip.id, data);
+        // Only set error if we don't already have one
+        if (!error) {
+          setError(data || 'Failed to load video');
         }
         break;
     }
@@ -170,15 +165,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (playerRef.current) {
-        try {
-          unregisterPlayer(clip?.id);
-        } catch (err) {
-          console.warn('Error unregistering player:', err);
-        }
-        playerRef.current = null;
-      }
-      
+      playerRef.current = null;
       stopPlaybackTracking();
       
       // Clear all pending timeouts

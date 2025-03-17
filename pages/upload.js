@@ -99,6 +99,12 @@ const UploadPage = () => {
     resetForm 
   } = useVideoUpload();
 
+  // Define logEvent function before it's used
+  const logEvent = useCallback((event, details) => {
+    // ... logging logic ...
+    console.log(`[${event}]`, details);
+  }, [username, sessionId]);
+
   // Improved blob cleanup
   const cleanupBlobUrl = useCallback(() => {
     if (blobUrlRef.current) {
@@ -117,15 +123,22 @@ const UploadPage = () => {
     setTitle(e.target.value);
   }, []);
 
-  // Cleanup on unmount - improved
+  // Clean up unmount effect - Improved
   useEffect(() => {
     return () => {
+      logEvent('COMPONENT_UNMOUNTING', {
+        hasActiveUpload: uploadStatus === 'uploading'
+      });
+      
       cleanupBlobUrl();
+      
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);
       }
+      
+      // Don't clean up on unmount - let the server handle any ongoing uploads
     };
-  }, [cleanupBlobUrl]);
+  }, [uploadStatus, logEvent, cleanupBlobUrl]);
 
   // Validate file before processing
   const validateFile = useCallback((file) => {
@@ -201,25 +214,21 @@ const UploadPage = () => {
     
     // Set a timeout to prevent UI blocking perception
     processingTimeoutRef.current = setTimeout(() => {
-      // Only create a new blob URL if we don't already have one for this file
-      if (blobUrlRef.current) {
-        cleanupBlobUrl(); // Cleanup old blob
-      }
-      
       try {
-        const newBlobUrl = URL.createObjectURL(file);
-        blobUrlRef.current = newBlobUrl;
-        setPreviewUrl(newBlobUrl);
+        // Only create a new blob URL if we don't already have one for this file
+        if (blobUrlRef.current) {
+          cleanupBlobUrl(); // Cleanup old blob
+        }
+        
         setSelectedFile(file);
         setTitle(file.name.split('.')[0]);
         setFileProcessed(true);
+        setIsProcessing(false);
       } catch (error) {
-        console.error('Error creating blob URL:', error);
-        // Fallback for Edge
+        console.error('Error processing file:', error);
         setSelectedFile(file);
-        setPreviewUrl(''); // Will use file directly in video element
+        setTitle(file.name.split('.')[0]);
         setFileProcessed(true);
-      } finally {
         setIsProcessing(false);
       }
     }, 50);
@@ -230,14 +239,127 @@ const UploadPage = () => {
     // ... drop handling logic ...
   }, []);
 
-  const logEvent = useCallback((event, details) => {
-    // ... logging logic ...
-  }, [username, sessionId]);
+  // Upload handling - optimized
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate again before upload
+    if (!selectedFile || !user || !username) {
+      logEvent('UPLOAD_VALIDATION_FAILED', {
+        hasFile: !!selectedFile,
+        isLoggedIn: !!user,
+        hasUsername: !!username
+      });
+      alert('Please ensure you are logged in and have selected a file');
+      return;
+    }
+    
+    const error = validateFile(selectedFile);
+    if (error) {
+      setFileError(error);
+      return;
+    }
 
-  // Improved cancel upload handler
+    logEvent('UPLOAD_INITIATED', {
+      title,
+      game,
+      visibility,
+      fileInfo: selectedFile ? {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      } : null
+    });
+
+    setShowProgress(true);
+    logEvent('PROGRESS_MODAL_OPENED');
+
+    try {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${username}_${Date.now()}_${game.replace(/\s+/g, '_')}.${fileExt}`;
+      
+      logEvent('UPLOAD_STARTED', {
+        fileName,
+        fileExtension: fileExt
+      });
+
+      const uploadedUid = await uploadFile(selectedFile, {
+        title,
+        game,
+        visibility,
+        username,
+        fileName
+      });
+      
+      currentUploadUid.current = uploadedUid;
+
+      logEvent('UPLOAD_COMPLETED', {
+        uid: uploadedUid,
+        duration: `${Date.now() - new Date()}ms`
+      });
+      
+      // Don't clean up the UID here - let the server handle it
+      // Reset the current upload UID after successful upload
+      currentUploadUid.current = null;
+      
+      handleSuccess();
+      
+    } catch (error) {
+      if (error.message === 'Upload cancelled') {
+        logEvent('UPLOAD_CANCELLED', {
+          reason: 'User initiated',
+          stage: 'during_upload'
+        });
+      } else {
+        logEvent('UPLOAD_FAILED', {
+          error: error.message,
+          stack: error.stack
+        });
+        console.error('Upload error:', error);
+        alert(`Upload failed: ${error.message}`);
+      }
+    }
+  };
+
+  // Handle successful upload without cancellation
+  const handleSuccess = useCallback(() => {
+    // Don't clean up the UID here - it should already be null after successful upload
+    
+    setTitle('');
+    setGame('');
+    setVisibility('public');
+    setSelectedFile(null);
+    cleanupBlobUrl();
+    setPreviewUrl(null);
+    resetForm();
+    setShowProgress(false);
+    setFileError(null);
+    setFileProcessed(false);
+  }, [resetForm, cleanupBlobUrl, logEvent]);
+
+  // Improved cancel upload handler - This is the ONLY place we should call the cleanup API
   const handleCancelUpload = useCallback(async () => {
     try {
       await cancelUpload();
+      
+      // Clean up the current upload UID - ONLY when user explicitly cancels
+      if (currentUploadUid.current) {
+        try {
+          await fetch(`/api/copy-to-stream?uid=${currentUploadUid.current}&status=cancelled`, {
+            method: 'DELETE'
+          });
+          logEvent('CANCEL_CLEANUP_COMPLETED', { uid: currentUploadUid.current });
+        } catch (error) {
+          console.error('Error during cancel cleanup:', error);
+          logEvent('CANCEL_CLEANUP_FAILED', { 
+            uid: currentUploadUid.current,
+            error: error.message
+          });
+        } finally {
+          currentUploadUid.current = null;
+        }
+      }
+      
       // Clean up preview if exists
       cleanupBlobUrl();
       setPreviewUrl(null);
@@ -252,7 +374,7 @@ const UploadPage = () => {
     } catch (error) {
       console.error('Error canceling upload:', error);
     }
-  }, [cancelUpload, cleanupBlobUrl]);
+  }, [cancelUpload, cleanupBlobUrl, logEvent]);
 
   // Connection monitoring effect - Simplified
   useEffect(() => {
@@ -285,36 +407,12 @@ const UploadPage = () => {
         e.preventDefault();
         e.returnValue = 'Upload in progress. Are you sure you want to leave?';
         
-        if (currentUploadUid.current) {
-          logEvent('SENDING_CLEANUP_BEACON', {
-            uid: currentUploadUid.current
-          });
-          try {
-            // Use a simple GET request with the beacon API
-            // The server now handles GET requests with status=closed
-            navigator.sendBeacon(
-              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`
-            );
-          } catch (error) {
-            console.error('Error sending beacon:', error);
-          }
-        }
+        // Don't clean up here - we want the server to handle the upload
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && uploadStatus === 'uploading') {
-        if (currentUploadUid.current) {
-          try {
-            // Use a simple GET request with the beacon API
-            navigator.sendBeacon(
-              `/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`
-            );
-          } catch (error) {
-            console.error('Error during visibility change cleanup:', error);
-          }
-        }
-      }
+      // Don't clean up on visibility change - let the server handle it
     };
 
     const handleRouteChange = async () => {
@@ -324,9 +422,11 @@ const UploadPage = () => {
           router.events.emit('routeChangeError');
           throw 'routeChange aborted';
         } else {
+          // Only call cancel upload if user confirms - this will trigger the cleanup
           await handleCancelUpload();
         }
       }
+      // Don't clean up if not uploading
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -337,20 +437,6 @@ const UploadPage = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       router.events.off('routeChangeStart', handleRouteChange);
-      
-      if (uploadStatus === 'uploading' && currentUploadUid.current) {
-        const cleanup = async () => {
-          try {
-            await fetch(`/api/copy-to-stream?uid=${currentUploadUid.current}&status=closed`, {
-              method: 'DELETE'
-            });
-          } catch (error) {
-            console.error('Error during unmount cleanup:', error);
-          }
-        };
-        
-        cleanup();
-      }
     };
   }, [uploadStatus, handleCancelUpload, router, logEvent]);
 
@@ -460,113 +546,6 @@ const UploadPage = () => {
     }
   }, [uploadStatus, resetForm]);
 
-  // Upload handling - optimized
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate again before upload
-    if (!selectedFile || !user || !username) {
-      logEvent('UPLOAD_VALIDATION_FAILED', {
-        hasFile: !!selectedFile,
-        isLoggedIn: !!user,
-        hasUsername: !!username
-      });
-      alert('Please ensure you are logged in and have selected a file');
-      return;
-    }
-    
-    const error = validateFile(selectedFile);
-    if (error) {
-      setFileError(error);
-      return;
-    }
-
-    logEvent('UPLOAD_INITIATED', {
-      title,
-      game,
-      visibility,
-      fileInfo: selectedFile ? {
-        name: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type
-      } : null
-    });
-
-    setShowProgress(true);
-    logEvent('PROGRESS_MODAL_OPENED');
-
-    try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${username}_${Date.now()}_${game.replace(/\s+/g, '_')}.${fileExt}`;
-      
-      logEvent('UPLOAD_STARTED', {
-        fileName,
-        fileExtension: fileExt
-      });
-
-      const uploadedUid = await uploadFile(selectedFile, {
-        title,
-        game,
-        visibility,
-        username,
-        fileName
-      });
-      
-      currentUploadUid.current = uploadedUid;
-
-      logEvent('UPLOAD_COMPLETED', {
-        uid: uploadedUid,
-        duration: `${Date.now() - new Date()}ms`
-      });
-
-      handleSuccess();
-      
-    } catch (error) {
-      if (error.message === 'Upload cancelled') {
-        logEvent('UPLOAD_CANCELLED', {
-          reason: 'User initiated',
-          stage: 'during_upload'
-        });
-      } else {
-        logEvent('UPLOAD_FAILED', {
-          error: error.message,
-          stack: error.stack
-        });
-        console.error('Upload error:', error);
-        alert(`Upload failed: ${error.message}`);
-      }
-    }
-  };
-
-  // Clean up unmount effect - Improved
-  useEffect(() => {
-    return () => {
-      logEvent('COMPONENT_UNMOUNTING', {
-        hasActiveUpload: uploadStatus === 'uploading'
-      });
-      
-      cleanupBlobUrl();
-      
-      if (processingTimeoutRef.current) {
-        clearTimeout(processingTimeoutRef.current);
-      }
-    };
-  }, [uploadStatus, logEvent, cleanupBlobUrl]);
-
-  // Handle successful upload without cancellation
-  const handleSuccess = useCallback(() => {
-    setTitle('');
-    setGame('');
-    setVisibility('public');
-    setSelectedFile(null);
-    cleanupBlobUrl();
-    setPreviewUrl(null);
-    resetForm();
-    setShowProgress(false);
-    setFileError(null);
-    setFileProcessed(false);
-  }, [resetForm, cleanupBlobUrl]);
-
   return (
     <ProtectedPageWrapper>
       <Head>
@@ -597,7 +576,10 @@ const UploadPage = () => {
                       setPreviewUrl(url);
                     }
                   }}
-                  onError={(error) => console.error('Thumbnail error:', error)}
+                  onError={(error) => {
+                    // Just log the error, don't show it to the user
+                    console.log('Thumbnail generation skipped, using fallback');
+                  }}
                 />
                 <p className={styles.fileName}>
                   {selectedFile.name} ({Math.round(selectedFile.size / (1024 * 1024))}MB)

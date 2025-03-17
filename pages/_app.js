@@ -6,7 +6,6 @@ import '../styles/globals.css';
 import { Inter, Orbitron } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
-import { VideoProvider } from '../contexts/VideoContext';
 import { Toaster } from 'react-hot-toast';
 import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
@@ -113,37 +112,35 @@ function MyApp({ Component, pageProps }) {
             
             <AuthProvider onError={handleLockError}>
               <ModalProvider>
-                <VideoProvider>
-                  <Toaster 
-                    position="bottom-center"
-                    toastOptions={{
-                      style: {
-                        background: '#333',
-                        color: '#fff',
-                        border: '1px solid #2a2a2a',
+                <Toaster 
+                  position="bottom-center"
+                  toastOptions={{
+                    style: {
+                      background: '#333',
+                      color: '#fff',
+                      border: '1px solid #2a2a2a',
+                    },
+                    success: {
+                      duration: 2000,
+                      iconTheme: {
+                        primary: '#FFD700',
+                        secondary: '#000',
                       },
-                      success: {
-                        duration: 2000,
-                        iconTheme: {
-                          primary: '#FFD700',
-                          secondary: '#000',
-                        },
+                    },
+                    error: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#ff4b4b',
+                        secondary: '#fff',
                       },
-                      error: {
-                        duration: 3000,
-                        iconTheme: {
-                          primary: '#ff4b4b',
-                          secondary: '#fff',
-                        },
-                      },
-                    }}
-                  />
-                  <Layout>
-                    <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
-                      <Component {...pageProps} />
-                    </main>
-                  </Layout>
-                </VideoProvider>
+                    },
+                  }}
+                />
+                <Layout>
+                  <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
+                    <Component {...pageProps} />
+                  </main>
+                </Layout>
               </ModalProvider>
             </AuthProvider>
           </div>
@@ -164,14 +161,12 @@ function MyApp({ Component, pageProps }) {
           
           <AuthProvider onError={handleLockError}>
             <ModalProvider>
-              <VideoProvider>
-                <Toaster />
-                <Layout>
-                  <main className={`${inter.variable} ${orbitron.variable}`}>
-                    <Component {...pageProps} />
-                  </main>
-                </Layout>
-              </VideoProvider>
+              <Toaster />
+              <Layout>
+                <main className={`${inter.variable} ${orbitron.variable}`}>
+                  <Component {...pageProps} />
+                </main>
+              </Layout>
             </ModalProvider>
           </AuthProvider>
         </div>

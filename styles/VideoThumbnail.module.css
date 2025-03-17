@@ -188,4 +188,30 @@
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.fallbackThumbnail {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--dark-text-secondary);
+  background: var(--dark-bg-elevated);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.fallbackIcon {
+  font-size: 48px;
+  color: var(--dark-accent-primary);
+  opacity: 0.8;
+}
+
+.fallbackText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dark-text-secondary);
 } 

@@ -19,11 +19,6 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
   const { isLoginModalOpen } = useModal();
   const routeConfig = getRouteConfig(router.pathname);
 
-  // Add console.log to debug
-  console.log('Current path:', router.pathname);
-  console.log('Route config:', routeConfig);
-  console.log('Has search header:', routeConfig.hasSearchHeader);
-
   const hasNavigation = routeConfig.showNavigation;
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
@@ -75,8 +70,6 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
           </div>
         )}
 
-        {/* Add console.log to debug */}
-        {console.log('Should show search header:', hasSearchHeader)}
         {hasSearchHeader && (
           <div className={`${styles.userSearchWrapper} ${showDashboardHeader ? styles.withDashboard : ''}`}>
             <UserSearch />

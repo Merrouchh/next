@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
 import { createClient as createBrowserClient } from '../utils/supabase/component';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,7 +6,8 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import ClipCard from '../components/ClipCard';
 import DynamicMeta from '../components/DynamicMeta';
 import styles from '../styles/Discover.module.css';
-import { VideoProvider } from '../contexts/VideoContext';
+import { fetchClips } from '../utils/api';
+import { useRouter } from 'next/router';
 
 const CLIPS_PER_PAGE = 5;
 
@@ -298,38 +299,36 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
-      <VideoProvider>
-        <main className={styles.discoverMain}>
-          <div className={styles.feedContainer}>
-            {clips.length > 0 ? (
-              <>
-                {clips.map(clip => (
-                  <ClipCard
-                    key={clip.id}
-                    clip={clip}
-                  />
-                ))}
-                <div className={styles.loadingMore}>
-                  {isLoading && (
-                    <div className={styles.spinner} />
-                  )}
-                  {!hasMore && (
-                    <div className={styles.endMessage}>
-                      <span className={styles.endIcon}>🎮</span>
-                      <p>You've seen all the clips!</p>
-                      <p className={styles.endSubtext}>Check back later for more gaming moments</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className={styles.noClips}>
-                No clips available at the moment
+      <main className={styles.discoverMain}>
+        <div className={styles.feedContainer}>
+          {clips.length > 0 ? (
+            <>
+              {clips.map(clip => (
+                <ClipCard
+                  key={clip.id}
+                  clip={clip}
+                />
+              ))}
+              <div className={styles.loadingMore}>
+                {isLoading && (
+                  <div className={styles.spinner} />
+                )}
+                {!hasMore && (
+                  <div className={styles.endMessage}>
+                    <span className={styles.endIcon}>🎮</span>
+                    <p>You've seen all the clips!</p>
+                    <p className={styles.endSubtext}>Check back later for more gaming moments</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </main>
-      </VideoProvider>
+            </>
+          ) : (
+            <div className={styles.noClips}>
+              No clips available at the moment
+            </div>
+          )}
+        </div>
+      </main>
     </ProtectedPageWrapper>
   );
 };

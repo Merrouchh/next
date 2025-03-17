@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../styles/VideoThumbnail.module.css';
-import { MdPlayCircle } from 'react-icons/md';
+import { MdPlayCircle, MdMovie } from 'react-icons/md';
 
 const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
   const [thumbnail, setThumbnail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSlowFile, setIsSlowFile] = useState(false);
+  const [error, setError] = useState(false);
   const performanceTimerRef = useRef(null);
   const videoUrlRef = useRef(null);
   const thumbnailGeneratedRef = useRef(false);
+  const attemptCountRef = useRef(0);
+  const maxAttempts = 2;
 
   useEffect(() => {
     if (!file) {
@@ -22,21 +25,32 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
       return;
     }
 
+    // If we've already tried too many times, just show fallback
+    if (attemptCountRef.current >= maxAttempts) {
+      console.log('Max thumbnail generation attempts reached, using fallback');
+      setLoading(false);
+      setError(true);
+      return;
+    }
+
+    attemptCountRef.current += 1;
+
     // Start performance timer to detect slow files (like network files)
     const startTime = performance.now();
     performanceTimerRef.current = setTimeout(() => {
       // If we're still loading after 1 second, it might be a network file
       if (loading) {
         setIsSlowFile(true);
-        console.warn('Slow file access detected, possibly a network file');
+        console.log('Slow file access detected, possibly a network file');
       }
     }, 1000);
 
     // Set a timeout to prevent UI freezing if generation takes too long
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.warn('Thumbnail generation taking too long, using fallback');
+        console.log('Thumbnail generation taking too long, using fallback');
         setLoading(false);
+        setError(true);
         if (onError) {
           onError(new Error('Thumbnail generation timeout'));
         }
@@ -51,6 +65,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
           console.log('Large file detected, using simplified thumbnail generation');
           // For large files, we'll use a simpler approach
           setLoading(false);
+          setError(true);
           return; // Skip processing, will show the fallback UI
         }
 
@@ -58,41 +73,39 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         const accessTime = performance.now() - startTime;
         if (accessTime > 500) {
           // If initial file access took more than 500ms, it might be a network file
-          console.warn(`Slow file access detected (${Math.round(accessTime)}ms), possibly a network file`);
+          console.log(`Slow file access detected (${Math.round(accessTime)}ms), possibly a network file`);
           setIsSlowFile(true);
           
           // For very slow files, we might want to skip thumbnail generation entirely
           if (accessTime > 2000) {
-            console.warn('Very slow file access, skipping thumbnail generation');
+            console.log('Very slow file access, skipping thumbnail generation');
             setLoading(false);
+            setError(true);
             return;
           }
-        }
-
-        // Clean up previous video URL if exists
-        if (videoUrlRef.current) {
-          URL.revokeObjectURL(videoUrlRef.current);
-          videoUrlRef.current = null;
         }
 
         // Create a temporary URL for the video file
         let videoUrl;
         try {
           const blobStartTime = performance.now();
-          videoUrl = URL.createObjectURL(file);
+          // Use a more reliable way to create blob URL
+          const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+          videoUrl = URL.createObjectURL(blob);
           videoUrlRef.current = videoUrl; // Store for cleanup
           const blobTime = performance.now() - blobStartTime;
           
           // If creating the blob URL took a long time, it might be a network file
           if (blobTime > 300) {
-            console.warn(`Slow blob URL creation (${Math.round(blobTime)}ms), possibly a network file`);
+            console.log(`Slow blob URL creation (${Math.round(blobTime)}ms), possibly a network file`);
             setIsSlowFile(true);
           }
         } catch (error) {
-          console.error('Error creating blob URL:', error);
+          console.log('Using fallback due to blob creation error');
           setLoading(false);
+          setError(true);
           if (onError) {
-            onError(error);
+            onError(new Error('Failed to create blob URL'));
           }
           return;
         }
@@ -104,6 +117,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         video.preload = 'metadata'; // Only load metadata initially
         video.muted = true; // Required for autoplay
         video.playsInline = true;
+        video.crossOrigin = 'anonymous'; // Try to avoid CORS issues
 
         // Add timeout for video loading
         const videoLoadPromise = new Promise((resolve, reject) => {
@@ -123,9 +137,9 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
             resolve(video);
           };
 
-          video.onerror = (error) => {
+          video.onerror = () => {
             clearTimeout(videoTimeout);
-            reject(error);
+            reject(new Error('Video loading failed'));
           };
         });
 
@@ -133,15 +147,16 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         try {
           videoElement = await videoLoadPromise;
         } catch (error) {
-          console.error('Error loading video:', error);
+          console.log('Using fallback due to video loading issue');
           // Clean up
           if (videoUrlRef.current) {
             URL.revokeObjectURL(videoUrlRef.current);
             videoUrlRef.current = null;
           }
           setLoading(false);
+          setError(true);
           if (onError) {
-            onError(error);
+            onError(new Error('Video preview not available'));
           }
           return;
         }
@@ -176,6 +191,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
           onThumbnailGenerated(thumbnailUrl);
         }
         setLoading(false);
+        setError(false);
 
         // Clean up video element
         video.src = '';
@@ -192,10 +208,11 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         }
 
       } catch (error) {
-        console.error('Error generating thumbnail:', error);
+        console.log('Using fallback due to thumbnail generation issue');
         setLoading(false);
+        setError(true);
         if (onError) {
-          onError(error);
+          onError(new Error('Thumbnail generation failed'));
         }
       }
     };
@@ -237,6 +254,13 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
             </small>
           )}
         </div>
+      ) : error ? (
+        <div className={styles.fallbackThumbnail}>
+          <MdMovie className={styles.fallbackIcon} />
+          <span className={styles.fallbackText}>
+            {file.name.split('.').pop().toUpperCase()} Video
+          </span>
+        </div>
       ) : thumbnail ? (
         <div className={styles.thumbnailWrapper}>
           <img 
@@ -244,6 +268,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
             alt="Video thumbnail" 
             className={styles.thumbnail}
             onError={() => {
+              setError(true);
               if (onError) onError(new Error('Failed to load thumbnail'));
             }}
           />
@@ -252,14 +277,11 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
           </div>
         </div>
       ) : (
-        <div className={styles.fallback}>
-          <MdPlayCircle className={styles.playIcon} />
-          <span>Preview not available</span>
-          {isSlowFile && (
-            <small className={styles.slowFileWarning}>
-              Network files may not preview correctly
-            </small>
-          )}
+        <div className={styles.fallbackThumbnail}>
+          <MdMovie className={styles.fallbackIcon} />
+          <span className={styles.fallbackText}>
+            {file.name.split('.').pop().toUpperCase()} Video
+          </span>
         </div>
       )}
     </div>
