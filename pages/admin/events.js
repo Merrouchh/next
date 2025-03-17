@@ -259,13 +259,26 @@ export default function AdminEvents() {
     
     try {
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error(`Authentication error: ${sessionError.message}`);
+      }
+      
       const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available. Please log in again.');
+      }
+      
+      console.log(`Preparing to upload image for event ID: ${eventId}`);
       
       const formDataObj = new FormData();
       formDataObj.append('image', formData.image);
       formDataObj.append('eventId', eventId);
       
+      console.log('Sending image upload request...');
       const response = await fetch('/api/events/upload-image', {
         method: 'POST',
         headers: {
@@ -274,15 +287,18 @@ export default function AdminEvents() {
         body: formDataObj
       });
       
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to upload image');
+        console.error('Upload response error:', responseData);
+        throw new Error(responseData.details || responseData.error || 'Failed to upload image');
       }
       
-      const data = await response.json();
-      return data.imageUrl;
+      console.log('Image uploaded successfully:', responseData.imageUrl);
+      return responseData.imageUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      toast.error(`Failed to upload image: ${error.message}`);
       return null;
     } finally {
       setIsUploading(false);
