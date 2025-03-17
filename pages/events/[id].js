@@ -44,6 +44,7 @@ export default function EventDetail() {
   const { user, supabase } = useAuth();
   const [bracketData, setBracketData] = useState(null);
   const [bracketLoading, setBracketLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Function to fetch the latest registration count
   const fetchLatestCount = async () => {
@@ -702,6 +703,22 @@ export default function EventDetail() {
     }
   }, [loading]);
 
+  // Check if mobile on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkIfMobile = () => {
+        setIsMobile(window.innerWidth <= 767);
+      };
+      
+      checkIfMobile();
+      window.addEventListener('resize', checkIfMobile);
+      
+      return () => {
+        window.removeEventListener('resize', checkIfMobile);
+      };
+    }
+  }, []);
+
   // If not authenticated, don't render anything
   if (!user) {
     return null;
@@ -1056,7 +1073,7 @@ export default function EventDetail() {
       {/* Team selection modal */}
       {isTeamModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={styles.teamModal}>
+          <div className={`${styles.teamModal} ${isMobile ? styles.mobileModal : ''}`}>
             <div className={styles.modalHeader}>
               <h3>{teamType === 'duo' ? 'Select Team Partner' : 'Select Team Members'}</h3>
               <button 
