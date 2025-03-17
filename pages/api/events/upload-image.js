@@ -98,35 +98,27 @@ export default async function handler(req, res) {
     
     // Check if the bucket exists
     console.log('Checking if storage bucket exists...');
-    const { data: buckets, error: bucketError } = await supabase
-      .storage
-      .listBuckets();
-      
-    if (bucketError) {
-      console.error('Error listing buckets:', bucketError);
-      return res.status(500).json({ error: 'Failed to access storage', details: bucketError.message });
-    }
-    
-    const imagesBucket = buckets.find(b => b.name === 'images');
-    if (!imagesBucket) {
-      console.error('Images bucket not found');
-      
-      // Try to create the bucket
-      console.log('Attempting to create images bucket...');
-      const { data: newBucket, error: createError } = await supabase
+    try {
+      const { data: buckets, error: bucketError } = await supabase
         .storage
-        .createBucket('images', {
-          public: true
-        });
+        .listBuckets();
         
-      if (createError) {
-        console.error('Error creating bucket:', createError);
-        return res.status(500).json({ error: 'Failed to create storage bucket', details: createError.message });
+      if (bucketError) {
+        console.error('Error listing buckets:', bucketError);
+        // Continue anyway - the bucket might exist but the user doesn't have permission to list buckets
+        console.log('Continuing with upload despite bucket listing error');
+      } else {
+        const imagesBucket = buckets.find(b => b.name === 'images');
+        if (!imagesBucket) {
+          console.log('Images bucket not found in the list, but it might exist with restricted access');
+        } else {
+          console.log('Images bucket exists');
+        }
       }
-      
-      console.log('Images bucket created successfully');
-    } else {
-      console.log('Images bucket exists');
+    } catch (error) {
+      console.error('Error checking buckets:', error);
+      // Continue anyway - we'll try to upload directly
+      console.log('Continuing with upload despite bucket check error');
     }
     
     // Read file
@@ -139,7 +131,7 @@ export default async function handler(req, res) {
     
     console.log('Uploading to Supabase Storage:', { fileName, contentType: file.mimetype });
     
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage - assume the bucket already exists
     const { data, error } = await supabase
       .storage
       .from('images')

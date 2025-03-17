@@ -664,4 +664,64 @@
   background-color: rgba(255, 215, 0, 0.1);
   border-left: 3px solid #FFD700;
   border-radius: 0 4px 4px 0;
+}
+
+/* Add these new styles */
+
+.headerButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.setupButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.setupButton:hover {
+  background-color: #5a6268;
+}
+
+.setupCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.setupCard h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.setupCard p {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.setupCard ul {
+  margin-bottom: 24px;
+  padding-left: 24px;
+}
+
+.setupCard li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
 } 

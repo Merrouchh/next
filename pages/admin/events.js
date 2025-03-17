@@ -287,10 +287,23 @@ export default function AdminEvents() {
         body: formDataObj
       });
       
-      const responseData = await response.json();
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        throw new Error('Failed to parse server response');
+      }
       
       if (!response.ok) {
         console.error('Upload response error:', responseData);
+        
+        // Check for specific RLS policy error
+        if (responseData.details && responseData.details.includes('row-level security policy')) {
+          toast.error('Permission error: You do not have sufficient permissions to upload images. Please contact the administrator.');
+          return null;
+        }
+        
         throw new Error(responseData.details || responseData.error || 'Failed to upload image');
       }
       
@@ -298,7 +311,18 @@ export default function AdminEvents() {
       return responseData.imageUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error(`Failed to upload image: ${error.message}`);
+      
+      // Handle specific errors with more user-friendly messages
+      let errorMessage = error.message;
+      if (error.message.includes('row-level security policy')) {
+        errorMessage = 'Permission error: You do not have sufficient permissions to upload images.';
+      } else if (error.message.includes('413') || error.message.includes('Payload Too Large')) {
+        errorMessage = 'The image file is too large. Please use an image smaller than 5MB.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error: Please check your internet connection and try again.';
+      }
+      
+      toast.error(`Failed to upload image: ${errorMessage}`);
       return null;
     } finally {
       setIsUploading(false);
@@ -493,12 +517,21 @@ export default function AdminEvents() {
             <FaCalendarAlt className={styles.titleIcon} />
             Manage Events
           </h1>
-          <button 
-            className={styles.createButton}
-            onClick={handleCreateEvent}
-          >
-            <FaPlus /> Create New Event
-          </button>
+          <div className={styles.headerButtons}>
+            <button 
+              className={styles.setupButton}
+              onClick={() => router.push('/admin/setup-storage')}
+              title="Setup storage for image uploads"
+            >
+              <FaImage /> Setup Storage
+            </button>
+            <button 
+              className={styles.createButton}
+              onClick={handleCreateEvent}
+            >
+              <FaPlus /> Create New Event
+            </button>
+          </div>
         </div>
 
         <div className={styles.filterContainer}>
