@@ -546,7 +546,7 @@ export default function AdminEvents() {
               
               {filteredEvents.map((event) => (
                 <div key={event.id} className={styles.tableRow}>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Event">
                     <div className={styles.eventInfo}>
                       <div className={styles.eventTitle}>{event.title}</div>
                       <div className={styles.eventDescription}>
@@ -556,24 +556,24 @@ export default function AdminEvents() {
                       </div>
                     </div>
                   </div>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Date & Time">
                     <div className={styles.eventDate}>
                       {formatDate(event.date)}
                     </div>
                     <div className={styles.eventTime}>{event.time}</div>
                   </div>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Location">
                     <div className={styles.eventLocation}>{event.location}</div>
                   </div>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Game">
                     <div className={styles.eventGame}>{event.game || 'Various Games'}</div>
                   </div>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Status">
                     <div className={`${styles.eventStatus} ${styles[`status${event.status?.replace(/\s+/g, '')}`]}`}>
                       {event.status || 'Upcoming'}
                     </div>
                   </div>
-                  <div className={styles.tableCell}>
+                  <div className={styles.tableCell} data-label="Actions">
                     <div className={styles.actionButtons}>
                       <button 
                         className={styles.editButton}

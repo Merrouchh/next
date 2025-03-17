@@ -21,9 +21,18 @@ const formatDate = (dateString) => {
 };
 
 // Format timestamp for display - moved to a utility function outside component
-const formatTimestamp = (timestamp) => {
+const formatTimestamp = (timestamp, isMobile = false) => {
   try {
     const date = new Date(timestamp);
+    if (isMobile) {
+      return date.toLocaleString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: '2-digit',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -34,6 +43,14 @@ const formatTimestamp = (timestamp) => {
   } catch (error) {
     return timestamp;
   }
+};
+
+// Truncate email for mobile display
+const truncateEmail = (email, isMobile) => {
+  if (!email) return 'No email available';
+  
+  // Always return the full email
+  return email;
 };
 
 // Generate a color based on a string (username)
@@ -97,9 +114,26 @@ export default function EventRegistrations() {
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const { id } = router.query;
   const { user, supabase } = useAuth();
+
+  // Check if mobile on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkIfMobile = () => {
+        setIsMobile(window.innerWidth <= 768);
+      };
+      
+      checkIfMobile();
+      window.addEventListener('resize', checkIfMobile);
+      
+      return () => {
+        window.removeEventListener('resize', checkIfMobile);
+      };
+    }
+  }, []);
 
   // Redirect if not admin
   useEffect(() => {
@@ -139,7 +173,10 @@ export default function EventRegistrations() {
         
         const eventData = await eventResponse.json();
         console.log('Event data received:', JSON.stringify(eventData, null, 2));
-        setEvent(eventData);
+        
+        // Make sure we're using the correct property from the API response
+        // The API returns { event: {...} } but we need to extract the event object
+        setEvent(eventData.event || eventData);
         
         // Fetch registrations
         const registrationsResponse = await fetch(`/api/events/registrations?eventId=${id}`, {
@@ -373,7 +410,7 @@ export default function EventRegistrations() {
         ...registrations.map(reg => [
           `"${reg.username || reg.user.username || 'Unknown'}"`,
           `"${reg.user.email || 'No email'}"`,
-          `"${reg.registration_date_formatted || formatTimestamp(reg.registration_date)}"`,
+          `"${reg.registration_date_formatted || formatTimestamp(reg.registration_date, isMobile)}"`,
           `"${reg.status || 'registered'}"`,
           `"${reg.notes || ''}"`
         ].join(','))
@@ -523,9 +560,17 @@ export default function EventRegistrations() {
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>Team Type:</span>
                   <span className={styles.metaValue}>
-                    {event.team_type === 'solo' ? 'Solo (Individual)' : 
-                     event.team_type === 'duo' ? 'Duo (2 Players)' : 
-                     'Team (Multiple Players)'}
+                    {console.log('Event object:', event)}
+                    {console.log('Team type value:', event.team_type)}
+                    {event && event.team_type && typeof event.team_type === 'string' 
+                      ? (event.team_type.trim().toLowerCase() === 'solo' 
+                          ? 'Solo (Individual)' 
+                          : event.team_type.trim().toLowerCase() === 'duo' 
+                            ? 'Duo (2 Players)' 
+                            : event.team_type.trim().toLowerCase() === 'team' 
+                              ? 'Team (Multiple Players)' 
+                              : `Unknown (${event.team_type})`)
+                      : 'Not specified'}
                   </span>
                 </div>
                 <div className={styles.metaItem}>
@@ -549,25 +594,12 @@ export default function EventRegistrations() {
                 <div className={styles.tableHeader}>
                   <div className={styles.tableCell}>User</div>
                   <div className={styles.tableCell}>Email</div>
-                  <div className={styles.tableCell}>Registration Date</div>
-                  {event.team_type !== 'solo' && (
-                    <div className={styles.tableCell}>
-                      {event.team_type === 'duo' ? (
-                        <div className={styles.duoTeamHeader}>
-                          <span className={styles.duoTeamHeaderLabel}>Duo Team</span>
-                          <span>Team Info</span>
-                        </div>
-                      ) : (
-                        'Team Info'
-                      )}
-                    </div>
-                  )}
-                  <div className={styles.tableCell}>Actions</div>
                 </div>
                 
-                {/* Group registrations by main registrant and partner for duo events */}
-                {event.team_type === 'duo' ? (
-                  // For duo events, group main registrants with their partners
+                {/* Group registrations by team for duo/team events */}
+                {event && event.team_type && typeof event.team_type === 'string' && 
+                 event.team_type.trim().toLowerCase() === 'duo' ? (
+                  // For duo events, group partners together
                   registrations
                     // Filter to only show main registrants (not partners)
                     .filter(reg => !reg.isPartner)
@@ -588,7 +620,8 @@ export default function EventRegistrations() {
                             borderLeft: `4px solid ${teamColor}`,
                           }}
                         >
-                          <div className={styles.teamIndicator} style={{ backgroundColor: teamColor }}>
+                          <div className={styles.teamIndicator}>
+                            <span style={{ backgroundColor: teamColor }} className={styles.teamColorDot}></span>
                             Team {index + 1}
                           </div>
                           {/* Main Registrant Row */}
@@ -596,7 +629,7 @@ export default function EventRegistrations() {
                             className={styles.tableRow}
                           >
                             <div className={styles.tableCell} data-label="User">
-                      <div className={styles.userInfo}>
+                              <div className={styles.userInfo}>
                                 <div 
                                   className={styles.avatarPlaceholder} 
                                   style={{ 
@@ -605,13 +638,14 @@ export default function EventRegistrations() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
+                                    width: '32px',
+                                    height: '32px',
                                     borderRadius: '50%',
                                     fontWeight: 'bold',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     textTransform: 'uppercase',
-                                    marginRight: '10px'
+                                    marginRight: '0',
+                                    border: `2px solid ${teamColor}`
                                   }}
                                 >
                                   {getInitials(registration.username || 'Unknown')}
@@ -627,46 +661,16 @@ export default function EventRegistrations() {
                               </div>
                             </div>
                             <div className={styles.tableCell} data-label="Email">
-                              {registration.user?.email && registration.user.email !== 'Unknown' ? (
-                                <a 
-                                  href={`mailto:${registration.user.email}`} 
-                                  className={styles.userEmail}
-                                  title="Click to send email"
-                                >
+                              {registration.user?.email ? (
+                                <span className={styles.userEmail}>
                                   {registration.user.email}
-                                </a>
+                                </span>
                               ) : (
                                 <span className={styles.userEmail}>
                                   No email available
                                 </span>
                               )}
                             </div>
-                            <div className={styles.tableCell} data-label="Registration Date">
-                              <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                              </span>
-                            </div>
-                            {event.team_type !== 'solo' && (
-                              <div className={styles.tableCell} data-label="Team Info">
-                                <div className={styles.teamInfo}>
-                                  <div className={styles.duoTeam}>
-                                    {/* Removed the duoTeamRole span that showed "owner" */}
-                                  </div>
-                                </div>
-                            </div>
-                          )}
-                            <div className={styles.tableCell} data-label="Actions">
-                              <button 
-                                className={styles.removeButton}
-                                onClick={() => removeRegistration(
-                                  registration.id, 
-                                  registration.username || registration.user?.username || 'this user'
-                                )}
-                              >
-                                Remove
-                              </button>
-                        </div>
                           </div>
                           
                           {/* Partner Row - if partner exists */}
@@ -676,7 +680,7 @@ export default function EventRegistrations() {
                             >
                               <div className={styles.tableCell} data-label="User">
                                 <div className={styles.userInfo}>
-                                  {/* Removed the partnerConnector div with the connectorLine */}
+                                  {/* Partner avatar with consistent styling */}
                                   <div 
                                     className={styles.avatarPlaceholder} 
                                     style={{ 
@@ -685,181 +689,67 @@ export default function EventRegistrations() {
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      width: '36px',
-                                      height: '36px',
+                                      width: '32px',
+                                      height: '32px',
                                       borderRadius: '50%',
                                       fontWeight: 'bold',
-                                      fontSize: '16px',
+                                      fontSize: '14px',
                                       textTransform: 'uppercase',
-                                      marginRight: '10px'
+                                      marginRight: '0',
+                                      border: `2px solid ${teamColor}`
                                     }}
                                   >
                                     {getInitials(partner.username || 'Unknown')}
                                   </div>
                                   <div className={styles.userDetails}>
-                        <span className={styles.userName}>
+                                    <span className={styles.userName}>
                                       {partner.username || 'Unknown User'}
                                     </span>
                                     <span className={styles.partnerBadge}>
                                       DUO PARTNER
                                     </span>
-                                    <span className={styles.registeredByText}>
-                                      Registered by {partner.registeredBy}
-                        </span>
-                      </div>
-                    </div>
-                              </div>
-                              <div className={styles.tableCell} data-label="Email">
-                                {console.log('Partner data:', partner)}
-                                {console.log('Partner email:', partner.user?.email)}
-                                {/* Check if we can find the partner's email in the team members of the main registrant */}
-                                {(() => {
-                                  // Try to find the partner's email in the main registrant's team members
-                                  const partnerTeamMember = registration.teamMembers?.find(
-                                    member => member.user_id === partner.user_id || member.username === partner.username
-                                  );
-                                  const partnerEmail = partnerTeamMember?.email || partner.user?.email;
-                                  console.log('Partner team member:', partnerTeamMember);
-                                  console.log('Partner email from team member:', partnerEmail);
-                                  
-                                  if (partnerEmail && partnerEmail !== 'Unknown') {
-                                    return (
-                                      <a 
-                                        href={`mailto:${partnerEmail}`} 
-                                        className={styles.userEmail}
-                                        title="Click to send email"
-                                      >
-                                        {partnerEmail}
-                                      </a>
-                                    );
-                                  } else if (partner.user?.email && partner.user.email !== 'Unknown') {
-                                    return (
-                                      <a 
-                                        href={`mailto:${partner.user.email}`} 
-                                        className={styles.userEmail}
-                                        title="Click to send email"
-                                      >
-                                        {partner.user.email}
-                                      </a>
-                                    );
-                                  } else {
-                                    return (
-                      <span className={styles.userEmail}>
-                                        No email available
-                      </span>
-                                    );
-                                  }
-                                })()}
-                    </div>
-                              <div className={styles.tableCell} data-label="Registration Date">
-                      <span className={styles.registrationDate}>
-                                  {partner.registration_date_formatted || 
-                                   (partner.registration_date ? formatTimestamp(partner.registration_date) : 'Unknown date')}
-                      </span>
-                    </div>
-                              {event.team_type !== 'solo' && (
-                                <div className={styles.tableCell} data-label="Team Info">
-                                  <div className={styles.teamInfo}>
-                                    <div className={styles.duoTeam}>
-                                      {/* Removed the duoTeamRole span that showed "partner" */}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              <div className={styles.tableCell} data-label="Actions">
-                                {/* Removed the Remove button from partner row */}
-                              </div>
-                            </div>
-                          ) : registration.teamMembers && registration.teamMembers.length > 0 ? (
-                            // If we have team members but no partner record, create a placeholder partner row
-                            <div 
-                              className={`${styles.tableRow} ${styles.partnerRow}`}
-                            >
-                              <div className={styles.tableCell} data-label="User">
-                                <div className={styles.userInfo}>
-                                  {/* Removed the partnerConnector div with the connectorLine */}
-                                  <div 
-                                    className={styles.avatarPlaceholder} 
-                                    style={{ 
-                                      backgroundColor: generateColorFromString(registration.teamMembers[0].username || 'Unknown'),
-                                      color: '#ffffff',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: '36px',
-                                      height: '36px',
-                                      borderRadius: '50%',
-                                      fontWeight: 'bold',
-                                      fontSize: '16px',
-                                      textTransform: 'uppercase',
-                                      marginRight: '10px'
-                                    }}
-                                  >
-                                    {getInitials(registration.teamMembers[0].username || 'Unknown')}
-                                  </div>
-                                  <div className={styles.userDetails}>
-                                    <span className={styles.userName}>
-                                      {registration.teamMembers[0].username || 'Unknown User'}
-                                    </span>
-                                    <span className={styles.partnerBadge}>
-                                      DUO PARTNER
-                                    </span>
-                                    <span className={styles.registeredByText}>
-                                      Registered by {registration.username}
-                                    </span>
                                   </div>
                                 </div>
                               </div>
                               <div className={styles.tableCell} data-label="Email">
-                                {console.log('Team member data:', registration.teamMembers[0])}
-                                {console.log('Team member email:', registration.teamMembers[0].email)}
-                                {/* Use the team member's email if available, otherwise use the main registrant's email */}
-                                {registration.teamMembers[0].email ? (
-                                  <a 
-                                    href={`mailto:${registration.teamMembers[0].email}`} 
-                                    className={styles.userEmail}
-                                    title="Click to send email"
-                                  >
-                                    {registration.teamMembers[0].email}
-                                  </a>
-                                ) : registration.user?.email ? (
-                                  <a 
-                                    href={`mailto:${registration.user.email}`} 
-                                    className={styles.userEmail}
-                                    title="Click to send email"
-                                  >
-                                    {registration.user.email}
-                                  </a>
+                                {partner.user?.email ? (
+                                  <span className={styles.userEmail}>
+                                    {partner.user.email}
+                                  </span>
                                 ) : (
                                   <span className={styles.userEmail}>
                                     No email available
                                   </span>
                                 )}
                               </div>
-                              <div className={styles.tableCell} data-label="Registration Date">
-                                <span className={styles.registrationDate}>
-                                  {registration.registration_date_formatted || 
-                                   (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                                </span>
-                              </div>
-                              {event.team_type !== 'solo' && (
-                                <div className={styles.tableCell} data-label="Team Info">
-                                  <div className={styles.teamInfo}>
-                                    <div className={styles.duoTeam}>
-                                      {/* Removed the duoTeamRole span that showed "partner" */}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              <div className={styles.tableCell} data-label="Actions">
-                                {/* Removed the disabled Remove button */}
-                              </div>
                             </div>
                           ) : null}
+                          
+                          {/* Add team actions for duo events */}
+                          <div className={styles.teamActions}>
+                            <div className={styles.registrationInfo}>
+                              <span className={styles.registrationDateLabel}>Registration Date:</span>
+                              <span className={styles.registrationDate}>
+                                {registration.registration_date_formatted || 
+                                 (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
+                              </span>
+                            </div>
+                            <button 
+                              className={styles.removeButton}
+                              onClick={() => removeRegistration(
+                                registration.id, 
+                                registration.username || registration.user?.username || 'this user'
+                              )}
+                              disabled={loading}
+                            >
+                              {partner ? 'REMOVE TEAM' : 'REMOVE'}
+                            </button>
+                          </div>
                         </div>
                       );
                     })
-                ) : event.team_type === 'team' ? (
+                ) : event && event.team_type && typeof event.team_type === 'string' && 
+                    event.team_type.trim().toLowerCase() === 'team' ? (
                   // For team events, show main registrant with all team members
                   registrations
                     // Filter to only show main registrants (not team members)
@@ -892,13 +782,13 @@ export default function EventRegistrations() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
+                                    width: '32px',
+                                    height: '32px',
                                     borderRadius: '50%',
                                     fontWeight: 'bold',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     textTransform: 'uppercase',
-                                    marginRight: '10px'
+                                    marginRight: '0'
                                   }}
                                 >
                                   {getInitials(registration.username || 'Unknown')}
@@ -915,49 +805,14 @@ export default function EventRegistrations() {
                             </div>
                             <div className={styles.tableCell} data-label="Email">
                               {registration.user?.email && registration.user.email !== 'Unknown' ? (
-                                <a 
-                                  href={`mailto:${registration.user.email}`} 
-                                  className={styles.userEmail}
-                                  title="Click to send email"
-                                >
+                                <span className={styles.userEmail}>
                                   {registration.user.email}
-                                </a>
+                                </span>
                               ) : (
                                 <span className={styles.userEmail}>
                                   No email available
                                 </span>
                               )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Registration Date">
-                              <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                              </span>
-                            </div>
-                            <div className={styles.tableCell} data-label="Team Info">
-                              <div className={styles.teamInfo}>
-                                <div className={styles.teamDetails}>
-                                  <span className={styles.teamRole}>
-                                    TEAM LEADER
-                                  </span>
-                                  {registration.teamMembers && registration.teamMembers.length > 0 && (
-                                    <div className={styles.teamMembersCount}>
-                                      {registration.teamMembers.length} team member{registration.teamMembers.length !== 1 ? 's' : ''}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className={styles.tableCell} data-label="Actions">
-                      <button 
-                        className={styles.removeButton}
-                        onClick={() => removeRegistration(
-                          registration.id, 
-                                  registration.username || registration.user?.username || 'this user'
-                        )}
-                      >
-                        Remove
-                      </button>
                             </div>
                           </div>
                           
@@ -979,13 +834,13 @@ export default function EventRegistrations() {
                                           display: 'flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
-                                          width: '36px',
-                                          height: '36px',
+                                          width: '32px',
+                                          height: '32px',
                                           borderRadius: '50%',
                                           fontWeight: 'bold',
-                                          fontSize: '16px',
+                                          fontSize: '14px',
                                           textTransform: 'uppercase',
-                                          marginRight: '10px'
+                                          marginRight: '0'
                                         }}
                                       >
                                         {getInitials(member.username || 'Unknown')}
@@ -997,49 +852,45 @@ export default function EventRegistrations() {
                                         <span className={styles.teamMemberBadge}>
                                           TEAM MEMBER
                                         </span>
-                                        <span className={styles.registeredByText}>
-                                          Added by {registration.username}
-                                        </span>
                                       </div>
                                     </div>
                                   </div>
                                   <div className={styles.tableCell} data-label="Email">
                                     {member.email ? (
-                                      <a 
-                                        href={`mailto:${member.email}`} 
-                                        className={styles.userEmail}
-                                        title="Click to send email"
-                                      >
+                                      <span className={styles.userEmail}>
                                         {member.email}
-                                      </a>
+                                      </span>
                                     ) : (
                                       <span className={styles.userEmail}>
                                         No email available
                                       </span>
                                     )}
                                   </div>
-                                  <div className={styles.tableCell} data-label="Registration Date">
-                                    <span className={styles.registrationDate}>
-                                      {registration.registration_date_formatted || 
-                                       (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                                    </span>
-                                  </div>
-                                  <div className={styles.tableCell} data-label="Team Info">
-                                    <div className={styles.teamInfo}>
-                                      <div className={styles.teamMemberInfo}>
-                                        <span className={styles.teamMemberRole}>
-                                          TEAM MEMBER
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className={styles.tableCell} data-label="Actions">
-                                    {/* No actions for team members */}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Add team actions for team events */}
+                          <div className={styles.teamActions}>
+                            <div className={styles.registrationInfo}>
+                              <span className={styles.registrationDateLabel}>Registration Date:</span>
+                              <span className={styles.registrationDate}>
+                                {registration.registration_date_formatted || 
+                                 (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
+                              </span>
+                            </div>
+                            <button 
+                              className={styles.removeButton}
+                              onClick={() => removeRegistration(
+                                registration.id, 
+                                registration.username || registration.user?.username || 'this user'
+                              )}
+                              disabled={loading}
+                            >
+                              REMOVE TEAM
+                            </button>
+                          </div>
                         </div>
                       );
                     })
@@ -1081,13 +932,13 @@ export default function EventRegistrations() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
+                                    width: '32px',
+                                    height: '32px',
                                     borderRadius: '50%',
                                     fontWeight: 'bold',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     textTransform: 'uppercase',
-                                    marginRight: '10px'
+                                    marginRight: '0'
                                   }}
                                 >
                                   {getInitials(registration.username)}
@@ -1096,7 +947,7 @@ export default function EventRegistrations() {
                                   <span className={styles.userName}>
                                     {registration.username}
                                   </span>
-                                  {event.team_type === 'duo' && (
+                                  {event && event.team_type === 'duo' && (
                                     <span className={styles.duoTeamRole}>
                                       MAIN REGISTRANT
                                     </span>
@@ -1105,66 +956,15 @@ export default function EventRegistrations() {
                               </div>
                             </div>
                             <div className={styles.tableCell} data-label="Email">
-                              {registration.user?.email && registration.user.email !== 'Unknown' ? (
-                                <a 
-                                  href={`mailto:${registration.user.email}`} 
-                                  className={styles.userEmail}
-                                  title="Click to send email"
-                                >
+                              {registration.user?.email ? (
+                                <span className={styles.userEmail}>
                                   {registration.user.email}
-                                </a>
+                                </span>
                               ) : (
                                 <span className={styles.userEmail}>
                                   No email available
                                 </span>
                               )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Registration Date">
-                              <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                              </span>
-                            </div>
-                            {event.team_type !== 'solo' && (
-                              <div className={styles.tableCell} data-label="Team Info">
-                                <div className={styles.teamInfo}>
-                                  {event.team_type === 'duo' && (
-                                    <div className={styles.duoTeam}>
-                                      <span className={styles.duoTeamRole}>
-                                        MAIN REGISTRANT
-                                      </span>
-                                      {registration.teamMembers && registration.teamMembers.length > 0 && (
-                                        <div className={styles.teamMembers}>
-                                          <span className={styles.teamMembersLabel}>Team Member:</span>
-                                          <ul className={styles.teamMembersList}>
-                                            {registration.teamMembers.map((member, idx) => (
-                                              <li key={idx} className={styles.teamMember}>
-                                                {member.username}
-                                                {member.email && (
-                                                  <span className={styles.teamMemberEmail}>
-                                                    ({member.email})
-                                                  </span>
-                                                )}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            <div className={styles.tableCell} data-label="Actions">
-                              <button 
-                                className={styles.removeButton}
-                                onClick={() => removeRegistration(
-                                  registration.id, 
-                                  registration.username || registration.user?.username || 'this user'
-                                )}
-                              >
-                                Remove
-                              </button>
                             </div>
                           </div>
                         )}
@@ -1176,6 +976,7 @@ export default function EventRegistrations() {
                           >
                             <div className={styles.tableCell} data-label="User">
                               <div className={styles.userInfo}>
+                                {/* Partner avatar with consistent styling */}
                                 <div 
                                   className={styles.avatarPlaceholder} 
                                   style={{ 
@@ -1184,13 +985,14 @@ export default function EventRegistrations() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
+                                    width: '32px',
+                                    height: '32px',
                                     borderRadius: '50%',
                                     fontWeight: 'bold',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     textTransform: 'uppercase',
-                                    marginRight: '10px'
+                                    marginRight: '0',
+                                    border: `2px solid ${teamColor}`
                                   }}
                                 >
                                   {getInitials(partner.username || 'Unknown')}
@@ -1201,9 +1003,6 @@ export default function EventRegistrations() {
                                   </span>
                                   <span className={styles.partnerBadge}>
                                     DUO PARTNER
-                                  </span>
-                                  <span className={styles.registeredByText}>
-                                    Registered by {partner.registeredBy}
                                   </span>
                                 </div>
                               </div>
@@ -1224,39 +1023,27 @@ export default function EventRegistrations() {
                                 if (partnerTeamMember?.email && partnerTeamMember.email !== 'Unknown') {
                                   console.log('Using email from team member:', partnerTeamMember.email);
                                   return (
-                                    <a 
-                                      href={`mailto:${partnerTeamMember.email}`} 
-                                      className={styles.userEmail}
-                                      title="Click to send email"
-                                    >
+                                    <span className={styles.userEmail}>
                                       {partnerTeamMember.email}
-                                    </a>
+                                    </span>
                                   );
                                 } 
                                 // Then try to use the email from the partner's user object
                                 else if (partner.user?.email && partner.user.email !== 'Unknown' && partner.user.email !== 'No email found') {
                                   console.log('Using email from partner user object:', partner.user.email);
                                   return (
-                                    <a 
-                                      href={`mailto:${partner.user.email}`} 
-                                      className={styles.userEmail}
-                                      title="Click to send email"
-                                    >
+                                    <span className={styles.userEmail}>
                                       {partner.user.email}
-                                    </a>
+                                    </span>
                                   );
                                 } 
                                 // Finally, check if the partner has an email property directly
                                 else if (partner.email && partner.email !== 'Unknown') {
                                   console.log('Using email directly from partner:', partner.email);
                                   return (
-                                    <a 
-                                      href={`mailto:${partner.email}`} 
-                                      className={styles.userEmail}
-                                      title="Click to send email"
-                                    >
+                                    <span className={styles.userEmail}>
                                       {partner.email}
-                                    </a>
+                                    </span>
                                   );
                                 }
                                 // If no email is found, show a message
@@ -1269,111 +1056,29 @@ export default function EventRegistrations() {
                                 }
                               })()}
                             </div>
-                            <div className={styles.tableCell} data-label="Registration Date">
-                              <span className={styles.registrationDate}>
-                                {partner.registration_date_formatted || 
-                                 (partner.registration_date ? formatTimestamp(partner.registration_date) : 'Unknown date')}
-                              </span>
-                            </div>
-                            {event.team_type !== 'solo' && (
-                              <div className={styles.tableCell} data-label="Team Info">
-                                <div className={styles.teamInfo}>
-                                  <div className={styles.duoTeam}>
-                                    {/* Removed the duoTeamRole span that showed "partner" */}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            <div className={styles.tableCell} data-label="Actions">
-                              {/* Removed the Remove button from partner row */}
-                            </div>
-                          </div>
-                        ) : registration.teamMembers && registration.teamMembers.length > 0 ? (
-                          // If we have team members but no partner record, create a placeholder partner row
-                          <div 
-                            className={`${styles.tableRow} ${styles.partnerRow}`}
-                          >
-                            <div className={styles.tableCell} data-label="User">
-                              <div className={styles.userInfo}>
-                                {/* Removed the partnerConnector div with the connectorLine */}
-                                <div 
-                                  className={styles.avatarPlaceholder} 
-                                  style={{ 
-                                    backgroundColor: generateColorFromString(registration.teamMembers[0].username || 'Unknown'),
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '50%',
-                                    fontWeight: 'bold',
-                                    fontSize: '16px',
-                                    textTransform: 'uppercase',
-                                    marginRight: '10px'
-                                  }}
-                                >
-                                  {getInitials(registration.teamMembers[0].username || 'Unknown')}
-                                </div>
-                                <div className={styles.userDetails}>
-                                  <span className={styles.userName}>
-                                    {registration.teamMembers[0].username || 'Unknown User'}
-                                  </span>
-                                  <span className={styles.partnerBadge}>
-                                    DUO PARTNER
-                                  </span>
-                                  <span className={styles.registeredByText}>
-                                    Registered by {registration.username}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className={styles.tableCell} data-label="Email">
-                              {console.log('Team member data:', registration.teamMembers[0])}
-                              {console.log('Team member email:', registration.teamMembers[0].email)}
-                              {/* Use the team member's email if available, otherwise use the main registrant's email */}
-                              {registration.teamMembers[0].email ? (
-                                <a 
-                                  href={`mailto:${registration.teamMembers[0].email}`} 
-                                  className={styles.userEmail}
-                                  title="Click to send email"
-                                >
-                                  {registration.teamMembers[0].email}
-                                </a>
-                              ) : registration.user?.email ? (
-                                <a 
-                                  href={`mailto:${registration.user.email}`} 
-                                  className={styles.userEmail}
-                                  title="Click to send email"
-                                >
-                                  {registration.user.email}
-                                </a>
-                              ) : (
-                                <span className={styles.userEmail}>
-                                  No email available
-                                </span>
-                              )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Registration Date">
-                              <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date) : 'Unknown date')}
-                              </span>
-                            </div>
-                            {event.team_type !== 'solo' && (
-                              <div className={styles.tableCell} data-label="Team Info">
-                                <div className={styles.teamInfo}>
-                                  <div className={styles.duoTeam}>
-                                    {/* Removed the duoTeamRole span that showed "partner" */}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            <div className={styles.tableCell} data-label="Actions">
-                              {/* Removed the disabled Remove button */}
-                            </div>
                           </div>
                         ) : null}
+                        
+                        {/* Add team actions for solo events */}
+                        <div className={styles.teamActions}>
+                          <div className={styles.registrationInfo}>
+                            <span className={styles.registrationDateLabel}>Registration Date:</span>
+                            <span className={styles.registrationDate}>
+                              {registration.registration_date_formatted || 
+                               (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
+                            </span>
+                          </div>
+                          <button 
+                            className={styles.removeButton}
+                            onClick={() => removeRegistration(
+                              registration.id, 
+                              registration.username || registration.user?.username || 'this user'
+                            )}
+                            disabled={loading}
+                          >
+                            {partner ? 'REMOVE TEAM' : 'REMOVE'}
+                          </button>
+                        </div>
                       </React.Fragment>
                     );
                   })

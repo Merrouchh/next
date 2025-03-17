@@ -202,15 +202,17 @@
   gap: 0.5rem;
 }
 
-.editButton, .deleteButton {
+.editButton, .deleteButton, .viewButton {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 100px;
 }
 
 .editButton {
@@ -236,14 +238,6 @@
 }
 
 .viewButton {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
   background: rgba(255, 215, 0, 0.1);
   color: #FFD700;
   border: 1px solid #FFD700;
@@ -487,6 +481,25 @@
     gap: 1rem;
   }
   
+  .createButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .filterContainer {
+    align-items: flex-start;
+  }
+  
+  .filterButtons {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .filterButton {
+    flex: 1 0 calc(50% - 0.5rem);
+    min-width: 120px;
+  }
+  
   .tableHeader, .tableRow {
     grid-template-columns: 1fr;
   }
@@ -497,6 +510,7 @@
   
   .tableCell {
     padding: 0.5rem 0;
+    position: relative;
   }
   
   .tableCell:not(:last-child) {
@@ -508,8 +522,89 @@
     border-bottom: 2px solid rgba(255, 215, 0, 0.2);
   }
   
+  /* Add labels for mobile view */
+  .tableCell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--primary-yellow);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+  
   .formRow {
     grid-template-columns: 1fr;
+  }
+  
+  .modal {
+    width: 95%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  
+  .editButton, .deleteButton, .viewButton {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .viewButton {
+    background: rgba(255, 215, 0, 0.2);
+    color: #FFD700;
+    border: 2px solid #FFD700;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 1rem 0.5rem;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .filterButton {
+    flex: 1 0 100%;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .editButton, .deleteButton, .viewButton {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .viewButton {
+    background: rgba(255, 215, 0, 0.2);
+    border-width: 2px;
+  }
+  
+  .modal {
+    padding: 1rem;
+  }
+  
+  .formGroup label {
+    font-size: 0.9rem;
+  }
+}
+
+/* Fix for modal on small screens */
+@media (max-height: 700px) {
+  .modal {
+    max-height: 85vh;
   }
 }
 

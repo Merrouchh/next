@@ -56,7 +56,8 @@
 }
 
 .backButton:hover {
-  background-color: #FFC107;
+  background-color: #FFD700;
+  color: #121212;
 }
 
 /* Event Detail Layout */
@@ -290,8 +291,9 @@
 }
 
 .registerButton:hover:not(:disabled) {
-  background-color: #FFC107;
+  background-color: #FFD700;
   box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+  color: #121212;
 }
 
 .registerButton:disabled {
@@ -412,8 +414,9 @@
 }
 
 .bracketButton:hover {
-  background-color: #FFC107;
+  background-color: #FFD700;
   box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+  color: #111;
 }
 
 .registrationConfirmation {
@@ -507,7 +510,8 @@
 }
 
 .viewRegistrationsButton:hover {
-  background-color: #FFC107;
+  background-color: #FFD700;
+  color: #121212;
 }
 
 /* Responsive styles */
@@ -837,7 +841,8 @@
 }
 
 .confirmButton:hover:not(:disabled) {
-  background-color: #FFC107;
+  background-color: #FFD700;
+  color: #121212;
 }
 
 .confirmButton:disabled {
@@ -1176,8 +1181,9 @@
 }
 
 .viewBracketButton:hover, .generateBracketButton:hover {
-  background-color: #FFC107;
+  background-color: #FFD700;
   box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+  color: #111;
 }
 
 .bracketIcon {

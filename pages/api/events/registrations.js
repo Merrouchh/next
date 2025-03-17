@@ -76,6 +76,17 @@ async function getEventRegistrations(req, res, supabase, user) {
       return res.status(404).json({ message: 'Event not found' });
     }
     
+    // Normalize team_type field to ensure consistent casing
+    if (eventData.team_type) {
+      console.log("Original team_type:", eventData.team_type);
+      eventData.team_type = eventData.team_type.trim().toLowerCase();
+      console.log("Normalized team_type:", eventData.team_type);
+    } else {
+      // Set default team_type if missing
+      eventData.team_type = 'solo';
+      console.log("Set default team_type to 'solo'");
+    }
+    
     // Get the actual count of registrations
     console.log('Counting registrations for event ID:', eventId);
     const { count: actualRegistrationCount, error: countError } = await supabase
