@@ -44,7 +44,8 @@ export async function getServerSideProps({ params, res }) {
     description: "The gaming event you're looking for doesn't exist or has been removed.",
     image: "https://merrouchgaming.com/events.jpg",
     url: `https://merrouchgaming.com/events/${id}`,
-    type: "website"
+    type: "website",
+    canonical: `https://merrouchgaming.com/events/${id}`
   };
   
   try {
@@ -139,25 +140,40 @@ export async function getServerSideProps({ params, res }) {
       }
     }
     
+    // Ensure image is a valid absolute URL
+    const imageUrl = event.image && (event.image.startsWith('http') 
+      ? event.image 
+      : `${baseUrl}${event.image.startsWith('/') ? '' : '/'}${event.image}`);
+    
     // Create full metadata object
     const metadata = {
       title,
       description,
-      image: event.image || "https://merrouchgaming.com/events.jpg",
+      image: imageUrl || "https://merrouchgaming.com/events.jpg",
       url: `https://merrouchgaming.com/events/${id}`,
       type: "event",
+      canonical: `https://merrouchgaming.com/events/${id}`,
       openGraph: {
         title: ogTitle,
         description: ogDescription,
         images: [
           {
-            url: event.image || "https://merrouchgaming.com/events.jpg",
+            url: imageUrl || "https://merrouchgaming.com/events.jpg",
             width: 1200,
             height: 630,
             alt: `${event.title} - Gaming Tournament`
           }
         ],
-        type: "event"
+        site_name: "Merrouch Gaming",
+        type: "event",
+        locale: "en_US"
+      },
+      twitter: {
+        card: "summary_large_image",
+        site: "@merrouchgaming",
+        title: ogTitle,
+        description: ogDescription,
+        image: imageUrl || "https://merrouchgaming.com/events.jpg",
       },
       structuredData: {
         "@context": "https://schema.org",
@@ -166,6 +182,10 @@ export async function getServerSideProps({ params, res }) {
         "description": event.description || `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
         "startDate": event.date,
         "endDate": event.date,
+        "eventStatus": event.status === "Upcoming" ? "https://schema.org/EventScheduled" : 
+                       event.status === "In Progress" ? "https://schema.org/EventInProgress" : 
+                       "https://schema.org/EventCompleted",
+        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
         "location": {
           "@type": "Place",
           "name": event.location || "Merrouch Gaming Center",
@@ -176,12 +196,23 @@ export async function getServerSideProps({ params, res }) {
           }
         },
         "image": [
-          event.image || "https://merrouchgaming.com/events.jpg"
+          imageUrl || "https://merrouchgaming.com/events.jpg"
         ],
         "organizer": {
           "@type": "Organization",
           "name": "Merrouch Gaming",
           "url": "https://merrouchgaming.com"
+        },
+        "offers": {
+          "@type": "Offer",
+          "availability": event.status === "Upcoming" && 
+                         (event.registration_limit === null || 
+                          event.registered_count < event.registration_limit) ? 
+                         "https://schema.org/InStock" : 
+                         "https://schema.org/SoldOut",
+          "url": `https://merrouchgaming.com/events/${id}`,
+          "price": "0",
+          "priceCurrency": "MAD"
         }
       }
     };

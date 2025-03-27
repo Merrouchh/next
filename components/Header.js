@@ -164,9 +164,31 @@ const Header = () => {
                   </button>
                 </>
               ) : (
-                <button className={styles.loginButton} onClick={openLoginModal}>
-                  Login
-                </button>
+                <>
+                  <button 
+                    className={styles.eventsButton} 
+                    onClick={() => {
+                      router.push('/events');
+                      closeMenu();
+                    }}
+                  >
+                    <AiOutlineCalendar className={styles.buttonIcon} />
+                    Events
+                  </button>
+                  <button 
+                    className={styles.clipsButton} 
+                    onClick={() => {
+                      router.push('/discover');
+                      closeMenu();
+                    }}
+                  >
+                    <AiOutlineVideoCamera className={styles.buttonIcon} />
+                    Public Clips
+                  </button>
+                  <button className={styles.loginButton} onClick={openLoginModal}>
+                    Login
+                  </button>
+                </>
               )}
             </nav>
           )}
@@ -236,15 +258,37 @@ const Header = () => {
                 </button>
               </>
             ) : (
-              <button
-                className={styles.loginButton}
-                onClick={() => {
-                  openLoginModal();
-                  closeMenu();
-                }}
-              >
-                Login
-              </button>
+              <>
+                <button 
+                  className={styles.eventsButton} 
+                  onClick={() => {
+                    router.push('/events');
+                    closeMenu();
+                  }}
+                >
+                  <AiOutlineCalendar className={styles.buttonIcon} />
+                  Events
+                </button>
+                <button 
+                  className={styles.clipsButton} 
+                  onClick={() => {
+                    router.push('/discover');
+                    closeMenu();
+                  }}
+                >
+                  <AiOutlineVideoCamera className={styles.buttonIcon} />
+                  Public Clips
+                </button>
+                <button
+                  className={styles.loginButton}
+                  onClick={() => {
+                    openLoginModal();
+                    closeMenu();
+                  }}
+                >
+                  Login
+                </button>
+              </>
             )}
           </nav>
         </MobileMenu>

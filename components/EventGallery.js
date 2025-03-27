@@ -16,9 +16,60 @@ import styles from '../styles/EventGallery.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useInView } from 'react-intersection-observer';
 
-// Create a slideshow image component with fallback
+// Add debounce utility at the top of file, after imports
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+// Simplified slideshow image component with fallback
 const SlideshowImage = ({ image, onLoaded, onError }) => {
   const [imageError, setImageError] = useState(false);
+  const [isCached, setIsCached] = useState(false);
+  
+  // Create proper alt text and title for SEO
+  const imageTitle = image.caption || `Event image ${image.id}`;
+  const imageAlt = image.caption 
+    ? `${image.caption} - Event gallery image` 
+    : `Event gallery image ${image.id}`;
+  
+  // Check if image is in browser cache when component mounts
+  useEffect(() => {
+    let isMounted = true;
+    let imgElement = null;
+    
+    const checkCache = () => {
+      // Create a standard HTML image element instead of using Image constructor
+      imgElement = document.createElement('img');
+      imgElement.onload = () => {
+        if (isMounted) {
+          setIsCached(true);
+          // Immediately notify parent component if image was cached
+          onLoaded();
+        }
+      };
+      imgElement.src = image.image_url;
+    };
+    
+    checkCache();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+      if (imgElement) {
+        imgElement.onload = null;
+        imgElement.onerror = null;
+        imgElement = null;
+      }
+    };
+  }, [image.image_url, onLoaded]);
   
   return (
     <>
@@ -31,63 +82,95 @@ const SlideshowImage = ({ image, onLoaded, onError }) => {
           justifyContent: 'center', 
           alignItems: 'center' 
         }}>
-          <Image 
+          <img 
             src={image.image_url} 
-            alt={image.caption || 'Gallery image'} 
+            alt={imageAlt}
+            title={imageTitle}
             className={styles.slideImage}
-            width={1200}
-            height={800}
             style={{ 
               maxWidth: '95%', 
               maxHeight: '80vh', 
-              objectFit: 'contain',
-              width: 'auto',
-              height: 'auto'
+              objectFit: 'contain'
             }}
-            quality={90}
-            priority={true}
-            onLoadingComplete={onLoaded}
+            decoding="async"
+            // Only trigger onLoad if not already cached
+            onLoad={() => !isCached && onLoaded()}
             onError={() => {
-              console.log('Slideshow image optimization failed, falling back to original:', image.image_url);
+              console.log('Slideshow image failed to load:', image.image_url);
               setImageError(true);
+              onError();
             }}
           />
         </div>
       ) : (
-        // Fallback to regular img tag if Next.js Image fails
-        <img 
-          src={image.image_url} 
-          alt={image.caption || 'Gallery image'} 
-          className={styles.slideImage}
-          style={{ 
-            maxHeight: '80vh', 
-            maxWidth: '95%', 
-            margin: '0 auto', 
-            objectFit: 'contain' 
-          }}
-          onLoad={onLoaded}
-          onError={() => {
-            console.error('Direct slideshow image loading also failed:', image.image_url);
-            onError();
-          }}
-        />
+        // Fallback to placeholder if image fails
+        <div className={styles.imagePlaceholder}>
+          <FaImage size={48} />
+          <p>Image not available</p>
+        </div>
       )}
     </>
   );
 };
 
-// Create a virtualized thumbnail component
+// Simplified gallery thumbnail component
 const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
-  // Use intersection observer to only load images when they're visible
+  // Use intersection observer with larger threshold for smoother scrolling
   const [ref, inView] = useInView({
-    triggerOnce: false,
-    rootMargin: '200px 0px', // Load images 200px before they enter viewport
-    threshold: 0.1
+    triggerOnce: true,
+    rootMargin: '300px 0px', // Increased from 200px to 300px
+    threshold: 0.01, // Reduced threshold for earlier loading
   });
   
-  // Add state to track image loading errors
+  // Add state to track image loading
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Create proper alt text and title for SEO
+  const imageTitle = image.caption || `Event image ${image.id}`;
+  const imageAlt = image.caption 
+    ? `${image.caption} - Event gallery thumbnail` 
+    : `Event gallery thumbnail ${image.id}`;
+  
+  // Check if this image is already in browser cache - with simpler implementation
+  useEffect(() => {
+    if (!inView || imageError) return;
+    
+    let isMounted = true;
+    let imgElement = null;
+    
+    // Simplified cache check with requestIdleCallback for better performance
+    const checkCache = () => {
+      // Use requestIdleCallback where available or fallback to setTimeout
+      const runWhenIdle = window.requestIdleCallback || 
+        ((fn) => setTimeout(fn, 1));
+        
+      runWhenIdle(() => {
+        if (!isMounted) return;
+        
+        // Create standard HTML image element
+        imgElement = document.createElement('img');
+        imgElement.onload = () => {
+          if (isMounted) setIsLoading(false);
+        };
+        imgElement.onerror = () => {
+          if (isMounted) console.error('Image cache check failed:', image.image_url);
+        };
+        imgElement.src = image.image_url;
+      });
+    };
+    
+    checkCache();
+    
+    return () => {
+      isMounted = false;
+      if (imgElement) {
+        imgElement.onload = null;
+        imgElement.onerror = null;
+        imgElement = null;
+      }
+    };
+  }, [inView, imageError, image.image_url]);
 
   return (
     <div 
@@ -96,7 +179,7 @@ const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
       onClick={onClick}
     >
       <div className={styles.imageContainer}>
-        {inView && (
+        {inView ? (
           <>
             {/* Show spinner while loading */}
             {isLoading && !imageError && (
@@ -105,44 +188,44 @@ const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
               </div>
             )}
             
-            {/* Use Next.js Image with error handling */}
+            {/* Simple img tag instead of Next.js Image */}
             {!imageError ? (
-              <Image 
+              <img 
                 src={image.image_url} 
-                alt={image.caption || 'Event gallery image'} 
+                alt={imageAlt}
+                title={imageTitle}
                 className={styles.galleryImage}
-                fill
-                sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                placeholder="blur"
-                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEhQJ/hELJ4wAAAABJRU5ErkJggg=="
-                priority={index < 8} // Prioritize loading first 8 images
-                loading={index < 8 ? "eager" : "lazy"}
-                onLoadingComplete={() => setIsLoading(false)}
+                style={{ 
+                  objectFit: 'cover',
+                  width: '100%',
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  willChange: 'transform', // Add will-change for better rendering performance
+                }}
+                loading="lazy"
+                decoding="async"
+                fetchpriority="low"
+                onLoad={() => setIsLoading(false)}
                 onError={() => {
-                  console.log('Image optimization failed, falling back to original:', image.image_url);
+                  console.error('Image failed to load:', image.image_url);
                   setImageError(true);
                   setIsLoading(false);
                 }}
               />
             ) : (
-              // Fallback to regular img tag if Next.js Image fails
-              <img 
-                src={image.image_url} 
-                alt={image.caption || 'Event gallery image'} 
-                className={styles.galleryImage}
-                onLoad={() => setIsLoading(false)}
-                onError={() => {
-                  console.error('Direct image loading also failed:', image.image_url);
-                  setIsLoading(false);
-                }}
-              />
+              // Fallback to placeholder if image fails
+              <div className={styles.thumbnailPlaceholder}>
+                <FaImage />
+              </div>
             )}
           </>
-        )}
-        {!inView && (
+        ) : (
           // Empty div with same aspect ratio while not in view
           <div style={{ width: '100%', paddingBottom: '56.25%', backgroundColor: '#222' }} />
         )}
+        
         <FaExpand className={styles.expandIcon} />
         {isAdmin && (
           <button 
@@ -177,20 +260,103 @@ const EventGallery = ({ eventId }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideLoaded, setSlideLoaded] = useState(false);
   
+  // Track if page is visible
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  
   const { user, supabase } = useAuth();
   const fileInputRef = useRef(null);
 
   // Check if user is an admin
   const isAdmin = user?.isAdmin || false;
 
-  // Chunking implementation for large galleries
-  const CHUNK_SIZE = 20; // Load images in chunks of 20
+  // Track page visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Chunking implementation for large galleries - reduced to load fewer at once
+  const CHUNK_SIZE = 4; // Further reduced from 5 to 4 to decrease rendering work
   const [visibleChunks, setVisibleChunks] = useState(1);
   const [hasMoreChunks, setHasMoreChunks] = useState(true);
+  const [loadingChunk, setLoadingChunk] = useState(false);
+  const throttleTimerRef = useRef(null);
+
+  // Intersection observer with better performance settings
+  const [loadMoreRef, loadMoreInView] = useInView({
+    threshold: 0.01, // Reduced threshold for earlier loading
+    rootMargin: '500px 0px', // Increased from 400px to 500px
+    triggerOnce: false
+  });
+
+  // Create debounced load function to prevent too many state updates
+  const debouncedLoadNextChunk = useCallback(
+    debounce(() => {
+      if (loadingChunk || !hasMoreChunks || !isPageVisible) return;
+      loadNextChunk();
+    }, 150), // 150ms debounce
+    [loadingChunk, hasMoreChunks, isPageVisible]
+  );
+
+  // Load more images when user scrolls to bottom with debounce
+  useEffect(() => {
+    if (loadMoreInView) {
+      debouncedLoadNextChunk();
+    }
+  }, [loadMoreInView, debouncedLoadNextChunk]);
+
+  const loadNextChunk = useCallback(() => {
+    // Prevent loading if already loading
+    if (loadingChunk) return;
+    
+    // Also add throttling to prevent rapid consecutive loads
+    if (throttleTimerRef.current) return;
+    
+    setLoadingChunk(true);
+    
+    // Use requestAnimationFrame for better performance
+    requestAnimationFrame(() => {
+      setVisibleChunks(prev => {
+        const nextValue = prev + 1;
+        // Check if we've loaded all images
+        if (nextValue * CHUNK_SIZE >= images.length) {
+          setHasMoreChunks(false);
+        }
+        return nextValue;
+      });
+      
+      // Set a timer to prevent another load for a short period
+      throttleTimerRef.current = setTimeout(() => {
+        setLoadingChunk(false);
+        throttleTimerRef.current = null;
+      }, 250);
+    });
+  }, [images.length, loadingChunk]);
+
+  // Clean up throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch gallery images
   useEffect(() => {
     fetchGalleryImages();
+    
+    // Cleanup any pending image loads when unmounting
+    return () => {
+      setImages([]);
+    };
   }, [eventId]);
   
   // Handle keyboard navigation for slideshow
@@ -214,39 +380,23 @@ const EventGallery = ({ eventId }) => {
     };
   }, [slideshowOpen, currentSlideIndex, images]);
 
-  // Intersection observer to detect when user scrolls to bottom to load more chunks
-  const [loadMoreRef, loadMoreInView] = useInView({
-    threshold: 0.1,
-    rootMargin: '200px 0px',
-  });
-
-  // Load more images when user scrolls to bottom
-  useEffect(() => {
-    if (loadMoreInView && hasMoreChunks) {
-      loadNextChunk();
-    }
-  }, [loadMoreInView, hasMoreChunks]);
-
-  const loadNextChunk = useCallback(() => {
-    setVisibleChunks(prev => {
-      const nextValue = prev + 1;
-      // Check if we've loaded all images
-      if (nextValue * CHUNK_SIZE >= images.length) {
-        setHasMoreChunks(false);
-      }
-      return nextValue;
-    });
-  }, [images.length]);
-
   const fetchGalleryImages = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/events/gallery?eventId=${eventId}`, {
+      // Simple fetch with a 15-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      // Add a cache-busting parameter for the API request, but not for images themselves
+      const response = await fetch(`/api/events/gallery?eventId=${eventId}&_t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error('Failed to fetch gallery images');
@@ -261,8 +411,12 @@ const EventGallery = ({ eventId }) => {
       setVisibleChunks(1);
       setHasMoreChunks(galleryImages.length > CHUNK_SIZE);
     } catch (error) {
-      console.error('Error fetching gallery:', error);
-      toast.error('Could not load gallery images');
+      if (error.name === 'AbortError') {
+        console.log('Gallery fetch timed out, continuing silently');
+      } else {
+        console.error('Error fetching gallery:', error);
+        toast.error('Could not load all gallery images');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -428,7 +582,7 @@ const EventGallery = ({ eventId }) => {
   // Slideshow functions
   const openSlideshow = (index) => {
     setCurrentSlideIndex(index);
-    setSlideLoaded(false); // Reset loading state
+    setSlideLoaded(false);
     setSlideshowOpen(true);
   };
   
@@ -437,37 +591,18 @@ const EventGallery = ({ eventId }) => {
   };
   
   const showNextSlide = () => {
-    setSlideLoaded(false); // Reset loading state
+    setSlideLoaded(false);
     setCurrentSlideIndex((prev) => 
       prev === images.length - 1 ? 0 : prev + 1
     );
   };
   
   const showPreviousSlide = () => {
-    setSlideLoaded(false); // Reset loading state
+    setSlideLoaded(false);
     setCurrentSlideIndex((prev) => 
       prev === 0 ? images.length - 1 : prev - 1
     );
   };
-
-  // Preload adjacent images to make slideshow navigation faster
-  useEffect(() => {
-    if (!slideshowOpen || images.length <= 1) return;
-    
-    const preloadImage = (index) => {
-      // Use the native Image constructor, not the Next.js Image component
-      const img = new window.Image();
-      img.src = images[index].image_url;
-    };
-    
-    // Preload next image
-    const nextIndex = currentSlideIndex === images.length - 1 ? 0 : currentSlideIndex + 1;
-    preloadImage(nextIndex);
-    
-    // Preload previous image
-    const prevIndex = currentSlideIndex === 0 ? images.length - 1 : currentSlideIndex - 1;
-    preloadImage(prevIndex);
-  }, [currentSlideIndex, slideshowOpen, images]);
 
   // If there are no images and user is not admin, don't show anything
   if (images.length === 0 && !isAdmin && !isLoading) {
@@ -526,8 +661,14 @@ const EventGallery = ({ eventId }) => {
               {/* Load more reference element */}
               {hasMoreChunks && (
                 <div ref={loadMoreRef} className={styles.loadMoreContainer}>
-                  <FaSpinner className={styles.spinnerIcon} />
-                  <p>Loading more images...</p>
+                  {loadingChunk ? (
+                    <>
+                      <FaSpinner className={styles.spinnerIcon} />
+                      <p>Loading more images...</p>
+                    </>
+                  ) : (
+                    <p>Scroll for more</p>
+                  )}
                 </div>
               )}
             </>
