@@ -115,50 +115,6 @@ const nextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://merrouchgaming.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*; connect-src 'self' https://* wss://*;"
-          }
-        ]
-      },
-      {
-        // Add proper content type for CSS
-        source: '/static/css/:path*',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/css'
-          }
-        ]
-      },
-      {
-        // Add proper content type for JavaScript
-        source: '/static/js/:path*',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript'
-          }
-        ]
-      },
-      {
-        // Add proper content type for JavaScript - alternative paths
-        source: '/_next/static/:path*.js',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript'
-          }
-        ]
-      },
-      {
-        // Add proper content type for CSS - alternative paths
-        source: '/_next/static/:path*.css',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/css'
           }
         ]
       },
