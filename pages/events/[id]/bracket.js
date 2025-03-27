@@ -135,11 +135,11 @@ export async function getServerSideProps({ params, res }) {
       if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
         // For duo events with a winner, include both team members in the title
         const partnerName = champion.members[0]?.name || '';
-        pageTitle = `${champion.name} & ${partnerName} Win ${event.title} | Tournament Bracket`;
+        pageTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Bracket`;
         pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament.`;
       } else {
         // For solo or team events with a winner
-        pageTitle = `${champion.name} Wins ${event.title} | Tournament Bracket`;
+        pageTitle = `${champion.name} Won ${event.title} | Tournament Bracket`;
         pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} claimed victory in this ${event.game || 'gaming'} tournament.`;
       }
     } else {
@@ -156,11 +156,11 @@ export async function getServerSideProps({ params, res }) {
       if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
         // For duo events with a winner, include both team members
         const partnerName = champion.members[0]?.name || '';
-        ogTitle = `${champion.name} & ${partnerName} Win ${event.title} | Tournament Results`;
+        ogTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Results`;
         ogDescription = `${champion.name} & ${partnerName} have won the ${event.game || 'gaming'} duo tournament! View the complete bracket and tournament results.`;
       } else {
         // For solo or team events with a winner
-        ogTitle = `${champion.name} Wins ${event.title} | Tournament Results`;
+        ogTitle = `${champion.name} Won ${event.title} | Tournament Results`;
         ogDescription = `${champion.name} has won the ${event.game || 'gaming'} tournament! View the complete bracket and tournament results.`;
       }
     } else {

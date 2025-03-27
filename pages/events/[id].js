@@ -159,15 +159,15 @@ export async function getServerSideProps({ params, res }) {
       if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
         // For duo events, include both team members
         const partnerName = champion.members[0]?.name || '';
-        title = `${champion.name} & ${partnerName} Win ${event.title} | Merrouch Gaming`;
+        title = `${champion.name} & ${partnerName} Won ${event.title} | Merrouch Gaming`;
         description = `${champion.name} & ${partnerName} won this ${event.game || 'gaming'} duo tournament on ${formattedDate}. Check out the complete bracket and results.`;
-        ogTitle = `${champion.name} & ${partnerName} Win ${event.title}`;
+        ogTitle = `${champion.name} & ${partnerName} Won ${event.title}`;
         ogDescription = `${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament at Merrouch Gaming Center. View the full tournament results.`;
       } else {
         // For solo events
-        title = `${champion.name} Wins ${event.title} | Merrouch Gaming`;
+        title = `${champion.name} Won ${event.title} | Merrouch Gaming`;
         description = `${champion.name} won this ${event.game || 'gaming'} tournament on ${formattedDate}. Check out the complete bracket and results.`;
-        ogTitle = `${champion.name} Wins ${event.title}`;
+        ogTitle = `${champion.name} Won ${event.title}`;
         ogDescription = `${champion.name} claimed victory in this ${event.game || 'gaming'} tournament at Merrouch Gaming Center. View the full tournament results.`;
       }
     }

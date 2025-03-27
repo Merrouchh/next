@@ -34,13 +34,39 @@ export async function getServerSideProps({ res }) {
   );
   // Add Vary header to handle different cached versions
   res.setHeader('Vary', 'Cookie, Accept-Encoding');
+  
+  // Try to get the most recent event image for SEO preview
+  let previewImage = "https://merrouchgaming.com/events.jpg"; // Default fallback image
+  
+  try {
+    // Create a Supabase client for server-side
+    const { createClient } = require('../utils/supabase/server-props');
+    const supabase = createClient({ req: null, res });
+    
+    // Get the most recent event with an image
+    const { data: recentEvents } = await supabase
+      .from('events')
+      .select('image, title')
+      .not('image', 'is', null)
+      .order('date', { ascending: false })
+      .limit(1);
+    
+    // If found an event with image, use it
+    if (recentEvents && recentEvents.length > 0 && recentEvents[0].image) {
+      previewImage = recentEvents[0].image;
+      console.log(`Using image from event "${recentEvents[0].title}" for events page preview`);
+    }
+  } catch (error) {
+    console.error('Error fetching event image for SEO:', error);
+    // Continue with default image if error occurs
+  }
 
   return {
     props: {
       metaData: {
         title: "Gaming Events & Tournaments | Merrouch Gaming Center",
         description: "Join our exciting gaming tournaments and events at Merrouch Gaming Center. Register for upcoming events, check ongoing tournaments, and see results from completed competitions.",
-        image: "https://merrouchgaming.com/events.jpg",
+        image: previewImage,
         url: "https://merrouchgaming.com/events",
         type: "website",
         openGraph: {
@@ -48,7 +74,7 @@ export async function getServerSideProps({ res }) {
           description: "Participate in solo, duo and team gaming tournaments. Register for upcoming events or check out results from our past competitions.",
           images: [
             {
-              url: "https://merrouchgaming.com/events.jpg",
+              url: previewImage,
               width: 1200,
               height: 630,
               alt: "Merrouch Gaming Center Events"
@@ -59,7 +85,8 @@ export async function getServerSideProps({ res }) {
           card: "summary_large_image",
           site: "@merrouchgaming",
           title: "Gaming Events & Tournaments | Merrouch Gaming Center",
-          description: "Join our exciting gaming tournaments and events. Register for upcoming competitions or view past tournament results."
+          description: "Join our exciting gaming tournaments and events. Register for upcoming competitions or view past tournament results.",
+          image: previewImage
         },
         structuredData: {
           "@context": "https://schema.org",
@@ -75,7 +102,8 @@ export async function getServerSideProps({ res }) {
             "@type": "Thing",
             "name": "Gaming Tournaments",
             "description": "Solo, duo and team gaming competitions"
-          }
+          },
+          "image": previewImage
         }
       }
     }
