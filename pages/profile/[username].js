@@ -42,20 +42,49 @@ export async function getServerSideProps({ req, res, params }) {
     // Get clips count and latest public clip thumbnail
     const { data: clipsData, count: clipsCount } = await supabase
       .from('clips')
-      .select('thumbnail_path', { count: 'exact' })
+      .select('thumbnail_path, title, cloudflare_uid', { count: 'exact' })
       .eq('user_id', userData.id)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
       .limit(1);
 
     // Get the thumbnail URL from the latest clip or use default
-    const profileImage = clipsData?.[0]?.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
+    let profileImage = 'https://merrouchgaming.com/top.jpg';
+    let latestClipTitle = '';
+    
+    if (clipsData && clipsData.length > 0) {
+      // Prefer cloudflare thumbnail if available
+      if (clipsData[0].cloudflare_uid) {
+        profileImage = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clipsData[0].cloudflare_uid}/thumbnails/thumbnail.jpg`;
+      } else if (clipsData[0].thumbnail_path) {
+        profileImage = clipsData[0].thumbnail_path;
+      }
+      latestClipTitle = clipsData[0].title || '';
+    }
 
     // Set cache headers
     res.setHeader(
       'Cache-Control',
       'public, s-maxage=60, stale-while-revalidate=300'
     );
+    
+    // Calculate how many gaming profiles user has connected
+    const connectedProfiles = [
+      userData.gizmo_id,
+      userData.discord_id,
+      userData.valorant_id,
+      userData.fortnite_name,
+      userData.battlenet_id
+    ].filter(Boolean).length;
+    
+    // Create a rich description that includes gaming profile info
+    const description = `${userData.username}'s gaming profile on Merrouch Gaming Center. ${
+      clipsCount ? `Check out their ${clipsCount} gaming highlights` : 'View their gaming profile'
+    }${
+      connectedProfiles ? ` and ${connectedProfiles} connected gaming accounts` : ''
+    }. ${
+      latestClipTitle ? `Latest clip: "${latestClipTitle}"` : ''
+    }`;
 
     return {
       props: {
@@ -64,10 +93,66 @@ export async function getServerSideProps({ req, res, params }) {
           clips_count: clipsCount || 0
         },
         metaData: {
-          title: `${userData.username}'s Profile | Merrouch Gaming`,
-          description: `Check out ${userData.username}'s gaming profile and their ${clipsCount || 0} clips on Merrouch Gaming.`,
+          title: `${userData.username}'s Gaming Profile | Merrouch Gaming`,
+          description: description,
           image: profileImage,
-          url: `https://merrouchgaming.com/profile/${userData.username}`
+          url: `https://merrouchgaming.com/profile/${userData.username}`,
+          type: "profile",
+          openGraph: {
+            title: `${userData.username} | Gaming Profile`,
+            description: description,
+            images: [
+              {
+                url: profileImage,
+                width: 1200,
+                height: 630,
+                alt: `${userData.username}'s Gaming Profile`
+              }
+            ],
+            type: "profile",
+            profile: {
+              username: userData.username
+            }
+          },
+          twitter: {
+            card: "summary_large_image",
+            site: "@merrouchgaming",
+            title: `${userData.username} | Gamer Profile`,
+            description: `Gaming profile with ${clipsCount || 0} clips. Check out ${userData.username}'s highlights!`,
+            image: profileImage
+          },
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "dateModified": new Date().toISOString(),
+            "headline": `${userData.username}'s Gaming Profile`,
+            "description": description,
+            "image": profileImage,
+            "url": `https://merrouchgaming.com/profile/${userData.username}`,
+            "author": {
+              "@type": "Person",
+              "name": userData.username
+            },
+            "mainEntity": {
+              "@type": "Person",
+              "name": userData.username,
+              "identifier": userData.id,
+              "url": `https://merrouchgaming.com/profile/${userData.username}`,
+              "sameAs": [
+                userData.discord_id ? `https://discord.com/users/${userData.discord_id}` : null,
+                userData.valorant_id ? `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(userData.valorant_id)}` : null
+              ].filter(Boolean)
+            },
+            "potentialAction": {
+              "@type": "ViewAction",
+              "target": `https://merrouchgaming.com/profile/${userData.username}`
+            },
+            "provider": {
+              "@type": "Organization",
+              "name": "Merrouch Gaming",
+              "url": "https://merrouchgaming.com"
+            }
+          }
         }
       }
     };
