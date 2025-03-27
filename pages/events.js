@@ -36,8 +36,35 @@ export async function getServerSideProps({ res }) {
   // Add Vary header to handle different cached versions
   res.setHeader('Vary', 'Cookie, Accept-Encoding');
   
-  // Always use a fixed reliable image for the events page to avoid any loading issues
-  const previewImage = "https://merrouchgaming.com/top.jpg";
+  // Default fallback image
+  let previewImage = "https://merrouchgaming.com/top.jpg";
+  
+  try {
+    // Import Supabase server-side client
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+    
+    // Try to get the latest event with a valid image
+    const { data: latestEvent } = await supabase
+      .from('events')
+      .select('image, title')
+      .not('image', 'is', null)
+      .ilike('image', 'http%')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    // If we found a valid image, use it
+    if (latestEvent && latestEvent.length > 0 && latestEvent[0].image) {
+      previewImage = latestEvent[0].image;
+      console.log(`Using latest event image for preview: ${latestEvent[0].title}`);
+    }
+  } catch (error) {
+    console.error('Error fetching latest event image:', error);
+    // Continue with default image
+  }
 
   return {
     props: {
