@@ -8,6 +8,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { toast } from 'react-hot-toast';
 import { useModal } from '../contexts/ModalContext';
 import DynamicMeta from '../components/DynamicMeta';
+import Image from 'next/image';
 
 // Format date for display - moved to a utility function outside components
 const formatDate = (dateString) => {
@@ -35,87 +36,8 @@ export async function getServerSideProps({ res }) {
   // Add Vary header to handle different cached versions
   res.setHeader('Vary', 'Cookie, Accept-Encoding');
   
-  // Fallback images in case we can't get event images
-  const fallbackImages = [
-    "https://merrouchgaming.com/top.jpg",
-    "https://merrouchgaming.com/shop.jpg"
-  ];
-  
-  // Default to the first fallback image
-  let previewImage = fallbackImages[0];
-  
-  try {
-    // Create a Supabase client for server-side
-    const { createClient } = require('../utils/supabase/server-props');
-    const supabase = createClient({ req: null, res });
-    
-    // Query directly for events with valid images
-    // Note: Using ilike with 'http%' to ensure we only get URLs that start with http
-    const { data: eventsWithImages, error } = await supabase
-      .from('events')
-      .select('id, image, title, status, date')
-      .not('image', 'is', null)
-      .ilike('image', 'http%')
-      .order('date', { ascending: false })
-      .limit(5);
-    
-    if (error) {
-      throw error;
-    }
-    
-    console.log('Retrieved events with images:', eventsWithImages ? 
-      eventsWithImages.map(e => ({id: e.id, title: e.title, imageStart: e.image.substring(0, 30) + '...'})) : 
-      'none');
-    
-    if (eventsWithImages && eventsWithImages.length > 0) {
-      // First priority: active events
-      const activeEvent = eventsWithImages.find(event => 
-        event.status === 'Upcoming' || event.status === 'In Progress'
-      );
-      
-      if (activeEvent && activeEvent.image) {
-        previewImage = activeEvent.image;
-        console.log(`Using image from active event "${activeEvent.title}" (${activeEvent.status}):`, previewImage);
-      } 
-      // Second priority: any event with image
-      else {
-        const firstEvent = eventsWithImages[0];
-        if (firstEvent && firstEvent.image) {
-          previewImage = firstEvent.image;
-          console.log(`Using image from ${firstEvent.status} event "${firstEvent.title}":`, previewImage);
-        }
-      }
-    } else {
-      // No valid images found in events
-      console.log('No events with valid images found. Using fallback image.');
-      
-      // Try another approach - direct query without ilike
-      const { data: simpleEvents } = await supabase
-        .from('events')
-        .select('id, image, title')
-        .not('image', 'is', null)
-        .not('image', 'eq', '')
-        .limit(3);
-      
-      console.log('Direct query results:', simpleEvents ? 
-        simpleEvents.map(e => ({id: e.id, title: e.title, image: e.image})) : 
-        'none');
-        
-      if (simpleEvents && simpleEvents.length > 0 && simpleEvents[0].image) {
-        // Found something, let's use it if it's a URL
-        const imageUrl = simpleEvents[0].image;
-        if (imageUrl.startsWith('http')) {
-          previewImage = imageUrl;
-          console.log(`Using image from direct query: ${imageUrl}`);
-        } else {
-          console.log(`Found non-URL image: ${imageUrl}. Using fallback.`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching event image for SEO:', error);
-    // Continue with default image if error occurs
-  }
+  // Always use a fixed reliable image for the events page to avoid any loading issues
+  const previewImage = "https://merrouchgaming.com/top.jpg";
 
   return {
     props: {
@@ -172,6 +94,12 @@ export default function Events({ metaData }) {
   const [filter, setFilter] = useState('all');
   const { user, supabase } = useAuth();
   const router = useRouter();
+  const [pageLoaded, setPageLoaded] = useState(false);
+
+  // Mark the page as loaded after mount
+  useEffect(() => {
+    setPageLoaded(true);
+  }, []);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -375,7 +303,10 @@ export default function Events({ metaData }) {
           </div>
         </div>
 
-        {loading ? (
+        {/* Use pageLoaded to avoid showing loading state until after hydration */}
+        {!pageLoaded ? (
+          <div className={styles.hiddenLoader}>Loading events...</div>
+        ) : loading ? (
           <div className={styles.loadingContainer}>
             <div className={styles.loader}></div>
             <p>Loading events...</p>
