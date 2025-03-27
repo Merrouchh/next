@@ -1,26 +1,14 @@
-import createClient from '../../../utils/supabase/api';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   console.log("API endpoint called:", req.method, req.url);
   
   try {
-    // Create authenticated Supabase client
-    const supabase = createClient(req, res);
-    
-    // Check if user is authenticated
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    
-    console.log("Session exists:", !!session);
-    
-    if (!session) {
-      console.log("Authentication failed: No session");
-      return res.status(401).json({
-        error: 'not_authenticated',
-        description: 'The user does not have an active session or is not authenticated',
-      });
-    }
+    // Initialize Supabase with anon key - no auth for public endpoints
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
     
     // Get the event ID from the URL
     const { id } = req.query;
@@ -29,11 +17,12 @@ export default async function handler(req, res) {
     // Handle different HTTP methods
     switch (req.method) {
       case 'GET':
+        // GET requests can be public
         return getEvent(req, res, supabase, id);
       case 'PUT':
-        return updateEvent(req, res, supabase, id);
       case 'DELETE':
-        return deleteEvent(req, res, supabase, id);
+        // PUT and DELETE requests require authentication
+        return handleAuthenticatedRequest(req, res, supabase, id);
       default:
         res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -44,7 +33,46 @@ export default async function handler(req, res) {
   }
 }
 
-// Get a single event by ID
+// Function to handle authenticated requests
+async function handleAuthenticatedRequest(req, res, supabase, id) {
+  // Create authenticated client with token from request
+  const authenticatedSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: req.headers.authorization
+        }
+      }
+    }
+  );
+  
+  // Check if user is authenticated
+  const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+  
+  console.log("User authenticated:", !!user);
+  
+  if (authError || !user) {
+    console.log("Authentication failed:", authError?.message);
+    return res.status(401).json({
+      error: 'not_authenticated',
+      description: 'The user does not have an active session or is not authenticated',
+    });
+  }
+  
+  // Handle the authenticated request based on the method
+  switch (req.method) {
+    case 'PUT':
+      return updateEvent(req, res, authenticatedSupabase, id, user);
+    case 'DELETE':
+      return deleteEvent(req, res, authenticatedSupabase, id, user);
+    default:
+      return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}
+
+// Get a single event by ID - no authentication required
 async function getEvent(req, res, supabase, id) {
   try {
     console.log("Executing getEvent query for ID:", id);
@@ -116,22 +144,21 @@ async function getEvent(req, res, supabase, id) {
   }
 }
 
-// Update an existing event
-async function updateEvent(req, res, supabase, id) {
+// Update an existing event - requires authentication and admin privileges
+async function updateEvent(req, res, supabase, id, user) {
   const updateData = req.body;
   
   console.log("Update event request body:", updateData);
 
   try {
     // Check if the user is an admin
-    const { data: userData } = await supabase.auth.getUser();
-    const { data: userRoleData } = await supabase
+    const { data: userRoleData, error: userRoleError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', userData.user.id)
+      .eq('id', user.id)
       .single();
 
-    if (!userRoleData?.is_admin) {
+    if (userRoleError || !userRoleData?.is_admin) {
       return res.status(403).json({ message: 'Only admins can update events' });
     }
     
@@ -237,17 +264,16 @@ async function updateEvent(req, res, supabase, id) {
 }
 
 // Delete an event
-async function deleteEvent(req, res, supabase, id) {
+async function deleteEvent(req, res, supabase, id, user) {
   try {
     // Check if the user is an admin
-    const { data: userData } = await supabase.auth.getUser();
-    const { data: userRoleData } = await supabase
+    const { data: userRoleData, error: userRoleError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', userData.user.id)
+      .eq('id', user.id)
       .single();
 
-    if (!userRoleData?.is_admin) {
+    if (userRoleError || !userRoleData?.is_admin) {
       return res.status(403).json({ message: 'Only admins can delete events' });
     }
 

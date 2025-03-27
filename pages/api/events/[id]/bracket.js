@@ -1,18 +1,12 @@
-import { createClient } from '../../../../utils/supabase/server-props';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   try {
-    // Create authenticated Supabase client
-    const supabase = createClient({ req, res });
-
-    // Check if user is authenticated
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    // Initialize Supabase with anon key - no auth for public endpoints
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
     const { id } = req.query;
     const eventId = parseInt(id);
@@ -24,13 +18,13 @@ export default async function handler(req, res) {
     // Handle different HTTP methods
     switch (req.method) {
       case 'GET':
-        return await getBracket(req, res, supabase, eventId, session);
+        // GET requests can be public
+        return await getBracket(req, res, supabase, eventId);
       case 'POST':
-        return await generateBracket(req, res, supabase, eventId, session);
       case 'PUT':
-        return await updateBracket(req, res, supabase, eventId, session);
       case 'DELETE':
-        return await deleteBracket(req, res, supabase, eventId, session);
+        // POST, PUT, and DELETE requests require authentication
+        return await handleAuthenticatedRequest(req, res, supabase, eventId);
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -40,8 +34,43 @@ export default async function handler(req, res) {
   }
 }
 
-// Get existing bracket for an event
-async function getBracket(req, res, supabase, eventId, session) {
+// Function to handle authenticated requests
+async function handleAuthenticatedRequest(req, res, supabase, eventId) {
+  // Create authenticated client with token from request
+  const authenticatedSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: req.headers.authorization
+        }
+      }
+    }
+  );
+
+  // Check if user is authenticated
+  const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Handle the authenticated request based on the method
+  switch (req.method) {
+    case 'POST':
+      return await generateBracket(req, res, authenticatedSupabase, eventId, user);
+    case 'PUT':
+      return await updateBracket(req, res, authenticatedSupabase, eventId, user);
+    case 'DELETE':
+      return await deleteBracket(req, res, authenticatedSupabase, eventId, user);
+    default:
+      return res.status(405).json({ error: 'Method not allowed' });
+  }
+}
+
+// Get existing bracket for an event - no authentication required
+async function getBracket(req, res, supabase, eventId) {
   try {
     // First check if the event exists
     const { data: event, error: eventError } = await supabase
@@ -127,14 +156,14 @@ async function getBracket(req, res, supabase, eventId, session) {
   }
 }
 
-// Generate a new bracket for an event
-async function generateBracket(req, res, supabase, eventId, session) {
+// Generate a new bracket for an event - requires authentication and admin privileges
+async function generateBracket(req, res, supabase, eventId, user) {
   try {
     // Check if user is admin
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (userError || !userData) {
@@ -254,13 +283,13 @@ async function generateBracket(req, res, supabase, eventId, session) {
 }
 
 // Update an existing bracket (for match results)
-async function updateBracket(req, res, supabase, eventId, session) {
+async function updateBracket(req, res, supabase, eventId, user) {
   try {
     // Check if user is admin
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (userError || !userData) {
@@ -320,13 +349,13 @@ async function updateBracket(req, res, supabase, eventId, session) {
 }
 
 // Delete a bracket for an event
-async function deleteBracket(req, res, supabase, eventId, session) {
+async function deleteBracket(req, res, supabase, eventId, user) {
   try {
     // Check if user is admin
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('is_admin')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (userError || !userData) {

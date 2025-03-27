@@ -1,33 +1,23 @@
-import createClient from '../../../utils/supabase/api';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   console.log("API events endpoint called:", req.method);
   
   try {
-    // Create authenticated Supabase client
-    const supabase = createClient(req, res);
-    
-    // Check if user is authenticated
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    
-    console.log("Session exists:", !!session);
-    
-    if (!session) {
-      console.log("Authentication failed: No session");
-      return res.status(401).json({
-        error: 'not_authenticated',
-        description: 'The user does not have an active session or is not authenticated',
-      });
-    }
+    // Initialize Supabase with anon key
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
     
     // Handle different HTTP methods
     switch (req.method) {
       case 'GET':
+        // GET requests can be public
         return getEvents(req, res, supabase);
       case 'POST':
-        return createEvent(req, res, supabase);
+        // POST requests require authentication
+        return handleAuthenticatedRequest(req, res, supabase, createEvent);
       default:
         res.setHeader('Allow', ['GET', 'POST']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -38,7 +28,39 @@ export default async function handler(req, res) {
   }
 }
 
-// Get all events
+// Function to handle authenticated requests
+async function handleAuthenticatedRequest(req, res, supabase, handlerFunction) {
+  // Create authenticated client with token from request
+  const authenticatedSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: req.headers.authorization
+        }
+      }
+    }
+  );
+  
+  // Check if user is authenticated
+  const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
+  
+  console.log("User authenticated:", !!user);
+  
+  if (authError || !user) {
+    console.log("Authentication failed:", authError?.message);
+    return res.status(401).json({
+      error: 'not_authenticated',
+      description: 'The user does not have an active session or is not authenticated',
+    });
+  }
+  
+  // Call the handler function with the authenticated client
+  return handlerFunction(req, res, authenticatedSupabase, user);
+}
+
+// Get all events - no authentication required
 async function getEvents(req, res, supabase) {
   try {
     // First get all events
@@ -71,9 +93,20 @@ async function getEvents(req, res, supabase) {
   }
 }
 
-// Create a new event
-async function createEvent(req, res, supabase) {
+// Create a new event - requires authentication
+async function createEvent(req, res, supabase, user) {
   try {
+    // Check if user is admin
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData || !userData.is_admin) {
+      return res.status(403).json({ error: 'Only admins can create events' });
+    }
+    
     const { title, description, date, time, location, game, status, image, registration_limit, team_type } = req.body;
     
     // Validate required fields

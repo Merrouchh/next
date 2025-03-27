@@ -1,21 +1,70 @@
-import createClient from '../../../utils/supabase/api';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   console.log("Event registration API endpoint called:", req.method);
   
   try {
-    // Create authenticated Supabase client
-    const supabase = createClient(req, res);
+    // Initialize Supabase with anon key
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    
+    // For GET requests, handle both authenticated and unauthenticated users
+    if (req.method === 'GET') {
+      const { eventId } = req.query;
+      
+      if (!eventId) {
+        return res.status(400).json({ message: 'Event ID is required' });
+      }
+      
+      // Try to get authenticated user if authorization header is provided
+      let user = null;
+      if (req.headers.authorization) {
+        const authenticatedSupabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          {
+            global: {
+              headers: {
+                Authorization: req.headers.authorization
+              }
+            }
+          }
+        );
+        
+        const { data, error } = await authenticatedSupabase.auth.getUser();
+        if (!error && data.user) {
+          user = data.user;
+          console.log("Authenticated user found:", user.id);
+          return getRegistrationStatus(req, res, authenticatedSupabase, user);
+        }
+      }
+      
+      // For unauthenticated users, return limited info
+      return getPublicRegistrationStatus(req, res, supabase, eventId);
+    }
+    
+    // For POST and DELETE requests, authentication is required
+    const authenticatedSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.authorization
+          }
+        }
+      }
+    );
     
     // Check if user is authenticated
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await authenticatedSupabase.auth.getUser();
     
-    console.log("Session exists:", !!session);
+    console.log("User authenticated:", !!user);
     
-    if (!session) {
-      console.log("Authentication failed: No session");
+    if (authError || !user) {
+      console.log("Authentication failed:", authError?.message);
       return res.status(401).json({
         error: 'not_authenticated',
         description: 'The user does not have an active session or is not authenticated',
@@ -25,11 +74,9 @@ export default async function handler(req, res) {
     // Handle different HTTP methods
     switch (req.method) {
       case 'POST':
-        return registerForEvent(req, res, supabase, session);
+        return registerForEvent(req, res, authenticatedSupabase, user);
       case 'DELETE':
-        return cancelRegistration(req, res, supabase, session);
-      case 'GET':
-        return getRegistrationStatus(req, res, supabase, session);
+        return cancelRegistration(req, res, authenticatedSupabase, user);
       default:
         res.setHeader('Allow', ['POST', 'DELETE', 'GET']);
         return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -40,8 +87,43 @@ export default async function handler(req, res) {
   }
 }
 
+// Get public registration status for an event (limited info)
+async function getPublicRegistrationStatus(req, res, supabase, eventId) {
+  try {
+    // Check if event exists
+    const { data: eventData, error: eventError } = await supabase
+      .from('events')
+      .select('id, title, status, registration_limit, registered_count, team_type')
+      .eq('id', eventId)
+      .single();
+    
+    if (eventError) {
+      throw eventError;
+    }
+    
+    if (!eventData) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    
+    // Return limited public information
+    return res.status(200).json({
+      isRegistered: false, // Default for unauthenticated users
+      event: eventData,
+      teamMembers: [],
+      availableTeamMembers: [],
+      registeredBy: null
+    });
+  } catch (error) {
+    console.error('Error getting public registration status:', error);
+    return res.status(500).json({ 
+      message: 'Error getting registration status', 
+      error: error.message 
+    });
+  }
+}
+
 // Register for an event
-async function registerForEvent(req, res, supabase, session) {
+async function registerForEvent(req, res, supabase, user) {
   const { eventId, notes, teamMembers } = req.body;
   
   console.log("Register for event called:", { eventId, teamMembers });
@@ -51,17 +133,10 @@ async function registerForEvent(req, res, supabase, session) {
   }
   
   try {
-    // Get user data
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      throw userError;
-    }
-    
-    const userId = userData.user.id;
+    const userId = user.id;
     console.log(`User ${userId} is registering for event ${eventId}`);
     
-    // Get user profile to get username from users table instead of profiles
+    // Get user profile to get username from users table
     const { data: userProfile, error: userProfileError } = await supabase
       .from('users')
       .select('username')
@@ -72,7 +147,7 @@ async function registerForEvent(req, res, supabase, session) {
       throw userProfileError;
     }
     
-    const username = userProfile?.username || userData.user.email;
+    const username = userProfile?.username || user.email;
     console.log(`Username: ${username}`);
     
     // Check if event exists and is open for registration
@@ -305,7 +380,7 @@ async function registerForEvent(req, res, supabase, session) {
 }
 
 // Cancel registration for an event
-async function cancelRegistration(req, res, supabase, session) {
+async function cancelRegistration(req, res, supabase, user) {
   const { eventId } = req.body;
   
   if (!eventId) {
@@ -313,14 +388,7 @@ async function cancelRegistration(req, res, supabase, session) {
   }
   
   try {
-    // Get user data
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      throw userError;
-    }
-    
-    const userId = userData.user.id;
+    const userId = user.id;
     
     // Check if event exists
     const { data: eventData, error: eventError } = await supabase
@@ -457,7 +525,7 @@ async function cancelRegistration(req, res, supabase, session) {
 }
 
 // Get registration status for an event
-async function getRegistrationStatus(req, res, supabase, session) {
+async function getRegistrationStatus(req, res, supabase, user) {
   const { eventId } = req.query;
   
   if (!eventId) {
@@ -465,14 +533,7 @@ async function getRegistrationStatus(req, res, supabase, session) {
   }
   
   try {
-    // Get user data
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      throw userError;
-    }
-    
-    const userId = userData.user.id;
+    const userId = user.id;
     console.log(`Checking registration status for user ${userId} in event ${eventId}`);
     
     // Check if event exists

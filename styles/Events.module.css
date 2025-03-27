@@ -74,8 +74,11 @@
   top: 10px;
   left: 0;
   right: 0;
-  display: flex;
+  width: 100%;
   z-index: 3;
+  padding: 0 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
 }
 
 /* Black background for the badge container */
@@ -83,8 +86,8 @@
   content: "";
   position: absolute;
   top: -4px;
-  left: 10px;
-  right: 10px;
+  left: 0;
+  right: 0;
   bottom: -4px;
   background-color: rgba(0, 0, 0, 0.75);
   border-radius: 24px;
@@ -92,23 +95,130 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
-/* Single badge layout */
-.singleBadge {
-  justify-content: center;
-  padding: 0 10px;
-}
-
 /* Two badges layout */
 .twoBadges {
-  justify-content: center;
-  gap: 10px;
-  padding: 0 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  width: 100%;
+}
+
+.twoBadges .eventStatusBadge {
+  grid-column: 1;
+  justify-self: flex-start;
+}
+
+.twoBadges .eventModeBadge {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.twoBadges .registeredBadge {
+  grid-column: 3;
+  justify-self: flex-end;
 }
 
 /* Three badges layout */
 .threeBadges {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  width: 100%;
+}
+
+.threeBadges .eventStatusBadge {
+  grid-column: 1;
+  justify-self: flex-start;
+}
+
+.threeBadges .eventModeBadge {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.threeBadges .registeredBadge {
+  grid-column: 3;
+  justify-self: flex-end;
+}
+
+/* Status-based badge container styling */
+.completedBadges,
+.progressBadges,
+.fullBadges {
   justify-content: space-between;
-  padding: 0 10px;
+  width: 100%;
+}
+
+/* Single badge layout */
+.singleBadge {
+  justify-content: flex-start;
+}
+
+/* Fix badge positioning for all cases */
+.singleBadge, 
+.twoBadges, 
+.threeBadges,
+.completedBadges,
+.progressBadges,
+.fullBadges {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Status badge - always on the left */
+.singleBadge .eventStatusBadge,
+.twoBadges .eventStatusBadge,
+.threeBadges .eventStatusBadge,
+.completedBadges .eventStatusBadge,
+.progressBadges .eventStatusBadge,
+.fullBadges .eventStatusBadge {
+  grid-column: 1;
+  justify-self: flex-start;
+}
+
+/* Mode badge - always in the center */
+.singleBadge .eventModeBadge,
+.twoBadges .eventModeBadge,
+.threeBadges .eventModeBadge,
+.completedBadges .eventModeBadge,
+.progressBadges .eventModeBadge,
+.fullBadges .eventModeBadge {
+  grid-column: 2;
+  justify-self: center;
+}
+
+/* Registered badge - always on the right */
+.singleBadge .registeredBadge,
+.twoBadges .registeredBadge,
+.threeBadges .registeredBadge,
+.completedBadges .registeredBadge,
+.progressBadges .registeredBadge,
+.fullBadges .registeredBadge {
+  grid-column: 3;
+  justify-self: flex-end;
+}
+
+/* Make sure badges have proper sizing */
+.eventStatusBadge,
+.registeredBadge,
+.eventModeBadge {
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+/* Explicitly position each badge type in the grid */
+.eventStatusBadge {
+  grid-column: 1;
+  justify-self: flex-start;
+}
+
+.eventModeBadge {
+  grid-column: 2;
+  justify-self: center;
+}
+
+.registeredBadge {
+  grid-column: 3;
+  justify-self: flex-end;
 }
 
 .eventStatusBadge {
@@ -118,9 +228,9 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: white;
-  background-color: #333;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
 }
 
 .registeredBadge {
@@ -145,7 +255,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: white;
-  background-color: #6610f2;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(0, 0, 0, 0.5);
 }
@@ -170,13 +279,13 @@
 }
 
 .statusUpcoming {
-  background-color: #0d6efd;
-  color: white;
+  background-color: #FFD700;
+  color: #121212;
 }
 
 .statusInProgress {
-  background-color: #ffc107;
-  color: black;
+  background-color: #17a2b8;
+  color: white;
 }
 
 .statusCompleted {

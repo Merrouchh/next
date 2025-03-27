@@ -6,8 +6,253 @@ import { FaArrowLeft, FaTrophy, FaUsers, FaPlus, FaMinus, FaExpand, FaCompress }
 import styles from '../../../styles/Bracket.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
+import DynamicMeta from '../../../components/DynamicMeta';
 
-export default function EventBracket() {
+export async function getServerSideProps({ params, res }) {
+  const { id } = params;
+  
+  try {
+    // Try fetching event data for SEO - first try with absolute URL, then fall back to relative
+    let eventData = null;
+    let event = null;
+    
+    try {
+      // Try absolute URL first (with base URL)
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+      const response = await fetch(`${baseUrl}/api/events/${id}`);
+      
+      if (response.ok) {
+        eventData = await response.json();
+        event = eventData.event || eventData;
+      } else {
+        console.error(`Failed to fetch event with absolute URL: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching event with absolute URL:', error);
+    }
+    
+    // If absolute URL fetch failed, try relative path as fallback
+    if (!event) {
+      try {
+        const response = await fetch(`/api/events/${id}`, {
+          headers: { 'x-forwarded-host': 'localhost:3000' }
+        });
+        
+        if (response.ok) {
+          eventData = await response.json();
+          event = eventData.event || eventData;
+        } else {
+          console.error(`Failed to fetch event with relative URL: ${response.status}`);
+          // If both approaches fail, return not found
+          return {
+            props: {
+              metaData: {
+                title: "Tournament Bracket Not Found | Merrouch Gaming",
+                description: "The tournament bracket you're looking for doesn't exist or has been removed.",
+                image: "https://merrouchgaming.com/bracket.jpg",
+                url: `https://merrouchgaming.com/events/${id}/bracket`,
+                type: "website"
+              }
+            }
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching event with relative URL:', error);
+        // If both approaches fail, return not found
+        return {
+          props: {
+            metaData: {
+              title: "Tournament Bracket Not Found | Merrouch Gaming",
+              description: "The tournament bracket you're looking for doesn't exist or has been removed.",
+              image: "https://merrouchgaming.com/bracket.jpg",
+              url: `https://merrouchgaming.com/events/${id}/bracket`,
+              type: "website"
+            }
+          }
+        };
+      }
+    }
+    
+    // Set cache headers
+    res.setHeader(
+      'Cache-Control',
+      'public, max-age=30, stale-while-revalidate=120'
+    );
+    res.setHeader(
+      'Surrogate-Control',
+      'public, max-age=30, stale-while-revalidate=120'
+    );
+    res.setHeader('Vary', 'Cookie, Accept-Encoding');
+    
+    // Try to fetch bracket data for additional SEO info
+    let champion = null;
+    let hasWinner = false;
+    
+    try {
+      // Try both absolute and relative URL approaches for bracket data
+      let bracketData = null;
+      try {
+        // Try absolute URL first
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+        const bracketResponse = await fetch(`${baseUrl}/api/events/${id}/bracket`);
+        if (bracketResponse.ok) {
+          bracketData = await bracketResponse.json();
+        }
+      } catch (error) {
+        console.error('Error fetching bracket data with absolute URL:', error);
+      }
+      
+      // If absolute URL approach failed, try relative
+      if (!bracketData) {
+        try {
+          const bracketResponse = await fetch(`/api/events/${id}/bracket`, {
+            headers: { 'x-forwarded-host': 'localhost:3000' }
+          });
+          if (bracketResponse.ok) {
+            bracketData = await bracketResponse.json();
+          }
+        } catch (error) {
+          console.error('Error fetching bracket data with relative URL:', error);
+        }
+      }
+      
+      if (bracketData && bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
+        const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
+        if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
+          hasWinner = true;
+          champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bracket data for SEO:', error);
+    }
+    
+    // Generate appropriate title based on event type and winner status
+    let pageTitle;
+    let pageDescription;
+    
+    if (hasWinner) {
+      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
+        // For duo events with a winner, include both team members in the title
+        const partnerName = champion.members[0]?.name || '';
+        pageTitle = `${champion.name} & ${partnerName} Win ${event.title} | Tournament Bracket`;
+        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament.`;
+      } else {
+        // For solo or team events with a winner
+        pageTitle = `${champion.name} Wins ${event.title} | Tournament Bracket`;
+        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} claimed victory in this ${event.game || 'gaming'} tournament.`;
+      }
+    } else {
+      // No winner yet
+      pageTitle = `${event.title} | Tournament Bracket | Merrouch Gaming`;
+      pageDescription = `View the tournament bracket for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} tournament at Merrouch Gaming. Follow the matches and discover who comes out on top.`;
+    }
+    
+    // Generate appropriate OpenGraph title and description
+    let ogTitle;
+    let ogDescription;
+    
+    if (hasWinner) {
+      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
+        // For duo events with a winner, include both team members
+        const partnerName = champion.members[0]?.name || '';
+        ogTitle = `${champion.name} & ${partnerName} Win ${event.title} | Tournament Results`;
+        ogDescription = `${champion.name} & ${partnerName} have won the ${event.game || 'gaming'} duo tournament! View the complete bracket and tournament results.`;
+      } else {
+        // For solo or team events with a winner
+        ogTitle = `${champion.name} Wins ${event.title} | Tournament Results`;
+        ogDescription = `${champion.name} has won the ${event.game || 'gaming'} tournament! View the complete bracket and tournament results.`;
+      }
+    } else {
+      // No winner yet
+      ogTitle = `${event.title} | Tournament Bracket`;
+      ogDescription = `Check out the tournament bracket for ${event.title}. Follow the matches in this ${event.team_type} ${event.game || 'gaming'} tournament.`;
+    }
+    
+    return {
+      props: {
+        metaData: {
+          title: pageTitle,
+          description: pageDescription,
+          image: event.image || "https://merrouchgaming.com/bracket.jpg",
+          url: `https://merrouchgaming.com/events/${id}/bracket`,
+          type: "website",
+          openGraph: {
+            title: ogTitle,
+            description: ogDescription,
+            images: [
+              {
+                url: event.image || "https://merrouchgaming.com/bracket.jpg",
+                width: 1200,
+                height: 630,
+                alt: `${event.title} Tournament Bracket`
+              }
+            ]
+          },
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            "name": `${event.title} Tournament`,
+            "description": `Tournament bracket for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} competition.`,
+            "startDate": event.date,
+            "endDate": event.date,
+            "location": {
+              "@type": "Place",
+              "name": event.location || "Merrouch Gaming Center",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Tangier",
+                "addressCountry": "MA"
+              }
+            },
+            "image": event.image || "https://merrouchgaming.com/bracket.jpg",
+            "organizer": {
+              "@type": "Organization",
+              "name": "Merrouch Gaming",
+              "url": "https://merrouchgaming.com"
+            },
+            ...(hasWinner && event.team_type === 'duo' && champion && champion.members && champion.members.length > 0 ? {
+              "winner": {
+                "@type": "Team",
+                "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
+                "member": [
+                  {
+                    "@type": "Person",
+                    "name": champion.name
+                  },
+                  {
+                    "@type": "Person",
+                    "name": champion.members[0]?.name || ''
+                  }
+                ]
+              }
+            } : hasWinner ? {
+              "winner": {
+                "@type": "Person",
+                "name": champion.name
+              }
+            } : {})
+          }
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching event for bracket SEO:', error);
+    return {
+      props: {
+        metaData: {
+          title: "Tournament Bracket | Merrouch Gaming Center",
+          description: "View the tournament bracket and follow the matches in this gaming tournament at Merrouch Gaming Center.",
+          image: "https://merrouchgaming.com/bracket.jpg",
+          url: `https://merrouchgaming.com/events/${id}/bracket`,
+          type: "website"
+        }
+      }
+    };
+  }
+}
+
+export default function EventBracket({ metaData }) {
   const router = useRouter();
   const { id } = router.query;
   const { user, supabase } = useAuth();
@@ -371,48 +616,56 @@ export default function EventBracket() {
 
   // Fetch event and bracket data
   useEffect(() => {
-    if (!id || !user) return;
+    if (!id) return;
 
     const fetchData = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // Get the session for authentication
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-
-        if (!accessToken) {
-          throw new Error('Authentication token not available');
+        // Set up headers with or without auth
+        let headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        let accessToken = null;
+        
+        // If user is authenticated, add authorization header
+        if (user) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.access_token) {
+              accessToken = sessionData.session.access_token;
+              headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+          } catch (sessionError) {
+            console.error('Session error:', sessionError);
+            // Continue without auth header
+          }
         }
 
-        // Fetch event details
+        // Fetch event details - public endpoint
         const eventResponse = await fetch(`/api/events/${id}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+          headers
         });
 
         if (!eventResponse.ok) {
-          throw new Error(`Failed to fetch event: ${eventResponse.status}`);
+          const errorData = await eventResponse.json();
+          throw new Error(errorData.error || `Failed to fetch event: ${eventResponse.status}`);
         }
 
         const eventData = await eventResponse.json();
         setEvent(eventData.event);
 
-        // Check if user is admin
-        setIsAdmin(user.isAdmin);
+        // Check if user is admin (only for authenticated users)
+        setIsAdmin(user?.isAdmin || false);
 
-        // Fetch bracket data
+        // Fetch bracket data - public endpoint
         try {
           const bracketResponse = await fetch(`/api/events/${id}/bracket`, {
             method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            }
+            headers
           });
 
           // If 404, it means no bracket exists yet
@@ -424,7 +677,8 @@ export default function EventBracket() {
           }
 
           if (!bracketResponse.ok) {
-            throw new Error(`Failed to fetch bracket data: ${bracketResponse.status}`);
+            const errorData = await bracketResponse.json();
+            throw new Error(errorData.error || `Failed to fetch bracket data: ${bracketResponse.status}`);
           }
 
           const data = await bracketResponse.json();
@@ -462,10 +716,10 @@ export default function EventBracket() {
 
     try {
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      if (!accessToken) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session?.access_token) {
+        console.error('Authentication error:', sessionError || 'No access token');
         throw new Error('Authentication token not available');
       }
 
@@ -474,7 +728,7 @@ export default function EventBracket() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${sessionData.session.access_token}`
         }
       });
 
@@ -517,10 +771,10 @@ export default function EventBracket() {
 
     try {
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      if (!accessToken) {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session?.access_token) {
+        console.error('Authentication error:', sessionError || 'No access token');
         throw new Error('Authentication token not available');
       }
 
@@ -529,7 +783,7 @@ export default function EventBracket() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${sessionData.session.access_token}`
         },
         body: JSON.stringify({
           matchId: selectedMatch.id,
@@ -576,10 +830,10 @@ export default function EventBracket() {
     
     try {
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (!accessToken) {
+      if (sessionError || !sessionData?.session?.access_token) {
+        console.error('Authentication error:', sessionError || 'No access token');
         throw new Error('Authentication token not available');
       }
       
@@ -588,7 +842,7 @@ export default function EventBracket() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${sessionData.session.access_token}`
         }
       });
       
@@ -708,9 +962,15 @@ export default function EventBracket() {
           <div className={styles.winnerBanner}>
             <FaTrophy className={styles.trophyIcon} />
             <span>
-              Champion: {winner.name}
-              {isDuoEvent && winner.members && winner.members.length > 0 && (
-                <span className={styles.winnerPartner}> - {winner.members[0]?.name}</span>
+              {isDuoEvent ? (
+                <>
+                  Champions: {winner.name}
+                  {winner.members && winner.members.length > 0 && (
+                    <span className={styles.winnerPartner}> & {winner.members[0]?.name}</span>
+                  )}
+                </>
+              ) : (
+                <>Champion: {winner.name}</>
               )}
             </span>
           </div>
@@ -952,12 +1212,9 @@ export default function EventBracket() {
 
   return (
     <ProtectedPageWrapper>
+      <DynamicMeta {...metaData} />
+      
       <div className={styles.container}>
-        <Head>
-          <title>{event ? event.title : 'Tournament'}</title>
-          <meta name="description" content="Tournament bracket" />
-        </Head>
-
         <div className={styles.header}>
           <Link href={`/events/${id}`} className={styles.backLink}>
             <FaArrowLeft /> Back to Event

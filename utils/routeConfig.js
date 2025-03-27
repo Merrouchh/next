@@ -38,14 +38,14 @@ export const ROUTE_CONFIG = {
   },
 
   '/events': {
-    public: false,
-    requireAuth: true,
+    public: true,
+    requireAuth: false,
     showNavigation: true
   },
   
   '/events/[id]': {
-    public: false,
-    requireAuth: true,
+    public: true,
+    requireAuth: false,
     showNavigation: true
   },
 

@@ -6,6 +6,8 @@ import styles from '../styles/Events.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { toast } from 'react-hot-toast';
+import { useModal } from '../contexts/ModalContext';
+import DynamicMeta from '../components/DynamicMeta';
 
 // Format date for display - moved to a utility function outside components
 const formatDate = (dateString) => {
@@ -20,7 +22,67 @@ const formatDate = (dateString) => {
   }
 };
 
-export default function Events() {
+export async function getServerSideProps({ res }) {
+  // Set cache headers for events page
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=60, stale-while-revalidate=300'
+  );
+  res.setHeader(
+    'Surrogate-Control',
+    'public, max-age=60, stale-while-revalidate=300'
+  );
+  // Add Vary header to handle different cached versions
+  res.setHeader('Vary', 'Cookie, Accept-Encoding');
+
+  return {
+    props: {
+      metaData: {
+        title: "Gaming Events & Tournaments | Merrouch Gaming Center",
+        description: "Join our exciting gaming tournaments and events at Merrouch Gaming Center. Register for upcoming events, check ongoing tournaments, and see results from completed competitions.",
+        image: "https://merrouchgaming.com/events.jpg",
+        url: "https://merrouchgaming.com/events",
+        type: "website",
+        openGraph: {
+          title: "Gaming Events & Tournaments | Merrouch Gaming Center",
+          description: "Participate in solo, duo and team gaming tournaments. Register for upcoming events or check out results from our past competitions.",
+          images: [
+            {
+              url: "https://merrouchgaming.com/events.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Merrouch Gaming Center Events"
+            }
+          ]
+        },
+        twitter: {
+          card: "summary_large_image",
+          site: "@merrouchgaming",
+          title: "Gaming Events & Tournaments | Merrouch Gaming Center",
+          description: "Join our exciting gaming tournaments and events. Register for upcoming competitions or view past tournament results."
+        },
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "name": "Gaming Events & Tournaments",
+          "description": "Gaming tournaments and events at Merrouch Gaming Center",
+          "provider": {
+            "@type": "Organization",
+            "name": "Merrouch Gaming",
+            "url": "https://merrouchgaming.com"
+          },
+          "about": {
+            "@type": "Thing",
+            "name": "Gaming Tournaments",
+            "description": "Solo, duo and team gaming competitions"
+          }
+        }
+      }
+    }
+  };
+}
+
+export default function Events({ metaData }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -31,31 +93,41 @@ export default function Events() {
     const fetchEvents = async () => {
       setLoading(true);
       try {
-        // Get the session for authentication
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
+        // Check if user is authenticated to include auth token
+        let headers = {
+          'Content-Type': 'application/json'
+        };
         
-        if (!accessToken) {
-          throw new Error('Authentication token not available');
+        // If user is authenticated, add authorization header
+        if (user) {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.access_token) {
+              headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
+            }
+          } catch (sessionError) {
+            console.error('Session error:', sessionError);
+            // Continue without auth header
+          }
         }
         
         const response = await fetch('/api/events', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+          headers
         });
         
         if (!response.ok) {
-          throw new Error('Failed to fetch events');
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch events: ${response.status}`);
         }
         
         const data = await response.json();
         setEvents(data);
         
-        // Sync registration counts for all events
-        syncRegistrationCounts(data);
+        // Sync registration counts if user is logged in
+        if (user) {
+          syncRegistrationCounts(data);
+        }
       } catch (error) {
         console.error('Error fetching events:', error);
         toast.error('Failed to load events. Please try again later.');
@@ -65,9 +137,8 @@ export default function Events() {
       }
     };
 
-    if (user) {
-      fetchEvents();
-    }
+    // Fetch events even without a user
+    fetchEvents();
   }, [user, supabase]);
   
   // Function to sync registration counts with the database
@@ -187,10 +258,7 @@ export default function Events() {
 
   return (
     <ProtectedPageWrapper>
-      <Head>
-        <title>Events | MerrouchGaming</title>
-        <meta name="description" content="Browse and register for gaming events" />
-      </Head>
+      <DynamicMeta {...metaData} />
 
       <div className={styles.container}>
         <div className={styles.header}>
@@ -258,19 +326,34 @@ function EventCard({ event }) {
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
-  const [checkingRegistration, setCheckingRegistration] = useState(true);
+  const [checkingRegistration, setCheckingRegistration] = useState(false); // Only set to true if user is logged in
+  const isPublicView = !user;
+  const { openLoginModal } = useModal(); // Import the modal context hook
   
-  // Check if user is registered for this event
+  // Only check registration status if user is logged in
   useEffect(() => {
+    // Don't run the check for non-authenticated users
+    if (!user || !event) {
+      setCheckingRegistration(false);
+      return;
+    }
+    
+    // Don't check registration status for completed events
+    if (event.status === 'Completed') {
+      setCheckingRegistration(false);
+      return;
+    }
+    
     const checkRegistrationStatus = async () => {
-      if (!user || !event) return;
-      
       try {
         setCheckingRegistration(true);
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;
         
-        if (!accessToken) return;
+        if (!accessToken) {
+          setCheckingRegistration(false);
+          return;
+        }
         
         const response = await fetch(`/api/events/register?eventId=${event.id}`, {
           method: 'GET',
@@ -292,54 +375,43 @@ function EventCard({ event }) {
     };
     
     checkRegistrationStatus();
-  }, [event, user, supabase]);
+  }, [user, event, supabase]);
   
-  // Get badge container class based on number of visible badges
+  // Extract registration count from event
+  const registeredCount = event.registered_count || 0;
+  
   const getBadgeContainerClass = () => {
-    // Count how many badges are visible
-    let visibleBadges = 1; // Status badge is always visible
+    // Calculate if event is full
+    const isFull = 
+      event.registration_limit !== null && 
+      registeredCount >= event.registration_limit;
     
-    if (event.team_type) {
-      visibleBadges++;
-    }
-    
-    if (isRegistered && event.status === 'Upcoming') {
-      visibleBadges++;
-    }
-    
-    // Return appropriate class
-    if (visibleBadges === 1) {
-      return styles.singleBadge;
-    } else if (visibleBadges === 2) {
-      return styles.twoBadges;
-    } else {
-      return styles.threeBadges;
-    }
-  };
-  
-  // Ensure registration count is a number
-  const registeredCount = typeof event.registered_count === 'number' ? event.registered_count : 0;
-  
-  // Truncate description for display
-  const truncateDescription = (text, maxLength = 150) => {
-    if (!text) return '';
-    if (text.length <= maxLength) return text;
-    return text.substr(0, maxLength).trim() + '...';
-  };
-
-  const handleRegisterClick = () => {
+    // Status-based classes
     if (event.status === 'Completed') {
-      toast.error('This event has already ended.');
-      return;
+      return styles.completedBadges;
+    } else if (event.status === 'In Progress') {
+      return styles.progressBadges;
+    } else if (isFull) {
+      return styles.fullBadges;
+    } else {
+      return ''; // Default
     }
-    
-    if (event.status === 'In Progress') {
-      toast.error('This event is currently in progress and registration is closed.');
-      return;
-    }
-    
+  };
+  
+  const truncateDescription = (text, maxLength = 150) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+  
+  const handleRegisterClick = () => {
     // If already registered, don't do anything
     if (isRegistered) {
+      return;
+    }
+    
+    // For public users (not logged in) on upcoming events, open login modal
+    if (isPublicView && event.status === 'Upcoming') {
+      openLoginModal();
       return;
     }
     
@@ -353,16 +425,19 @@ function EventCard({ event }) {
 
   // Get registration button text
   const getRegistrationButtonText = () => {
-    if (checkingRegistration) {
-      return 'Loading...';
-    }
-    
+    // For completed events, always show "Event Ended"
     if (event.status === 'Completed') {
       return 'Event Ended';
     }
     
+    // For in-progress events, always show "In Progress"
     if (event.status === 'In Progress') {
       return 'In Progress';
+    }
+    
+    // Only show loading state if user is logged in and we're checking registration
+    if (!isPublicView && checkingRegistration) {
+      return 'Loading...';
     }
     
     // Check if registration is full
@@ -372,6 +447,12 @@ function EventCard({ event }) {
       return 'Registration Full';
     }
     
+    // For public users on upcoming events
+    if (isPublicView) {
+      return event.status === 'Upcoming' ? 'Login to Register' : 'Register Now';
+    }
+    
+    // For authenticated users
     return isRegistered ? 'Already Registered' : 'Register Now';
   };
   
@@ -379,16 +460,19 @@ function EventCard({ event }) {
   const getRegistrationButtonClass = () => {
     const baseClass = styles.registerButton;
     
-    if (checkingRegistration) {
-      return `${baseClass} ${styles.loadingButton}`;
-    }
-    
+    // For completed events
     if (event.status === 'Completed') {
       return `${baseClass} ${styles.completedButton}`;
     }
     
+    // For in-progress events
     if (event.status === 'In Progress') {
       return `${baseClass} ${styles.inProgressButton}`;
+    }
+    
+    // Only show loading state if user is logged in and we're checking registration
+    if (!isPublicView && checkingRegistration) {
+      return `${baseClass} ${styles.loadingButton}`;
     }
     
     // Check if registration is full
@@ -398,7 +482,13 @@ function EventCard({ event }) {
       return `${baseClass} ${styles.fullButton}`;
     }
     
-    return isRegistered ? `${baseClass} ${styles.registeredButton} ${styles.nonClickable}` : baseClass;
+    // For authenticated users who are registered
+    if (!isPublicView && isRegistered) {
+      return `${baseClass} ${styles.registeredButton} ${styles.nonClickable}`;
+    }
+    
+    // Default case
+    return baseClass;
   };
 
   return (
@@ -471,7 +561,12 @@ function EventCard({ event }) {
           <button 
             className={getRegistrationButtonClass()}
             onClick={handleRegisterClick}
-            disabled={event.status === 'Completed' || event.status === 'In Progress' || checkingRegistration}
+            disabled={
+              event.status === 'Completed' || 
+              event.status === 'In Progress' || 
+              (!isPublicView && checkingRegistration) ||
+              (!isPublicView && isRegistered)
+            }
           >
             {getRegistrationButtonText()}
           </button>

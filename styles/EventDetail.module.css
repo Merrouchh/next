@@ -154,15 +154,16 @@
 
 .eventStatusBadge {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 30px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.5px;
 }
 
 .statusUpcoming {
@@ -407,16 +408,46 @@
 }
 
 .bracketButton {
-  background-color: #FFD700;
-  color: #111;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  padding: 0.75rem 1.5rem;
+  background-color: #202020;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  border-radius: 4px;
+  font-weight: 500;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
 }
 
 .bracketButton:hover {
+  background-color: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Primary bracket button for completed events when it's the only action */
+.primaryBracketButton {
   background-color: #FFD700;
-  box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
-  color: #111;
+  color: #121212;
+  border: none;
+  font-weight: 600;
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  font-size: 1.05rem;
+}
+
+.primaryBracketButton:hover {
+  background-color: #FFC107;
+  transform: translateY(-2px);
+}
+
+/* Prominent bracket button for in-progress events */
+.prominentBracketButton {
+  background-color: rgba(255, 215, 0, 0.15);
+  border-width: 2px;
+  font-weight: 600;
 }
 
 .registrationConfirmation {
@@ -491,13 +522,46 @@
 
 .adminSection h3 {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   font-size: 1.2rem;
-  color: #e0e0e0;
+  color: #FFD700;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.adminSection h3::before {
+  content: '👑';
+  margin-right: 10px;
+  font-size: 1.3rem;
+}
+
+.adminButtonsContainer {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.adminButtonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.adminButtonGroup h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #b0b0b0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .viewRegistrationsButton {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.75rem 1.5rem;
   background-color: #FFD700;
   color: #121212;
@@ -507,11 +571,37 @@
   font-size: 1rem;
   text-decoration: none;
   transition: all 0.2s;
+  width: 100%;
 }
 
 .viewRegistrationsButton:hover {
   background-color: #FFD700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  transform: translateY(-2px);
   color: #121212;
+}
+
+.adminEditButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.adminEditButton:hover {
+  background-color: #2d3748;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Responsive styles */
@@ -1174,22 +1264,29 @@
 }
 
 .bracketWinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background-color: #FFD700;
   color: #111;
-  padding: 10px 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 0.75rem 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border-radius: 50px;
   font-size: 1.2rem;
   font-weight: bold;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
+  width: auto;
+}
+
+.winnerPartner {
+  color: #111;
+  font-weight: bold;
 }
 
 .trophyIcon {
-  margin-right: 10px;
   color: #111;
+  margin-right: 0.75rem;
+  font-size: 1.5rem;
 }
 
 .bracketStats {
@@ -1251,7 +1348,7 @@
 
 .bracketIcon {
   margin-right: 8px;
-  color: #111;
+  color: white;
 }
 
 /* Responsive adjustments */
@@ -1273,13 +1370,14 @@
   margin-top: 15px;
 }
 
+/* Create a single consolidated deleteBracketButton style */
 .deleteBracketButton {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 12px 20px;
-  background-color: #e74c3c;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
   color: white;
   border: none;
   border-radius: 4px;
@@ -1289,18 +1387,20 @@
   transition: all 0.3s ease;
   text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
 }
 
-.deleteBracketButton:hover {
-  background-color: #c0392b;
-  box-shadow: 0 0 5px rgba(231, 76, 60, 0.2);
+.deleteBracketButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(220, 53, 69, 0.3);
 }
 
 .deleteBracketButton:disabled {
-  background-color: #555;
-  color: #888;
+  opacity: 0.6;
+  background: #6c757d;
   cursor: not-allowed;
+  transform: none;
   box-shadow: none;
 }
 
@@ -1312,6 +1412,82 @@
 
 .editButton svg {
   margin-right: 8px;
+}
+
+.generateBracketButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.generateBracketButton:hover:not(:disabled) {
+  background-color: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(23, 162, 184, 0.3);
+}
+
+.generateBracketButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.generateBracketButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.2);
+  margin-top: 0;
+}
+
+.generateBracketButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(23, 162, 184, 0.3);
+}
+
+.generateBracketButton:disabled {
+  opacity: 0.6;
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Icon styles */
+.bracketIcon {
+  margin-right: 12px;
+  font-size: 1.25rem;
+  color: inherit;
+}
+
+/* Add specific styles for each button type's icon */
+.deleteBracketButton .bracketIcon,
+.generateBracketButton .bracketIcon {
+  color: white;
 }
 
 /* Team Member Display */
@@ -1370,4 +1546,213 @@
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
   margin: 0;
+}
+
+/* Login prompt styles */
+.loginPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.loginPrompt p {
+  color: #e0e0e0;
+  font-weight: 500;
+  margin: 0;
+}
+
+.loginButton {
+  padding: 0.5rem 1.5rem;
+  background-color: #FFD700;
+  color: #121212;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.loginButton:hover {
+  background-color: #FFC107;
+  transform: translateY(-2px);
+}
+
+/* Event status message for completed or in-progress events */
+.eventStatusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: rgba(108, 117, 125, 0.1);
+  border-left: 4px solid #6c757d;
+}
+
+.eventStatusMessage p {
+  color: #e0e0e0;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Tournament Bracket Button - improved design */
+.tournamentBracketButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 220px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tournamentBracketButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.tournamentBracketButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(23, 162, 184, 0.5);
+  color: white;
+}
+
+.tournamentBracketButton:hover::before {
+  transform: translateX(100%);
+}
+
+.tournamentBracketButton .bracketIcon {
+  font-size: 1.3rem;
+  margin-right: 10px;
+  color: white;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+}
+
+/* Special container for ended event actions */
+.endedEventActions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.endedEventActions .primaryBracketButton {
+  min-width: 250px;
+  text-align: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.endedEventActions .tournamentBracketButton {
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  color: #121212;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  margin-top: 0;
+  border-radius: 50px;
+  max-width: fit-content;
+  padding: 0.85rem 2.5rem;
+}
+
+.endedEventActions .tournamentBracketButton:hover {
+  box-shadow: 0 6px 15px rgba(255, 215, 0, 0.5);
+  color: #121212;
+  transform: translateY(-3px);
+}
+
+.endedEventActions .tournamentBracketButton .bracketIcon {
+  color: #121212;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Champions container for completed events */
+.championsContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 1.5rem;
+}
+
+.championsContainer .bracketWinner {
+  width: auto;
+  display: inline-flex;
+  margin: 0 auto;
+  padding: 0.75rem 2rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
+}
+
+/* participantsInfo section removed */
+
+/* Move bracket winner styles here from the removed bracket section */
+.bracketWinner {
+  background-color: #FFD700;
+  color: #111;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  font-weight: bold;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  width: 100%;
+}
+
+.winnerPartner {
+  color: #111;
+  font-weight: bold;
+}
+
+.trophyIcon {
+  color: #111;
+  margin-right: 0.75rem;
+  font-size: 1.5rem;
+}
+
+/* Participant stats */
+.bracketStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.bracketStat {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px;
+  background-color: rgba(20, 20, 25, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  border: 1px solid #333;
 } 

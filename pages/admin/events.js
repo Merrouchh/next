@@ -517,21 +517,12 @@ export default function AdminEvents() {
             <FaCalendarAlt className={styles.titleIcon} />
             Manage Events
           </h1>
-          <div className={styles.headerButtons}>
-            <button 
-              className={styles.setupButton}
-              onClick={() => router.push('/admin/setup-storage')}
-              title="Setup storage for image uploads"
-            >
-              <FaImage /> Setup Storage
-            </button>
-            <button 
-              className={styles.createButton}
-              onClick={handleCreateEvent}
-            >
-              <FaPlus /> Create New Event
-            </button>
-          </div>
+          <button 
+            className={styles.createButton}
+            onClick={handleCreateEvent}
+          >
+            <FaPlus /> Create New Event
+          </button>
         </div>
 
         <div className={styles.filterContainer}>

@@ -86,9 +86,9 @@ export const AuthProvider = ({ children, onError }) => {
               initialized: true
             });
 
-            // If we're on the home page, redirect to dashboard
+            // Only redirect to dashboard if we're on the home page
             if (router.pathname === '/') {
-              router.replace('/dashboard');
+              await router.replace('/dashboard');
             }
           }
         } else {
@@ -256,8 +256,10 @@ export const AuthProvider = ({ children, onError }) => {
               // Clear the URL hash
               window.location.hash = '';
               
-              // Redirect to dashboard
-              router.replace('/dashboard');
+              // Redirect to dashboard only if on the homepage
+              if (router.pathname === '/') {
+                router.replace('/dashboard');
+              }
             }
           }
         }
@@ -365,8 +367,10 @@ export const AuthProvider = ({ children, onError }) => {
           initialized: true
         });
 
-        // Navigate to dashboard
-        await router.replace('/dashboard');
+        // Only redirect to dashboard if we're on the home page
+        if (router.pathname === '/') {
+          await router.replace('/dashboard');
+        }
 
         return { success: true };
       } catch (error) {

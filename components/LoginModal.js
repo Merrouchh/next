@@ -489,14 +489,17 @@ const LoginModal = ({ isOpen, onClose }) => {
   // Success step
   const renderSuccessStep = () => (
     <div className={styles.stepContainer}>
+      <img src="/images/success.png" alt="Success" className={styles.successIcon} />
       <h2>Account Created!</h2>
-      <p className={styles.successMessage}>
-        Your account has been successfully created and linked to your gaming account.
+      <p className={styles.successText}>
+        Welcome to MerrouchGaming! You've been automatically logged in.
       </p>
-      <div className={styles.loadingWrapper}>
-        <AiOutlineLoading3Quarters className={styles.loadingIcon} />
-        <span>Redirecting to dashboard...</span>
-      </div>
+      <button 
+        className={styles.continueButton}
+        onClick={handleClose}
+      >
+        Continue
+      </button>
     </div>
   );
 
