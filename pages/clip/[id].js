@@ -107,6 +107,11 @@ export async function getServerSideProps({ req, res, params }) {
         }
       };
     }
+    
+    // If the clip is private but the user is the owner, allow access
+    if (isPrivate && isOwner) {
+      console.log('Private clip, owner access granted');
+    }
 
     // Generate rich description with stats
     const description = `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. ${
@@ -247,8 +252,11 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
               // Update clip data
               setLocalClip(payload.new);
               // Handle visibility changes
-              if (payload.new.visibility === 'private' && !isLoggedIn) {
+              if (payload.new.visibility === 'private' && !isLoggedIn && !isOwnClip) {
                 console.log('Clip changed to private, hiding for non-owner');
+                setShouldShowClip(false);
+              } else if (payload.new.visibility === 'private' && isLoggedIn && user?.id !== payload.new.user_id) {
+                console.log('Clip changed to private, hiding for non-owner user');
                 setShouldShowClip(false);
               }
               break;
@@ -272,16 +280,19 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
       console.log('Cleaning up clip subscription');
       supabase.removeChannel(channel);
     };
-  }, [clip?.id, isLoggedIn, supabase, router]);
+  }, [clip?.id, isLoggedIn, supabase, router, user?.id, isOwnClip]);
 
   // Effect to handle auth state changes
   useEffect(() => {
-    if (!isLoggedIn && localClip?.visibility === 'private') {
+    if (!isLoggedIn && localClip?.visibility === 'private' && !isOwnClip) {
       setShouldShowClip(false);
+    } else if (isLoggedIn && user?.id === localClip?.user_id) {
+      // Always show clip to its owner, even if private
+      setShouldShowClip(true);
     }
-  }, [isLoggedIn, localClip?.visibility]);
+  }, [isLoggedIn, localClip?.visibility, localClip?.user_id, user?.id, isOwnClip]);
 
-  if (!shouldShowClip || status === 'private') {
+  if ((!shouldShowClip || status === 'private') && !isOwnClip) {
     return (
       <ProtectedPageWrapper>
         <DynamicMeta {...metaData} />
