@@ -43,18 +43,43 @@ export async function getServerSideProps({ res }) {
     const { createClient } = require('../utils/supabase/server-props');
     const supabase = createClient({ req: null, res });
     
-    // Get the most recent event with an image
-    const { data: recentEvents } = await supabase
+    // First, get any events with images, regardless of status
+    const { data: allEvents } = await supabase
       .from('events')
-      .select('image, title')
+      .select('id, image, title, status, date')
       .not('image', 'is', null)
+      .not('image', 'eq', '')
       .order('date', { ascending: false })
-      .limit(1);
+      .limit(5);
     
-    // If found an event with image, use it
-    if (recentEvents && recentEvents.length > 0 && recentEvents[0].image) {
-      previewImage = recentEvents[0].image;
-      console.log(`Using image from event "${recentEvents[0].title}" for events page preview`);
+    console.log(`Found ${allEvents?.length || 0} events with images`);
+    
+    if (allEvents && allEvents.length > 0) {
+      // First priority: Try to find active events (Upcoming or In Progress)
+      const activeEvent = allEvents.find(event => 
+        event.status === 'Upcoming' || event.status === 'In Progress'
+      );
+      
+      if (activeEvent && activeEvent.image && activeEvent.image.startsWith('http')) {
+        previewImage = activeEvent.image;
+        console.log(`Using image from active event "${activeEvent.title}" (${activeEvent.status}) for preview:`, previewImage);
+      } 
+      // Second priority: Use any recent event with valid image
+      else {
+        for (const event of allEvents) {
+          if (event.image && event.image.startsWith('http')) {
+            previewImage = event.image;
+            console.log(`Using image from ${event.status} event "${event.title}" for preview:`, previewImage);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Validate the image URL as a last check
+    if (!previewImage.startsWith('http')) {
+      console.log(`Invalid image URL found: "${previewImage}". Using default image instead.`);
+      previewImage = "https://merrouchgaming.com/events.jpg";
     }
   } catch (error) {
     console.error('Error fetching event image for SEO:', error);

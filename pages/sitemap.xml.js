@@ -42,6 +42,18 @@ async function generateSiteMap() {
 
   // Get unique usernames
   const uniqueUsers = [...new Set(users?.map(user => user.username))];
+  
+  // Fetch all events data for sitemap
+  const { data: events } = await supabase
+    .from('events')
+    .select(`
+      id,
+      title,
+      date,
+      status,
+      image
+    `)
+    .order('date', { ascending: false });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -67,11 +79,60 @@ async function generateSiteMap() {
        <priority>0.9</priority>
      </url>
      <url>
+       <loc>${EXTERNAL_DATA_URL}/events</loc>
+       <lastmod>${lastMod}</lastmod>
+       <changefreq>daily</changefreq>
+       <priority>0.9</priority>
+     </url>
+     <url>
        <loc>${EXTERNAL_DATA_URL}/topusers</loc>
        <lastmod>${lastMod}</lastmod>
        <changefreq>hourly</changefreq>
        <priority>0.7</priority>
      </url>
+
+     <!-- Events Pages -->
+     ${events ? events.map(event => {
+       // Format the date for lastmod
+       const eventDate = event.date ? new Date(event.date).toISOString() : lastMod;
+       
+       // Determine change frequency based on event status
+       let changeFreq = 'weekly';
+       if (event.status === 'Upcoming') {
+         changeFreq = 'daily';
+       } else if (event.status === 'In Progress') {
+         changeFreq = 'hourly';
+       }
+       
+       // Determine priority based on event status
+       let priority = '0.7';
+       if (event.status === 'Upcoming') {
+         priority = '0.8';
+       } else if (event.status === 'In Progress') {
+         priority = '0.9';
+       }
+       
+       return `
+       <url>
+         <loc>${EXTERNAL_DATA_URL}/events/${event.id}</loc>
+         <lastmod>${eventDate}</lastmod>
+         <changefreq>${changeFreq}</changefreq>
+         <priority>${priority}</priority>
+         ${event.image ? `
+         <image:image>
+           <image:loc>${event.image}</image:loc>
+           <image:title>${event.title}</image:title>
+           <image:caption>${event.title} - Gaming event at Merrouch Gaming Center</image:caption>
+         </image:image>` : ''}
+       </url>
+       ${event.status === 'Completed' || event.status === 'In Progress' ? `
+       <url>
+         <loc>${EXTERNAL_DATA_URL}/events/${event.id}/bracket</loc>
+         <lastmod>${eventDate}</lastmod>
+         <changefreq>${event.status === 'In Progress' ? 'hourly' : 'monthly'}</changefreq>
+         <priority>${event.status === 'In Progress' ? '0.9' : '0.6'}</priority>
+       </url>` : ''}
+     `}).join('') : ''}
 
      <!-- Public Clips -->
      ${processedClips ? processedClips.map(clip => `

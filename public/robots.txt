@@ -23,6 +23,8 @@ Allow: /*.ico$
 Allow: /shop
 Allow: /discover
 Allow: /topusers
+Allow: /events
+Allow: /events/*
 Allow: /clip/*
 Allow: /profile/*
 
