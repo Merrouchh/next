@@ -5,6 +5,12 @@
   background-color: transparent;
   border-radius: 0;
   box-shadow: none;
+  contain: content; /* Add content containment for better performance */
+  width: 100%;
+  padding: 1rem;
+  min-height: 200px; /* Ensure minimum height even when empty */
+  display: flex;
+  flex-direction: column;
 }
 
 .galleryTitle {
@@ -49,8 +55,8 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .adminControls {
@@ -91,28 +97,76 @@
 
 .galleryGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Fixed 4 column layout */
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  will-change: transform;
+  contain: layout;
+  min-height: 100px; /* Minimum height to prevent layout shifts */
+  position: relative;
+  visibility: visible; /* Ensure grid is always visible */
+  grid-auto-rows: 1fr; /* Ensure equal height rows */
+}
+
+@supports (aspect-ratio: 1 / 1) {
+  .galleryItem {
+    aspect-ratio: 1 / 1;
+    height: auto;
+    padding-bottom: 0;
+    min-height: 0;
+  }
+}
+
+/* Fallback for browsers that don't support aspect-ratio */
+@supports not (aspect-ratio: 1 / 1) {
+  .galleryItem {
+    height: 0;
+    padding-bottom: 100%;
+    min-height: 200px;
+  }
 }
 
 .galleryItem {
-  position: relative;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s ease;
   cursor: pointer;
-  background-color: #222222;
+  aspect-ratio: 1/1;
+  background-color: #1a1a1a;
+  position: relative;
+  will-change: transform;
+  height: 0;
+  padding-bottom: 100%; /* Create a responsive square */
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
 }
 
 .galleryItem:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  transform: scale(1.02);
 }
 
 .imageContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1a;
+  overflow: hidden;
+}
+
+.placeholderContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1/1;
   position: relative;
-  aspect-ratio: 16/9; /* Widescreen aspect ratio */
   overflow: hidden;
 }
 
@@ -120,7 +174,21 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  will-change: transform, opacity;
+  display: block;
+  backface-visibility: hidden; /* Prevent flickering during transitions */
+  perspective: 1000px; /* Create a 3D context */
+}
+
+.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .galleryItem:hover .galleryImage {
@@ -163,13 +231,18 @@
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   font-size: 0.85rem;
-  transform: translateY(100%);
-  transition: transform 0.3s;
+  transition: transform 0.3s, opacity 0.3s;
   z-index: 1;
+  height: 2.5rem; /* Fixed height for captions */
+  display: flex;
+  align-items: center;
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 .galleryItem:hover .imageCaption {
   transform: translateY(0);
+  opacity: 1 !important; /* Override the inline opacity when hovering */
 }
 
 .expandIcon {
@@ -197,6 +270,16 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
+/* Slide Portal Styles */
+.slideshowPortal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000; /* Higher than any other elements */
+}
+
 /* Modal Slideshow Styles */
 .slideModalOverlay {
   position: fixed;
@@ -208,38 +291,53 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2001;
+  backdrop-filter: blur(5px);
 }
 
 .slideModal {
   position: relative;
-  width: 95%;
-  height: 90vh;
-  max-width: 1400px;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobileSlideModal {
+  padding: 0 10px;
 }
 
 .slideModalHeader {
-  display: flex;
-  justify-content: flex-end;
-  padding: 1rem;
-  color: white;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 15px;
+  z-index: 2010;
 }
 
 .slideModalCloseButton {
-  background: none;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
-  font-size: 1.5rem;
+  font-size: 24px;
   color: white;
   cursor: pointer;
   opacity: 0.8;
   transition: opacity 0.2s;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .slideModalCloseButton:hover {
   opacity: 1;
   color: #ffc107; /* Yellow theme color */
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .slideContent {
@@ -248,22 +346,21 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  height: 80vh;
+  height: 100%;
   width: 100%;
+  padding: 40px 0;
 }
 
 .slideImage {
-  max-width: 95%;
+  max-width: 100%;
   max-height: 80vh;
+  margin: 0 auto;
+  display: block;
   object-fit: contain;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
   border-radius: 4px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-  opacity: 1 !important;
   transition: opacity 0.3s ease-in-out;
-}
-
-.slideImageLoaded {
-  opacity: 1;
+  will-change: transform, opacity;
 }
 
 .slideNavButton {
@@ -280,9 +377,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 24px;
   opacity: 0.7;
   transition: opacity 0.2s, background-color 0.2s;
+  z-index: 2005;
 }
 
 .slideNavButton:hover {
@@ -300,59 +398,95 @@
 }
 
 .slideCaption {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  right: 0;
   color: white;
   text-align: center;
-  padding: 1rem;
-  font-size: 1rem;
+  padding: 15px;
+  font-size: 16px;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 2002;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 4px;
 }
 
 .slideCounter {
   position: absolute;
-  bottom: 1rem;
+  bottom: 20px;
   left: 0;
   right: 0;
   text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  z-index: 2002;
 }
 
-/* Upload Modal Styles - Update to match theme */
+/* Upload Modal Styles */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 3000; /* Higher than slideshow */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal {
   background-color: #222222;
-  border-radius: 8px;
-  max-width: 500px;
+  border-radius: 12px;
+  max-width: 550px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  transform: translateY(0);
+  animation: slideIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  background: linear-gradient(180deg, rgba(49, 49, 49, 0.8) 0%, rgba(34, 34, 34, 0.8) 100%);
 }
 
 .modalHeader h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   color: #ffffff;
+  font-weight: 600;
+  font-family: 'Orbitron', sans-serif;
 }
 
 .closeButton {
@@ -361,21 +495,31 @@
   font-size: 1.25rem;
   cursor: pointer;
   color: #b0b0b0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .closeButton:hover {
   color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .uploadForm {
-  padding: 1.5rem;
+  padding: 1.75rem;
+  flex: 1;
 }
 
 .fileInputContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  width: 100%;
 }
 
 .fileInputLabel {
@@ -384,23 +528,38 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 150px;
+  height: 180px;
   border: 2px dashed rgba(255, 215, 0, 0.3);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: border-color 0.2s, background-color 0.2s;
+  transition: all 0.3s ease;
   background-color: rgba(255, 215, 0, 0.05);
+  position: relative;
+  overflow: hidden;
 }
 
 .fileInputLabel:hover {
   border-color: #ffc107;
   background-color: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.fileInputLabel:active {
+  transform: translateY(0);
 }
 
 .uploadIcon {
-  font-size: 1.5rem;
-  margin-bottom: 0.75rem;
+  font-size: 2rem;
+  margin-bottom: 1rem;
   color: #ffc107;
+}
+
+.fileInputLabel span {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  text-align: center;
+  max-width: 80%;
 }
 
 .fileInput {
@@ -409,59 +568,76 @@
 
 .previewContainer {
   position: relative;
-  max-width: 100%;
-  margin-bottom: 1rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background-color: #1a1a1a;
+  min-height: 180px;
 }
 
 .imagePreview {
   max-width: 100%;
-  max-height: 250px;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  max-height: 350px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .clearPreviewButton {
   position: absolute;
-  top: -10px;
-  right: -10px;
-  background-color: #dc3545;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(220, 53, 69, 0.8);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.clearPreviewButton:hover {
+  background-color: #dc3545;
+  transform: scale(1.1);
 }
 
 .formGroup {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .formGroup label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   font-weight: 500;
   color: #ffffff;
+  font-size: 1.05rem;
 }
 
 .captionInput {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.85rem 1rem;
   border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 1rem;
   background-color: #333333;
   color: #ffffff;
+  transition: all 0.3s ease;
 }
 
 .captionInput:focus {
   border-color: #ffc107;
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+  background-color: #3a3a3a;
 }
 
 .captionInput::placeholder {
@@ -472,17 +648,20 @@
   display: flex;
   justify-content: flex-end;
   padding-top: 1rem;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .cancelButton, .submitButton {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   font-weight: 600;
+  min-width: 120px;
+  transition: all 0.3s ease;
 }
 
 .cancelButton {
@@ -493,6 +672,7 @@
 
 .cancelButton:hover {
   background-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .submitButton {
@@ -503,12 +683,20 @@
 
 .submitButton:not(:disabled):hover {
   background-color: #ffca28;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+}
+
+.submitButton:active, .cancelButton:active {
+  transform: translateY(0);
 }
 
 .submitButton:disabled {
   background-color: #555555;
   color: #888888;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .submitButton svg, .cancelButton svg {
@@ -532,10 +720,21 @@
     font-size: 1.2rem;
   }
   
+  .slideModalCloseButton {
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+  }
+  
+  .slideImage {
+    max-width: 95%;
+    max-height: 75vh;
+  }
+  
   .slideNavButton {
     width: 40px;
     height: 40px;
-    font-size: 1.2rem;
+    font-size: 18px;
   }
   
   .prevButton {
@@ -544,6 +743,17 @@
   
   .nextButton {
     right: 10px;
+  }
+  
+  .slideCaption {
+    padding: 10px;
+    font-size: 14px;
+    bottom: 50px;
+  }
+  
+  .slideCounter {
+    font-size: 12px;
+    bottom: 15px;
   }
 }
 
@@ -555,21 +765,6 @@
   .imageContainer {
     aspect-ratio: 16/10;
   }
-}
-
-/* Add new styles to support optimized gallery */
-
-/* Styles for load more container */
-.loadMoreContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  color: #b0b0b0;
-  height: 100px;
-  width: 100%;
-  margin-top: 20px;
 }
 
 /* Styles for slideshow loading state */
@@ -585,38 +780,45 @@
   z-index: 10;
 }
 
-.slideImage {
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  position: relative !important;
-}
-
-.slideImageLoaded {
-  opacity: 1;
-}
-
-/* Slide counter */
-.slideCounter {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-}
-
 /* Styles for thumbnail loading indicator */
 .thumbnailLoading {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.3);
-  z-index: 5;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.thumbnailPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: #222;
+  color: #555;
+  font-size: 2rem;
+}
+
+.imagePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: #222;
+  color: #555;
+  padding: 1rem;
+  text-align: center;
+}
+
+.imagePlaceholder p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
 } 

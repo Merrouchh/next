@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
-import { FaSearch, FaTimes, FaUserPlus, FaTrophy, FaSitemap } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaUserPlus, FaTrophy, FaSitemap, FaImage } from 'react-icons/fa';
 import styles from '../../styles/EventDetail.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import EventGallery from '../../components/EventGallery';
+import React from 'react';
 import DynamicMeta from '../../components/DynamicMeta';
 
 // Format date for display - moved to a utility function outside component
@@ -23,6 +24,9 @@ const formatDate = (dateString) => {
     return dateString;
   }
 };
+
+// Memoize EventGallery component to prevent re-renders
+const MemoizedEventGallery = React.memo(EventGallery);
 
 export async function getServerSideProps({ params, res }) {
   const { id } = params;
@@ -274,6 +278,12 @@ export default function EventDetail({ metaData }) {
   const [bracketData, setBracketData] = useState(null);
   const [bracketLoading, setBracketLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const eventId = useRef(null);
+
+  // Store event ID in ref to prevent re-renders
+  if (event && event.id !== eventId.current) {
+    eventId.current = event.id;
+  }
 
   // Determine if this is a public view (no authenticated user)
   const isPublicView = !user;
@@ -1361,7 +1371,17 @@ export default function EventDetail({ metaData }) {
       </div>
 
               {/* Event Gallery Section */}
-              {event && <EventGallery eventId={event.id} />}
+              {event && (
+                <div className={styles.galleryContainer}>
+                  {/* Use memoized component to prevent re-renders */}
+                  {eventId.current && (
+                    <MemoizedEventGallery 
+                      key={`gallery-${eventId.current}`} 
+                      eventId={eventId.current} 
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Team selection and cancel modals - only for authenticated users */}

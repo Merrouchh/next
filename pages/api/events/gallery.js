@@ -11,23 +11,39 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 let supabaseClientSingleton;
 
 function getSupabaseClient(headers = {}) {
-  if (!supabaseClientSingleton) {
-    supabaseClientSingleton = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false
-      },
-      global: {
-        headers
-      },
-      // Add reasonable timeout settings
-      realtime: {
-        timeout: 20000 // 20s for realtime connections
-      },
-      db: {
-        schema: 'public'
-      }
-    });
+  console.log('Creating supabase client with headers:', Object.keys(headers));
+  
+  // Reset the singleton to ensure we're using a fresh client with the new auth token
+  supabaseClientSingleton = null;
+  
+  // Extract authorization token properly
+  const authHeader = headers.Authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+  
+  if (token) {
+    console.log('Token found, length:', token.length);
+  } else {
+    console.log('No token found in headers');
   }
+  
+  supabaseClientSingleton = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    },
+    global: {
+      headers: headers
+    },
+    // Add reasonable timeout settings
+    realtime: {
+      timeout: 20000 // 20s for realtime connections
+    },
+    db: {
+      schema: 'public'
+    }
+  });
+  
   return supabaseClientSingleton;
 }
 
@@ -68,30 +84,127 @@ const parseForm = async (req) => {
 
 // Helper function to authenticate and verify admin status
 const authenticateAdmin = async (authHeaders) => {
-  const supabase = getSupabaseClient(authHeaders);
-  
   try {
-    // Check if user is authenticated and is an admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log("Starting admin authentication check...");
+    console.log("Auth headers:", JSON.stringify(Object.keys(authHeaders)));
     
-    if (authError || !user) {
-      throw new Error('Unauthorized');
+    // Extract token information for debugging
+    const authHeader = authHeaders.Authorization || '';
+    if (!authHeader) {
+      console.log("No Authorization header found");
+      throw new Error('Unauthorized: No authorization header');
     }
     
-    // Check if user is an admin
+    console.log("Auth header starts with Bearer:", authHeader.startsWith('Bearer '));
+    
+    // Create new client specifically for this authentication attempt
+    const supabase = getSupabaseClient(authHeaders);
+    
+    // Try getting session first
+    console.log("Attempting to get session from auth...");
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.log("Session error:", sessionError);
+    } else {
+      console.log("Session data available:", !!sessionData);
+      if (sessionData && sessionData.session) {
+        console.log("User in session:", sessionData.session.user.id);
+      }
+    }
+    
+    // Try getting user directly
+    console.log("Getting user data...");
+    const { data, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      console.log("Auth error:", authError);
+      
+      // If getUser fails, try a different approach with the token
+      if (authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        console.log("Attempting JWT decode to get user ID...");
+        
+        try {
+          // Try to manually set the session
+          const { data: jwtData, error: jwtError } = await supabase.auth.setSession({
+            access_token: token,
+            refresh_token: '',
+          });
+          
+          if (jwtError) {
+            console.log("JWT verification error:", jwtError);
+            throw new Error('Unauthorized: Invalid token');
+          }
+          
+          if (jwtData && jwtData.user) {
+            console.log("User authenticated via JWT:", jwtData.user.id);
+            
+            // Check admin status
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('is_admin, username')
+              .eq('id', jwtData.user.id)
+              .single();
+            
+            if (userError) {
+              console.log("Error getting user data:", userError);
+              throw new Error('Failed to verify admin status');
+            }
+            
+            if (!userData || !userData.is_admin) {
+              console.log("User is not an admin:", jwtData.user.id);
+              throw new Error('Forbidden: Admin access required');
+            }
+            
+            console.log("Admin authentication successful for:", userData.username);
+            return jwtData.user;
+          } else {
+            throw new Error('Unauthorized: No user found in token');
+          }
+        } catch (tokenError) {
+          console.log("Token verification failed:", tokenError);
+          throw new Error('Unauthorized: Invalid token');
+        }
+      } else {
+        throw new Error('Unauthorized: Authentication error');
+      }
+    }
+
+    if (!data || !data.user) {
+      console.log("No user found in authentication data");
+      throw new Error('Unauthorized: No user found');
+    }
+    
+    const user = data.user;
+    console.log("User authenticated:", user.id);
+    
+    // Then check if the user is an admin
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('is_admin, username')
       .eq('id', user.id)
       .single();
     
-    if (userError || !userData || !userData.is_admin) {
+    if (userError) {
+      console.log("Error getting user data:", userError);
+      throw new Error('Failed to verify admin status');
+    }
+    
+    if (!userData) {
+      console.log("No user data found for ID:", user.id);
+      throw new Error('User not found');
+    }
+    
+    if (!userData.is_admin) {
+      console.log("User is not an admin:", user.id, userData.username);
       throw new Error('Forbidden: Admin access required');
     }
     
+    console.log("Admin authentication successful for:", userData.username);
     return user;
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Authentication error:', error.message);
     throw error;
   }
 };
@@ -166,26 +279,67 @@ export default async function handler(req, res) {
     // POST: Upload a new image to event gallery
     else if (req.method === 'POST') {
       try {
+        console.log('POST request to upload gallery image received');
+        console.log('Auth headers present:', !!req.headers.authorization);
+        
+        // Extract the token directly to debug
+        const authHeader = req.headers.authorization || '';
+        const bearerToken = authHeader.startsWith('Bearer ') 
+          ? authHeader.substring(7) 
+          : authHeader;
+        
+        if (!bearerToken) {
+          console.log('No bearer token found in authorization header');
+          return res.status(401).json({ error: 'No authorization token provided' });
+        }
+        
+        // Log token length for debugging
+        console.log('Bearer token length:', bearerToken.length);
+        
+        // Construct headers with all possible auth methods
+        const authHeaders = {
+          Authorization: `Bearer ${bearerToken}`,
+          Cookie: req.headers.cookie || ''
+        };
+        
+        console.log('Attempting admin authentication...');
+        
         // Verify admin status
-        await withTimeout(authenticateAdmin({
-          Authorization: req.headers.authorization,
-          Cookie: req.headers.cookie
-        }), 10000);
+        const user = await withTimeout(authenticateAdmin(authHeaders), 10000);
+        
+        console.log('Admin authentication successful, processing upload...');
+        console.log('Authenticated user ID:', user.id);
         
         // Parse form data with timeout
-        const { fields, files } = await withTimeout(parseForm(req), 30000);
+        let fields, files;
+        try {
+          const formData = await withTimeout(parseForm(req), 30000);
+          fields = formData.fields;
+          files = formData.files;
+          
+          console.log('Form data parsed successfully');
+          console.log('Fields received:', Object.keys(fields));
+          console.log('Files received:', Object.keys(files));
+        } catch (formError) {
+          console.error('Error parsing form data:', formError);
+          return res.status(400).json({ error: 'Failed to parse form data: ' + formError.message });
+        }
         
         const eventId = fields.eventId?.[0] || fields.eventId;
         const caption = fields.caption?.[0] || fields.caption || '';
         const file = files.image?.[0] || files.image;
         
         if (!file) {
+          console.log('No image file found in request');
           return res.status(400).json({ error: 'No image file provided' });
         }
         
         if (!eventId) {
+          console.log('No eventId found in request');
           return res.status(400).json({ error: 'Event ID is required' });
         }
+        
+        console.log(`Processing image upload for event ${eventId}...`);
         
         // Read file
         const filePath = file.filepath || file.path;
@@ -193,6 +347,8 @@ export default async function handler(req, res) {
         const originalFilename = file.originalFilename || file.name;
         const fileExt = path.extname(originalFilename);
         const fileName = `gallery-${eventId}-${Date.now()}${fileExt}`;
+        
+        console.log(`Uploading file: ${fileName}, size: ${fileContent.length} bytes, type: ${file.mimetype}`);
         
         // Upload to Supabase Storage with timeout
         const { data, error } = await withTimeout(
@@ -210,6 +366,8 @@ export default async function handler(req, res) {
           console.error('Error uploading to Supabase:', error);
           return res.status(500).json({ error: 'Failed to upload image' });
         }
+        
+        console.log('Image uploaded to storage successfully');
         
         // Get public URL
         const { data: urlData } = supabase
@@ -239,6 +397,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Failed to save gallery image' });
         }
         
+        console.log('Gallery image saved to database successfully');
         return res.status(200).json({ image: galleryData[0] });
       } catch (error) {
         console.error('Error handling image upload:', error);
@@ -256,65 +415,109 @@ export default async function handler(req, res) {
     // DELETE: Remove an image from the gallery
     else if (req.method === 'DELETE') {
       try {
-        // For DELETE requests with the bodyParser disabled, we need to manually read the body
-        const imageId = req.query.imageId;
+        console.log('DELETE request to remove gallery image received');
+        
+        const { imageId } = req.query;
         
         if (!imageId) {
+          console.log('No imageId provided in query parameters');
           return res.status(400).json({ error: 'Image ID is required' });
         }
         
-        // Verify admin status with timeout
-        await withTimeout(authenticateAdmin({
-          Authorization: req.headers.authorization,
-          Cookie: req.headers.cookie
-        }), 10000);
+        console.log('Deleting image with ID:', imageId);
         
-        // First get the image info to find the storage path with timeout
-        const { data: imageData, error: fetchError } = await withTimeout(
+        // Extract the token directly to debug
+        const authHeader = req.headers.authorization || '';
+        const bearerToken = authHeader.startsWith('Bearer ') 
+          ? authHeader.substring(7) 
+          : authHeader;
+        
+        if (!bearerToken) {
+          console.log('No bearer token found in authorization header for DELETE');
+          return res.status(401).json({ error: 'No authorization token provided' });
+        }
+        
+        console.log('DELETE - Bearer token length:', bearerToken.length);
+        
+        // Construct headers with all possible auth methods
+        const authHeaders = {
+          Authorization: `Bearer ${bearerToken}`,
+          Cookie: req.headers.cookie || ''
+        };
+        
+        console.log('Attempting admin authentication for delete...');
+        
+        // Verify admin status
+        const user = await withTimeout(authenticateAdmin(authHeaders), 10000);
+        
+        console.log('Admin authentication successful, processing delete...');
+        console.log('Authenticated user ID for delete:', user.id);
+        
+        // Get image URL first
+        const { data: imageData, error: getError } = await withTimeout(
           supabase
             .from('event_gallery')
-            .select('*')
+            .select('image_url, event_id')
             .eq('id', imageId)
             .single(),
-          10000 // 10 second timeout
+          10000
         );
         
-        if (fetchError || !imageData) {
+        if (getError) {
+          console.error('Error fetching image data:', getError);
+          return res.status(500).json({ error: 'Failed to fetch image data' });
+        }
+        
+        if (!imageData) {
+          console.log('Image not found with ID:', imageId);
           return res.status(404).json({ error: 'Image not found' });
         }
         
-        // Extract file name from URL
-        const fileName = imageData.image_url.split('/').pop();
+        console.log(`Found image for event ${imageData.event_id} with URL: ${imageData.image_url}`);
         
-        // Remove from storage with timeout
-        const { error: storageError } = await withTimeout(
-          supabase
-            .storage
-            .from('images')
-            .remove([fileName]),
-          15000 // 15 second timeout
-        );
+        // Extract storage filename from URL
+        const url = new URL(imageData.image_url);
+        const pathname = decodeURIComponent(url.pathname);
+        const filename = pathname.split('/').pop();
         
-        if (storageError) {
-          console.error('Error removing file from storage:', storageError);
-          // Continue to remove from DB even if storage remove fails
+        console.log(`Deleting image ${filename} from storage...`);
+        
+        // Delete from storage first
+        if (filename) {
+          const { error: storageError } = await withTimeout(
+            supabase
+              .storage
+              .from('images')
+              .remove([filename]),
+            20000
+          );
+          
+          if (storageError) {
+            console.warn('Error removing image from storage:', storageError);
+            // Continue anyway, storage cleanup can be done later if needed
+          } else {
+            console.log('Image successfully removed from storage');
+          }
+        } else {
+          console.warn('Could not parse filename from URL:', imageData.image_url);
         }
         
-        // Remove from database with timeout
+        // Delete from database
         const { error: deleteError } = await withTimeout(
           supabase
             .from('event_gallery')
             .delete()
             .eq('id', imageId),
-          10000 // 10 second timeout
+          10000
         );
         
         if (deleteError) {
-          console.error('Error deleting gallery image:', deleteError);
-          return res.status(500).json({ error: 'Failed to delete gallery image' });
+          console.error('Error deleting image from database:', deleteError);
+          return res.status(500).json({ error: 'Failed to delete image from database' });
         }
         
-        return res.status(200).json({ success: true, message: 'Image deleted successfully' });
+        console.log('Gallery image successfully deleted');
+        return res.status(200).json({ message: 'Image successfully deleted' });
       } catch (error) {
         console.error('Error handling image deletion:', error);
         const isTimeout = error.message && error.message.includes('timed out');
