@@ -35,51 +35,82 @@ export async function getServerSideProps({ res }) {
   // Add Vary header to handle different cached versions
   res.setHeader('Vary', 'Cookie, Accept-Encoding');
   
-  // Try to get the most recent event image for SEO preview
-  let previewImage = "https://merrouchgaming.com/events.jpg"; // Default fallback image
+  // Fallback images in case we can't get event images
+  const fallbackImages = [
+    "https://merrouchgaming.com/top.jpg",
+    "https://merrouchgaming.com/shop.jpg"
+  ];
+  
+  // Default to the first fallback image
+  let previewImage = fallbackImages[0];
   
   try {
     // Create a Supabase client for server-side
     const { createClient } = require('../utils/supabase/server-props');
     const supabase = createClient({ req: null, res });
     
-    // First, get any events with images, regardless of status
-    const { data: allEvents } = await supabase
+    // Query directly for events with valid images
+    // Note: Using ilike with 'http%' to ensure we only get URLs that start with http
+    const { data: eventsWithImages, error } = await supabase
       .from('events')
       .select('id, image, title, status, date')
       .not('image', 'is', null)
-      .not('image', 'eq', '')
+      .ilike('image', 'http%')
       .order('date', { ascending: false })
       .limit(5);
     
-    console.log(`Found ${allEvents?.length || 0} events with images`);
+    if (error) {
+      throw error;
+    }
     
-    if (allEvents && allEvents.length > 0) {
-      // First priority: Try to find active events (Upcoming or In Progress)
-      const activeEvent = allEvents.find(event => 
+    console.log('Retrieved events with images:', eventsWithImages ? 
+      eventsWithImages.map(e => ({id: e.id, title: e.title, imageStart: e.image.substring(0, 30) + '...'})) : 
+      'none');
+    
+    if (eventsWithImages && eventsWithImages.length > 0) {
+      // First priority: active events
+      const activeEvent = eventsWithImages.find(event => 
         event.status === 'Upcoming' || event.status === 'In Progress'
       );
       
-      if (activeEvent && activeEvent.image && activeEvent.image.startsWith('http')) {
+      if (activeEvent && activeEvent.image) {
         previewImage = activeEvent.image;
-        console.log(`Using image from active event "${activeEvent.title}" (${activeEvent.status}) for preview:`, previewImage);
+        console.log(`Using image from active event "${activeEvent.title}" (${activeEvent.status}):`, previewImage);
       } 
-      // Second priority: Use any recent event with valid image
+      // Second priority: any event with image
       else {
-        for (const event of allEvents) {
-          if (event.image && event.image.startsWith('http')) {
-            previewImage = event.image;
-            console.log(`Using image from ${event.status} event "${event.title}" for preview:`, previewImage);
-            break;
-          }
+        const firstEvent = eventsWithImages[0];
+        if (firstEvent && firstEvent.image) {
+          previewImage = firstEvent.image;
+          console.log(`Using image from ${firstEvent.status} event "${firstEvent.title}":`, previewImage);
         }
       }
-    }
-    
-    // Validate the image URL as a last check
-    if (!previewImage.startsWith('http')) {
-      console.log(`Invalid image URL found: "${previewImage}". Using default image instead.`);
-      previewImage = "https://merrouchgaming.com/events.jpg";
+    } else {
+      // No valid images found in events
+      console.log('No events with valid images found. Using fallback image.');
+      
+      // Try another approach - direct query without ilike
+      const { data: simpleEvents } = await supabase
+        .from('events')
+        .select('id, image, title')
+        .not('image', 'is', null)
+        .not('image', 'eq', '')
+        .limit(3);
+      
+      console.log('Direct query results:', simpleEvents ? 
+        simpleEvents.map(e => ({id: e.id, title: e.title, image: e.image})) : 
+        'none');
+        
+      if (simpleEvents && simpleEvents.length > 0 && simpleEvents[0].image) {
+        // Found something, let's use it if it's a URL
+        const imageUrl = simpleEvents[0].image;
+        if (imageUrl.startsWith('http')) {
+          previewImage = imageUrl;
+          console.log(`Using image from direct query: ${imageUrl}`);
+        } else {
+          console.log(`Found non-URL image: ${imageUrl}. Using fallback.`);
+        }
+      }
     }
   } catch (error) {
     console.error('Error fetching event image for SEO:', error);
