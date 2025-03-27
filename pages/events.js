@@ -38,86 +38,49 @@ export async function getServerSideProps({ res }) {
   
   // Default fallback image
   let previewImage = "https://merrouchgaming.com/top.jpg";
-  console.log('🔍 Starting image search for SEO preview...');
-  console.log(`📋 Default fallback image: ${previewImage}`);
   
   try {
     // Check if environment variables are defined
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!supabaseUrl || !supabaseKey) {
-      console.log('⚠️ Missing Supabase environment variables:');
-      console.log(`  NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'Defined' : 'Missing'}`);
-      console.log(`  SUPABASE_SERVICE_ROLE_KEY: ${supabaseKey ? 'Defined' : 'Missing'}`);
-      throw new Error('Supabase environment variables are not properly configured');
-    }
-    
-    // Import Supabase server-side client
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    console.log('🔄 Querying database for latest event with valid image...');
-    
-    // Try to get the latest event with a valid image
-    const { data: latestEvent, error } = await supabase
-      .from('events')
-      .select('id, title, image, created_at')
-      .not('image', 'is', null)
-      .ilike('image', 'http%')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    
-    if (error) {
-      console.error('❌ Database query error:', error);
-    } else {
-      console.log(`✅ Query complete. Found ${latestEvent?.length || 0} events with valid images.`);
+    if (supabaseUrl && supabaseKey) {
+      // Import Supabase server-side client
+      const { createClient } = require('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
       
-      // Log all returned events for debugging
-      if (latestEvent && latestEvent.length > 0) {
-        latestEvent.forEach(event => {
-          console.log('📊 Event found:');
-          console.log(`  🆔 ID: ${event.id}`);
-          console.log(`  📝 Title: ${event.title}`);
-          console.log(`  🖼️ Image: ${event.image}`);
-          console.log(`  📅 Created: ${event.created_at}`);
-        });
-        
-        // If we found a valid image, use it
-        if (latestEvent[0].image) {
-          previewImage = latestEvent[0].image;
-          console.log(`✅ SELECTED IMAGE FOR PREVIEW: ${previewImage}`);
-          console.log(`   From event: ${latestEvent[0].title} (ID: ${latestEvent[0].id})`);
-        } else {
-          console.log('⚠️ Latest event has no valid image URL, using fallback.');
-        }
-      } else {
-        console.log('⚠️ No events with valid images found, using fallback image.');
-        
-        // Fallback - let's try querying without the http filter to see what's actually in the database
-        const { data: anyEvents } = await supabase
+      // Single optimized query for the latest event with a valid image
+      // Try to get the latest active event with a valid image first
+      const { data: latestEvent, error } = await supabase
+        .from('events')
+        .select('id, title, image')
+        .or('status.eq.In Progress,status.eq.Upcoming')
+        .not('image', 'is', null)
+        .ilike('image', 'http%')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      // If no active events with valid images, try any event with a valid image
+      if ((!latestEvent || latestEvent.length === 0) && !error) {
+        const { data: anyEvent } = await supabase
           .from('events')
           .select('id, title, image')
           .not('image', 'is', null)
+          .ilike('image', 'http%')
           .order('created_at', { ascending: false })
-          .limit(5);
-        
-        if (anyEvents && anyEvents.length > 0) {
-          console.log('🔎 Debug: Found events with non-null images that might not start with http:');
-          anyEvents.forEach(event => {
-            console.log(`  - Event ${event.id}: "${event.title}" has image value: "${event.image}"`);
-          });
-        } else {
-          console.log('🔎 Debug: No events found with any non-null images.');
+          .limit(1);
+          
+        if (anyEvent && anyEvent.length > 0 && anyEvent[0].image) {
+          previewImage = anyEvent[0].image;
         }
+      } else if (latestEvent && latestEvent.length > 0 && latestEvent[0].image) {
+        previewImage = latestEvent[0].image;
       }
     }
   } catch (error) {
-    console.error('❌ Error fetching latest event image:', error);
-    console.log('⚠️ Using fallback image due to error.');
+    console.error('Error fetching latest event image:', error);
+    // Continue with default image
   }
-  
-  console.log(`🖼️ Final preview image URL: ${previewImage}`);
 
   return {
     props: {

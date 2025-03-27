@@ -27,134 +27,101 @@ const formatDate = (dateString) => {
 export async function getServerSideProps({ params, res }) {
   const { id } = params;
   
+  // Set cache headers first
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=60, stale-while-revalidate=300'
+  );
+  res.setHeader(
+    'Surrogate-Control',
+    'public, max-age=60, stale-while-revalidate=300'
+  );
+  res.setHeader('Vary', 'Cookie, Accept-Encoding');
+  
+  // Default metadata for not found case
+  const notFoundMetadata = {
+    title: "Event Not Found | Merrouch Gaming Center",
+    description: "The gaming event you're looking for doesn't exist or has been removed.",
+    image: "https://merrouchgaming.com/events.jpg",
+    url: `https://merrouchgaming.com/events/${id}`,
+    type: "website"
+  };
+  
   try {
-    // Try fetching event data for SEO - first try with absolute URL, then fall back to relative
-    let eventData = null;
+    // Try fetching event data for SEO
     let event = null;
     
-    try {
-      // Try absolute URL first (with base URL)
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
-      const response = await fetch(`${baseUrl}/api/events/${id}`);
-      
-      if (response.ok) {
-        eventData = await response.json();
-        event = eventData.event || eventData;
-      } else {
-        console.error(`Failed to fetch event with absolute URL: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Error fetching event with absolute URL:', error);
-    }
-    
-    // If absolute URL fetch failed, try relative path as fallback
-    if (!event) {
+    // Helper function to fetch with error handling
+    const fetchWithErrorHandling = async (url, options = {}) => {
       try {
-        const response = await fetch(`/api/events/${id}`, {
-          headers: { 'x-forwarded-host': 'localhost:3000' }
-        });
-        
+        const response = await fetch(url, options);
         if (response.ok) {
-          eventData = await response.json();
-          event = eventData.event || eventData;
-        } else {
-          console.error(`Failed to fetch event with relative URL: ${response.status}`);
-          // If both approaches fail, return not found
-          return {
-            props: {
-              metaData: {
-                title: "Event Not Found | Merrouch Gaming Center",
-                description: "The gaming event you're looking for doesn't exist or has been removed.",
-                image: "https://merrouchgaming.com/events.jpg",
-                url: `https://merrouchgaming.com/events/${id}`,
-                type: "website"
-              }
-            }
-          };
+          const data = await response.json();
+          return { success: true, data };
         }
+        return { success: false, error: `Failed with status ${response.status}` };
       } catch (error) {
-        console.error('Error fetching event with relative URL:', error);
-        // If both approaches fail, return not found
-        return {
-          props: {
-            metaData: {
-              title: "Event Not Found | Merrouch Gaming Center",
-              description: "The gaming event you're looking for doesn't exist or has been removed.",
-              image: "https://merrouchgaming.com/events.jpg",
-              url: `https://merrouchgaming.com/events/${id}`,
-              type: "website"
-            }
-          }
-        };
+        return { success: false, error: error.message };
       }
+    };
+    
+    // Try with absolute URL first
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+    let result = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}`);
+    
+    // If that fails, try with relative URL
+    if (!result.success) {
+      result = await fetchWithErrorHandling(`/api/events/${id}`, {
+        headers: { 'x-forwarded-host': 'localhost:3000' }
+      });
     }
     
-    // Try to fetch bracket data for completed events to include champion info
-    let bracketData = null;
+    // If both fail, return not found
+    if (!result.success) {
+      return { props: { metaData: notFoundMetadata } };
+    }
+    
+    // Extract event data
+    event = result.data.event || result.data;
+    
+    // For completed events, try to fetch bracket data to find champion
     let champion = null;
     let hasWinner = false;
     
     if (event.status === 'Completed') {
-      try {
-        // Try both absolute and relative URL approaches for bracket data
-        try {
-          // Try absolute URL first
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
-          const bracketResponse = await fetch(`${baseUrl}/api/events/${id}/bracket`);
-          if (bracketResponse.ok) {
-            bracketData = await bracketResponse.json();
-          }
-        } catch (error) {
-          console.error('Error fetching bracket data with absolute URL:', error);
-        }
-        
-        // If absolute URL approach failed, try relative
-        if (!bracketData) {
-          try {
-            const bracketResponse = await fetch(`/api/events/${id}/bracket`, {
-              headers: { 'x-forwarded-host': 'localhost:3000' }
-            });
-            if (bracketResponse.ok) {
-              bracketData = await bracketResponse.json();
-            }
-          } catch (error) {
-            console.error('Error fetching bracket data with relative URL:', error);
-          }
-        }
-        
-        if (bracketData && bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
+      // Try to fetch bracket data
+      let bracketResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}/bracket`);
+      
+      // If that fails, try relative URL
+      if (!bracketResult.success) {
+        bracketResult = await fetchWithErrorHandling(`/api/events/${id}/bracket`, {
+          headers: { 'x-forwarded-host': 'localhost:3000' }
+        });
+      }
+      
+      // If successful, check for a winner
+      if (bracketResult.success) {
+        const bracketData = bracketResult.data;
+        if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
           const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
           if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
             hasWinner = true;
             champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
           }
         }
-      } catch (error) {
-        console.error('Error fetching bracket data for event SEO:', error);
       }
     }
-    
-    // Set cache headers
-    res.setHeader(
-      'Cache-Control',
-      'public, max-age=60, stale-while-revalidate=300'
-    );
-    res.setHeader(
-      'Surrogate-Control',
-      'public, max-age=60, stale-while-revalidate=300'
-    );
-    res.setHeader('Vary', 'Cookie, Accept-Encoding');
     
     // Format date for description
     const formattedDate = event.date ? formatDate(event.date) : 'TBD';
     
-    // Enhance descriptions for completed events with champion information
+    // Generate basic metadata
     let title = `${event.title} | Gaming Event | Merrouch Gaming`;
     let description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? event.description.substring(0, 150) + '...' : 'Join our gaming event!'}`;
     let ogTitle = `${event.title} | Gaming Tournament`;
     let ogDescription = `${event.status} ${event.team_type} tournament for ${event.game || 'gamers'} on ${formattedDate} at ${event.time || 'TBD'}. ${event.description ? event.description.substring(0, 100) + '...' : ''}`;
     
-    // Add champion information to completed events
+    // Enhance metadata for completed events with champion information
     if (event.status === 'Completed' && hasWinner && champion) {
       if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
         // For duo events, include both team members
@@ -172,87 +139,82 @@ export async function getServerSideProps({ params, res }) {
       }
     }
     
-    return {
-      props: {
-        metaData: {
-          title: title,
-          description: description,
-          image: event.image || "https://merrouchgaming.com/events.jpg",
-          url: `https://merrouchgaming.com/events/${id}`,
-          type: "event",
-          openGraph: {
-            title: ogTitle,
-            description: ogDescription,
-            images: [
-              {
-                url: event.image || "https://merrouchgaming.com/events.jpg",
-                width: 1200,
-                height: 630,
-                alt: `${event.title} - Gaming Tournament`
-              }
-            ],
-            type: "event"
-          },
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "Event",
-            "name": event.title,
-            "description": event.description || `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
-            "startDate": event.date,
-            "endDate": event.date,
-            "location": {
-              "@type": "Place",
-              "name": event.location || "Merrouch Gaming Center",
-              "address": {
-                "@type": "PostalAddress",
-                "addressLocality": "Tangier",
-                "addressCountry": "MA"
-              }
-            },
-            "image": [
-              event.image || "https://merrouchgaming.com/events.jpg"
-            ],
-            "organizer": {
-              "@type": "Organization",
-              "name": "Merrouch Gaming",
-              "url": "https://merrouchgaming.com"
-            },
-            ...(hasWinner && champion && {
-              "performer": event.team_type === 'duo' && champion.members && champion.members.length > 0 ? {
-                "@type": "Team",
-                "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
-                "member": [
-                  {
-                    "@type": "Person",
-                    "name": champion.name
-                  },
-                  {
-                    "@type": "Person",
-                    "name": champion.members[0]?.name || ''
-                  }
-                ]
-              } : {
-                "@type": "Person",
-                "name": champion.name
-              }
-            })
+    // Create full metadata object
+    const metadata = {
+      title,
+      description,
+      image: event.image || "https://merrouchgaming.com/events.jpg",
+      url: `https://merrouchgaming.com/events/${id}`,
+      type: "event",
+      openGraph: {
+        title: ogTitle,
+        description: ogDescription,
+        images: [
+          {
+            url: event.image || "https://merrouchgaming.com/events.jpg",
+            width: 1200,
+            height: 630,
+            alt: `${event.title} - Gaming Tournament`
           }
+        ],
+        type: "event"
+      },
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": event.title,
+        "description": event.description || `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
+        "startDate": event.date,
+        "endDate": event.date,
+        "location": {
+          "@type": "Place",
+          "name": event.location || "Merrouch Gaming Center",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Tangier",
+            "addressCountry": "MA"
+          }
+        },
+        "image": [
+          event.image || "https://merrouchgaming.com/events.jpg"
+        ],
+        "organizer": {
+          "@type": "Organization",
+          "name": "Merrouch Gaming",
+          "url": "https://merrouchgaming.com"
         }
       }
     };
+    
+    // Add champion information to structured data if available
+    if (hasWinner && champion) {
+      if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
+        metadata.structuredData.performer = {
+          "@type": "Team",
+          "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
+          "member": [
+            {
+              "@type": "Person",
+              "name": champion.name
+            },
+            {
+              "@type": "Person",
+              "name": champion.members[0]?.name || ''
+            }
+          ]
+        };
+      } else {
+        metadata.structuredData.performer = {
+          "@type": "Person",
+          "name": champion.name
+        };
+      }
+    }
+    
+    return { props: { metaData: metadata } };
   } catch (error) {
     console.error('Error fetching event for SEO:', error);
-    return {
-      props: {
-        metaData: {
-          title: "Gaming Event | Merrouch Gaming Center",
-          description: "Join our exciting gaming tournaments and events at Merrouch Gaming Center.",
-          image: "https://merrouchgaming.com/events.jpg",
-          url: `https://merrouchgaming.com/events/${id}`,
-          type: "website"
-        }
-      }
-    };
+    return { props: { metaData: notFoundMetadata } };
   }
 }
 
