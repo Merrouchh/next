@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { 
   FaImage, 
@@ -11,8 +11,62 @@ import {
   FaArrowRight,
   FaExpand
 } from 'react-icons/fa';
+import Image from 'next/image';
 import styles from '../styles/EventGallery.module.css';
 import { useAuth } from '../contexts/AuthContext';
+import { useInView } from 'react-intersection-observer';
+
+// Create a virtualized thumbnail component
+const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
+  // Use intersection observer to only load images when they're visible
+  const [ref, inView] = useInView({
+    triggerOnce: false,
+    rootMargin: '200px 0px', // Load images 200px before they enter viewport
+    threshold: 0.1
+  });
+
+  return (
+    <div 
+      ref={ref}
+      className={styles.galleryItem}
+      onClick={onClick}
+    >
+      <div className={styles.imageContainer}>
+        {inView ? (
+          <Image 
+            src={image.image_url} 
+            alt={image.caption || 'Event gallery image'} 
+            className={styles.galleryImage}
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEhQJ/hELJ4wAAAABJRU5ErkJggg=="
+            priority={index < 8} // Prioritize loading first 8 images
+            loading={index < 8 ? "eager" : "lazy"}
+          />
+        ) : (
+          // Empty div with same aspect ratio while not in view
+          <div style={{ width: '100%', paddingBottom: '56.25%', backgroundColor: '#222' }} />
+        )}
+        <FaExpand className={styles.expandIcon} />
+        {isAdmin && (
+          <button 
+            className={styles.deleteButton} 
+            onClick={(e) => onDelete(e, image.id)}
+            aria-label="Delete image"
+          >
+            <FaTrashAlt />
+          </button>
+        )}
+      </div>
+      {image.caption && (
+        <div className={styles.imageCaption}>
+          {image.caption}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const EventGallery = ({ eventId }) => {
   const [images, setImages] = useState([]);
@@ -26,12 +80,18 @@ const EventGallery = ({ eventId }) => {
   // Slideshow state
   const [slideshowOpen, setSlideshowOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [slideLoaded, setSlideLoaded] = useState(false);
   
   const { user, supabase } = useAuth();
   const fileInputRef = useRef(null);
 
   // Check if user is an admin
   const isAdmin = user?.isAdmin || false;
+
+  // Chunking implementation for large galleries
+  const CHUNK_SIZE = 20; // Load images in chunks of 20
+  const [visibleChunks, setVisibleChunks] = useState(1);
+  const [hasMoreChunks, setHasMoreChunks] = useState(true);
 
   // Fetch gallery images
   useEffect(() => {
@@ -59,6 +119,30 @@ const EventGallery = ({ eventId }) => {
     };
   }, [slideshowOpen, currentSlideIndex, images]);
 
+  // Intersection observer to detect when user scrolls to bottom to load more chunks
+  const [loadMoreRef, loadMoreInView] = useInView({
+    threshold: 0.1,
+    rootMargin: '200px 0px',
+  });
+
+  // Load more images when user scrolls to bottom
+  useEffect(() => {
+    if (loadMoreInView && hasMoreChunks) {
+      loadNextChunk();
+    }
+  }, [loadMoreInView, hasMoreChunks]);
+
+  const loadNextChunk = useCallback(() => {
+    setVisibleChunks(prev => {
+      const nextValue = prev + 1;
+      // Check if we've loaded all images
+      if (nextValue * CHUNK_SIZE >= images.length) {
+        setHasMoreChunks(false);
+      }
+      return nextValue;
+    });
+  }, [images.length]);
+
   const fetchGalleryImages = async () => {
     setIsLoading(true);
     try {
@@ -74,7 +158,13 @@ const EventGallery = ({ eventId }) => {
       }
       
       const data = await response.json();
-      setImages(data.images || []);
+      const galleryImages = data.images || [];
+      
+      setImages(galleryImages);
+      
+      // Reset chunking state
+      setVisibleChunks(1);
+      setHasMoreChunks(galleryImages.length > CHUNK_SIZE);
     } catch (error) {
       console.error('Error fetching gallery:', error);
       toast.error('Could not load gallery images');
@@ -243,6 +333,7 @@ const EventGallery = ({ eventId }) => {
   // Slideshow functions
   const openSlideshow = (index) => {
     setCurrentSlideIndex(index);
+    setSlideLoaded(false); // Reset loading state
     setSlideshowOpen(true);
   };
   
@@ -251,21 +342,45 @@ const EventGallery = ({ eventId }) => {
   };
   
   const showNextSlide = () => {
+    setSlideLoaded(false); // Reset loading state
     setCurrentSlideIndex((prev) => 
       prev === images.length - 1 ? 0 : prev + 1
     );
   };
   
   const showPreviousSlide = () => {
+    setSlideLoaded(false); // Reset loading state
     setCurrentSlideIndex((prev) => 
       prev === 0 ? images.length - 1 : prev - 1
     );
   };
 
+  // Preload adjacent images to make slideshow navigation faster
+  useEffect(() => {
+    if (!slideshowOpen || images.length <= 1) return;
+    
+    const preloadImage = (index) => {
+      // Use the native Image constructor, not the Next.js Image component
+      const img = new window.Image();
+      img.src = images[index].image_url;
+    };
+    
+    // Preload next image
+    const nextIndex = currentSlideIndex === images.length - 1 ? 0 : currentSlideIndex + 1;
+    preloadImage(nextIndex);
+    
+    // Preload previous image
+    const prevIndex = currentSlideIndex === 0 ? images.length - 1 : currentSlideIndex - 1;
+    preloadImage(prevIndex);
+  }, [currentSlideIndex, slideshowOpen, images]);
+
   // If there are no images and user is not admin, don't show anything
   if (images.length === 0 && !isAdmin && !isLoading) {
     return null;
   }
+
+  // Get visible images based on chunking
+  const visibleImages = images.slice(0, visibleChunks * CHUNK_SIZE);
 
   return (
     <div className={styles.galleryContainer}>
@@ -299,39 +414,28 @@ const EventGallery = ({ eventId }) => {
               {isAdmin && <p>Use the "Add Image" button to upload images to the event gallery.</p>}
             </div>
           ) : (
-            <div className={styles.galleryGrid}>
-              {images.map((image, index) => (
-                <div 
-                  key={image.id} 
-                  className={styles.galleryItem}
-                  onClick={() => openSlideshow(index)}
-                >
-                  <div className={styles.imageContainer}>
-                    <img 
-                      src={image.image_url} 
-                      alt={image.caption || 'Event gallery image'} 
-                      className={styles.galleryImage}
-                      loading="lazy"
-                    />
-                    <FaExpand className={styles.expandIcon} />
-                    {isAdmin && (
-                      <button 
-                        className={styles.deleteButton} 
-                        onClick={(e) => deleteImage(e, image.id)}
-                        aria-label="Delete image"
-                      >
-                        <FaTrashAlt />
-                      </button>
-                    )}
-                  </div>
-                  {image.caption && (
-                    <div className={styles.imageCaption}>
-                      {image.caption}
-                    </div>
-                  )}
+            <>
+              <div className={styles.galleryGrid}>
+                {visibleImages.map((image, index) => (
+                  <GalleryThumbnail
+                    key={image.id}
+                    image={image}
+                    index={index}
+                    onClick={() => openSlideshow(index)}
+                    onDelete={deleteImage}
+                    isAdmin={isAdmin}
+                  />
+                ))}
+              </div>
+              
+              {/* Load more reference element */}
+              {hasMoreChunks && (
+                <div ref={loadMoreRef} className={styles.loadMoreContainer}>
+                  <FaSpinner className={styles.spinnerIcon} />
+                  <p>Loading more images...</p>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
           
           {/* Upload Modal */}
@@ -375,55 +479,49 @@ const EventGallery = ({ eventId }) => {
                     ) : (
                       <label className={styles.fileInputLabel}>
                         <FaUpload className={styles.uploadIcon} />
-                        <span>Select Image</span>
-                        <input
+                        <span>Click to select image</span>
+                        <input 
                           type="file"
-                          ref={fileInputRef}
+                          accept="image/jpeg, image/png, image/gif, image/webp"
                           className={styles.fileInput}
-                          accept="image/jpeg,image/png,image/gif,image/webp"
                           onChange={handleFileChange}
+                          ref={fileInputRef}
                         />
                       </label>
                     )}
                   </div>
                   
                   <div className={styles.formGroup}>
-                    <label htmlFor="caption">Caption (optional):</label>
-                    <input
+                    <label htmlFor="caption">Caption (optional)</label>
+                    <input 
                       type="text"
                       id="caption"
-                      placeholder="Enter image caption"
+                      placeholder="Add a caption for the image"
+                      className={styles.captionInput}
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
-                      className={styles.captionInput}
-                      maxLength={100}
                     />
                   </div>
                   
                   <div className={styles.modalFooter}>
                     <button 
-                      type="button" 
+                      type="button"
                       className={styles.cancelButton}
                       onClick={closeModal}
                     >
                       Cancel
                     </button>
                     <button 
-                      type="submit" 
+                      type="submit"
                       className={styles.submitButton}
                       disabled={!selectedImage || isUploading}
                     >
                       {isUploading ? (
                         <>
                           <FaSpinner className={styles.spinnerIcon} />
-                          <span>Uploading...</span>
+                          Uploading...
                         </>
-                      ) : (
-                        <>
-                          <FaUpload />
-                          <span>Upload Image</span>
-                        </>
-                      )}
+                      ) : 'Upload Image'}
                     </button>
                   </div>
                 </form>
@@ -446,10 +544,23 @@ const EventGallery = ({ eventId }) => {
                 </div>
                 
                 <div className={styles.slideContent}>
-                  <img 
+                  {/* Show loading spinner until image is loaded */}
+                  {!slideLoaded && (
+                    <div className={styles.slideLoading}>
+                      <FaSpinner className={styles.spinnerIcon} />
+                    </div>
+                  )}
+                  
+                  <Image 
                     src={images[currentSlideIndex].image_url} 
                     alt={images[currentSlideIndex].caption || 'Gallery image'} 
-                    className={styles.slideImage}
+                    className={`${styles.slideImage} ${slideLoaded ? styles.slideImageLoaded : ''}`}
+                    fill
+                    sizes="95vw"
+                    quality={100}
+                    priority={true}
+                    onLoadingComplete={() => setSlideLoaded(true)}
+                    style={{ objectFit: 'contain' }}
                   />
                   
                   {images.length > 1 && (
