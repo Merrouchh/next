@@ -116,9 +116,21 @@ export async function getServerSideProps({ req, res, params }) {
 
     // Generate video and thumbnail URLs
     const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
-    const thumbnailUrl = clip.cloudflare_uid
-      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-      : 'https://merrouchgaming.com/top.jpg';
+    
+    // Determine thumbnail URL with priority order
+    let thumbnailUrl = 'https://merrouchgaming.com/top.jpg';
+    
+    if (clip.cloudflare_uid) {
+      // Cloudflare Stream thumbnail (highest quality)
+      thumbnailUrl = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
+    } else if (clip.thumbnail_path) {
+      // Fallback to stored thumbnail if available
+      thumbnailUrl = clip.thumbnail_path.startsWith('http') 
+        ? clip.thumbnail_path 
+        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`;
+    }
+    
+    console.log('Using thumbnail URL for clip page:', thumbnailUrl);
 
     return {
       props: {
@@ -137,12 +149,27 @@ export async function getServerSideProps({ req, res, params }) {
             description: `Amazing gaming moment by ${clip.username} at Merrouch Gaming. ${
               clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
             }${clip.likes_count ? `, ${clip.likes_count.toLocaleString()} likes` : ''}`,
+            images: [
+              {
+                url: thumbnailUrl,
+                width: 1280,
+                height: 720,
+                alt: `${clip.title} - Gaming clip by ${clip.username}`
+              }
+            ],
             videos: [{
               url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
               width: 1280,
               height: 720,
               type: 'application/x-mpegURL'
             }]
+          },
+          twitter: {
+            card: "summary_large_image",
+            site: "@merrouchgaming",
+            title: `${clip.title} - Gaming Clip`,
+            description: description.substring(0, 200),
+            image: thumbnailUrl
           },
           structuredData: {
             "@context": "https://schema.org",
