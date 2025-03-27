@@ -54,16 +54,31 @@ export async function getServerSideProps({ req, res }) {
 
     if (error) throw error;
 
-    // Process clips to ensure proper thumbnail URLs
-    const processedClips = clips?.map(clip => ({
-      ...clip,
-      thumbnail_url: clip.cloudflare_uid 
-        ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-        : 'https://merrouchgaming.com/top.jpg'
-    }));
-
-    const featuredClip = processedClips?.[0];
-    const previewImage = featuredClip?.thumbnail_url || 'https://merrouchgaming.com/top.jpg';
+    // Get the latest clip for the preview image
+    let previewImage = 'https://merrouchgaming.com/top.jpg';
+    let latestClipTitle = '';
+    
+    if (clips && clips.length > 0) {
+      const featuredClip = clips[0];
+      
+      // Prefer cloudflare thumbnail if available
+      if (featuredClip.cloudflare_uid) {
+        previewImage = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${featuredClip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
+      } else if (featuredClip.thumbnail_path) {
+        previewImage = featuredClip.thumbnail_path;
+      }
+      
+      latestClipTitle = featuredClip.title || '';
+      
+      // Add thumbnail_url to processed clips for client-side use
+      clips.forEach(clip => {
+        clip.thumbnail_url = clip.cloudflare_uid 
+          ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+          : clip.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
+      });
+    }
+    
+    console.log('Using preview image for discover page:', previewImage);
 
     // Set cache headers
     res.setHeader(
@@ -71,14 +86,19 @@ export async function getServerSideProps({ req, res }) {
       'public, s-maxage=30, stale-while-revalidate=120'
     );
 
+    // Build rich metadata
+    const metaDescription = clips && clips.length > 0 
+      ? `Watch the best gaming moments from our community, including "${latestClipTitle}". High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.`
+      : "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.";
+
     return {
       props: {
-        initialClips: processedClips || [],
+        initialClips: clips || [],
         totalClips: count || 0,
         hasMore: (clips?.length || 0) < (count || 0),
         metaData: {
           title: "Discover Gaming Highlights | RTX 3070 Gaming Clips",
-          description: "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.",
+          description: metaDescription,
           image: previewImage,
           url: "https://merrouchgaming.com/discover",
           type: "website",
@@ -87,12 +107,19 @@ export async function getServerSideProps({ req, res }) {
             description: "Discover amazing gaming moments from our RTX 3070 gaming setups. Watch, share, and create your own highlights!",
             images: [
               {
-                url: "https://merrouchgaming.com/discover-preview.jpg",
+                url: previewImage,
                 width: 1200,
                 height: 630,
-                alt: "Gaming Highlights"
+                alt: latestClipTitle || "Gaming Highlights"
               }
             ]
+          },
+          twitter: {
+            card: "summary_large_image",
+            site: "@merrouchgaming",
+            title: "Gaming Highlights | Merrouch Gaming",
+            description: metaDescription,
+            image: previewImage
           },
           structuredData: {
             "@context": "https://schema.org",
@@ -108,7 +135,8 @@ export async function getServerSideProps({ req, res }) {
               "@type": "Thing",
               "name": "Gaming Highlights",
               "description": "High-quality gaming clips recorded on RTX 3070 PCs"
-            }
+            },
+            "image": previewImage
           }
         }
       }
