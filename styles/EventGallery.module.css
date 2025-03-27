@@ -248,6 +248,8 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  height: 80vh;
+  width: 100%;
 }
 
 .slideImage {
@@ -256,6 +258,12 @@
   object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+  opacity: 1 !important;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.slideImageLoaded {
+  opacity: 1;
 }
 
 .slideNavButton {
@@ -597,4 +605,18 @@
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* Styles for thumbnail loading indicator */
+.thumbnailLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 5;
 } 

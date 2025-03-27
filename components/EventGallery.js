@@ -16,6 +16,66 @@ import styles from '../styles/EventGallery.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useInView } from 'react-intersection-observer';
 
+// Create a slideshow image component with fallback
+const SlideshowImage = ({ image, onLoaded, onError }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  return (
+    <>
+      {!imageError ? (
+        <div style={{ 
+          position: 'relative', 
+          width: '100%', 
+          height: '100%', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center' 
+        }}>
+          <Image 
+            src={image.image_url} 
+            alt={image.caption || 'Gallery image'} 
+            className={styles.slideImage}
+            width={1200}
+            height={800}
+            style={{ 
+              maxWidth: '95%', 
+              maxHeight: '80vh', 
+              objectFit: 'contain',
+              width: 'auto',
+              height: 'auto'
+            }}
+            quality={90}
+            priority={true}
+            onLoadingComplete={onLoaded}
+            onError={() => {
+              console.log('Slideshow image optimization failed, falling back to original:', image.image_url);
+              setImageError(true);
+            }}
+          />
+        </div>
+      ) : (
+        // Fallback to regular img tag if Next.js Image fails
+        <img 
+          src={image.image_url} 
+          alt={image.caption || 'Gallery image'} 
+          className={styles.slideImage}
+          style={{ 
+            maxHeight: '80vh', 
+            maxWidth: '95%', 
+            margin: '0 auto', 
+            objectFit: 'contain' 
+          }}
+          onLoad={onLoaded}
+          onError={() => {
+            console.error('Direct slideshow image loading also failed:', image.image_url);
+            onError();
+          }}
+        />
+      )}
+    </>
+  );
+};
+
 // Create a virtualized thumbnail component
 const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
   // Use intersection observer to only load images when they're visible
@@ -24,6 +84,10 @@ const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
     rootMargin: '200px 0px', // Load images 200px before they enter viewport
     threshold: 0.1
   });
+  
+  // Add state to track image loading errors
+  const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   return (
     <div 
@@ -32,19 +96,50 @@ const GalleryThumbnail = ({ image, index, onClick, onDelete, isAdmin }) => {
       onClick={onClick}
     >
       <div className={styles.imageContainer}>
-        {inView ? (
-          <Image 
-            src={image.image_url} 
-            alt={image.caption || 'Event gallery image'} 
-            className={styles.galleryImage}
-            fill
-            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEhQJ/hELJ4wAAAABJRU5ErkJggg=="
-            priority={index < 8} // Prioritize loading first 8 images
-            loading={index < 8 ? "eager" : "lazy"}
-          />
-        ) : (
+        {inView && (
+          <>
+            {/* Show spinner while loading */}
+            {isLoading && !imageError && (
+              <div className={styles.thumbnailLoading}>
+                <FaSpinner className={styles.spinnerIcon} />
+              </div>
+            )}
+            
+            {/* Use Next.js Image with error handling */}
+            {!imageError ? (
+              <Image 
+                src={image.image_url} 
+                alt={image.caption || 'Event gallery image'} 
+                className={styles.galleryImage}
+                fill
+                sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEhQJ/hELJ4wAAAABJRU5ErkJggg=="
+                priority={index < 8} // Prioritize loading first 8 images
+                loading={index < 8 ? "eager" : "lazy"}
+                onLoadingComplete={() => setIsLoading(false)}
+                onError={() => {
+                  console.log('Image optimization failed, falling back to original:', image.image_url);
+                  setImageError(true);
+                  setIsLoading(false);
+                }}
+              />
+            ) : (
+              // Fallback to regular img tag if Next.js Image fails
+              <img 
+                src={image.image_url} 
+                alt={image.caption || 'Event gallery image'} 
+                className={styles.galleryImage}
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  console.error('Direct image loading also failed:', image.image_url);
+                  setIsLoading(false);
+                }}
+              />
+            )}
+          </>
+        )}
+        {!inView && (
           // Empty div with same aspect ratio while not in view
           <div style={{ width: '100%', paddingBottom: '56.25%', backgroundColor: '#222' }} />
         )}
@@ -551,16 +646,11 @@ const EventGallery = ({ eventId }) => {
                     </div>
                   )}
                   
-                  <Image 
-                    src={images[currentSlideIndex].image_url} 
-                    alt={images[currentSlideIndex].caption || 'Gallery image'} 
-                    className={`${styles.slideImage} ${slideLoaded ? styles.slideImageLoaded : ''}`}
-                    fill
-                    sizes="95vw"
-                    quality={100}
-                    priority={true}
-                    onLoadingComplete={() => setSlideLoaded(true)}
-                    style={{ objectFit: 'contain' }}
+                  {/* Use SlideshowImage component for error handling */}
+                  <SlideshowImage 
+                    image={images[currentSlideIndex]}
+                    onLoaded={() => setSlideLoaded(true)}
+                    onError={() => setSlideLoaded(true)} // Still mark as loaded on error to remove spinner
                   />
                   
                   {images.length > 1 && (
