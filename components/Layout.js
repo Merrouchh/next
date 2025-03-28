@@ -4,8 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import LoadingScreen from './LoadingScreen';
 import React from 'react';
-import FAQSchema from './FAQSchema';
-import PriceRangeSchema from './PriceRangeSchema';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
@@ -79,12 +77,6 @@ const Layout = ({ children }) => {
       <div className={styles.layoutWrapper}>
         <div className={styles.layoutContent}>
           <main className={styles.mainContent}>
-            {isHomePage && (
-              <>
-                <FAQSchema />
-                <PriceRangeSchema />
-              </>
-            )}
             {children}
           </main>
           {!shouldHideFooter() && <Footer />}

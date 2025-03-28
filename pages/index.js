@@ -19,7 +19,6 @@ import NumberDisplay from '../components/NumberDisplay';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import HeroSection from '../components/HeroSection';
-import FAQSchema from '../components/FAQSchema';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
@@ -66,8 +65,6 @@ const Home = ({ metaData }) => {
       </Head>
 
       <DynamicMeta {...metaData} />
-
-      <FAQSchema />
 
       <ProtectedPageWrapper progress={scrollProgress}>
         <main className={styles.mainWrapper}>
@@ -187,6 +184,14 @@ const Home = ({ metaData }) => {
 export default Home;
 
 export async function getServerSideProps() {
+  // Import the schema functions
+  const { getFAQPageSchema } = require('../components/FAQSchema');
+  const { getPriceRangeSchema } = require('../components/PriceRangeSchema');
+  
+  // Get both schema objects
+  const faqSchema = getFAQPageSchema();
+  const priceSchema = getPriceRangeSchema();
+  
   return {
     props: {
       metaData: {
@@ -206,7 +211,9 @@ export async function getServerSideProps() {
               alt: "Merrouch Gaming Center"
             }
           ]
-        }
+        },
+        // Combine schemas into an array of structured data
+        structuredData: [faqSchema, priceSchema]
       }
     }
   };

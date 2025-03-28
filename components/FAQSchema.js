@@ -35,17 +35,12 @@ export const faqData = [
   }
 ];
 
-export default function FAQSchema() {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          "mainEntity": faqData
-        })
-      }}
-    />
-  );
-} 
+// Create a FAQPage schema object that can be used in structured data
+export const getFAQPageSchema = () => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqData
+});
+
+// Removing the default component export that renders a script tag
+// Now this file only exports data that can be used by other components 

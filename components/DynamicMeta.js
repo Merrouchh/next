@@ -82,10 +82,22 @@ export default function DynamicMeta({
       {/* Add structured data if provided */}
       {structuredData && (
         <Head>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-          />
+          {Array.isArray(structuredData) ? (
+            // If it's an array of schema objects, render multiple script tags
+            structuredData.map((schema, index) => (
+              <script
+                key={`schema-${index}`}
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+              />
+            ))
+          ) : (
+            // If it's a single schema object, render one script tag
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+            />
+          )}
         </Head>
       )}
     </>
