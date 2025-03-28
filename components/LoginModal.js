@@ -172,7 +172,7 @@ const LoginModal = ({ isOpen, onClose }) => {
 
     try {
       const response = await validateUserCredentials(
-        formData.username, 
+        formData.username.toLowerCase(), 
         formData.gizmoPassword
       );
 
@@ -375,8 +375,8 @@ const LoginModal = ({ isOpen, onClose }) => {
 
     try {
       const success = await createUser({
-        username: formData.username,
-        email: formData.email,
+        username: formData.username.toLowerCase(),
+        email: formData.email.toLowerCase(),
         password: formData.password,
         gizmoId: validatedGizmoData.gizmoId
       });

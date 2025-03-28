@@ -28,8 +28,10 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 const Home = ({ metaData }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [_progress, setProgress] = useState(0);
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Add effect to handle redirection
   useEffect(() => {
@@ -64,7 +66,7 @@ const Home = ({ metaData }) => {
 
       <DynamicMeta {...metaData} />
 
-      <ProtectedPageWrapper>
+      <ProtectedPageWrapper progress={scrollProgress}>
         <main className={styles.mainWrapper}>
           <h1 className={styles.mainHeading}>Merrouch Gaming Center | Best Gaming Center in Tangier</h1>
           
@@ -72,6 +74,25 @@ const Home = ({ metaData }) => {
             onCheckAvailability={handleCheckAvailability}
             router={router}
           />
+
+          {/* Stats Section - Add gaming stats section */}
+          <div className={styles.statsWrapper}>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>🎮</span>
+              <span className={styles.statValue}>14</span>
+              <span className={styles.statLabel}>GAMING STATIONS</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>⚡</span>
+              <span className={styles.statValue}>200</span>
+              <span className={styles.statLabel}>MBPS SPEED</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statIcon}>🏆</span>
+              <span className={styles.statValue}>7/7</span>
+              <span className={styles.statLabel}>OPEN DAILY</span>
+            </div>
+          </div>
 
           {/* Cards Section */}
           <div className={styles.cardContainer}>

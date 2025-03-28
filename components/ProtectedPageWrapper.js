@@ -12,7 +12,7 @@ import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
 import { AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineCalendar } from 'react-icons/ai';
 
-const ProtectedPageWrapper = ({ children, progress = 0 }) => {
+const ProtectedPageWrapper = ({ children }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -54,14 +54,6 @@ const ProtectedPageWrapper = ({ children, progress = 0 }) => {
       >
         <div className={styles.headerWrapper}>
           <Header />
-          {router.pathname === '/' && (
-            <div className={styles.progressBarContainer}>
-              <div 
-                className={styles.progressBar}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          )}
         </div>
         
         {showDashboardHeader && (

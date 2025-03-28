@@ -292,6 +292,36 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
     }
   }, [isLoggedIn, localClip?.visibility, localClip?.user_id, user?.id, isOwnClip]);
 
+  // Fix the condition to properly check if the user is the owner
+  // If user is owner, we should show the clip regardless of privacy status
+  if (isOwnClip) {
+    // Always render the clip for its owner, even if private
+    return (
+      <ProtectedPageWrapper>
+        <DynamicMeta {...metaData} />
+        <main className={styles.main}>
+          <div className={styles.clipContainer}>
+            <ClipCard
+              clip={localClip}
+              isFullWidth={true}
+              onClipUpdate={(clipId, action) => {
+                if (action === 'delete') {
+                  router.replace('/discover');
+                }
+              }}
+            />
+            {isPrivate && (
+              <div className={styles.privateNotice}>
+                <p>This clip is private and only visible to you.</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </ProtectedPageWrapper>
+    );
+  }
+  
+  // For non-owners, check visibility rules
   if ((!shouldShowClip || status === 'private') && !isOwnClip) {
     return (
       <ProtectedPageWrapper>

@@ -32,65 +32,62 @@ const HeroSection = ({ onCheckAvailability, router }) => (
         className={styles.heroContent}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
+        transition={{ duration: 0.6 }}
       >
         {/* Logo Section */}
         <motion.div 
           className={styles.logoContainer}
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
         >
-          {/* Desktop Logo */}
-          <div className={styles.desktopLogo}>
+          {/* Logo for desktop only */}
+          <div className={styles.brandLogoContainer}>
             <Image
               src="/logomobile.png"
               alt="Merrouch Gaming"
-              width={220}
-              height={110}
+              width={200}
+              height={100}
               priority
               className={styles.brandLogo}
             />
-          </div>
-
-          {/* Mobile Text Logo */}
-          <div className={styles.mobileLogo}>
-            <span className={styles.welcome}>Welcome To</span>
-            <div>
-              <span className={styles.merrouch}>Merrouch</span>{' '}
-              <span className={styles.gaming}>Gaming</span>
-            </div>
           </div>
         </motion.div>
 
         {/* Gaming Stats */}
         <motion.div 
           className={styles.statsContainer}
-          initial={{ y: 50, opacity: 0 }}
+          initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
         >
           <div className={styles.statBox}>
-            <FaGamepad className={styles.statIcon} />
+            <div className={styles.iconWrapper}>
+              <FaGamepad className={styles.statIcon} />
+            </div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>14</span>
-              <span className={styles.statLabel}>GAMING STATIONS</span>
+              <span className={styles.statLabel}>Gaming Stations</span>
             </div>
           </div>
-          <div className={styles.divider} />
+          
           <div className={styles.statBox}>
-            <FaBolt className={styles.statIcon} />
+            <div className={styles.iconWrapper}>
+              <FaBolt className={styles.statIcon} />
+            </div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>200</span>
-              <span className={styles.statLabel}>MBPS SPEED</span>
+              <span className={styles.statLabel}>Mbps Speed</span>
             </div>
           </div>
-          <div className={styles.divider} />
+          
           <div className={styles.statBox}>
-            <FaTrophy className={styles.statIcon} />
+            <div className={styles.iconWrapper}>
+              <FaTrophy className={styles.statIcon} />
+            </div>
             <div className={styles.statInfo}>
-              <span className={styles.statValue}>7 / 7</span>
-              <span className={styles.statLabel}>OPEN DAILY</span>
+              <span className={styles.statValue}>7/7</span>
+              <span className={styles.statLabel}>Open Daily</span>
             </div>
           </div>
         </motion.div>
@@ -104,9 +101,9 @@ const HeroSection = ({ onCheckAvailability, router }) => (
           <motion.div
             key={index}
             className={styles.galleryImage}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 * index, duration: 0.8 }}
+            transition={{ delay: 0.1 * index, duration: 0.5 }}
             whileHover={{ 
               scale: 1.03,
               transition: { duration: 0.3 }
@@ -126,9 +123,9 @@ const HeroSection = ({ onCheckAvailability, router }) => (
             />
             <motion.div 
               className={styles.imageCaption}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 * index, duration: 0.8 }}
+              transition={{ delay: 0.15 * index, duration: 0.5 }}
             >
               <h3>{image.title}</h3>
             </motion.div>
@@ -141,9 +138,9 @@ const HeroSection = ({ onCheckAvailability, router }) => (
     <section className={styles.ctaSection}>
       <motion.div 
         className={styles.ctaContainer}
-        initial={{ y: 30, opacity: 0 }}
+        initial={{ y: 15, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+        transition={{ delay: 0.6, duration: 0.4 }}
       >
         <button 
           className={styles.primaryCta}

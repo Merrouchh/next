@@ -123,24 +123,6 @@
   }
 }
 
-/* Progress Bar */
-.progressBarContainer {
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--background-tertiary);
-  z-index: 1003;
-}
-
-.progressBar {
-  height: 100%;
-  background: var(--accent-primary);
-  box-shadow: 0 0 10px var(--accent-glow);
-  transition: width 0.2s ease-out;
-}
-
 /* Desktop Adjustments */
 @media (min-width: 769px) {
   .wrapper {
