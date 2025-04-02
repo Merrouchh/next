@@ -851,12 +851,15 @@ export const AuthProvider = ({ children, onError }) => {
   // Function to check if a user exists in the Supabase database
   const userExists = async (username) => {
     try {
-      const lowerCaseUsername = username.toLowerCase();
+      // Normalize username to lowercase and remove any whitespace
+      const normalizedUsername = username.trim().toLowerCase();
+      
       const { data, error } = await supabaseRef.current
         .from('users')
         .select('username, email, is_admin')
-        .eq('username', lowerCaseUsername)
+        .eq('username', normalizedUsername)
         .single();
+        
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking if user exists:', error);
       }
@@ -870,6 +873,9 @@ export const AuthProvider = ({ children, onError }) => {
   // Function to create a user in the Supabase database
   const createUser = async ({ username, email, password, gizmoId }) => {
     try {
+      // Normalize username to lowercase and remove any whitespace
+      const normalizedUsername = username.trim().toLowerCase();
+      
       // Create auth user in Supabase
       const { data: authData, error: authError } = await supabaseRef.current.auth.signUp({
         email,
@@ -885,7 +891,7 @@ export const AuthProvider = ({ children, onError }) => {
           {
             id: authData.user.id,
             email: email,
-            username: username.toLowerCase(),
+            username: normalizedUsername,
             gizmo_id: gizmoId
           }
         ])

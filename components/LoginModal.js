@@ -131,7 +131,9 @@ const LoginModal = ({ isOpen, onClose }) => {
             type="text"
             placeholder="Username or Email"
             value={formData.username}
-            onChange={(e) => setFormData({...formData, username: e.target.value})}
+            onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase()})}
+            pattern="[a-z0-9._%+-]+"
+            title="Username must be lowercase letters, numbers, or special characters (._%+-)"
           />
         </div>
         <div className={styles.inputWrapper}>
@@ -234,7 +236,9 @@ const LoginModal = ({ isOpen, onClose }) => {
             type="text"
             placeholder="Gaming Username"
             value={formData.username}
-            onChange={(e) => setFormData({...formData, username: e.target.value})}
+            onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase()})}
+            pattern="[a-z0-9._%+-]+"
+            title="Username must be lowercase letters, numbers, or special characters (._%+-)"
           />
         </div>
         <div className={styles.inputWrapper}>
