@@ -1,0 +1,205 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 2rem;
+  color: var(--text-light);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.section {
+  margin-bottom: 3rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  color: var(--primary-yellow);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolCard {
+  background: var(--primary-black-transparent);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid var(--transparent-light);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.input {
+  background: var(--primary-black-light);
+  border: 1px solid var(--transparent-light);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+}
+
+.button {
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--accent-yellow);
+  transform: translateY(-2px);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--transparent-light);
+}
+
+.result h3 {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.resultCard {
+  background: var(--primary-black-light);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--transparent-light);
+}
+
+.resultCard p {
+  color: var(--text-light);
+  margin: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resultCard strong {
+  color: var(--primary-yellow);
+}
+
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--primary-black);
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid var(--transparent-light);
+  border-top: 3px solid var(--primary-yellow);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.2rem;
+  }
+
+  .toolCard {
+    padding: 1.5rem;
+  }
+
+  .resultCard {
+    padding: 1rem;
+  }
+}
+
+.gizmoIdRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.gizmoIdValue {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-light);
+}
+
+.copyButton {
+  background: none;
+  border: none;
+  color: var(--primary-yellow);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.copyButton:hover {
+  background: rgba(255, 215, 0, 0.1);
+  transform: scale(1.1);
+}
+
+.copyButton:active {
+  transform: scale(0.95);
+} 

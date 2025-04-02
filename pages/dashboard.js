@@ -220,7 +220,15 @@ const Dashboard = ({ _initialClips, metaData }) => {
 
   useEffect(() => {
     if (pageState.data) return;
-    if (!user?.gizmo_id) return;
+    if (!user?.gizmo_id) {
+      // If no gizmo_id, set loading to false and show appropriate message
+      setPageState({
+        loading: false,
+        error: 'No gaming account linked. Please contact Merrouch Gaming on WhatsApp: +212 656-053641',
+        data: null
+      });
+      return;
+    }
 
     const initialize = async () => {
       try {
@@ -314,6 +322,17 @@ const Dashboard = ({ _initialClips, metaData }) => {
           {pageState.error ? (
             <div className={styles.errorMessage}>
               <p>{pageState.error}</p>
+              <div className={styles.contactInfo}>
+                <p>You can reach us on:</p>
+                <a 
+                  href="https://wa.me/212656053641" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.whatsappLink}
+                >
+                  WhatsApp: +212 656-053641
+                </a>
+              </div>
               <div className={styles.retryActions}>
                 <button 
                   onClick={() => window.location.reload()}

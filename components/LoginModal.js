@@ -131,9 +131,12 @@ const LoginModal = ({ isOpen, onClose }) => {
             type="text"
             placeholder="Username or Email"
             value={formData.username}
-            onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase()})}
-            pattern="[a-z0-9._%+-]+"
-            title="Username must be lowercase letters, numbers, or special characters (._%+-)"
+            onChange={(e) => {
+              const value = e.target.value;
+              // Only convert to lowercase if it's not an email
+              const processedValue = value.includes('@') ? value : value.toLowerCase();
+              setFormData({...formData, username: processedValue});
+            }}
           />
         </div>
         <div className={styles.inputWrapper}>
