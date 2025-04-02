@@ -13,7 +13,7 @@ import { useModal } from '../contexts/ModalContext';
 import { AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineCalendar } from 'react-icons/ai';
 
 const ProtectedPageWrapper = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isLoginModalOpen } = useModal();
@@ -31,7 +31,7 @@ const ProtectedPageWrapper = ({ children }) => {
 
   // Handle authentication-based routing
   useEffect(() => {
-    if (loading || isVerificationPage) return;
+    if (!initialized) return;
 
     // If user is logged in and on home page, redirect to dashboard
     if (user && router.pathname === '/') {
@@ -44,7 +44,7 @@ const ProtectedPageWrapper = ({ children }) => {
     if (!user && routeConfig.requireAuth) {
       router.replace('/');
     }
-  }, [loading, user, router, routeConfig.requireAuth, router.pathname, isVerificationPage]);
+  }, [initialized, user, router, routeConfig.requireAuth, router.pathname, isVerificationPage]);
 
   // Show loading spinner during authentication check for protected routes
   if (loading && routeConfig.requireAuth) {
