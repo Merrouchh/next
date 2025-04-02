@@ -404,12 +404,13 @@ export default function EventRegistrations() {
     
     try {
       // Create CSV content
-      const headers = ['Name', 'Email', 'Registration Date', 'Status', 'Notes'];
+      const headers = ['Name', 'Email', 'Phone', 'Registration Date', 'Status', 'Notes'];
       const csvContent = [
         headers.join(','),
         ...registrations.map(reg => [
           `"${reg.username || reg.user.username || 'Unknown'}"`,
           `"${reg.user.email || 'No email'}"`,
+          `"${reg.user.phone || 'No phone'}"`,
           `"${reg.registration_date_formatted || formatTimestamp(reg.registration_date, isMobile)}"`,
           `"${reg.status || 'registered'}"`,
           `"${reg.notes || ''}"`
@@ -594,6 +595,7 @@ export default function EventRegistrations() {
                 <div className={styles.tableHeader}>
                   <div className={styles.tableCell}>User</div>
                   <div className={styles.tableCell}>Email</div>
+                  <div className={styles.tableCell}>Phone</div>
                 </div>
                 
                 {/* Group registrations by team for duo/team events */}
@@ -671,6 +673,17 @@ export default function EventRegistrations() {
                                 </span>
                               )}
                             </div>
+                            <div className={styles.tableCell} data-label="Phone">
+                              {registration.user?.phone ? (
+                                <span className={styles.userPhone}>
+                                  {registration.user.phone}
+                                </span>
+                              ) : (
+                                <span className={styles.userPhone}>
+                                  No phone available
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Partner Row - if partner exists */}
@@ -719,6 +732,17 @@ export default function EventRegistrations() {
                                 ) : (
                                   <span className={styles.userEmail}>
                                     No email available
+                                  </span>
+                                )}
+                              </div>
+                              <div className={styles.tableCell} data-label="Phone">
+                                {partner.user?.phone ? (
+                                  <span className={styles.userPhone}>
+                                    {partner.user.phone}
+                                  </span>
+                                ) : (
+                                  <span className={styles.userPhone}>
+                                    No phone available
                                   </span>
                                 )}
                               </div>
@@ -814,6 +838,17 @@ export default function EventRegistrations() {
                                 </span>
                               )}
                             </div>
+                            <div className={styles.tableCell} data-label="Phone">
+                              {registration.user?.phone ? (
+                                <span className={styles.userPhone}>
+                                  {registration.user.phone}
+                                </span>
+                              ) : (
+                                <span className={styles.userPhone}>
+                                  No phone available
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Team Members Rows */}
@@ -863,6 +898,17 @@ export default function EventRegistrations() {
                                     ) : (
                                       <span className={styles.userEmail}>
                                         No email available
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className={styles.tableCell} data-label="Phone">
+                                    {member.phone ? (
+                                      <span className={styles.userPhone}>
+                                        {member.phone}
+                                      </span>
+                                    ) : (
+                                      <span className={styles.userPhone}>
+                                        No phone available
                                       </span>
                                     )}
                                   </div>
@@ -963,6 +1009,17 @@ export default function EventRegistrations() {
                               ) : (
                                 <span className={styles.userEmail}>
                                   No email available
+                                </span>
+                              )}
+                            </div>
+                            <div className={styles.tableCell} data-label="Phone">
+                              {registration.user?.phone ? (
+                                <span className={styles.userPhone}>
+                                  {registration.user.phone}
+                                </span>
+                              ) : (
+                                <span className={styles.userPhone}>
+                                  No phone available
                                 </span>
                               )}
                             </div>

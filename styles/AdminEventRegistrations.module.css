@@ -295,13 +295,15 @@
 }
 
 .userEmail {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.8);
-  word-break: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  display: inline-block;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  word-break: break-all;
+}
+
+.userPhone {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  word-break: break-all;
 }
 
 .userEmail:hover {

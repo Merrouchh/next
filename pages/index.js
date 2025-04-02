@@ -26,18 +26,123 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 
 // Main Home component first
 const Home = ({ metaData }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, supabase } = useAuth();
   const router = useRouter();
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [processingMagicLink, setProcessingMagicLink] = useState(false);
 
-  // Add effect to handle redirection
+  // Add magic link detection at the beginning
   useEffect(() => {
-    if (!loading && user) {
-      console.log('Home: User is logged in, redirecting to dashboard');
-      router.replace('/dashboard');
+    // Skip if not in browser
+    if (typeof window === 'undefined') return;
+    
+    const detectMagicLink = async () => {
+      const hash = window.location.hash;
+      // Check if this looks like a magic link hash fragment
+      if (hash && 
+          hash.includes('access_token=') && 
+          hash.includes('refresh_token=') &&
+          hash.includes('type=magiclink')) {
+        
+        console.log('Detected magic link hash on homepage:', hash);
+        setProcessingMagicLink(true);
+        setIsVerifying(true);
+        
+        try {
+          // Parse the hash parameters
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (!accessToken || !refreshToken) {
+            throw new Error('Invalid magic link parameters');
+          }
+          
+          // Set the session with tokens
+          console.log('Setting session with magic link tokens');
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          // Clear hash
+          window.history.replaceState(null, '', window.location.pathname);
+          
+          // Redirect to dashboard
+          console.log('Magic link auth successful, redirecting to dashboard');
+          router.replace('/dashboard');
+        } catch (error) {
+          console.error('Error processing magic link:', error);
+          setIsVerifying(false);
+          setProcessingMagicLink(false);
+          // If there's an error, continue with normal page display
+        }
+      }
+    };
+    
+    detectMagicLink();
+  }, [supabase, router]);
+
+  // Function to check if URL has auth tokens
+  const hasAuthTokens = () => {
+    if (typeof window === 'undefined') return false;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasToken = urlParams.has('token') || urlParams.has('token_hash');
+    const hasCode = urlParams.has('code');
+    
+    return hasToken || hasCode || 
+           window.location.hash.includes('access_token') || 
+           window.location.hash.includes('type=');
+  };
+
+  // Check for verification_pending and auth_action URL parameters
+  useEffect(() => {
+    if (router.isReady && !user && router.query) {
+      // Safely destructure query parameters
+      const auth_action = router.query.auth_action;
+      const verification_pending = router.query.verification_pending;
+      
+      if (auth_action === 'login' || verification_pending === 'true') {
+        // Show login modal if requested in URL
+        setIsLoginModalOpen(true);
+        
+        // Show a special message if verification is pending
+        if (verification_pending === 'true') {
+          // Can use a toast or some other notification here if desired
+          console.log('Please log in to complete your email verification');
+        }
+        
+        // Create a new query object without these parameters
+        const newQuery = { ...router.query };
+        delete newQuery.auth_action;
+        delete newQuery.verification_pending;
+        
+        // Clear the query parameters after processing
+        router.replace({
+          pathname: router.pathname,
+          query: newQuery
+        }, undefined, { shallow: true });
+      }
     }
-  }, [user, loading, router]);
+  }, [router.isReady, router.query, user, router]);
+
+  // Handle dashboard redirect for logged-in users
+  useEffect(() => {
+    // Only redirect to dashboard if there's no verification happening
+    if (!loading && user && !isVerifying) {
+      if (!hasAuthTokens()) {
+        console.log('User is logged in and no auth tokens in URL, redirecting to dashboard');
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, loading, router, isVerifying]);
 
   const handleCheckAvailability = () => {
     if (!user) {
@@ -52,8 +157,10 @@ const Home = ({ metaData }) => {
     setIsLoginModalOpen(true);
   };
 
-  if (loading) return <LoadingScreen message="Loading..." />;
-  if (user) return <LoadingScreen message="Redirecting..." />;
+  // Simplified loading states
+  if (loading) return <LoadingScreen message="Loading..." type="default" />;
+  if (isVerifying) return <LoadingScreen message={processingMagicLink ? "Processing magic link login..." : "Verifying email..."} type="verification" />;
+  if (user && !hasAuthTokens()) return <LoadingScreen message="Redirecting..." type="auth" />;
 
   return (
     <>

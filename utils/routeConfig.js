@@ -31,6 +31,13 @@ export const ROUTE_CONFIG = {
     showNavigation: true
   },
 
+  '/magic-login': {
+    public: true,
+    requireAuth: false,
+    showNavigation: false,
+    isAuthPage: true
+  },
+
   '/topusers': {
     public: true,
     requireAuth: false,
@@ -57,7 +64,7 @@ export const ROUTE_CONFIG = {
 
   '/editprofile': {
     public: false,
-    requireAuth: false,
+    requireAuth: true,
     showNavigation: true
   },
 
@@ -66,6 +73,35 @@ export const ROUTE_CONFIG = {
     requireAuth: false,
     showNavigation: true,
     hasSearchHeader: true
+  },
+
+  // Add auth verification pages
+  '/auth/verification-success': {
+    public: true,
+    requireAuth: false,
+    showNavigation: false,
+    isAuthPage: true
+  },
+
+  '/auth/verification-failed': {
+    public: true,
+    requireAuth: false,
+    showNavigation: false,
+    isAuthPage: true
+  },
+
+  '/auth/callback': {
+    public: true,
+    requireAuth: false,
+    showNavigation: false,
+    isAuthPage: true
+  },
+
+  '/auth/confirm': {
+    public: true,
+    requireAuth: false,
+    showNavigation: false,
+    isAuthPage: true
   },
 
   // Default configuration
@@ -88,6 +124,17 @@ export const getRouteConfig = (pathname) => {
     return ROUTE_CONFIG['/events/[id]'];
   }
 
+  // Special handling for auth pages
+  if (pathname.startsWith('/auth/')) {
+    // Use specific config if available, otherwise use a general auth config
+    return ROUTE_CONFIG[pathname] || {
+      public: true,
+      requireAuth: false,
+      showNavigation: false,
+      isAuthPage: true
+    };
+  }
+
   return ROUTE_CONFIG[pathname] || ROUTE_CONFIG.default;
 };
 
@@ -105,4 +152,10 @@ export const isProtectedRoute = (pathname) => {
 export const hasSearchHeader = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.hasSearchHeader || false;
+};
+
+// Add helper for auth pages
+export const isAuthPage = (pathname) => {
+  const config = getRouteConfig(pathname);
+  return config.isAuthPage || false;
 }; 

@@ -1,22 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/EditProfile.module.css';
-import { AiOutlineMail, AiOutlineUser, AiOutlineLock, AiOutlineLink } from 'react-icons/ai';
-import { FaGamepad } from 'react-icons/fa';
+import { AiOutlineUser } from 'react-icons/ai';
 import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import { useRouter } from 'next/router';
+import EmailSection from '../components/EditProfile/EmailSection';
+import PhoneSection from '../components/EditProfile/PhoneSection';
+import PasswordSection from '../components/EditProfile/PasswordSection';
+import GamingSection from '../components/EditProfile/GamingSection';
 
 const EditProfile = () => {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, supabase, refreshUserData } = useAuth();
   const [websiteAccount, setWebsiteAccount] = useState({
-    email: user?.email || '',
-    currentPassword: '',
+    email: '',
+    phone: '',
+    emailPassword: '',  // Separate password for email section
+    phonePassword: '',  // Separate password for phone section
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    currentPasswordForPasswordChange: ''
   });
   
   const [gamingAccount, setGamingAccount] = useState({
-    username: user?.username || '',
+    username: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -24,55 +32,104 @@ const EditProfile = () => {
 
   const [isLoading, setIsLoading] = useState({
     website: false,
-    gaming: false
+    gaming: false,
+    email: false,
+    phone: false,
+    password: false,
+    cancel: false,
+    emailResend: false
   });
   
   const [message, setMessage] = useState({
     website: { type: '', text: '' },
-    gaming: { type: '', text: '' }
+    gaming: { type: '', text: '' },
+    email: { type: '', text: '' },
+    phone: { type: '', text: '' },
+    password: { type: '', text: '' }
   });
 
-  const handleWebsiteSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(prev => ({ ...prev, website: true }));
-    setMessage(prev => ({ ...prev, website: { type: '', text: '' } }));
+  // Password visibility toggles
+  const [showPasswords, setShowPasswords] = useState({
+    emailPassword: false,
+    phonePassword: false,
+    newPassword: false,
+    confirmPassword: false,
+    currentPasswordForPasswordChange: false,
+    gamingCurrentPassword: false,
+    gamingNewPassword: false,
+    gamingConfirmPassword: false
+  });
 
-    try {
-      // Add website account update logic here
-      setMessage(prev => ({ 
-        ...prev, 
-        website: { type: 'success', text: 'Website account updated successfully!' }
-      }));
-    } catch (error) {
-      setMessage(prev => ({ 
-        ...prev, 
-        website: { type: 'error', text: 'Failed to update website account' }
-      }));
-    } finally {
-      setIsLoading(prev => ({ ...prev, website: false }));
-    }
+  // Toggle password visibility
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
   };
 
-  const handleGamingSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(prev => ({ ...prev, gaming: true }));
-    setMessage(prev => ({ ...prev, gaming: { type: '', text: '' } }));
+  // Track phone verification state
+  const [phoneVerification, setPhoneVerification] = useState({
+    isPending: false,
+    pendingPhone: '',
+    otpCode: ''
+  });
 
-    try {
-      // Add gaming account update logic here
-      setMessage(prev => ({ 
-        ...prev, 
-        gaming: { type: 'success', text: 'Gaming account updated successfully!' }
+  // Update form with user data when available
+  useEffect(() => {
+    if (user) {
+      setWebsiteAccount(prev => ({
+        ...prev,
+        email: user.email || '',
+        phone: user.phone || ''
       }));
-    } catch (error) {
-      setMessage(prev => ({ 
-        ...prev, 
-        gaming: { type: 'error', text: 'Failed to update gaming account' }
+      
+      setGamingAccount(prev => ({
+        ...prev,
+        username: user.username || ''
       }));
-    } finally {
-      setIsLoading(prev => ({ ...prev, gaming: false }));
     }
-  };
+  }, [user]);
+
+  // Check for coming back from verification success via query parameters
+  useEffect(() => {
+    if (router.query.verified === 'true' && router.query.type === 'email_change') {
+      // Handle the success case directly without immediately refreshing
+      console.log('Detected successful verification from URL parameters');
+      
+      setMessage(prev => ({
+        ...prev,
+        email: {
+          type: 'success',
+          text: 'Email verification completed successfully!'
+        }
+      }));
+      
+      // Clear the query parameter after showing success message
+      const { verified, type, ...restQuery } = router.query;
+      router.replace({
+        pathname: router.pathname,
+        query: restQuery
+      }, undefined, { shallow: true });
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setMessage(prev => ({
+          ...prev,
+          email: { type: '', text: '' }
+        }));
+      }, 5000);
+      
+      // Only refresh user data once after a delay
+      setTimeout(() => {
+        refreshUserData().then(() => {
+          console.log('User data refreshed after successful verification');
+        }).catch(error => {
+          console.warn('Error refreshing user data after verification:', error);
+        });
+      }, 2000);
+    }
+  }, [router.query, router, refreshUserData]);
 
   return (
     <ProtectedPageWrapper>
@@ -88,158 +145,52 @@ const EditProfile = () => {
             <AiOutlineUser className={styles.sectionIcon} />
             <h2>Website Account</h2>
           </div>
-          <form onSubmit={handleWebsiteSubmit} className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label>Email</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineMail className={styles.icon} />
-                <input
-                  type="email"
-                  value={websiteAccount.email}
-                  onChange={(e) => setWebsiteAccount(prev => ({ 
-                    ...prev, 
-                    email: e.target.value 
-                  }))}
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Current Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={websiteAccount.currentPassword}
-                  onChange={(e) => setWebsiteAccount(prev => ({ 
-                    ...prev, 
-                    currentPassword: e.target.value 
-                  }))}
-                  placeholder="Enter current password"
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>New Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={websiteAccount.newPassword}
-                  onChange={(e) => setWebsiteAccount(prev => ({ 
-                    ...prev, 
-                    newPassword: e.target.value 
-                  }))}
-                  placeholder="Enter new password (optional)"
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Confirm New Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={websiteAccount.confirmPassword}
-                  onChange={(e) => setWebsiteAccount(prev => ({ 
-                    ...prev, 
-                    confirmPassword: e.target.value 
-                  }))}
-                  placeholder="Confirm new password"
-                />
-              </div>
-            </div>
-            {message.website.text && (
-              <div className={`${styles.message} ${styles[message.website.type]}`}>
-                {message.website.text}
-              </div>
-            )}
-            <button 
-              type="submit" 
-              className={styles.submitButton}
-              disabled={isLoading.website}
-            >
-              {isLoading.website ? 'Updating...' : 'Update Website Account'}
-            </button>
-          </form>
+          
+          {/* Email Section */}
+          <EmailSection 
+            user={user}
+            supabase={supabase}
+            websiteAccount={websiteAccount}
+            setWebsiteAccount={setWebsiteAccount}
+            message={message}
+            setMessage={setMessage}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            showPasswords={showPasswords}
+            togglePasswordVisibility={togglePasswordVisibility}
+          />
+          
+          {/* Phone Section */}
+          <PhoneSection 
+            user={user}
+            supabase={supabase}
+            websiteAccount={websiteAccount}
+            setWebsiteAccount={setWebsiteAccount}
+            phoneVerification={phoneVerification}
+            setPhoneVerification={setPhoneVerification}
+            message={message}
+            setMessage={setMessage}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            showPasswords={showPasswords}
+            togglePasswordVisibility={togglePasswordVisibility}
+          />
+          
+          {/* Password Section */}
+          <PasswordSection 
+            websiteAccount={websiteAccount}
+            setWebsiteAccount={setWebsiteAccount}
+            message={message}
+            setMessage={setMessage}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            showPasswords={showPasswords}
+            togglePasswordVisibility={togglePasswordVisibility}
+          />
         </section>
 
         {/* Gaming Account Section */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <FaGamepad className={styles.sectionIcon} />
-            <h2>Gaming Account</h2>
-          </div>
-          <form onSubmit={handleGamingSubmit} className={styles.form}>
-            <div className={styles.inputGroup}>
-              <label>Gaming Username</label>
-              <div className={styles.inputWrapper}>
-                <FaGamepad className={styles.icon} />
-                <input
-                  type="text"
-                  value={gamingAccount.username}
-                  disabled
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Current Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={gamingAccount.currentPassword}
-                  onChange={(e) => setGamingAccount(prev => ({ 
-                    ...prev, 
-                    currentPassword: e.target.value 
-                  }))}
-                  placeholder="Enter current gaming password"
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>New Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={gamingAccount.newPassword}
-                  onChange={(e) => setGamingAccount(prev => ({ 
-                    ...prev, 
-                    newPassword: e.target.value 
-                  }))}
-                  placeholder="Enter new gaming password"
-                />
-              </div>
-            </div>
-            <div className={styles.inputGroup}>
-              <label>Confirm New Password</label>
-              <div className={styles.inputWrapper}>
-                <AiOutlineLock className={styles.icon} />
-                <input
-                  type="password"
-                  value={gamingAccount.confirmPassword}
-                  onChange={(e) => setGamingAccount(prev => ({ 
-                    ...prev, 
-                    confirmPassword: e.target.value 
-                  }))}
-                  placeholder="Confirm new gaming password"
-                />
-              </div>
-            </div>
-            {message.gaming.text && (
-              <div className={`${styles.message} ${styles[message.gaming.type]}`}>
-                {message.gaming.text}
-              </div>
-            )}
-            <button 
-              type="submit" 
-              className={styles.submitButton}
-              disabled={isLoading.gaming}
-            >
-              {isLoading.gaming ? 'Updating...' : 'Update Gaming Account'}
-            </button>
-          </form>
-        </section>
+        <GamingSection />
       </div>
     </ProtectedPageWrapper>
   );

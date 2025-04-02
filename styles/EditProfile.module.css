@@ -58,6 +58,7 @@
 
 .inputWrapper {
   position: relative;
+  width: 100%;
 }
 
 .icon {
@@ -69,15 +70,44 @@
   font-size: 1.2rem;
 }
 
+.eyeIcon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  z-index: 10;
+  transition: color 0.2s ease;
+}
+
+.eyeIcon:hover {
+  color: #FFD700;
+}
+
+.eyeIcon:focus {
+  outline: none;
+}
+
 .inputWrapper input {
   width: 100%;
   padding: 0.8rem 1rem 0.8rem 2.8rem;
+  padding-right: 2.8rem;
   background: #222;
   border: 1px solid #333;
   border-radius: 8px;
   color: #fff;
   font-size: 0.9rem;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inputWrapper input:focus {
@@ -114,19 +144,64 @@
 }
 
 .message {
-  padding: 1rem;
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
   border-radius: 8px;
-  text-align: center;
-}
-
-.success {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  font-size: 0.9rem;
 }
 
 .error {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ff3333;
+  border: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+.success {
+  background-color: rgba(0, 255, 0, 0.1);
+  color: #00cc00;
+  border: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.info {
+  background-color: rgba(3, 102, 214, 0.1);
+  border: 1px solid rgba(3, 102, 214, 0.3);
+  color: #58a6ff;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.inputHint {
+  display: block;
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.cancelButton {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+  transition: background-color 0.3s;
+}
+
+.cancelButton:hover {
+  background-color: #d32f2f;
+}
+
+.cancelButton:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {
@@ -145,4 +220,293 @@
   .mainTitle {
     font-size: 1.75rem;
   }
+}
+
+.subsection {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.subsection h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  color: var(--accent-primary, #FFD700);
+  position: relative;
+  padding-left: 0.5rem;
+}
+
+.subsection h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--accent-primary, #FFD700);
+  border-radius: 2px;
+}
+
+.otpForm {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.cancelButton {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.25rem;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Phone input styling */
+.phoneInputWithButton {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Read-only input styling */
+.readOnlyInput {
+  cursor: default;
+  pointer-events: none;
+}
+
+.readOnlyInput input,
+.readOnlyInput :global(.form-control) {
+  cursor: default !important;
+  pointer-events: none !important;
+  opacity: 0.9 !important;
+}
+
+/* The readOnlyInputField will override the disabled appearance */
+.readOnlyInputField {
+  cursor: default !important;
+  opacity: 1 !important;
+  border-color: #333 !important;
+  background-color: #222 !important;
+  color: #fff !important;
+}
+
+.readOnlyInput :global(.react-tel-input .selected-flag) {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+
+.readOnlyInput :global(.react-tel-input .flag-dropdown) {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+
+.phoneInputWrapper {
+  width: 100%;
+  position: relative;
+  flex: 1;
+}
+
+.changeButton {
+  background-color: #333;
+  color: #FFD700;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 0 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.changeButton:hover {
+  background-color: #444;
+  border-color: #FFD700;
+}
+
+.phoneInputWrapper :global(.react-tel-input) {
+  display: block;
+  width: 100%;
+}
+
+/* Style the base input field */
+.phoneInputWrapper :global(.react-tel-input .form-control) {
+  width: 100%;
+  height: auto;
+  padding: 0.8rem 1rem 0.8rem 3.5rem;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+/* Fix flag dropdown appearance */
+.phoneInputWrapper :global(.react-tel-input .selected-flag) {
+  user-select: none;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: transparent;
+  border-right: none;
+  padding: 0 0 0 8px;
+}
+
+/* Remove any old pseudo-elements */
+.phoneInputWrapper :global(.react-tel-input .form-control)::before,
+.phoneInputWrapper :global(.react-tel-input)::before {
+  display: none;
+  content: none;
+}
+
+/* Make sure hover states work correctly */
+.phoneInputWrapper :global(.react-tel-input .form-control:focus) {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+}
+
+.phoneInputWrapper :global(.react-tel-input .form-control:disabled) {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Style flag dropdown */
+.phoneInputWrapper :global(.react-tel-input .flag-dropdown) {
+  background-color: transparent;
+  border: none;
+  border-radius: 8px 0 0 8px;
+}
+
+.phoneInputWrapper :global(.react-tel-input .flag-dropdown.open) {
+  background-color: transparent;
+  border: none;
+}
+
+.phoneInputWrapper :global(.react-tel-input .flag-dropdown.open .selected-flag) {
+  background-color: transparent;
+}
+
+.phoneInputWrapper :global(.react-tel-input .flag-dropdown .selected-flag:hover) {
+  background-color: transparent;
+}
+
+.phoneInputWrapper :global(.react-tel-input .flag-dropdown .selected-flag) {
+  border-radius: 8px 0 0 8px;
+  background-color: transparent;
+}
+
+/* Style country list dropdown */
+.phoneInputWrapper :global(.react-tel-input .country-list) {
+  background-color: #222;
+  border: 1px solid #333;
+  margin-top: 0;
+  z-index: 10;
+}
+
+.phoneInputWrapper :global(.react-tel-input .country-list .country) {
+  color: #fff;
+}
+
+.phoneInputWrapper :global(.react-tel-input .country-list .country.highlight),
+.phoneInputWrapper :global(.react-tel-input .country-list .country:hover) {
+  background-color: #333;
+}
+
+.phoneInputWrapper :global(.react-tel-input .country-list .country .dial-code) {
+  color: #FFD700;
+}
+
+.phoneInputWrapper :global(.react-tel-input .country-list .search) {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  margin-bottom: 0;
+  padding: 8px;
+}
+
+.verificationLinkBox {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #333;
+  border-radius: 8px;
+  border: 1px dashed #FFD700;
+}
+
+.linkContainer {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.verificationLinkButton {
+  display: inline-block;
+  background-color: #FFD700;
+  color: #000 !important;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.verificationLinkButton:hover {
+  background-color: #F0C300;
+  text-decoration: none;
+}
+
+.verificationLinkBox code {
+  display: block;
+  margin-top: 5px;
+  padding: 8px;
+  background-color: #222;
+  border-radius: 4px;
+  font-size: 12px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Password section styles */
+.passwordStatus {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.passwordInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.passwordInfo p {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.passwordInfo span {
+  color: #888;
+  letter-spacing: 2px;
 } 

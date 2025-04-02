@@ -3,11 +3,21 @@ const nextConfig = {
   // Enable React strict mode only in development
   reactStrictMode: true,
 
+  // Disable error overlay in development
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
+
   // Environment variables
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
+    // Disable the overlay in development
+    NEXT_PUBLIC_DISABLE_ERROR_OVERLAY: 'true',
   },
 
   // Image optimization settings
@@ -306,14 +316,6 @@ const nextConfig = {
     ...(process.env.TURBOPACK !== '1' && {
       forceSwcTransforms: true,
     }),
-  },
-
-  // Add proper process handling
-  onDemandEntries: {
-    // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 120 * 1000,
-    // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 5,
   },
 
   // TypeScript and ESLint - Only ignore in production

@@ -342,3 +342,18 @@ code {
     --search-header-height: 50px;
   }
 }
+
+/* Prevent tab navigation through the phone dropdown elements */
+.phone-dropdown-container li,
+.phone-dropdown-container .country,
+.phone-dropdown-container button {
+  tabindex: -1 !important;
+}
+
+.react-tel-input .country-list {
+  tabindex: -1 !important;
+}
+
+.react-tel-input .selected-flag {
+  tabindex: -1 !important;
+}

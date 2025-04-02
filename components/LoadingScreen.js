@@ -1,30 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import styles from '../styles/LoadingScreen.module.css';
 
-const LoadingScreen = ({ message = 'Loading...', type }) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Create className based on mounted state and type
-  const containerClassName = `${styles.loadingContainer} ${mounted ? styles.mounted : ''} ${
-    type === 'content' ? styles.contentOnly : styles.auth
+const LoadingScreen = ({ message = 'Loading...', type = 'default' }) => {
+  // Different styling based on the type
+  const containerClass = `${styles.container} ${
+    type === 'verification' ? styles.verificationContainer : 
+    type === 'auth' ? styles.authContainer : 
+    styles.defaultContainer
   }`;
 
-  // Always return the same structure regardless of mounted state
   return (
-    <div className={containerClassName} suppressHydrationWarning>
-      <div className={styles.loadingWrapper}>
-        <div className={styles.loadingContent}>
-          <div className={styles.loadingSpinner}>
-            <div className={styles.spinnerInner} />
-          </div>
-          <div className={styles.loadingText}>
-            <p className={styles.loadingMessage}>{message}</p>
-          </div>
-        </div>
+    <div className={containerClass}>
+      <div className={styles.content}>
+        {type === 'verification' ? (
+          <div className={styles.verificationIcon}>✓</div>
+        ) : (
+          <div className={styles.spinner}></div>
+        )}
+        <p className={styles.message}>{message}</p>
+        {type === 'verification' && (
+          <p className={styles.subMessage}>Please wait while we process your verification</p>
+        )}
       </div>
     </div>
   );

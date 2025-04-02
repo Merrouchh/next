@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from './LoadingScreen';
-import { getRouteConfig } from '../utils/routeConfig';
+import { getRouteConfig, isAuthPage } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import DashboardHeader from './DashboardHeader';
@@ -18,22 +18,33 @@ const ProtectedPageWrapper = ({ children }) => {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isLoginModalOpen } = useModal();
   const routeConfig = getRouteConfig(router.pathname);
+  const isVerificationPage = isAuthPage(router.pathname);
 
   const hasNavigation = routeConfig.showNavigation;
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
 
+  // If this is a verification page, don't wrap with navigation/headers
+  if (isVerificationPage) {
+    return children;
+  }
+
   // Handle authentication-based routing
   useEffect(() => {
-    if (loading) return;
+    if (loading || isVerificationPage) return;
+
+    // If user is logged in and on home page, redirect to dashboard
     if (user && router.pathname === '/') {
+      console.log('User logged in, redirecting to dashboard');
       router.replace('/dashboard');
       return;
     }
+    
+    // If user is not logged in and page requires auth, redirect to home
     if (!user && routeConfig.requireAuth) {
       router.replace('/');
     }
-  }, [loading, user, router, routeConfig.requireAuth, router.pathname]);
+  }, [loading, user, router, routeConfig.requireAuth, router.pathname, isVerificationPage]);
 
   // Show loading spinner during authentication check for protected routes
   if (loading && routeConfig.requireAuth) {

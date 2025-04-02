@@ -177,7 +177,7 @@ async function getEventRegistrations(req, res, supabase, user) {
       console.log('Fetching user details for IDs:', userIds);
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, email, username')
+        .select('id, email, username, phone')
         .in('id', userIds);
       
       if (!usersError && users && users.length > 0) {
@@ -334,6 +334,8 @@ async function getEventRegistrations(req, res, supabase, user) {
           email: partnerEmail || userData?.email || 'No email found',
           // Use username from registration record as it's more reliable
           username: registration.username || userData?.username || 'Unknown User',
+          // Include phone number if available
+          phone: userData?.phone || null,
           // We don't have avatar_url yet
           avatar_url: null
         },

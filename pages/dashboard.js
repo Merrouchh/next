@@ -5,6 +5,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/Dashboard.module.css';
+import sharedStyles from '../styles/Shared.module.css';
 import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload } from 'react-icons/ai';
 import DashboardUserSearch from '../components/DashboardUserSearch';
 import { 
@@ -17,7 +18,6 @@ import {
   uploadUserPicture
 } from '../utils/api';
 import { toast } from 'react-hot-toast';
-
 
 export async function getServerSideProps({ res }) {
   // Keep existing cache headers
@@ -80,10 +80,9 @@ const getMedalEmoji = (index) => {
 // Modify the Active Sessions Card component to remove unused router prop
 const ActiveSessionsCard = ({ activeSessions, handleNavigation }) => (
   <div 
-    className={`${styles.statCard} ${styles.smallCard}`} 
+    className={`${styles.statCard} ${styles.smallCard} ${sharedStyles.clickableCard}`} 
     role="button"
     onClick={handleNavigation('/avcomputers?from=dashboard')}
-    style={{ cursor: 'pointer' }}
     aria-label="View active computers"
   >
     <div className={styles.statHeader}>
@@ -106,10 +105,9 @@ const ActiveSessionsCard = ({ activeSessions, handleNavigation }) => (
 // Add TopUsersCard component
 const TopUsersCard = ({ topUsers, handleNavigation }) => (
   <div 
-    className={`${styles.statCard} ${styles.mediumCard}`}
+    className={`${styles.statCard} ${styles.mediumCard} ${sharedStyles.clickableCard}`}
     onClick={handleNavigation('/topusers')}
     role="button"
-    style={{ cursor: 'pointer' }}
     aria-label="View top users"
   >
     <div className={styles.statHeader}>
@@ -133,24 +131,65 @@ const TopUsersCard = ({ topUsers, handleNavigation }) => (
 );
 
 const RefreshCard = ({ onRefresh, isLoading }) => (
-  <div className={`${styles.statCard} ${styles.smallCard}`}>
+  <div className={`${styles.statCard} ${styles.smallCard}`} style={{ position: 'relative', minHeight: '300px' }}>
     <div className={styles.statHeader}>
       <div className={styles.statIcon}>
         <AiOutlineReload size={24} />
       </div>
       <h3 className={styles.statTitle}>Refresh Data</h3>
     </div>
-    <button 
-      onClick={onRefresh}
-      disabled={isLoading}
-      className={`${styles.refreshButton} ${isLoading ? styles.refreshing : ''}`}
-      aria-label="Refresh dashboard data"
-    >
-      <AiOutlineReload size={20} />
-      {isLoading ? 'Refreshing...' : 'Refresh'}
-    </button>
+    <div className={sharedStyles.centeredButtonContainer}>
+      <button 
+        onClick={onRefresh}
+        disabled={isLoading}
+        className={`${sharedStyles.primaryButton} ${isLoading ? styles.refreshing : ''}`}
+        aria-label="Refresh dashboard data"
+      >
+        <AiOutlineReload className={sharedStyles.buttonIcon} />
+        {isLoading ? 'Refreshing...' : 'Refresh'}
+      </button>
+    </div>
   </div>
 );
+
+// Session Refresh Button Component
+const SessionRefreshButton = () => {
+  const { refreshSession, isRefreshing } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleSessionRefresh = async () => {
+    if (isRefreshing) return; // Prevent multiple refreshes
+    
+    setIsLoading(true);
+    try {
+      const result = await refreshSession();
+      
+      if (result?.success) {
+        toast.success('Session refreshed!');
+        // Wait a moment before reloading
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        toast.error('Session refresh failed');
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error('Session refresh failed:', e);
+      window.location.reload();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <button 
+      onClick={handleSessionRefresh}
+      className={`${styles.retryButton} ${styles.sessionButton}`}
+      disabled={isLoading || isRefreshing}
+    >
+      {isLoading || isRefreshing ? 'Refreshing...' : 'Refresh Session & Retry'}
+    </button>
+  );
+};
 
 const Dashboard = ({ _initialClips, metaData }) => {
   const router = useRouter();
@@ -275,15 +314,18 @@ const Dashboard = ({ _initialClips, metaData }) => {
           {pageState.error ? (
             <div className={styles.errorMessage}>
               <p>{pageState.error}</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className={styles.retryButton}
-              >
-                Retry
-              </button>
+              <div className={styles.retryActions}>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className={styles.retryButton}
+                >
+                  <AiOutlineReload /> Refresh Page
+                </button>
+                <SessionRefreshButton />
+              </div>
             </div>
           ) : (
-            <LoadingScreen message="Loading dashboard..." />
+            <LoadingScreen message="Loading dashboard..." type="default" />
           )}
         </div>
       </ProtectedPageWrapper>
@@ -534,14 +576,14 @@ const Dashboard = ({ _initialClips, metaData }) => {
                   </div>
                 )}
                 {!pageState.data.isLoadingPicture && (
-                  <label className={styles.uploadButtonOverlay}>
+                  <label className={`${styles.uploadButtonOverlay} ${sharedStyles.clickableOverlay}`}>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handlePictureUpload}
                       className={styles.hiddenInput}
                     />
-                    <AiOutlineCamera className={styles.uploadIcon} />
+                    <AiOutlineCamera className={sharedStyles.buttonIcon} />
                   </label>
                 )}
               </div>
@@ -563,17 +605,15 @@ const Dashboard = ({ _initialClips, metaData }) => {
                     {formatDebt(pageState.data.balanceInfo.rawBalance || 0)}
                   </p>
                 )}
-                <button 
-                  onClick={handleEditProfile}
-                  className={styles.editProfileRow}
-                >
-                  <strong>Profile Settings</strong>
-                  <div className={styles.editBadge}>
-                    <AiOutlineUser className={styles.buttonIcon} />
-                    <span>Edit</span>
-                  </div>
-                </button>
-                
+                <div className={styles.profileActions}>
+                  <button 
+                    onClick={handleEditProfile}
+                    className={sharedStyles.primaryButton}
+                  >
+                    <AiOutlineUser className={sharedStyles.buttonIcon} />
+                    <span>Edit Profile Settings</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -611,10 +651,10 @@ const Dashboard = ({ _initialClips, metaData }) => {
                     Your account needs to be recharged to continue gaming.
                   </p>
                   <button 
-                    className={styles.rechargeButton}
+                    className={sharedStyles.primaryButton}
                     onClick={() => router.push('/shop')}
                   >
-                    Recharge Now
+                    <span>Recharge Now</span>
                   </button>
                 </div>
               )}

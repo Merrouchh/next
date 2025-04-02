@@ -7,6 +7,7 @@ import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
+import { isAuthPage } from '../utils/routeConfig';
 
 const Layout = ({ children }) => {
   const router = useRouter();
@@ -15,6 +16,7 @@ const Layout = ({ children }) => {
   const [mounted, setMounted] = useState(false);
   const isHomePage = router.pathname === '/';
   const { isLoginModalOpen, closeLoginModal } = useModal();
+  const isVerificationPage = isAuthPage(router.pathname);
 
   const shouldHideFooter = useCallback(() => {
     if (!router?.pathname) return true;
@@ -28,11 +30,13 @@ const Layout = ({ children }) => {
       '/topusers',
       '/events'
     ];
+
+    if (isVerificationPage) return true;
     
     const isProfilePage = router.pathname.startsWith('/profile/');
     const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
     return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
-  }, [router?.pathname]);
+  }, [router?.pathname, isVerificationPage]);
 
   // Initialize component
   useEffect(() => {
@@ -65,6 +69,22 @@ const Layout = ({ children }) => {
         <div className={styles.layoutWrapper}>
           <div className={styles.loadingContainer}>
             <LoadingScreen type="auth" />
+          </div>
+        </div>
+        <div id="modal-root" className={styles.modalRoot}></div>
+      </>
+    );
+  }
+
+  // For auth pages like verification, use a cleaner layout
+  if (isVerificationPage) {
+    return (
+      <>
+        <div className={`${styles.layoutWrapper} ${styles.authLayout}`}>
+          <div className={styles.layoutContent}>
+            <main className={styles.mainContent}>
+              {children}
+            </main>
           </div>
         </div>
         <div id="modal-root" className={styles.modalRoot}></div>
