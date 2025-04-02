@@ -126,7 +126,7 @@ export default async function handler(req, res) {
           const infobipResponse = await fetch('https://m3y3xw.api.infobip.com/whatsapp/1/message/template', {
             method: 'POST',
             headers: {
-              'Authorization': `App 5dfe50985caebf7179e8f53d752d2c0e-3fa44ede-abb4-4a16-9461-23f8df9a42fb`,
+              'Authorization': `App ${process.env.INFOBIP_API_KEY}`,
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
