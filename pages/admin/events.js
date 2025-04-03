@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
-import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminEvents.module.css';
@@ -501,12 +501,20 @@ export default function AdminEvents() {
             <FaCalendarAlt className={styles.titleIcon} />
             Manage Events
           </h1>
-          <button 
-            className={styles.createButton}
-            onClick={handleCreateEvent}
-          >
-            <FaPlus /> Create New Event
-          </button>
+          <div className={styles.headerActions}>
+            <button 
+              className={styles.bracketButton}
+              onClick={() => router.push('/admin/events/brackets')}
+            >
+              <FaTrophy /> Manage Brackets
+            </button>
+            <button 
+              className={styles.createButton}
+              onClick={handleCreateEvent}
+            >
+              <FaPlus /> Create New Event
+            </button>
+          </div>
         </div>
 
         <div className={styles.filterContainer}>

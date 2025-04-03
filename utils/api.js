@@ -516,3 +516,41 @@ export const fetchComputers = async () => {
     throw error;
   }
 };
+
+// Add this function to fetch a user's upcoming matches
+export async function fetchUserUpcomingMatches(userId) {
+  if (!userId) {
+    console.error("fetchUserUpcomingMatches called without userId");
+    return [];
+  }
+
+  try {
+    console.log(`Calling upcoming-matches API for user ${userId}`);
+    const response = await fetch(`/api/user/upcoming-matches?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        ...fetchConfig.headers
+      },
+      cache: 'no-store',
+      next: { revalidate: 0 }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to fetch upcoming matches:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to fetch upcoming matches: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Retrieved ${data.matches?.length || 0} upcoming matches for user`);
+    return data.matches || [];
+  } catch (error) {
+    console.error('Error fetching upcoming matches:', error);
+    // Return empty array instead of throwing, to handle the error gracefully
+    return [];
+  }
+}

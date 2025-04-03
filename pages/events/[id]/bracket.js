@@ -2,25 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { FaArrowLeft, FaTrophy, FaUsers, FaPlus, FaMinus, FaExpand, FaCompress } from 'react-icons/fa';
+import { FaArrowLeft, FaTrophy, FaUsers, FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
 import styles from '../../../styles/Bracket.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
 import DynamicMeta from '../../../components/DynamicMeta';
 
-export async function getServerSideProps({ params, res }) {
+export async function getServerSideProps({ params, req, res }) {
   const { id } = params;
   
-  // Set cache headers first
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=30, stale-while-revalidate=120'
-  );
-  res.setHeader(
-    'Surrogate-Control',
-    'public, max-age=30, stale-while-revalidate=120'
-  );
-  res.setHeader('Vary', 'Cookie, Accept-Encoding');
+  // Disable caching to ensure fresh data after bracket regeneration
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
   // Default metadata for not found case
   const notFoundMetadata = {
@@ -231,6 +225,9 @@ export default function EventBracket({ metaData }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const bracketWrapperRef = useRef(null);
+  const [hasBracket, setHasBracket] = useState(true);
+  const [tournamentChampion, setTournamentChampion] = useState(null);
+  const [matchDetails, setMatchDetails] = useState([]);
 
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
@@ -579,89 +576,104 @@ export default function EventBracket({ metaData }) {
       setError(null);
 
       try {
-        // Set up headers with or without auth
-        let headers = {
-          'Content-Type': 'application/json'
-        };
+        // Add timestamp to bust browser cache
+        const timestamp = Date.now();
         
-        let accessToken = null;
+        // Fetch event details
+        const eventResponse = await fetch(`/api/events/${id}?t=${timestamp}`);
         
-        // If user is authenticated, add authorization header
-        if (user) {
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.access_token) {
-              accessToken = sessionData.session.access_token;
-              headers['Authorization'] = `Bearer ${accessToken}`;
-            }
-          } catch (sessionError) {
-            console.error('Session error:', sessionError);
-            // Continue without auth header
-          }
-        }
-
-        // Fetch event details - public endpoint
-        const eventResponse = await fetch(`/api/events/${id}`, {
-          method: 'GET',
-          headers
-        });
-
         if (!eventResponse.ok) {
-          const errorData = await eventResponse.json();
-          throw new Error(errorData.error || `Failed to fetch event: ${eventResponse.status}`);
+          throw new Error('Failed to fetch event data');
         }
-
+        
         const eventData = await eventResponse.json();
-        setEvent(eventData.event);
-
-        // Check if user is admin (only for authenticated users)
-        setIsAdmin(user?.isAdmin || false);
-
-        // Fetch bracket data - public endpoint
-        try {
-          const bracketResponse = await fetch(`/api/events/${id}/bracket`, {
-            method: 'GET',
-            headers
-          });
-
-          // If 404, it means no bracket exists yet
-          if (bracketResponse.status === 404) {
-            setBracketData(null);
-            setParticipants([]);
-            setLoading(false);
-            return;
-          }
-
-          if (!bracketResponse.ok) {
-            const errorData = await bracketResponse.json();
-            throw new Error(errorData.error || `Failed to fetch bracket data: ${bracketResponse.status}`);
-          }
-
-          const data = await bracketResponse.json();
+        setEvent(eventData);
+        
+        // Fetch bracket data
+        const bracketResponse = await fetch(`/api/events/${id}/bracket?t=${timestamp}`);
+        
+        if (bracketResponse.status === 404) {
+          console.log('Bracket not found');
+          setHasBracket(false);
+          setLoading(false);
+          setBracketData(null);
+          setParticipants([]);
+          return;
+        }
+        
+        if (!bracketResponse.ok) {
+          throw new Error(`Failed to fetch bracket: ${bracketResponse.status}`);
+        }
+        
+        const data = await bracketResponse.json();
+        
+        if (data && data.bracket) {
+          setBracketData(data.bracket);
+          setParticipants(data.participants || []);
+          setHasBracket(true);
           
-          if (data && data.bracket) {
-            setBracketData(data.bracket);
-            setParticipants(data.participants || []);
-          } else {
-            setBracketData(null);
-            setParticipants([]);
+          // Check for champion
+          if (data.bracket.length > 0) {
+            const finalRound = data.bracket[data.bracket.length - 1];
+            if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
+              const champion = data.participants.find(p => p.id === finalRound[0].winnerId);
+              setTournamentChampion(champion || null);
+            } else {
+              setTournamentChampion(null);
+            }
           }
-        } catch (bracketError) {
-          console.error('Error fetching bracket data:', bracketError);
-          // Don't throw the error, just set bracket data to null
+          
+          // Fetch match details for displaying scheduled times
+          const matchDetailsResponse = await fetch(`/api/events/${id}/match-details?t=${timestamp}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (matchDetailsResponse.ok) {
+            const matchDetailsData = await matchDetailsResponse.json();
+            setMatchDetails(matchDetailsData.details || []);
+            
+            // Merge match details into bracket data
+            if (matchDetailsData.details && matchDetailsData.details.length > 0) {
+              console.log('Enriching bracket with match details...', matchDetailsData.details);
+              
+              const enrichedBracket = data.bracket.map(round => {
+                return round.map(match => {
+                  const details = matchDetailsData.details.find(d => d.match_id === match.id);
+                  if (details) {
+                    console.log(`Found details for match ${match.id}:`, details);
+                    return {
+                      ...match,
+                      scheduledTime: details.scheduled_time || '',
+                      location: details.location || '',
+                      notes: details.notes || ''
+                    };
+                  }
+                  return match;
+                });
+              });
+              
+              console.log('Setting enriched bracket data:', enrichedBracket);
+              setBracketData(enrichedBracket);
+            }
+          }
+        } else {
+          setHasBracket(false);
           setBracketData(null);
           setParticipants([]);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load tournament bracket');
+        console.error('Error fetching bracket data:', error);
+        setError('Failed to load bracket data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id, user, supabase]);
+  }, [id]);
 
   // Generate bracket if admin
   const handleGenerateBracket = async () => {
@@ -1000,6 +1012,21 @@ export default function EventBracket({ metaData }) {
                           <div className={styles.matchHeader}>
                             <span className={styles.matchId}>Match {match.id}</span>
                             {isMatchReady && <span className={styles.readyBadge}>Ready</span>}
+                            {match.scheduledTime && (
+                              <span className={styles.scheduledTime}>
+                                <FaClock className={styles.scheduleIcon} /> {new Date(match.scheduledTime).toLocaleString([], {
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  hour: '2-digit', 
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            )}
+                            {match.location && (
+                              <span className={styles.matchLocation}>
+                                @ {match.location}
+                              </span>
+                            )}
                           </div>
                           <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
                             {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
@@ -1035,6 +1062,11 @@ export default function EventBracket({ metaData }) {
                               <span className={styles.advanceInfo}>
                                 {participants.find(p => p.id === match.winnerId)?.name || 'Winner'} advanced to Match {match.nextMatchId}
                               </span>
+                            </div>
+                          )}
+                          {match.notes && (
+                            <div className={styles.matchNotes}>
+                              <strong>Notes:</strong> {match.notes}
                             </div>
                           )}
                         </div>

@@ -945,6 +945,46 @@
   gap: 1rem;
 }
 
+.adminMainAction {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.adminDashboardButton {
+  background: #FFD700;
+  color: #000;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(255, 215, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  letter-spacing: 0.5px;
+  max-width: 100%;
+  width: auto;
+}
+
+.adminDashboardIcon {
+  font-size: 1.4rem;
+  margin-right: 0.5rem;
+}
+
+.adminDashboardButton:hover {
+  background: #f8cc00;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(255, 215, 0, 0.4);
+}
+
+.adminDashboardButton:active {
+  transform: translateY(-1px);
+}
+
 .adminButton {
   background: #1a1a1a;
   color: #FFD700;
@@ -1021,5 +1061,209 @@
 
 .whatsappLink:hover {
   background: #128C7E;
+}
+
+/* Upcoming Matches Styles */
+.upcomingMatchesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.matchItem {
+  background: var(--primary-black-transparent);
+  border: 1px solid var(--transparent-light);
+  border-radius: 8px;
+  padding: 15px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.matchItem:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-yellow);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.matchEventInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eventTitle {
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 1rem;
+}
+
+.readyBadge, .notReadyBadge {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.readyBadge {
+  background: rgba(46, 213, 115, 0.2);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.notReadyBadge {
+  background: rgba(255, 71, 87, 0.1);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+.matchDetailsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.matchRound {
+  display: flex;
+  flex-direction: column;
+}
+
+.roundLabel {
+  font-weight: 600;
+  color: var(--primary-yellow);
+  font-size: 0.9rem;
+}
+
+.matchLabel {
+  font-size: 0.8rem;
+  color: var(--text-light-muted);
+}
+
+.opponentInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vsLabel {
+  color: var(--text-light-muted);
+  font-size: 0.8rem;
+}
+
+.opponentName {
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.matchScheduleInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--transparent-light);
+  font-size: 0.8rem;
+  color: var(--text-light-muted);
+}
+
+.scheduleIcon, .locationIcon {
+  color: var(--primary-yellow);
+  display: flex;
+  align-items: center;
+}
+
+.scheduleTime, .locationLabel {
+  margin-right: 12px;
+}
+
+.locationIcon {
+  margin-left: 8px;
+}
+
+.moreMatchesIndicator {
+  text-align: center;
+  padding: 8px;
+  background: var(--primary-black-light);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--primary-yellow);
+  margin-top: 5px;
+}
+
+.loadingMatches {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: var(--primary-black-transparent);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-light-muted);
+  gap: 15px;
+}
+
+.loadingText {
+  margin: 0;
+}
+
+.errorMatches {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: var(--primary-black-transparent);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #ff4757;
+  padding: 20px;
+  text-align: center;
+  gap: 15px;
+}
+
+.errorMatches p {
+  margin: 0 0 10px 0;
+}
+
+.noMatches {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  padding: 20px;
+  text-align: center;
+}
+
+.noMatchesMessage {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.noMatchesSubtext {
+  font-size: 0.9rem;
+  color: var(--text-light-muted);
+  margin-bottom: 15px;
+}
+
+/* Media queries below */
+@media (max-width: 768px) {
+  .welcomeSection {
+    padding: 15px 0;
+  }
+
+  .welcomeContent {
+    padding: 0 15px;
+    gap: 15px;
+  }
+
+  .welcomeText {
+    font-size: 1.5rem;
+  }
 }
 

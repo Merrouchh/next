@@ -12,6 +12,12 @@
   margin-bottom: 2rem;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .title {
   font-size: 2rem;
   color: var(--text-light);
@@ -664,4 +670,24 @@
   background-color: rgba(255, 215, 0, 0.1);
   border-left: 3px solid #FFD700;
   border-radius: 0 4px 4px 0;
+}
+
+.bracketButton {
+  background-color: rgba(255, 215, 0, 0.15);
+  color: var(--primary-yellow);
+  border: 1px solid var(--primary-yellow);
+  border-radius: 4px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bracketButton:hover {
+  background-color: rgba(255, 215, 0, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 } 

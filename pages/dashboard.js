@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import LoadingScreen from '../components/LoadingScreen';
+import UpcomingMatches from '../components/UpcomingMatches';
 import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
-import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload } from 'react-icons/ai';
+import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload, AiOutlineDashboard } from 'react-icons/ai';
 import DashboardUserSearch from '../components/DashboardUserSearch';
 import { 
   fetchActiveUserSessions, 
@@ -680,6 +681,8 @@ const Dashboard = ({ _initialClips, metaData }) => {
             </div>
           </div>
 
+          <UpcomingMatches userId={user?.id} />
+
           <TopUsersCard 
             topUsers={pageState.data.topUsers} 
             handleNavigation={handleNavigation}
@@ -703,24 +706,13 @@ const Dashboard = ({ _initialClips, metaData }) => {
               <h2>Admin Controls</h2>
               <p>Welcome to the admin dashboard. You have access to additional controls and features.</p>
             </div>
-            <div className={styles.adminControls}>
+            <div className={styles.adminMainAction}>
               <button 
-                className={styles.adminButton}
-                onClick={() => router.push('/admin/users')}
+                className={styles.adminDashboardButton}
+                onClick={() => router.push('/admin')}
               >
-                Manage Users
-              </button>
-              <button 
-                className={styles.adminButton}
-                onClick={() => router.push('/admin/sessions')}
-              >
-                View All Sessions
-              </button>
-              <button 
-                className={styles.adminButton}
-                onClick={() => router.push('/admin/events')}
-              >
-                Manage Events
+                <AiOutlineDashboard className={styles.adminDashboardIcon} />
+                Open Admin Dashboard
               </button>
             </div>
           </section>
