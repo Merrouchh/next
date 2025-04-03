@@ -4,7 +4,7 @@ import Head from 'next/head';
 import { toast } from 'react-hot-toast';
 import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
+import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminEvents.module.css';
 
 export default function AdminEvents() {
@@ -31,21 +31,12 @@ export default function AdminEvents() {
   const router = useRouter();
   const { user, supabase } = useAuth();
 
-  // Redirect if not logged in or not admin
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (!user) {
-        router.replace('/');
-      } else if (!user.isAdmin) {
-        router.replace('/dashboard');
-        toast.error('You do not have permission to access this page');
-      }
-    }
-  }, [user, router]);
-
-  // Fetch events from API
+  // Fetch events from API when user is authenticated
+  // The admin check is handled by AdminPageWrapper
   useEffect(() => {
     const fetchEvents = async () => {
+      if (!user) return;
+      
       setLoading(true);
       
       try {
@@ -134,9 +125,7 @@ export default function AdminEvents() {
       }
     };
 
-    if (user && user.isAdmin) {
-      fetchEvents();
-    }
+    fetchEvents();
   }, [user, supabase, router.query.edit]);
 
   // Handle form input changes
@@ -499,13 +488,8 @@ export default function AdminEvents() {
     ? events 
     : events.filter(event => event.status === statusFilter);
 
-  // If not authenticated or not admin, don't render anything
-  if (!user || !user.isAdmin) {
-    return null;
-  }
-
   return (
-    <ProtectedPageWrapper>
+    <AdminPageWrapper title="Manage Events">
       <Head>
         <title>Manage Events | Admin Dashboard</title>
         <meta name="description" content="Admin dashboard for managing gaming events" />
@@ -841,6 +825,6 @@ export default function AdminEvents() {
           </div>
         </div>
       )}
-    </ProtectedPageWrapper>
+    </AdminPageWrapper>
   );
 } 

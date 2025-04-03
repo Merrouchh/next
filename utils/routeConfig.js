@@ -75,6 +75,47 @@ export const ROUTE_CONFIG = {
     hasSearchHeader: true
   },
 
+  // Admin pages
+  '/admin': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    showNavigation: true,
+    adminPage: true
+  },
+  
+  '/admin/events': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    showNavigation: true,
+    adminPage: true
+  },
+  
+  '/admin/users': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    showNavigation: true,
+    adminPage: true
+  },
+  
+  '/admin/sessions': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    showNavigation: true,
+    adminPage: true
+  },
+
+  '/admin/events/registrations/[id]': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    showNavigation: true,
+    adminPage: true
+  },
+
   // Add auth verification pages
   '/auth/verification-success': {
     public: true,
@@ -123,6 +164,29 @@ export const getRouteConfig = (pathname) => {
   if (pathname.startsWith('/events/') && pathname !== '/events') {
     return ROUTE_CONFIG['/events/[id]'];
   }
+  
+  // Special handling for admin pages
+  if (pathname.startsWith('/admin/')) {
+    // Special handling for event registrations
+    if (pathname.includes('/events/registrations/')) {
+      return ROUTE_CONFIG['/admin/events/registrations/[id]'];
+    }
+    
+    // Check for specific admin routes
+    const specificAdminRoute = ROUTE_CONFIG[pathname];
+    if (specificAdminRoute) {
+      return specificAdminRoute;
+    }
+    
+    // Default admin route
+    return ROUTE_CONFIG['/admin'] || {
+      public: false,
+      requireAuth: true,
+      requireAdmin: true,
+      showNavigation: true,
+      adminPage: true
+    };
+  }
 
   // Special handling for auth pages
   if (pathname.startsWith('/auth/')) {
@@ -158,4 +222,16 @@ export const hasSearchHeader = (pathname) => {
 export const isAuthPage = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.isAuthPage || false;
+};
+
+// Add helper for admin pages
+export const isAdminPage = (pathname) => {
+  const config = getRouteConfig(pathname);
+  return config.adminPage || false;
+};
+
+// Add helper to check if route requires admin privileges
+export const requiresAdmin = (pathname) => {
+  const config = getRouteConfig(pathname);
+  return config.requireAdmin || false;
 }; 
