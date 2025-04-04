@@ -290,29 +290,109 @@
 }
 
 .bracketMatchesList {
+  padding: 15px;
+  background-color: #202020;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.roundControls {
   display: flex;
-  flex-direction: column;
-  gap: 30px;
+  gap: 10px;
+  margin-bottom: 15px;
+  justify-content: flex-end;
+}
+
+.expandButton, .collapseButton {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.expandButton:hover, .collapseButton:hover {
+  background-color: #444;
+}
+
+.expandButton {
+  color: #4CAF50;
+}
+
+.collapseButton {
+  color: #FFD700;
 }
 
 .roundSection {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
+  margin-bottom: 25px;
 }
 
 .roundTitle {
-  color: #FFD700;
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  background-color: #333;
+  color: #fff;
+  border-radius: 4px;
   font-size: 1.1rem;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #333;
-  margin: 0;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.roundTitleContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.roundSummary {
+  display: flex;
+  gap: 15px;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  color: #aaa;
+}
+
+.matchCount {
+  color: #ddd;
+}
+
+.completedCount {
+  color: #4CAF50;
+}
+
+.readyCount {
+  color: #FFD700;
+}
+
+.collapsible {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.collapsible:hover {
+  background-color: #444;
+}
+
+.collapseIcon {
+  margin-left: 10px;
+  font-size: 0.8rem;
+  color: #FFD700;
 }
 
 .matchesList {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-bottom: 20px;
 }
 
 .matchItem {

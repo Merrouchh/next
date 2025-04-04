@@ -27,6 +27,7 @@ export default function BracketManager() {
   const [availableParticipants, setAvailableParticipants] = useState([]);
   const [participantToReplace, setParticipantToReplace] = useState(null);
   const [lastScheduledTime, setLastScheduledTime] = useState('');
+  const [expandedRounds, setExpandedRounds] = useState({});
 
   // Format datetime string for form input
   const formatDatetimeForInput = (datetimeString) => {
@@ -465,6 +466,21 @@ export default function BracketManager() {
     setSelectedMatch(match);
     console.log('Match clicked:', match);
     
+    // Find which round this match belongs to
+    if (bracketData) {
+      const roundIndex = bracketData.findIndex(round => 
+        round.some(m => m.id === match.id)
+      );
+      
+      if (roundIndex !== -1) {
+        // Make sure this round is expanded
+        setExpandedRounds(prev => ({
+          ...prev,
+          [roundIndex]: true
+        }));
+      }
+    }
+    
     // Format the scheduledTime for the input element
     const formattedTime = formatDatetimeForInput(match.scheduledTime);
     
@@ -581,6 +597,9 @@ export default function BracketManager() {
         console.log('Setting enriched bracket data:', enrichedBracket);
         setBracketData(enrichedBracket);
         setParticipants(data.participants || []);
+        
+        // Set the first round to be expanded by default
+        setExpandedRounds({ 0: true });
       } else {
         console.log('No valid bracket data in response');
         setBracketData(null);
@@ -1044,6 +1063,26 @@ export default function BracketManager() {
     }
   };
 
+  // Toggle round expansion
+  const toggleRound = (roundIndex) => {
+    setExpandedRounds(prev => ({
+      ...prev,
+      [roundIndex]: !prev[roundIndex]
+    }));
+  };
+
+  // Toggle all rounds
+  const toggleAllRounds = (expand = false) => {
+    if (!bracketData) return;
+    
+    const newExpandedState = {};
+    bracketData.forEach((_, index) => {
+      newExpandedState[index] = expand;
+    });
+    
+    setExpandedRounds(newExpandedState);
+  };
+
   // Render match details modal
   const renderMatchDetailsModal = () => {
     if (!selectedMatch) return null;
@@ -1495,86 +1534,137 @@ export default function BracketManager() {
             </div>
           ) : (
             <div className={styles.bracketMatchesList}>
+              <div className={styles.roundControls}>
+                <button 
+                  className={styles.expandButton} 
+                  onClick={() => toggleAllRounds(true)}
+                  title="Expand all rounds"
+                >
+                  Expand All
+                </button>
+                <button 
+                  className={styles.collapseButton} 
+                  onClick={() => toggleAllRounds(false)}
+                  title="Collapse all rounds"
+                >
+                  Collapse All
+                </button>
+              </div>
+              
               {bracketData.map((round, roundIndex) => (
                 <div key={`round-${roundIndex}`} className={styles.roundSection}>
-                  <h3 className={styles.roundTitle}>
-                    {roundIndex === 0 ? 'Round 1' : 
-                     roundIndex === bracketData.length - 1 ? 'Final' : 
-                     `Round ${roundIndex + 1}`}
+                  <h3 
+                    className={`${styles.roundTitle} ${styles.collapsible}`} 
+                    onClick={() => toggleRound(roundIndex)}
+                  >
+                    <div className={styles.roundTitleContent}>
+                      {roundIndex === 0 ? 'Round 1' : 
+                       roundIndex === bracketData.length - 1 ? 'Final' : 
+                       `Round ${roundIndex + 1}`}
+                      
+                      <div className={styles.roundSummary}>
+                        {!expandedRounds[roundIndex] && (
+                          <>
+                            <span className={styles.matchCount}>
+                              {round.length} matches
+                            </span>
+                            <span className={styles.completedCount}>
+                              {round.filter(m => m.winnerId).length} completed
+                            </span>
+                            <span className={styles.readyCount}>
+                              {round.filter(m => 
+                                !m.winnerId && 
+                                m.participant1Id && 
+                                m.participant2Id && 
+                                m.participant1Name !== 'TBD' && 
+                                m.participant2Name !== 'TBD' &&
+                                m.participant1Name !== 'Bye' && 
+                                m.participant2Name !== 'Bye'
+                              ).length} ready
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className={styles.collapseIcon}>
+                      {expandedRounds[roundIndex] ? '▼' : '►'}
+                    </span>
                   </h3>
                   
-                  <div className={styles.matchesList}>
-                    {round.map((match) => {
-                      // Determine if match is ready to be played
-                      const isMatchReady = !match.winnerId && 
-                        match.participant1Id && match.participant2Id && 
-                        match.participant1Name !== 'TBD' && match.participant2Name !== 'TBD' &&
-                        match.participant1Name !== 'Bye' && match.participant2Name !== 'Bye';
-                      
-                      // Get participant names (including team members for duos)
-                      const participant1Name = getParticipantName(match.participant1Id);
-                      const participant2Name = getParticipantName(match.participant2Id);
-                      
-                      return (
-                        <div 
-                          key={`match-${match.id}`} 
-                          className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
-                          onClick={() => handleMatchClick(match)}
-                        >
-                          <div className={styles.matchHeader}>
-                            <span className={styles.matchId}>Match #{match.id}</span>
-                            {match.scheduledTime && (
-                              <span className={styles.scheduledTime}>
-                                <FaClock /> {new Date(match.scheduledTime).toLocaleString([], {
-                                  month: 'short', 
-                                  day: 'numeric', 
-                                  hour: '2-digit', 
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            )}
-                            {match.location && (
-                              <span className={styles.matchLocation}>
-                                @ {match.location}
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className={styles.matchParticipants}>
-                            <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
-                              {participant1Name}
-                              {match.winnerId === match.participant1Id && (
-                                <FaCrown className={styles.crownIcon} />
+                  {expandedRounds[roundIndex] && (
+                    <div className={styles.matchesList}>
+                      {round.map((match) => {
+                        // Determine if match is ready to be played
+                        const isMatchReady = !match.winnerId && 
+                          match.participant1Id && match.participant2Id && 
+                          match.participant1Name !== 'TBD' && match.participant2Name !== 'TBD' &&
+                          match.participant1Name !== 'Bye' && match.participant2Name !== 'Bye';
+                        
+                        // Get participant names (including team members for duos)
+                        const participant1Name = getParticipantName(match.participant1Id);
+                        const participant2Name = getParticipantName(match.participant2Id);
+                        
+                        return (
+                          <div 
+                            key={`match-${match.id}`} 
+                            className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
+                            onClick={() => handleMatchClick(match)}
+                          >
+                            <div className={styles.matchHeader}>
+                              <span className={styles.matchId}>Match #{match.id}</span>
+                              {match.scheduledTime && (
+                                <span className={styles.scheduledTime}>
+                                  <FaClock /> {new Date(match.scheduledTime).toLocaleString([], {
+                                    month: 'short', 
+                                    day: 'numeric', 
+                                    hour: '2-digit', 
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              )}
+                              {match.location && (
+                                <span className={styles.matchLocation}>
+                                  @ {match.location}
+                                </span>
                               )}
                             </div>
-                            <div className={styles.versus}>vs</div>
-                            <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
-                              {participant2Name}
-                              {match.winnerId === match.participant2Id && (
-                                <FaCrown className={styles.crownIcon} />
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className={styles.matchActions}>
-                            <button className={styles.editButton} onClick={(e) => {
-                              e.stopPropagation();
-                              handleMatchClick(match);
-                            }}>
-                              <FaEdit /> 
-                              {match.scheduledTime ? 'Edit Details' : 'Add Details'}
-                            </button>
                             
-                            {match.notes && (
-                              <div className={styles.matchNotes}>
-                                <strong>Notes:</strong> {match.notes}
+                            <div className={styles.matchParticipants}>
+                              <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
+                                {participant1Name}
+                                {match.winnerId === match.participant1Id && (
+                                  <FaCrown className={styles.crownIcon} />
+                                )}
                               </div>
-                            )}
+                              <div className={styles.versus}>vs</div>
+                              <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
+                                {participant2Name}
+                                {match.winnerId === match.participant2Id && (
+                                  <FaCrown className={styles.crownIcon} />
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className={styles.matchActions}>
+                              <button className={styles.editButton} onClick={(e) => {
+                                e.stopPropagation();
+                                handleMatchClick(match);
+                              }}>
+                                <FaEdit /> 
+                                {match.scheduledTime ? 'Edit Details' : 'Add Details'}
+                              </button>
+                              
+                              {match.notes && (
+                                <div className={styles.matchNotes}>
+                                  <strong>Notes:</strong> {match.notes}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
