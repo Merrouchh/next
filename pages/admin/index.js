@@ -440,29 +440,20 @@ export default function AdminDashboard() {
     setSessionViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
   };
 
-  // Update the VIP and Normal computer arrays to have a specific order
+  // Add computer data structures
   const allComputers = {
-    normal: [
-      // First row (right to left): 7, 5, 3, 1
-      { id: 7, hostId: 16, number: 7, type: 'normal' },
-      { id: 5, hostId: 17, number: 5, type: 'normal' },
-      { id: 3, hostId: 8, number: 3, type: 'normal' },
-      { id: 1, hostId: 26, number: 1, type: 'normal' },
-      // Second row (right to left): 8, 6, 4, 2
-      { id: 8, hostId: 14, number: 8, type: 'normal' },
-      { id: 6, hostId: 11, number: 6, type: 'normal' },
-      { id: 4, hostId: 5, number: 4, type: 'normal' },
-      { id: 2, hostId: 12, number: 2, type: 'normal' },
-    ],
-    vip: [
-      // Ordered 1-6
-      { id: 1, hostId: 21, number: 1, type: 'vip' },
-      { id: 2, hostId: 22, number: 2, type: 'vip' },
-      { id: 3, hostId: 25, number: 3, type: 'vip' },
-      { id: 4, hostId: 20, number: 4, type: 'vip' },
-      { id: 5, hostId: 24, number: 5, type: 'vip' },
-      { id: 6, hostId: 23, number: 6, type: 'vip' },
-    ]
+    normal: Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+      number: i + 1,
+      type: 'normal'
+    })),
+    vip: Array.from({ length: 6 }, (_, i) => ({
+      id: i + 9,
+      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
+      number: i + 1,
+      type: 'vip'
+    }))
   };
 
   // Add a function to prepare computers with session data
@@ -496,7 +487,15 @@ export default function AdminDashboard() {
       }
     });
     
-    return { normalComputers, vipComputers };
+    return { 
+      normalComputers, 
+      vipComputers,
+      // Sort VIP computers by number (1-6)
+      sortedVipComputers: [...vipComputers].sort((a, b) => a.number - b.number),
+      // Create arrays for the normal computer rows with specific ordering
+      normalRow1: [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num)),
+      normalRow2: [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num))
+    };
   };
 
   return (
@@ -720,7 +719,7 @@ export default function AdminDashboard() {
           ) : (
             <div className={styles.sessionsGridLayout}>
               {(() => {
-                const { normalComputers, vipComputers } = prepareComputersWithSessionData();
+                const { normalComputers, vipComputers, sortedVipComputers, normalRow1, normalRow2 } = prepareComputersWithSessionData();
                 
                 return (
                   <>
@@ -733,7 +732,7 @@ export default function AdminDashboard() {
                         </span>
                       </h3>
                       <div className={styles.computerGrid}>
-                        {vipComputers.map(computer => {
+                        {sortedVipComputers.map(computer => {
                           const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
                           
                           return (
@@ -802,130 +801,119 @@ export default function AdminDashboard() {
                           {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} active
                         </span>
                       </h3>
-                      <div className={styles.computerGrid}>
-                        {/* First row - normal computers 7, 5, 3, 1 */}
-                        <div className={styles.computerGridRow}>
-                          {normalComputers.slice(0, 4).map(computer => {
-                            const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
-                            
-                            return (
-                              <div 
-                                key={`normal-${computer.id}`}
-                                className={`${styles.computerCard} ${styles[timeStatus]}`}
-                              >
-                                <div className={styles.computerHeader}>
-                                  <div className={`${styles.computerIcon} ${styles.normal}`}>
-                                    <FaDesktop />
-                                  </div>
-                                  <div className={styles.computerName}>
-                                    Normal {computer.number}
-                                  </div>
-                                  {computer.available && 
-                                    <div className={styles.availableBadge}>Available</div>
-                                  }
-                                </div>
-                                
-                                <div className={styles.computerBody}>
-                                  {computer.available ? (
-                                    <div className={styles.emptyCardPlaceholder}>
-                                      No active session
-                                    </div>
-                                  ) : (
-                                    <div className={styles.userInfo}>
-                                      <div className={styles.userName}>
-                                        <span className={styles.userInfoLabel}>User:</span>
-                                        <span>{computer.userName}</span>
-                                      </div>
-                                      <div className={styles.timeInfo}>
-                                        <span className={styles.userInfoLabel}>Time Left:</span>
-                                        <span className={`${styles.timeValue} ${styles[timeStatus]}`}>
-                                          {formatTimeLeft(computer.timeLeft)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {!computer.available && (
-                                  <div className={styles.computerFooter}>
-                                    <div className={styles.sessionIdSmall}>
-                                      User ID: {computer.userId}
-                                    </div>
-                                    <button 
-                                      className={styles.actionButton}
-                                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                                      title="View user profile"
-                                    >
-                                      <FaUsers size={12} />
-                                    </button>
-                                  </div>
-                                )}
+                      <div className={styles.computerGridSpecial}>
+                        {normalRow1.map(computer => computer && (
+                          <div 
+                            key={`normal-${computer.id}`}
+                            className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+                          >
+                            <div className={styles.computerHeader}>
+                              <div className={`${styles.computerIcon} ${styles.normal}`}>
+                                <FaDesktop />
                               </div>
-                            );
-                          })}
-                        </div>
-                        
-                        {/* Second row - normal computers 8, 6, 4, 2 */}
-                        <div className={styles.computerGridRow}>
-                          {normalComputers.slice(4, 8).map(computer => {
-                            const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
-                            
-                            return (
-                              <div 
-                                key={`normal-${computer.id}`}
-                                className={`${styles.computerCard} ${styles[timeStatus]}`}
-                              >
-                                <div className={styles.computerHeader}>
-                                  <div className={`${styles.computerIcon} ${styles.normal}`}>
-                                    <FaDesktop />
-                                  </div>
-                                  <div className={styles.computerName}>
-                                    Normal {computer.number}
-                                  </div>
-                                  {computer.available && 
-                                    <div className={styles.availableBadge}>Available</div>
-                                  }
-                                </div>
-                                
-                                <div className={styles.computerBody}>
-                                  {computer.available ? (
-                                    <div className={styles.emptyCardPlaceholder}>
-                                      No active session
-                                    </div>
-                                  ) : (
-                                    <div className={styles.userInfo}>
-                                      <div className={styles.userName}>
-                                        <span className={styles.userInfoLabel}>User:</span>
-                                        <span>{computer.userName}</span>
-                                      </div>
-                                      <div className={styles.timeInfo}>
-                                        <span className={styles.userInfoLabel}>Time Left:</span>
-                                        <span className={`${styles.timeValue} ${styles[timeStatus]}`}>
-                                          {formatTimeLeft(computer.timeLeft)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {!computer.available && (
-                                  <div className={styles.computerFooter}>
-                                    <div className={styles.sessionIdSmall}>
-                                      User ID: {computer.userId}
-                                    </div>
-                                    <button 
-                                      className={styles.actionButton}
-                                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                                      title="View user profile"
-                                    >
-                                      <FaUsers size={12} />
-                                    </button>
-                                  </div>
-                                )}
+                              <div className={styles.computerName}>
+                                Normal {computer.number}
                               </div>
-                            );
-                          })}
-                        </div>
+                              {computer.available && 
+                                <div className={styles.availableBadge}>Available</div>
+                              }
+                            </div>
+                            
+                            <div className={styles.computerBody}>
+                              {computer.available ? (
+                                <div className={styles.emptyCardPlaceholder}>
+                                  No active session
+                                </div>
+                              ) : (
+                                <div className={styles.userInfo}>
+                                  <div className={styles.userName}>
+                                    <span className={styles.userInfoLabel}>User:</span>
+                                    <span>{computer.userName}</span>
+                                  </div>
+                                  <div className={styles.timeInfo}>
+                                    <span className={styles.userInfoLabel}>Time Left:</span>
+                                    <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                                      {formatTimeLeft(computer.timeLeft)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {!computer.available && (
+                              <div className={styles.computerFooter}>
+                                <div className={styles.sessionIdSmall}>
+                                  User ID: {computer.userId}
+                                </div>
+                                <button 
+                                  className={styles.actionButton}
+                                  onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                                  title="View user profile"
+                                >
+                                  <FaUsers size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Second row: 8,6,4,2 */}
+                      <div className={styles.computerGridSpecial}>
+                        {normalRow2.map(computer => computer && (
+                          <div 
+                            key={`normal-${computer.id}`}
+                            className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+                          >
+                            <div className={styles.computerHeader}>
+                              <div className={`${styles.computerIcon} ${styles.normal}`}>
+                                <FaDesktop />
+                              </div>
+                              <div className={styles.computerName}>
+                                Normal {computer.number}
+                              </div>
+                              {computer.available && 
+                                <div className={styles.availableBadge}>Available</div>
+                              }
+                            </div>
+                            
+                            <div className={styles.computerBody}>
+                              {computer.available ? (
+                                <div className={styles.emptyCardPlaceholder}>
+                                  No active session
+                                </div>
+                              ) : (
+                                <div className={styles.userInfo}>
+                                  <div className={styles.userName}>
+                                    <span className={styles.userInfoLabel}>User:</span>
+                                    <span>{computer.userName}</span>
+                                  </div>
+                                  <div className={styles.timeInfo}>
+                                    <span className={styles.userInfoLabel}>Time Left:</span>
+                                    <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                                      {formatTimeLeft(computer.timeLeft)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {!computer.available && (
+                              <div className={styles.computerFooter}>
+                                <div className={styles.sessionIdSmall}>
+                                  User ID: {computer.userId}
+                                </div>
+                                <button 
+                                  className={styles.actionButton}
+                                  onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                                  title="View user profile"
+                                >
+                                  <FaUsers size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </>

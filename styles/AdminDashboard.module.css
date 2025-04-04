@@ -712,8 +712,6 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  max-width: 100%;
-  min-width: 0;
 }
 
 .computerCard:hover {
@@ -742,7 +740,7 @@
 .computerHeader {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
+  padding: 14px 16px;
   background-color: #252525;
   border-bottom: 1px solid #333;
 }
@@ -751,11 +749,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  margin-right: 8px;
-  font-size: 0.9rem;
+  margin-right: 12px;
+  font-size: 1.1rem;
 }
 
 .computerIcon.normal {
@@ -770,34 +768,31 @@
 
 .computerName {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .computerInfo {
   flex: 1;
-  padding: 12px;
+  padding: 16px;
 }
 
 .computerBody {
-  padding: 12px;
+  padding: 16px;
   flex: 1;
 }
 
 .userInfo {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .userName, .timeInfo {
   display: flex;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #ddd;
 }
 
@@ -836,7 +831,7 @@
 }
 
 .computerFooter {
-  padding: 8px 12px;
+  padding: 12px 16px;
   border-top: 1px solid #333;
   display: flex;
   justify-content: space-between;
@@ -845,15 +840,15 @@
 }
 
 .sessionIdSmall {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: #777;
 }
 
 .actionButton {
   background: none;
   border: 1px solid #444;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -873,13 +868,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80px;
+  height: 120px;
   background-color: #252525;
   border-radius: 4px;
   border: 1px dashed #444;
   color: #777;
-  font-size: 0.8rem;
-  margin: 6px 0;
+  font-size: 0.9rem;
+  margin: 10px 0;
 }
 
 /* Summary section */
@@ -990,38 +985,22 @@
   animation: pulse 1.5s infinite;
 }
 
-/* Computer grid layout for specific rows */
-.computerGridRow {
+/* Specialized computer grid for the specific layout */
+.computerGridSpecial {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-/* Make VIP computers display in one row */
-.sectionHeader + .computerGrid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-}
-
-/* Make responsive for smaller screens */
 @media (max-width: 1200px) {
-  .sectionHeader + .computerGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .computerGridRow {
+  .computerGridSpecial {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .sectionHeader + .computerGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .computerGridRow {
-    grid-template-columns: repeat(1, 1fr);
+  .computerGridSpecial {
+    grid-template-columns: 1fr;
   }
 } 
