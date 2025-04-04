@@ -446,4 +446,111 @@
 @keyframes slideIn {
   from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* Live indicator styles */
+.liveIndicatorContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 5px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.liveDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #f44336;
+  margin-right: 8px;
+  animation: pulse 2s infinite;
+}
+
+.liveText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
+}
+
+/* Session status colors */
+.sessionItem.active {
+  border-left-color: #4CAF50;
+}
+
+.sessionItem.warning {
+  border-left-color: #FF9800;
+}
+
+.sessionItem.noTime {
+  border-left-color: #f44336;
+}
+
+.sessionTime.active {
+  color: #4CAF50;
+}
+
+.sessionTime.warning {
+  color: #FF9800;
+}
+
+.sessionTime.noTime {
+  color: #f44336;
+}
+
+/* Computer type styling */
+.sessionComputer.vip {
+  color: #FFD700;
+}
+
+.sessionComputer.normal {
+  color: #4285F4;
+}
+
+/* Session actions */
+.sessionActions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.viewUserButton {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 5px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.viewUserButton:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.2);
 } 

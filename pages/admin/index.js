@@ -185,6 +185,45 @@ export default function AdminDashboard() {
     }
   };
 
+  // Add these new helper functions at the top of the component
+  const formatTimeLeft = (timeLeft) => {
+    if (!timeLeft || timeLeft === 'No Time') return 'No Time';
+    return timeLeft;
+  };
+
+  const getSessionStatus = (timeLeft) => {
+    if (!timeLeft || timeLeft === 'No Time') return 'noTime';
+    
+    // Parse time string like "1 : 30" into hours and minutes
+    const timeParts = timeLeft.split(' : ');
+    const hours = parseInt(timeParts[0]) || 0;
+    const minutes = parseInt(timeParts[1]) || 0;
+    const totalMinutes = hours * 60 + minutes;
+    
+    if (totalMinutes < 60) return 'warning'; // Less than 1 hour
+    return 'active'; // More than 1 hour
+  };
+
+  const getComputerType = (computerId) => {
+    // Computer IDs from avcomputers.js
+    const normalComputers = [26, 12, 8, 5, 17, 11, 16, 14];
+    const vipComputers = [21, 22, 25, 20, 24, 23];
+    
+    if (vipComputers.includes(computerId)) return 'VIP';
+    if (normalComputers.includes(computerId)) return 'Normal';
+    return computerId <= 8 ? 'Normal' : 'VIP'; // Fallback based on ID
+  };
+
+  const getComputerNumber = (computerId) => {
+    // Mapping from avcomputers.js
+    const computerMap = {
+      26: 1, 12: 2, 8: 3, 5: 4, 17: 5, 11: 6, 16: 7, 14: 8, // Normal PCs
+      21: 9, 22: 10, 25: 11, 20: 12, 24: 13, 23: 14 // VIP PCs
+    };
+    
+    return computerMap[computerId] || computerId;
+  };
+
   return (
     <AdminPageWrapper title="Admin Dashboard">
       <Head>
@@ -342,6 +381,14 @@ export default function AdminDashboard() {
                 <FaTimes />
               </button>
             </div>
+            
+            <div className={styles.liveIndicatorContainer}>
+              <div className={styles.liveIndicator}>
+                <div className={styles.liveDot}></div>
+                <span className={styles.liveText}>Live</span>
+              </div>
+            </div>
+            
             <div className={styles.modalBody}>
               {stats.activeSessions.length === 0 ? (
                 <div className={styles.noSessions}>
@@ -349,30 +396,49 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className={styles.sessionsList}>
-                  {stats.activeSessions.map((session, index) => (
-                    <div key={index} className={styles.sessionItem}>
-                      <div className={styles.sessionComputer}>
-                        <FaDesktop />
-                        <span>{session.computer_name || `Computer ${session.computer_id}`}</span>
-                      </div>
-                      <div className={styles.sessionInfo}>
-                        <div className={styles.sessionUser}>
-                          <strong>User:</strong> {session.user_name || "Unknown"}
+                  {stats.activeSessions.map((session, index) => {
+                    const computerType = getComputerType(session.hostId);
+                    const computerNumber = getComputerNumber(session.hostId);
+                    const timeStatus = getSessionStatus(session.time_left);
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`${styles.sessionItem} ${styles[timeStatus]}`}
+                      >
+                        <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
+                          <FaDesktop />
+                          <span>{computerType} PC {computerNumber}</span>
                         </div>
-                        <div className={styles.sessionTime}>
-                          <strong>Time Left:</strong> {session.time_left || "Unknown"}
-                        </div>
-                        {session.start_time && (
-                          <div className={styles.sessionStart}>
-                            <strong>Started:</strong> {new Date(session.start_time).toLocaleTimeString()}
+                        <div className={styles.sessionInfo}>
+                          <div className={styles.sessionUser}>
+                            <strong>User:</strong> {session.user_name || "Unknown"}
                           </div>
-                        )}
+                          <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
+                            <strong>Time Left:</strong> {formatTimeLeft(session.time_left)}
+                          </div>
+                          {session.start_time && (
+                            <div className={styles.sessionStart}>
+                              <strong>Started:</strong> {new Date(session.start_time).toLocaleTimeString()}
+                            </div>
+                          )}
+                        </div>
+                        <div className={styles.sessionActions}>
+                          <button 
+                            className={styles.viewUserButton}
+                            onClick={() => router.push(`/admin/users?id=${session.userId}`)}
+                            title="View user profile"
+                          >
+                            <FaUsers />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
+            
             <div className={styles.modalFooter}>
               <button 
                 className={styles.refreshButton}
