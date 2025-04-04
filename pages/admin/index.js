@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       await Promise.all(enhancedSessions.map(async (session, index) => {
         if (!session.userId) return;
         
-        // Fetch username using our new dedicated API endpoint
+        // Fetch username using our new dedicated API endpoint with gizmoId parameter
         try {
           const userResponse = await fetch(`/api/users/${session.userId}/username`, {
             headers: { 'Content-Type': 'application/json' }
@@ -291,7 +291,7 @@ export default function AdminDashboard() {
         if (sessionIndex === -1) return;
         
         try {
-          // Try to get username from directly from user data
+          // Try to get username from directly from user data with gizmoId parameter
           const usernameResponse = await fetch(`/api/users/${session.userId}/username`, {
             headers: { 'Content-Type': 'application/json' }
           });
