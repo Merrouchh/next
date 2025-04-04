@@ -807,11 +807,6 @@ export default function AdminDashboard() {
                                 {computer.available && 
                                   <div className={styles.availableBadge}>Available</div>
                                 }
-                                {!computer.available && computer.hasAccount && 
-                                  <div className={styles.accountBadge} title="User has website account">
-                                    <FaCheck size={10} />
-                                  </div>
-                                }
                               </div>
                               
                               <div className={styles.computerBody}>
@@ -886,11 +881,6 @@ export default function AdminDashboard() {
                               {computer.available && 
                                 <div className={styles.availableBadge}>Available</div>
                               }
-                              {!computer.available && computer.hasAccount && 
-                                <div className={styles.accountBadge} title="User has website account">
-                                  <FaCheck size={10} />
-                                </div>
-                              }
                             </div>
                             
                             <div className={styles.computerBody}>
@@ -955,11 +945,6 @@ export default function AdminDashboard() {
                               </div>
                               {computer.available && 
                                 <div className={styles.availableBadge}>Available</div>
-                              }
-                              {!computer.available && computer.hasAccount && 
-                                <div className={styles.accountBadge} title="User has website account">
-                                  <FaCheck size={10} />
-                                </div>
                               }
                             </div>
                             
