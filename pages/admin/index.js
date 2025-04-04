@@ -233,10 +233,10 @@ export default function AdminDashboard() {
     }
   }, [user, supabase, lastUpdated]);
   
-  // Use interval to automatically refresh data every 3 seconds
+  // Use interval to automatically refresh data every 5 seconds
   useInterval(() => {
     fetchAdminStats();
-  }, 3000);
+  }, 5000);
   
   // Initial data load
   useEffect(() => {
