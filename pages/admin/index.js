@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList, FaLaptop, FaCheck } from 'react-icons/fa';
@@ -7,6 +7,27 @@ import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
+
+// Add a custom useInterval hook for polling
+function useInterval(callback, delay) {
+  const savedCallback = useRef();
+
+  // Remember the latest callback
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval
+  useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+    if (delay !== null) {
+      const id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
 
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
@@ -20,6 +41,7 @@ export default function AdminDashboard() {
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
   const [sessionViewMode, setSessionViewMode] = useState('grid'); // 'list' or 'grid'
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Replace the username fetching function to use only API endpoints
   const fetchUsernameByGizmoId = async (gizmoId) => {
@@ -147,67 +169,86 @@ export default function AdminDashboard() {
     }
   };
 
-  // Update the useEffect hook to use the new function
-  useEffect(() => {
-    // Fetch basic stats for the admin dashboard
-    const fetchAdminStats = async () => {
-      if (!user) return;
-      
-      try {
-        setStats(prev => ({ ...prev, loading: true }));
-        
-        // Get active sessions with time details
-        const sessionsWithDetails = await fetchActiveSessionsWithDetails();
-        
-        // Get session for auth
-        const { data: sessionData } = await supabase.auth.getSession();
-        
-        // Get events count
-        const { count: eventsCount, error: eventsError } = await supabase
-          .from('events')
-          .select('id', { count: 'exact', head: true });
-          
-        if (eventsError) {
-          console.error('Error fetching events count:', eventsError);
-        }
-        
-        // Get users count
-        const { count: usersCount, error: usersError } = await supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true });
-          
-        if (usersError) {
-          console.error('Error fetching users count:', usersError);
-        }
-        
-        // Get active users (users with activity in the last 24 hours)
-        const oneDayAgo = new Date();
-        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-        
-        const { count: activeUsersCount, error: activeUsersError } = await supabase
-          .from('user_sessions')
-          .select('user_id', { count: 'exact', head: true })
-          .gt('created_at', oneDayAgo.toISOString());
-          
-        if (activeUsersError) {
-          console.error('Error fetching active users count:', activeUsersError);
-        }
-        
-        setStats({
-          totalUsers: usersCount || 0,
-          activeUsers: activeUsersCount || 0,
-          totalEvents: eventsCount || 0,
-          activeSessions: sessionsWithDetails || [],
-          loading: false
-        });
-      } catch (error) {
-        console.error('Error fetching admin stats:', error);
-        setStats(prev => ({ ...prev, loading: false }));
-      }
-    };
+  // Refactor fetchAdminStats into a callback that can be used by the interval
+  const fetchAdminStats = useCallback(async () => {
+    if (!user) return;
     
+    try {
+      // Don't set loading to true for automatic refreshes to avoid UI flicker
+      const isManualRefresh = !lastUpdated;
+      if (isManualRefresh) {
+        setStats(prev => ({ ...prev, loading: true }));
+      }
+      
+      // Get active sessions with time details
+      const sessionsWithDetails = await fetchActiveSessionsWithDetails();
+      
+      // Get session for auth
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      // Get events count
+      const { count: eventsCount, error: eventsError } = await supabase
+        .from('events')
+        .select('id', { count: 'exact', head: true });
+        
+      if (eventsError) {
+        console.error('Error fetching events count:', eventsError);
+      }
+      
+      // Get users count
+      const { count: usersCount, error: usersError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+        
+      if (usersError) {
+        console.error('Error fetching users count:', usersError);
+      }
+      
+      // Get active users (users with activity in the last 24 hours)
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const { count: activeUsersCount, error: activeUsersError } = await supabase
+        .from('user_sessions')
+        .select('user_id', { count: 'exact', head: true })
+        .gt('created_at', oneDayAgo.toISOString());
+        
+      if (activeUsersError) {
+        console.error('Error fetching active users count:', activeUsersError);
+      }
+      
+      setStats({
+        totalUsers: usersCount || 0,
+        activeUsers: activeUsersCount || 0,
+        totalEvents: eventsCount || 0,
+        activeSessions: sessionsWithDetails || [],
+        loading: false
+      });
+      
+      // Update the last refreshed timestamp
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      setStats(prev => ({ ...prev, loading: false }));
+    }
+  }, [user, supabase, lastUpdated]);
+  
+  // Use interval to automatically refresh data every 15 seconds
+  useInterval(() => {
     fetchAdminStats();
-  }, [user, supabase]);
+  }, 15000);
+  
+  // Initial data load
+  useEffect(() => {
+    fetchAdminStats();
+  }, [fetchAdminStats]);
+
+  // Format the last updated time as a readable string
+  const getLastUpdatedString = () => {
+    if (!lastUpdated) return 'Loading...';
+    
+    return `Live data • Last updated: ${lastUpdated.toLocaleTimeString()}`;
+  };
 
   // Format the session count similar to dashboard.js
   const formatSessionCount = (activeCount) => {
@@ -330,57 +371,6 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error while enhancing session data:', error);
       return detailedSessions;
-    }
-  };
-
-  // Also update the handleRefresh function
-  const handleRefresh = async () => {
-    setStats(prev => ({ ...prev, loading: true }));
-    try {
-      // Get active sessions with time details
-      const sessionsWithDetails = await fetchActiveSessionsWithDetails();
-      
-      // Get events count
-      const { count: eventsCount, error: eventsError } = await supabase
-        .from('events')
-        .select('id', { count: 'exact', head: true });
-        
-      if (eventsError) {
-        console.error('Error fetching events count:', eventsError);
-      }
-      
-      // Get users count
-      const { count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true });
-        
-      if (usersError) {
-        console.error('Error fetching users count:', usersError);
-      }
-      
-      // Get active users (users with activity in the last 24 hours)
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-      
-      const { count: activeUsersCount, error: activeUsersError } = await supabase
-        .from('user_sessions')
-        .select('user_id', { count: 'exact', head: true })
-        .gt('created_at', oneDayAgo.toISOString());
-        
-      if (activeUsersError) {
-        console.error('Error fetching active users count:', activeUsersError);
-      }
-      
-      setStats({
-        totalUsers: usersCount || 0,
-        activeUsers: activeUsersCount || 0,
-        totalEvents: eventsCount || 0,
-        activeSessions: sessionsWithDetails || [],
-        loading: false
-      });
-    } catch (error) {
-      console.error('Error refreshing admin stats:', error);
-      setStats(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -520,6 +510,11 @@ export default function AdminDashboard() {
             <span className={styles.sectionTitleLine}></span>
           </h2>
           
+          <div className={styles.liveDataIndicator}>
+            <div className={styles.liveDot}></div>
+            <span>{getLastUpdatedString()}</span>
+          </div>
+          
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={styles.statIcon} style={{ backgroundColor: 'rgba(66, 133, 244, 0.2)' }}>
@@ -574,16 +569,6 @@ export default function AdminDashboard() {
                 <div className={styles.statSubtext}>In the last 24 hours</div>
               </div>
             </div>
-          </div>
-          <div className={styles.refreshButtonContainer}>
-            <button 
-              onClick={handleRefresh}
-              disabled={stats.loading}
-              className={`${sharedStyles.primaryButton} ${styles.refreshButton}`}
-            >
-              <FaDesktop className={sharedStyles.buttonIcon} />
-              {stats.loading ? 'Refreshing...' : 'Refresh Stats'}
-            </button>
           </div>
         </section>
         
@@ -663,16 +648,6 @@ export default function AdminDashboard() {
             >
               <FaList size={14} /> List View
             </button>
-            
-            <div style={{ marginLeft: 'auto' }}>
-              <button 
-                onClick={handleRefresh}
-                disabled={stats.loading}
-                className={`${styles.viewTypeButton}`}
-              >
-                {stats.loading ? 'Refreshing...' : 'Refresh Data'}
-              </button>
-            </div>
           </div>
           
           {stats.activeSessions.length === 0 && !stats.loading ? (

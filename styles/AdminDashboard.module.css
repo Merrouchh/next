@@ -260,30 +260,7 @@
 
 /* Add styles for the refresh button container */
 .refreshButtonContainer {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-}
-
-.refreshButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.refreshButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.refreshButton svg {
-  margin-right: 8px;
+  display: none;
 }
 
 .clickableStatCard {
@@ -638,6 +615,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 1rem;
+  justify-content: flex-start;
 }
 
 .viewTypeButton {
@@ -962,4 +940,47 @@
   color: #999;
   font-size: 1rem;
   border: 1px solid #333;
+}
+
+/* Live Data Indicator */
+.liveDataIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  background-color: rgba(52, 168, 83, 0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(52, 168, 83, 0.2);
+  width: fit-content;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background-color: #34A853;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+.liveDataIndicator span {
+  font-size: 0.85rem;
+  color: #ddd;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(52, 168, 83, 0);
+  }
+  
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
+  }
 } 
