@@ -456,8 +456,8 @@ export default function AdminDashboard() {
     }))
   };
 
-  // Add a function to prepare computers with session data
-  const prepareComputersWithSessionData = () => {
+  // Replace the prepareComputersWithSessionData function to include account verification
+  const prepareComputersWithSessionData = async () => {
     // Deep clone the computers to avoid modifying the source
     const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
     const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
@@ -465,6 +465,39 @@ export default function AdminDashboard() {
     // Mark all computers as available initially
     normalComputers.forEach(pc => pc.available = true);
     vipComputers.forEach(pc => pc.available = true);
+    
+    // Get mapping of gizmo_ids to account status
+    const userAccountMap = {};
+    
+    // If there are active sessions, check which users have accounts
+    if (stats.activeSessions.length > 0) {
+      const gizmoIds = stats.activeSessions
+        .filter(session => session.userId)
+        .map(session => session.userId);
+      
+      if (gizmoIds.length > 0) {
+        try {
+          // Query the users table to see which gizmo_ids exist
+          const { data, error } = await supabase
+            .from('users')
+            .select('gizmo_id')
+            .in('gizmo_id', gizmoIds);
+            
+          if (data && !error) {
+            // Create a map of gizmo_id to account status
+            data.forEach(user => {
+              userAccountMap[user.gizmo_id] = true;
+            });
+            
+            console.log('Users with accounts:', userAccountMap);
+          } else if (error) {
+            console.error('Error checking user accounts:', error);
+          }
+        } catch (err) {
+          console.error('Exception checking user accounts:', err);
+        }
+      }
+    }
     
     // For each active session, find the matching computer and update it
     stats.activeSessions.forEach(session => {
@@ -482,7 +515,8 @@ export default function AdminDashboard() {
           userId: session.userId,
           userName: session.userName || `User ${session.userId}`,
           timeLeft: session.timeLeft || 'No Time',
-          startTime: session.startTime
+          startTime: session.startTime,
+          hasAccount: userAccountMap[session.userId] || false
         };
       }
     });
@@ -664,7 +698,8 @@ export default function AdminDashboard() {
                   hostId: session.hostId,
                   userName: session.userName || session.user_name || null,
                   timeLeft: session.timeLeft || session.time_left || null,
-                  startTime: session.startTime || session.start_time || null
+                  startTime: session.startTime || session.start_time || null,
+                  hasAccount: session.hasAccount || false
                 };
                 
                 // Get computer details
@@ -689,7 +724,13 @@ export default function AdminDashboard() {
                     </div>
                     <div className={styles.sessionInfo}>
                       <div className={styles.sessionUser}>
-                        <strong>User:</strong> {displayName}
+                        <strong>User:</strong> 
+                        {displayName}
+                        {sessionInfo.hasAccount && (
+                          <span className={styles.accountIndicator} title="User has website account">
+                            <FaCheck size={10} />
+                          </span>
+                        )}
                       </div>
                       <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
                         <strong>Time Left:</strong> {formattedTimeLeft}
@@ -719,7 +760,21 @@ export default function AdminDashboard() {
           ) : (
             <div className={styles.sessionsGridLayout}>
               {(() => {
-                const { normalComputers, vipComputers, sortedVipComputers, normalRow1, normalRow2 } = prepareComputersWithSessionData();
+                // Define a local state for the computer data to handle async preparation
+                const [computerData, setComputerData] = React.useState({
+                  sortedVipComputers: [],
+                  normalRow1: [],
+                  normalRow2: []
+                });
+                
+                // Load computer data on first render or active sessions change
+                React.useEffect(() => {
+                  async function loadComputerData() {
+                    const data = await prepareComputersWithSessionData();
+                    setComputerData(data);
+                  }
+                  loadComputerData();
+                }, [stats.activeSessions]);
                 
                 return (
                   <>
@@ -731,8 +786,10 @@ export default function AdminDashboard() {
                           {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} active
                         </span>
                       </h3>
+                      
+                      {/* Now use computerData.sortedVipComputers instead of calculating it inline */}
                       <div className={styles.computerGrid}>
-                        {sortedVipComputers.map(computer => {
+                        {computerData.sortedVipComputers.map(computer => {
                           const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
                           
                           return (
@@ -750,6 +807,11 @@ export default function AdminDashboard() {
                                 {computer.available && 
                                   <div className={styles.availableBadge}>Available</div>
                                 }
+                                {!computer.available && computer.hasAccount && 
+                                  <div className={styles.accountBadge} title="User has website account">
+                                    <FaCheck size={10} />
+                                  </div>
+                                }
                               </div>
                               
                               <div className={styles.computerBody}>
@@ -761,7 +823,14 @@ export default function AdminDashboard() {
                                   <div className={styles.userInfo}>
                                     <div className={styles.userName}>
                                       <span className={styles.userInfoLabel}>User:</span>
-                                      <span>{computer.userName}</span>
+                                      <span>
+                                        {computer.userName}
+                                        {computer.hasAccount && (
+                                          <span className={styles.accountIndicator} title="User has website account">
+                                            <FaCheck size={10} />
+                                          </span>
+                                        )}
+                                      </span>
                                     </div>
                                     <div className={styles.timeInfo}>
                                       <span className={styles.userInfoLabel}>Time Left:</span>
@@ -793,7 +862,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     
-                    {/* Normal Section */}
+                    {/* Normal Section - use computerData.normalRow1 and computerData.normalRow2 */}
                     <div>
                       <h3 className={styles.sectionHeader}>
                         Normal Computers
@@ -802,7 +871,7 @@ export default function AdminDashboard() {
                         </span>
                       </h3>
                       <div className={styles.computerGridSpecial}>
-                        {normalRow1.map(computer => computer && (
+                        {computerData.normalRow1.map(computer => computer && (
                           <div 
                             key={`normal-${computer.id}`}
                             className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
@@ -817,6 +886,11 @@ export default function AdminDashboard() {
                               {computer.available && 
                                 <div className={styles.availableBadge}>Available</div>
                               }
+                              {!computer.available && computer.hasAccount && 
+                                <div className={styles.accountBadge} title="User has website account">
+                                  <FaCheck size={10} />
+                                </div>
+                              }
                             </div>
                             
                             <div className={styles.computerBody}>
@@ -828,7 +902,14 @@ export default function AdminDashboard() {
                                 <div className={styles.userInfo}>
                                   <div className={styles.userName}>
                                     <span className={styles.userInfoLabel}>User:</span>
-                                    <span>{computer.userName}</span>
+                                    <span>
+                                      {computer.userName}
+                                      {computer.hasAccount && (
+                                        <span className={styles.accountIndicator} title="User has website account">
+                                          <FaCheck size={10} />
+                                        </span>
+                                      )}
+                                    </span>
                                   </div>
                                   <div className={styles.timeInfo}>
                                     <span className={styles.userInfoLabel}>Time Left:</span>
@@ -860,7 +941,7 @@ export default function AdminDashboard() {
                       
                       {/* Second row: 8,6,4,2 */}
                       <div className={styles.computerGridSpecial}>
-                        {normalRow2.map(computer => computer && (
+                        {computerData.normalRow2.map(computer => computer && (
                           <div 
                             key={`normal-${computer.id}`}
                             className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
@@ -875,6 +956,11 @@ export default function AdminDashboard() {
                               {computer.available && 
                                 <div className={styles.availableBadge}>Available</div>
                               }
+                              {!computer.available && computer.hasAccount && 
+                                <div className={styles.accountBadge} title="User has website account">
+                                  <FaCheck size={10} />
+                                </div>
+                              }
                             </div>
                             
                             <div className={styles.computerBody}>
@@ -886,7 +972,14 @@ export default function AdminDashboard() {
                                 <div className={styles.userInfo}>
                                   <div className={styles.userName}>
                                     <span className={styles.userInfoLabel}>User:</span>
-                                    <span>{computer.userName}</span>
+                                    <span>
+                                      {computer.userName}
+                                      {computer.hasAccount && (
+                                        <span className={styles.accountIndicator} title="User has website account">
+                                          <FaCheck size={10} />
+                                        </span>
+                                      )}
+                                    </span>
                                   </div>
                                   <div className={styles.timeInfo}>
                                     <span className={styles.userInfoLabel}>Time Left:</span>
