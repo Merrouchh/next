@@ -20,52 +20,56 @@ export default function AdminDashboard() {
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
 
-  // Better approach to fetch usernames from the profiles table by gizmo_id
+  // Replace the username fetching function to use only API endpoints
   const fetchUsernameByGizmoId = async (gizmoId) => {
     try {
       console.log(`Fetching username for gizmo_id: ${gizmoId}`);
       
-      // First approach: Try profiles table with gizmo_id
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('username, display_name')
-        .eq('gizmo_id', gizmoId)
-        .single();
-        
-      if (profilesData) {
-        const name = profilesData.display_name || profilesData.username;
-        console.log(`Found name in profiles by gizmo_id: ${name}`);
-        return name;
-      }
-      
-      // Second approach: Try users table with gizmo_id
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('username')
-        .eq('gizmo_id', gizmoId)
-        .single();
-        
-      if (userData && userData.username) {
-        console.log(`Found name in users table: ${userData.username}`);
-        return userData.username;
-      }
-      
-      // Fallback: Try an API call
+      // First try to get username from Gizmo API
       try {
-        const response = await fetch(`/api/user/${gizmoId}`, {
+        // Use the fetchuserdata endpoint to get user info
+        const response = await fetch(`/api/fetchuserdata/${gizmoId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
         
         if (response.ok) {
           const data = await response.json();
+          console.log(`User data from API for ${gizmoId}:`, data);
+          
           if (data && data.username) {
-            console.log(`Found name via API: ${data.username}`);
             return data.username;
+          }
+          
+          if (data && data.result && data.result.name) {
+            return data.result.name;
           }
         }
       } catch (apiError) {
-        console.error('API error fetching username:', apiError);
+        console.error(`API error fetching username for ${gizmoId}:`, apiError);
+      }
+      
+      // Alternative: Try fetching from the user info endpoint
+      try {
+        const userResponse = await fetch(`/api/users/info/${gizmoId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          console.log(`User info for ${gizmoId}:`, userData);
+          
+          if (userData && userData.username) {
+            return userData.username;
+          }
+          
+          if (userData && userData.name) {
+            return userData.name;
+          }
+        }
+      } catch (userApiError) {
+        console.error(`User API error for ${gizmoId}:`, userApiError);
       }
       
       return null;
@@ -75,7 +79,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Update the fetchActiveSessionsWithDetails function to get usernames
+  // Update the fetchActiveSessionsWithDetails function to use only API calls
   const fetchActiveSessionsWithDetails = async () => {
     try {
       // First, get the basic active sessions
@@ -91,42 +95,86 @@ export default function AdminDashboard() {
       // Create a copy to work with
       const enhancedSessions = [...activeSessions];
       
-      // Get user details and time left for all sessions in parallel
+      // Get user details for all sessions at once from single API call
+      try {
+        const response = await fetch('/api/admin/sessions/active', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const detailedSessions = await response.json();
+          console.log('Detailed sessions from API:', detailedSessions);
+          
+          if (detailedSessions && Array.isArray(detailedSessions)) {
+            // Try to match and enrich our session data
+            detailedSessions.forEach(detailedSession => {
+              if (!detailedSession.userId) return;
+              
+              const matchingIndex = enhancedSessions.findIndex(
+                s => s.userId === detailedSession.userId || s.hostId === detailedSession.hostId
+              );
+              
+              if (matchingIndex !== -1) {
+                enhancedSessions[matchingIndex] = {
+                  ...enhancedSessions[matchingIndex],
+                  ...detailedSession
+                };
+              }
+            });
+          }
+        }
+      } catch (bulkError) {
+        console.error('Error fetching bulk session details:', bulkError);
+      }
+      
+      // For any sessions that still don't have names or time info, 
+      // fetch them individually
       await Promise.all(enhancedSessions.map(async (session, index) => {
         if (!session.userId) return;
         
-        // First, try to get the username
-        try {
-          const username = await fetchUsernameByGizmoId(session.userId);
-          if (username) {
-            enhancedSessions[index].userName = username;
-            console.log(`Found username for ${session.userId}: ${username}`);
-          } else {
-            console.log(`No username found for user ${session.userId}`);
+        // Fetch username if not already present
+        if (!session.userName) {
+          try {
+            // Direct API call to fetchuserdata
+            const userResponse = await fetch(`/api/fetchuserdata/${session.userId}`, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              
+              if (userData && userData.username) {
+                enhancedSessions[index].userName = userData.username;
+              } else if (userData && userData.result && userData.result.name) {
+                enhancedSessions[index].userName = userData.result.name;
+              }
+            }
+          } catch (userError) {
+            console.error(`Error fetching user data for ${session.userId}:`, userError);
           }
-        } catch (userError) {
-          console.error(`Error fetching username for ${session.userId}:`, userError);
         }
         
-        // Then, try to get balance/time info directly
-        try {
-          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
-            headers: { 'Content-Type': 'application/json' }
-          });
-          
-          if (balanceResponse.ok) {
-            const balanceData = await balanceResponse.json();
-            enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
+        // Fetch time left if not already present
+        if (!session.timeLeft) {
+          try {
+            const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (balanceResponse.ok) {
+              const balanceData = await balanceResponse.json();
+              enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
+            }
+          } catch (error) {
+            console.error(`Error fetching balance for session ${index}:`, error);
           }
-        } catch (error) {
-          console.error(`Error fetching balance for session ${index}:`, error);
         }
       }));
       
-      // Log the enhanced sessions
-      console.log('Enhanced sessions with usernames:', enhancedSessions);
+      // Log the final enhanced sessions
+      console.log('Final enhanced sessions with usernames:', enhancedSessions);
       
-      // Return the enhanced sessions with time info
       return enhancedSessions;
     } catch (error) {
       console.error('Error in fetchActiveSessionsWithDetails:', error);
