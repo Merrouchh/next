@@ -598,10 +598,11 @@ export default function AdminDashboard() {
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
-              <h3>Active Computer Sessions</h3>
+              <h3>Active Gaming Sessions</h3>
               <button 
                 className={styles.closeButton}
                 onClick={() => setShowActiveSessionsModal(false)}
+                aria-label="Close"
               >
                 <FaTimes />
               </button>
@@ -612,12 +613,13 @@ export default function AdminDashboard() {
                 <div className={styles.liveDot}></div>
                 <span className={styles.liveText}>Live</span>
               </div>
+              {stats.loading && <span className={styles.fetchingIndicator}>Refreshing data</span>}
             </div>
             
             <div className={styles.modalBody}>
               {stats.activeSessions.length === 0 ? (
                 <div className={styles.noSessions}>
-                  <p>No active sessions at this time</p>
+                  <p>No active gaming sessions at this time</p>
                 </div>
               ) : (
                 <div className={styles.sessionsList}>
@@ -650,7 +652,7 @@ export default function AdminDashboard() {
                       >
                         <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
                           <FaDesktop />
-                          <span>{computerType} PC {computerNumber}</span>
+                          <span>{computerType} {computerNumber}</span>
                         </div>
                         <div className={styles.sessionInfo}>
                           <div className={styles.sessionUser}>
@@ -690,7 +692,7 @@ export default function AdminDashboard() {
                 onClick={handleRefresh}
                 disabled={stats.loading}
               >
-                {stats.loading ? 'Refreshing...' : 'Refresh Now'}
+                {stats.loading ? 'Refreshing...' : 'Refresh Data'}
               </button>
               <button 
                 className={styles.viewAllButton}

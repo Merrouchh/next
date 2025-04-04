@@ -304,138 +304,20 @@
   text-decoration: underline;
 }
 
-/* Modal styles */
+/* Active Sessions Modal Improvements */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 0.3s ease;
-}
-
-.modal {
-  background-color: #1a1a1a;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.3s ease;
-  border: 1px solid #333;
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #333;
-}
-
-.modalHeader h3 {
-  margin: 0;
-  font-size: 20px;
-  color: #fff;
-}
-
-.closeButton {
-  background: none;
-  border: none;
-  color: #999;
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
-}
-
-.closeButton:hover {
-  color: #fff;
-}
-
-.modalBody {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modalFooter {
-  padding: 15px 20px;
-  border-top: 1px solid #333;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.noSessions {
-  text-align: center;
-  padding: 20px;
-  color: #999;
-  font-style: italic;
-}
-
-/* Sessions list styles */
-.sessionsList {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.sessionItem {
-  background-color: #252525;
-  border-radius: 8px;
-  padding: 15px;
-  display: flex;
-  gap: 15px;
-  border-left: 4px solid #34A853;
-  transition: transform 0.2s ease;
-}
-
-.sessionItem:hover {
-  transform: translateX(3px);
-}
-
-.sessionComputer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #34A853;
-  font-weight: 500;
-  min-width: 120px;
-}
-
-.sessionInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1;
-}
-
-.sessionUser, .sessionTime, .sessionStart {
-  font-size: 14px;
-}
-
-.viewAllButton {
-  background-color: #252525;
-  color: white;
-  border: 1px solid #444;
-  padding: 10px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.viewAllButton:hover {
-  background-color: #333;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
@@ -443,132 +325,305 @@
   to { opacity: 1; }
 }
 
-@keyframes slideIn {
-  from { transform: translateY(-20px); opacity: 0; }
+.modal {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Live indicator styles */
-.liveIndicatorContainer {
+.modalHeader {
   display: flex;
-  justify-content: center;
-  margin-top: 5px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eaeaea;
+  background-color: #f8f9fa;
 }
 
-.liveIndicator {
+.modalHeader h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
   display: flex;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 5px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.liveDot {
-  width: 10px;
-  height: 10px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background-color: #f44336;
-  margin-right: 8px;
-  animation: pulse 2s infinite;
 }
 
-.liveText {
-  font-size: 12px;
-  font-weight: 600;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.closeButton:hover {
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(244, 67, 54, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
-  }
+.modalBody {
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
 }
 
-/* Session status colors */
+.modalFooter {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #eaeaea;
+  background-color: #f8f9fa;
+}
+
+.refreshButton, .viewAllButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.refreshButton {
+  background-color: #4285F4;
+  color: white;
+}
+
+.refreshButton:hover {
+  background-color: #3367d6;
+}
+
+.refreshButton:disabled {
+  background-color: #a6c8ff;
+  cursor: not-allowed;
+}
+
+.viewAllButton {
+  background-color: #f1f3f4;
+  color: #3c4043;
+}
+
+.viewAllButton:hover {
+  background-color: #e8eaed;
+}
+
+/* Session Items */
+.sessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background-color: #f5f5f5;
+}
+
+.sessionItem {
+  display: flex;
+  padding: 16px 24px;
+  border-left: 4px solid transparent;
+  background-color: white;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.sessionItem:hover {
+  background-color: #f9f9f9;
+}
+
 .sessionItem.active {
-  border-left-color: #4CAF50;
+  border-left-color: #34A853;
 }
 
 .sessionItem.warning {
-  border-left-color: #FF9800;
+  border-left-color: #FBBC05;
 }
 
 .sessionItem.noTime {
-  border-left-color: #f44336;
+  border-left-color: #EA4335;
+  background-color: #fff8f8;
 }
 
-.sessionTime.active {
-  color: #4CAF50;
+.sessionComputer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  font-weight: 500;
+  padding-right: 16px;
+  border-right: 1px solid #eee;
 }
 
-.sessionTime.warning {
-  color: #FF9800;
-}
-
-.sessionTime.noTime {
-  color: #f44336;
-}
-
-/* Computer type styling */
-.sessionComputer.vip {
-  color: #FFD700;
+.sessionComputer svg {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
 }
 
 .sessionComputer.normal {
   color: #4285F4;
 }
 
-/* Session actions */
-.sessionActions {
+.sessionComputer.vip {
+  color: #9C27B0;
+}
+
+.sessionInfo {
+  flex: 1;
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 5px;
+  gap: 6px;
+}
+
+.sessionUser, .sessionTime, .sessionStart {
+  display: flex;
+  align-items: center;
+}
+
+.sessionUser strong, .sessionTime strong, .sessionStart strong {
+  min-width: 85px;
+  color: #666;
+}
+
+.sessionTime.active {
+  color: #34A853;
+  font-weight: 500;
+}
+
+.sessionTime.warning {
+  color: #F29900;
+  font-weight: 500;
+}
+
+.sessionTime.noTime {
+  color: #EA4335;
+  font-weight: 500;
+}
+
+.sessionId {
+  color: #999;
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.sessionActions {
+  display: flex;
+  align-items: center;
 }
 
 .viewUserButton {
   background: none;
-  border: none;
-  color: #aaa;
-  cursor: pointer;
-  padding: 5px;
-  font-size: 16px;
+  border: 1px solid #eaeaea;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
+  color: #4285F4;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .viewUserButton:hover {
-  color: #fff;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: #4285F4;
+  color: white;
+  border-color: #4285F4;
 }
 
-.fetchingIndicator {
-  font-style: italic;
-  color: #aaa;
-  font-size: 0.85em;
-}
-
-.sessionId {
-  margin-top: 3px;
-  font-size: 0.75em;
+.noSessions {
+  padding: 40px 0;
+  text-align: center;
   color: #666;
+  font-size: 1rem;
 }
 
-/* Update the session item style for better display */
-.sessionItem {
-  padding: 15px;
-  margin-bottom: 10px;
+/* Live indicator */
+.liveIndicatorContainer {
+  padding: 8px 24px;
+  background-color: white;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.liveIndicator {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(234, 67, 53, 0.1);
+  border-radius: 16px;
+  padding: 4px 12px;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background-color: #EA4335;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 1.5s infinite;
+}
+
+.liveText {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #EA4335;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(234, 67, 53, 0);
+  }
+  
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+  }
+}
+
+/* Loading States */
+.fetchingIndicator {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #666;
+  margin-left: 6px;
+}
+
+.fetchingIndicator::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ddd;
+  border-top-color: #4285F4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 6px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 } 
