@@ -626,4 +626,215 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Grid Layout for Sessions */
+.sessionsGridLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.sectionHeader {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  padding: 0 0 8px 0;
+  border-bottom: 1px solid #eaeaea;
+  margin-bottom: 16px;
+}
+
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.computerCard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #eaeaea;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.computerCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.computerCard.active {
+  border-top: 3px solid #34A853;
+}
+
+.computerCard.warning {
+  border-top: 3px solid #FBBC05;
+}
+
+.computerCard.noTime {
+  border-top: 3px solid #EA4335;
+}
+
+.computerCard.available {
+  border-top: 3px solid #cccccc;
+  opacity: 0.7;
+}
+
+.computerHeader {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.computerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 12px;
+  font-size: 1rem;
+}
+
+.computerIcon.normal {
+  background-color: rgba(66, 133, 244, 0.1);
+  color: #4285F4;
+}
+
+.computerIcon.vip {
+  background-color: rgba(156, 39, 176, 0.1);
+  color: #9C27B0;
+}
+
+.computerName {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.computerInfo {
+  flex: 1;
+  padding: 16px;
+}
+
+.computerBody {
+  padding: 12px 16px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.userName, .timeInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.userInfoLabel {
+  color: #666;
+  font-weight: 500;
+}
+
+.timeValue {
+  font-weight: 600;
+}
+
+.timeValue.active {
+  color: #34A853;
+}
+
+.timeValue.warning {
+  color: #F29900;
+}
+
+.timeValue.noTime {
+  color: #EA4335;
+}
+
+.availableBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #34A853;
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.computerFooter {
+  padding: 12px 16px;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+}
+
+.sessionIdSmall {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+.actionButton {
+  background: none;
+  border: 1px solid #e0e0e0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4285F4;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionButton:hover {
+  background-color: #4285F4;
+  color: white;
+  border-color: #4285F4;
+}
+
+.emptyCardPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #ddd;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.toggleViewButton {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #4285F4;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  transition: background-color 0.2s;
+}
+
+.toggleViewButton:hover {
+  background-color: rgba(66, 133, 244, 0.08);
 } 

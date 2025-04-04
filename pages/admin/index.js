@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
@@ -19,6 +19,7 @@ export default function AdminDashboard() {
     loading: true
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
+  const [sessionViewMode, setSessionViewMode] = useState('list'); // 'list' or 'grid'
 
   // Replace the username fetching function to use only API endpoints
   const fetchUsernameByGizmoId = async (gizmoId) => {
@@ -449,6 +450,61 @@ export default function AdminDashboard() {
     console.log(`[DEBUG] ${message}:`, data);
   };
 
+  // Add a toggleView function
+  const toggleSessionViewMode = () => {
+    setSessionViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
+  };
+
+  // Add computer data structures
+  const allComputers = {
+    normal: Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+      number: i + 1,
+      type: 'normal'
+    })),
+    vip: Array.from({ length: 6 }, (_, i) => ({
+      id: i + 9,
+      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
+      number: i + 1,
+      type: 'vip'
+    }))
+  };
+
+  // Add a function to prepare computers with session data
+  const prepareComputersWithSessionData = () => {
+    // Deep clone the computers to avoid modifying the source
+    const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
+    const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
+    
+    // Mark all computers as available initially
+    normalComputers.forEach(pc => pc.available = true);
+    vipComputers.forEach(pc => pc.available = true);
+    
+    // For each active session, find the matching computer and update it
+    stats.activeSessions.forEach(session => {
+      const computerType = getComputerType(session.hostId).toLowerCase();
+      const computers = computerType === 'vip' ? vipComputers : normalComputers;
+      
+      // Find the computer that matches this session
+      const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
+      
+      if (computerIndex !== -1) {
+        // Update the computer with session data
+        computers[computerIndex] = {
+          ...computers[computerIndex],
+          available: false,
+          userId: session.userId,
+          userName: session.userName || `User ${session.userId}`,
+          timeLeft: session.timeLeft || 'No Time',
+          startTime: session.startTime
+        };
+      }
+    });
+    
+    return { normalComputers, vipComputers };
+  };
+
   return (
     <AdminPageWrapper title="Admin Dashboard">
       <Head>
@@ -598,7 +654,24 @@ export default function AdminDashboard() {
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
-              <h3>Active Gaming Sessions</h3>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <h3>Active Gaming Sessions</h3>
+                <button 
+                  className={styles.toggleViewButton}
+                  onClick={toggleSessionViewMode}
+                  style={{ marginLeft: '12px' }}
+                >
+                  {sessionViewMode === 'list' ? (
+                    <>
+                      <FaTh size={14} /> Grid View
+                    </>
+                  ) : (
+                    <>
+                      <FaList size={14} /> List View
+                    </>
+                  )}
+                </button>
+              </div>
               <button 
                 className={styles.closeButton}
                 onClick={() => setShowActiveSessionsModal(false)}
@@ -621,7 +694,7 @@ export default function AdminDashboard() {
                 <div className={styles.noSessions}>
                   <p>No active gaming sessions at this time</p>
                 </div>
-              ) : (
+              ) : sessionViewMode === 'list' ? (
                 <div className={styles.sessionsList}>
                   {stats.activeSessions.map((session, index) => {
                     // Basic session info
@@ -682,6 +755,146 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })}
+                </div>
+              ) : (
+                <div className={styles.sessionsGridLayout}>
+                  {(() => {
+                    const { normalComputers, vipComputers } = prepareComputersWithSessionData();
+                    
+                    return (
+                      <>
+                        {/* VIP Section */}
+                        <div>
+                          <h3 className={styles.sectionHeader}>VIP Computers</h3>
+                          <div className={styles.computerGrid}>
+                            {vipComputers.map(computer => {
+                              const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
+                              
+                              return (
+                                <div 
+                                  key={`vip-${computer.id}`}
+                                  className={`${styles.computerCard} ${styles[timeStatus]}`}
+                                >
+                                  <div className={styles.computerHeader}>
+                                    <div className={`${styles.computerIcon} ${styles.vip}`}>
+                                      <FaDesktop />
+                                    </div>
+                                    <div className={styles.computerName}>
+                                      VIP {computer.number}
+                                    </div>
+                                    {computer.available && 
+                                      <div className={styles.availableBadge}>Available</div>
+                                    }
+                                  </div>
+                                  
+                                  <div className={styles.computerBody}>
+                                    {computer.available ? (
+                                      <div className={styles.emptyCardPlaceholder}>
+                                        No active session
+                                      </div>
+                                    ) : (
+                                      <div className={styles.userInfo}>
+                                        <div className={styles.userName}>
+                                          <span className={styles.userInfoLabel}>User:</span>
+                                          <span>{computer.userName}</span>
+                                        </div>
+                                        <div className={styles.timeInfo}>
+                                          <span className={styles.userInfoLabel}>Time Left:</span>
+                                          <span className={`${styles.timeValue} ${styles[timeStatus]}`}>
+                                            {formatTimeLeft(computer.timeLeft)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {!computer.available && (
+                                    <div className={styles.computerFooter}>
+                                      <div className={styles.sessionIdSmall}>
+                                        User ID: {computer.userId}
+                                      </div>
+                                      <button 
+                                        className={styles.actionButton}
+                                        onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                                        title="View user profile"
+                                      >
+                                        <FaUsers size={12} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* Normal Section */}
+                        <div>
+                          <h3 className={styles.sectionHeader}>Normal Computers</h3>
+                          <div className={styles.computerGrid}>
+                            {normalComputers.map(computer => {
+                              const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
+                              
+                              return (
+                                <div 
+                                  key={`normal-${computer.id}`}
+                                  className={`${styles.computerCard} ${styles[timeStatus]}`}
+                                >
+                                  <div className={styles.computerHeader}>
+                                    <div className={`${styles.computerIcon} ${styles.normal}`}>
+                                      <FaDesktop />
+                                    </div>
+                                    <div className={styles.computerName}>
+                                      Normal {computer.number}
+                                    </div>
+                                    {computer.available && 
+                                      <div className={styles.availableBadge}>Available</div>
+                                    }
+                                  </div>
+                                  
+                                  <div className={styles.computerBody}>
+                                    {computer.available ? (
+                                      <div className={styles.emptyCardPlaceholder}>
+                                        No active session
+                                      </div>
+                                    ) : (
+                                      <div className={styles.userInfo}>
+                                        <div className={styles.userName}>
+                                          <span className={styles.userInfoLabel}>User:</span>
+                                          <span>{computer.userName}</span>
+                                        </div>
+                                        <div className={styles.timeInfo}>
+                                          <span className={styles.userInfoLabel}>Time Left:</span>
+                                          <span className={`${styles.timeValue} ${styles[timeStatus]}`}>
+                                            {formatTimeLeft(computer.timeLeft)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {!computer.available && (
+                                    <div className={styles.computerFooter}>
+                                      <div className={styles.sessionIdSmall}>
+                                        User ID: {computer.userId}
+                                      </div>
+                                      <button 
+                                        className={styles.actionButton}
+                                        onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                                        title="View user profile"
+                                      >
+                                        <FaUsers size={12} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>
