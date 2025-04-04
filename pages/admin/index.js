@@ -20,6 +20,50 @@ export default function AdminDashboard() {
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
 
+  // Add a direct fetch for active sessions with more details
+  const fetchActiveSessionsWithDetails = async () => {
+    try {
+      // First, get the basic active sessions
+      const activeSessions = await fetchActiveUserSessions();
+      
+      // If no sessions, return empty array
+      if (!activeSessions || activeSessions.length === 0) {
+        return [];
+      }
+      
+      console.log('Basic active sessions:', activeSessions);
+      
+      // Create a copy to work with
+      const enhancedSessions = [...activeSessions];
+      
+      // Get user details and time left for all sessions in parallel
+      await Promise.all(enhancedSessions.map(async (session, index) => {
+        if (!session.userId) return;
+        
+        // Try to get balance/time info directly
+        try {
+          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
+          }
+        } catch (error) {
+          console.error(`Error fetching balance for session ${index}:`, error);
+        }
+      }));
+      
+      // Return the enhanced sessions with time info
+      return enhancedSessions;
+    } catch (error) {
+      console.error('Error in fetchActiveSessionsWithDetails:', error);
+      return [];
+    }
+  };
+
+  // Update the useEffect hook to use the new function
   useEffect(() => {
     // Fetch basic stats for the admin dashboard
     const fetchAdminStats = async () => {
@@ -28,13 +72,8 @@ export default function AdminDashboard() {
       try {
         setStats(prev => ({ ...prev, loading: true }));
         
-        // Get active sessions using the same function as dashboard.js
-        const activeSessions = await fetchActiveUserSessions();
-        console.log('Basic active sessions:', activeSessions);
-        
-        // Fetch detailed information for each session
-        const detailedSessions = await fetchDetailedSessionInfo(activeSessions);
-        console.log('Detailed sessions:', detailedSessions);
+        // Get active sessions with time details
+        const sessionsWithDetails = await fetchActiveSessionsWithDetails();
         
         // Get session for auth
         const { data: sessionData } = await supabase.auth.getSession();
@@ -74,7 +113,7 @@ export default function AdminDashboard() {
           totalUsers: usersCount || 0,
           activeUsers: activeUsersCount || 0,
           totalEvents: eventsCount || 0,
-          activeSessions: detailedSessions || [],
+          activeSessions: sessionsWithDetails || [],
           loading: false
         });
       } catch (error) {
@@ -138,94 +177,84 @@ export default function AdminDashboard() {
     }
   ];
 
-  // Update the function to better handle user data and time left
+  // Completely rewrite the fetchDetailedSessionInfo function to handle data more directly
   const fetchDetailedSessionInfo = async (sessions) => {
     if (!sessions || sessions.length === 0) return [];
     
-    try {
-      // Create a copy of the sessions array to avoid mutating the original
-      const detailedSessions = [...sessions];
-      
-      // Fetch detailed information for each session
-      await Promise.all(detailedSessions.map(async (session, index) => {
+    // Create a copy of the sessions array to avoid mutating the original
+    const detailedSessions = [...sessions];
+    
+    // Early debug log
+    console.log('Original sessions from API:', detailedSessions);
+    
+    // Process each session to extract and normalize data
+    detailedSessions.forEach((session, index) => {
+      // Format data from the API into a consistent structure
+      detailedSessions[index] = {
+        // Keep original data
+        ...session,
+        // Normalize user info
+        userName: session.userName || session.user_name || session.username || null,
+        // Normalize time info
+        timeLeft: session.timeLeft || session.time_left || null
+      };
+    });
+    
+    // For sessions without a username, fetch it directly from the database
+    const fetchPromises = detailedSessions
+      .filter(session => !session.userName && session.userId)
+      .map(async (session, index) => {
+        const sessionIndex = detailedSessions.findIndex(s => s.userId === session.userId);
+        if (sessionIndex === -1) return;
+        
         try {
-          // First, ensure we have a userId to work with
-          const userId = session.userId;
-          if (!userId) return;
+          // Try to get username from directly from user data
+          const usernameResponse = await fetch(`/api/users/${session.userId}/username`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
           
-          console.log(`Fetching details for user ID: ${userId}`);
-          
-          // Directly fetch from the users table using user's gizmo_id
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('id, username')
-            .eq('gizmo_id', userId)
-            .single();
-          
-          if (userError) {
-            console.error(`Error fetching user info for ID ${userId}:`, userError);
-          }
-          
-          if (userData) {
-            console.log(`Found user data for ${userId}:`, userData);
-            detailedSessions[index].userName = userData.username;
-            
-            // Now also fetch from profiles for any additional info
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('display_name')
-              .eq('user_id', userData.id)
-              .single();
-              
-            if (profileData && profileData.display_name) {
-              detailedSessions[index].userName = profileData.display_name;
+          if (usernameResponse.ok) {
+            const userData = await usernameResponse.json();
+            if (userData && userData.username) {
+              detailedSessions[sessionIndex].userName = userData.username;
             }
           }
           
-          // Fetch time remaining directly from the API
-          try {
-            console.log(`Fetching balance for user ${userId}`);
-            const balanceResponse = await fetch(`/api/fetchuserbalance/${userId}`, {
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (balanceResponse.ok) {
-              const balanceData = await balanceResponse.json();
-              console.log(`Balance data for user ${userId}:`, balanceData);
-              
-              if (balanceData && balanceData.balance) {
-                detailedSessions[index].timeLeft = balanceData.balance;
-              }
-            } else {
-              console.log(`Error fetching balance for user ${userId}: ${balanceResponse.status}`);
+          // Always fetch the balance for fresh time data
+          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            if (balanceData && balanceData.balance) {
+              detailedSessions[sessionIndex].timeLeft = balanceData.balance;
             }
-          } catch (balanceError) {
-            console.error(`Error in balance fetch for ${userId}:`, balanceError);
           }
         } catch (error) {
-          console.error(`Error processing session ${index}:`, error);
+          console.error(`Error fetching details for user ${session.userId}:`, error);
         }
-      }));
+      });
       
-      console.log('Final detailed sessions:', detailedSessions);
+    try {
+      // Wait for all fetch operations to complete
+      await Promise.all(fetchPromises);
+      
+      // Final log of enhanced session data
+      console.log('Enhanced session data:', detailedSessions);
       return detailedSessions;
     } catch (error) {
-      console.error('Error in fetchDetailedSessionInfo:', error);
-      return sessions;
+      console.error('Error while enhancing session data:', error);
+      return detailedSessions;
     }
   };
 
-  // Update the handleRefresh function to use the new detailed session info
+  // Also update the handleRefresh function
   const handleRefresh = async () => {
     setStats(prev => ({ ...prev, loading: true }));
     try {
-      // Get active sessions
-      const activeSessions = await fetchActiveUserSessions();
-      
-      // Fetch detailed information for each session
-      const detailedSessions = await fetchDetailedSessionInfo(activeSessions);
-      console.log('Detailed sessions:', detailedSessions);
+      // Get active sessions with time details
+      const sessionsWithDetails = await fetchActiveSessionsWithDetails();
       
       // Get events count
       const { count: eventsCount, error: eventsError } = await supabase
@@ -262,7 +291,7 @@ export default function AdminDashboard() {
         totalUsers: usersCount || 0,
         activeUsers: activeUsersCount || 0,
         totalEvents: eventsCount || 0,
-        activeSessions: detailedSessions || [],
+        activeSessions: sessionsWithDetails || [],
         loading: false
       });
     } catch (error) {
@@ -510,34 +539,30 @@ export default function AdminDashboard() {
               ) : (
                 <div className={styles.sessionsList}>
                   {stats.activeSessions.map((session, index) => {
-                    debugLog(`Rendering session ${index}`, session);
-                    
-                    const computerType = getComputerType(session.hostId);
-                    const computerNumber = getComputerNumber(session.hostId);
-                    
-                    // Handle time left data
-                    const rawTimeLeft = session.time_left || session.timeLeft;
-                    debugLog(`Raw time left for session ${index}`, rawTimeLeft);
-                    
-                    const timeStatus = getSessionStatus(rawTimeLeft);
-                    const formattedTimeLeft = formatTimeLeft(rawTimeLeft);
-                    
-                    // Handle username
-                    const username = 
-                      session.user_name || 
-                      session.userName || 
-                      (session.userId ? `User ${session.userId}` : "Unknown");
-                    
-                    debugLog(`Username for session ${index}`, {
-                      user_name: session.user_name,
-                      userName: session.userName,
+                    // Basic session info
+                    const sessionInfo = {
+                      id: session.id || index,
                       userId: session.userId,
-                      final: username
-                    });
+                      hostId: session.hostId,
+                      userName: session.userName || session.user_name || null,
+                      timeLeft: session.timeLeft || session.time_left || null,
+                      startTime: session.startTime || session.start_time || null
+                    };
+                    
+                    // Get computer details
+                    const computerType = getComputerType(sessionInfo.hostId);
+                    const computerNumber = getComputerNumber(sessionInfo.hostId);
+                    
+                    // Format the time display
+                    const formattedTimeLeft = formatTimeLeft(sessionInfo.timeLeft) || 'No Time';
+                    const timeStatus = getSessionStatus(sessionInfo.timeLeft);
+                    
+                    // Get display username with fallback
+                    const displayName = sessionInfo.userName || `User ${sessionInfo.userId}`;
                     
                     return (
                       <div 
-                        key={index} 
+                        key={sessionInfo.id} 
                         className={`${styles.sessionItem} ${styles[timeStatus]}`}
                       >
                         <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
@@ -546,30 +571,24 @@ export default function AdminDashboard() {
                         </div>
                         <div className={styles.sessionInfo}>
                           <div className={styles.sessionUser}>
-                            <strong>User:</strong> {username}
-                            {!session.userName && !session.user_name && session.userId && (
-                              <span className={styles.fetchingIndicator}> (fetching details...)</span>
-                            )}
+                            <strong>User:</strong> {displayName}
                           </div>
                           <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
                             <strong>Time Left:</strong> {formattedTimeLeft}
-                            {!formattedTimeLeft && (
-                              <span className={styles.fetchingIndicator}> (calculating...)</span>
-                            )}
                           </div>
-                          {(session.start_time || session.startTime) && (
+                          {sessionInfo.startTime && (
                             <div className={styles.sessionStart}>
-                              <strong>Started:</strong> {new Date(session.start_time || session.startTime).toLocaleTimeString()}
+                              <strong>Started:</strong> {new Date(sessionInfo.startTime).toLocaleTimeString()}
                             </div>
                           )}
                           <div className={styles.sessionId}>
-                            <small>Host ID: {session.hostId} / User ID: {session.userId}</small>
+                            <small>Host ID: {sessionInfo.hostId} / User ID: {sessionInfo.userId}</small>
                           </div>
                         </div>
                         <div className={styles.sessionActions}>
                           <button 
                             className={styles.viewUserButton}
-                            onClick={() => router.push(`/admin/users?id=${session.userId}`)}
+                            onClick={() => router.push(`/admin/users?id=${sessionInfo.userId}`)}
                             title="View user profile"
                           >
                             <FaUsers />
