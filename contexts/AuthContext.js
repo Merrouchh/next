@@ -412,14 +412,40 @@ export const AuthProvider = ({ children, onError }) => {
 
   // Session refresh logic for automatic periodic refresh
   useEffect(() => {
-    const REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes refresh interval
+    const REFRESH_INTERVAL = 60 * 60 * 1000; // 60 minutes refresh interval (extended from 20)
     
     // Set up refresh interval when logged in
     let refreshTimer = null;
     if (authState.isLoggedIn && mounted) {
-      // Initial refresh
-      refreshUserSession();
-      refreshTimer = setInterval(() => refreshUserSession(), REFRESH_INTERVAL);
+      // Initial refresh - done silently
+      const silentRefresh = async () => {
+        try {
+          console.log('Auth: Silent session refresh');
+          // Don't set loading state for background refreshes
+          const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+          
+          if (error || !session) {
+            console.error('Silent refresh error:', error);
+            return;
+          }
+          
+          // Just refresh the token without updating state
+          const { data: refreshData, error: refreshError } = await supabaseRef.current.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error('Silent refresh error:', refreshError);
+            return;
+          }
+          
+          console.log('Auth: Silent session refresh completed');
+        } catch (e) {
+          console.error('Silent refresh error:', e);
+        }
+      };
+      
+      // Instead of calling refreshUserSession which sets loading states, use silentRefresh
+      silentRefresh();
+      refreshTimer = setInterval(silentRefresh, REFRESH_INTERVAL);
     }
     
     return () => {

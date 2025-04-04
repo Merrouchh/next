@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import styles from '../../../styles/AdminBracketManager.module.css';
 import sharedStyles from '../../../styles/Shared.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import AdminPageWrapper from '../../../components/AdminPageWrapper';
+import { toast } from 'react-hot-toast';
 
 export default function BracketManager() {
   const router = useRouter();
@@ -28,6 +29,11 @@ export default function BracketManager() {
   const [participantToReplace, setParticipantToReplace] = useState(null);
   const [lastScheduledTime, setLastScheduledTime] = useState('');
   const [expandedRounds, setExpandedRounds] = useState({});
+  const scrollPositionRef = useRef({ 
+    bracketSection: { x: 0, y: 0 },
+    bracketMatchesList: { x: 0, y: 0 },
+    window: { x: 0, y: 0 }
+  });
 
   // Load last scheduled time from localStorage on component mount
   useEffect(() => {
@@ -472,6 +478,27 @@ export default function BracketManager() {
     await fetchBracketData(event.id);
   };
 
+  // Helper function to find the previous match time
+  const findPreviousMatchTime = (matchId) => {
+    if (!bracketData) return '';
+    
+    // Look for the previous match number (e.g., if current is 22, look for 21)
+    const previousMatchId = matchId - 1;
+    console.log('Looking for previous match:', previousMatchId);
+    
+    // Find the previous match in the bracket data
+    for (const round of bracketData) {
+      const previousMatch = round.find(m => m.id === previousMatchId);
+      if (previousMatch && previousMatch.scheduledTime) {
+        const formattedTime = formatDatetimeForInput(previousMatch.scheduledTime);
+        console.log('Found previous match with time:', formattedTime);
+        return formattedTime;
+      }
+    }
+    
+    return '';
+  };
+
   // Handle match click for admin
   const handleMatchClick = (match) => {
     if (!match) return;
@@ -502,24 +529,8 @@ export default function BracketManager() {
       console.error('Error accessing localStorage:', e);
     }
     
-    // Try to find the previous match from the current one 
-    // (typically matches are numbered sequentially)
-    let previousMatchTime = '';
-    if (bracketData) {
-      // Look for the previous match number (e.g., if current is 22, look for 21)
-      const previousMatchId = match.id - 1;
-      console.log('Looking for previous match:', previousMatchId);
-      
-      // Find the previous match in the bracket data
-      for (const round of bracketData) {
-        const previousMatch = round.find(m => m.id === previousMatchId);
-        if (previousMatch && previousMatch.scheduledTime) {
-          previousMatchTime = formatDatetimeForInput(previousMatch.scheduledTime);
-          console.log('Found previous match with time:', previousMatchTime);
-          break;
-        }
-      }
-    }
+    // Get previous match time using our helper function
+    const previousMatchTime = findPreviousMatchTime(match.id);
     
     // Format the scheduledTime for the input element
     const formattedTime = formatDatetimeForInput(match.scheduledTime);
@@ -633,8 +644,13 @@ export default function BracketManager() {
         setBracketData(enrichedBracket);
         setParticipants(data.participants || []);
         
-        // Set the first round to be expanded by default
-        setExpandedRounds({ 0: true });
+        // Initialize expanded rounds - ensure the first round is expanded by default
+        const initialExpandedState = {};
+        enrichedBracket.forEach((_, index) => {
+          // Expand only the first round by default
+          initialExpandedState[index] = index === 0;
+        });
+        setExpandedRounds(initialExpandedState);
       } else {
         console.log('No valid bracket data in response');
         setBracketData(null);
@@ -648,8 +664,99 @@ export default function BracketManager() {
     }
   };
 
-  // Save match details
-  const handleSaveMatchDetails = async () => {
+  // Create a helper function to format and validate time input
+  const validateAndFormatScheduledTime = (timeInput) => {
+    if (!timeInput) return null;
+    
+    console.log('Validating time input:', timeInput);
+    
+    // Parse the time components to ensure correct format
+    const parsedTime = parseTimeWithMeridiem(timeInput);
+    console.log('Parsed time components:', parsedTime);
+    
+    if (parsedTime) {
+      // Create a new date with these exact hour/minute values
+      const date = new Date(timeInput);
+      // Force the specific hours and minutes to make sure they're preserved
+      date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+      
+      // Format for database (ISO string)
+      const formattedTime = date.toISOString();
+      console.log('Final scheduled time for database:', formattedTime);
+      console.log('Time in local format:', date.toString());
+      
+      return formattedTime;
+    }
+    
+    return null;
+  };
+
+  // Create a helper function to handle datetime input changes
+  const handleDatetimeInputChange = (value) => {
+    console.log("Time changed to:", value);
+    
+    // Empty value case
+    if (!value) {
+      setMatchDetails(prev => ({...prev, scheduledTime: ''}));
+      return;
+    }
+    
+    // Check if this might be a default 12:00 time
+    const date = new Date(value);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    console.log("Time parsed as:", date.toString());
+    console.log("Hours detected:", hours, "Minutes:", minutes);
+    
+    // Specifically check for the browser issue with AM times
+    const inputHour = parseInt(value.split('T')[1].split(':')[0], 10);
+    console.log("Hour from input string:", inputHour);
+    
+    // If the browser parsed 11 AM as 12 PM (common issue)
+    if (inputHour < 12 && hours === 12) {
+      console.log("Detected AM to PM conversion issue, fixing...");
+      
+      // Explicitly set the hours to the input hour
+      const [datePart, timePart] = value.split('T');
+      const adjustedValue = `${datePart}T${timePart}`;
+      console.log("Preserving exact input time:", adjustedValue);
+      
+      setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
+      return;
+    }
+    
+    // If it's exactly 12:00, and user just selected a date (browser default behavior)
+    if (hours === 12 && minutes === 0) {
+      console.log("Detected browser default time, adjusting to 16:00");
+      // Create a new date with 4 PM instead
+      date.setHours(16, 0, 0, 0);
+      
+      // Format back to HTML datetime-local format
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const adjustedHours = "16";
+      const adjustedMinutes = "00";
+      
+      const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
+      console.log("Adjusted time to:", adjustedValue);
+      
+      setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
+      return;
+    }
+    
+    // If not a special case, just use the value as is
+    setMatchDetails(prev => ({...prev, scheduledTime: value}));
+  };
+
+  // Modify handleSaveMatchDetails to only update state and avoid any page refreshes
+  const handleSaveMatchDetails = async (e) => {
+    if (e) e.preventDefault();
+    
+    // Save scroll position before any DOM updates
+    saveScrollPosition();
+    
     if (!selectedMatch || !selectedEvent) return;
     
     setLoading(true);
@@ -675,27 +782,8 @@ export default function BracketManager() {
       console.log('Existing details:', existingDetails);
       if (checkError) console.log('Check error:', checkError);
       
-      let result;
-      
-      // Process the scheduled time explicitly to ensure it's exactly what the user intended
-      let scheduledTime = matchDetails.scheduledTime || null;
-      if (scheduledTime) {
-        // Parse it first to verify the exact time components
-        const parsedTime = parseTimeWithMeridiem(scheduledTime);
-        console.log('Parsed time components:', parsedTime);
-        
-        if (parsedTime) {
-          // Create a new date with these exact hour/minute values
-          const date = new Date(scheduledTime);
-          // Force the specific hours and minutes to make sure they're preserved
-          date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
-          
-          // Format for database (ISO string)
-          scheduledTime = date.toISOString();
-          console.log('Final scheduled time for database:', scheduledTime);
-          console.log('Time in local format:', date.toString());
-        }
-      }
+      // Process the scheduled time using our helper function
+      const scheduledTime = validateAndFormatScheduledTime(matchDetails.scheduledTime);
       
       // Prepare the data to save - use null for empty strings to ensure database consistency
       const dataToSave = {
@@ -709,14 +797,21 @@ export default function BracketManager() {
       
       if (existingDetails) {
         // Update existing record
-        result = await supabase
+        const result = await supabase
           .from('event_match_details')
           .update(dataToSave)
           .eq('id', existingDetails.id)
           .select();
+        
+        console.log('Database update result:', result);
+        
+        if (result.error) {
+          console.error('Error in database update operation:', result.error);
+          throw result.error;
+        }
       } else {
         // Insert new record
-        result = await supabase
+        const result = await supabase
           .from('event_match_details')
           .insert([
             {
@@ -726,13 +821,13 @@ export default function BracketManager() {
             }
           ])
           .select();
-      }
-      
-      console.log('Database result:', result);
-      
-      if (result.error) {
-        console.error('Error in database operation:', result.error);
-        throw result.error;
+        
+        console.log('Database insert result:', result);
+        
+        if (result.error) {
+          console.error('Error in database insert operation:', result.error);
+          throw result.error;
+        }
       }
       
       // Update the local state with the new details
@@ -768,363 +863,119 @@ export default function BracketManager() {
         }
       }
       
-      console.log('Setting updated bracket data');
-      setBracketData(updatedBracket);
-      
-      // Reload data from server to ensure consistency
-      alert('Match details saved successfully!');
+      // Close modal first before updating state to prevent jumping
       setSelectedMatch(null);
       
-      // After a short delay, refresh the bracket data from the server
-      setTimeout(async () => {
-        console.log('Refreshing bracket data after save');
-        await fetchBracketData(selectedEvent.id);
-      }, 500);
+      // Show success message - no need to refresh the page
+      toast.success('Match details saved successfully!');
+      
+      // Update bracket data after modal is closed
+      setTimeout(() => {
+        console.log('Setting updated bracket data');
+        setBracketData(updatedBracket);
+        setLoading(false);
+        
+        // Restore scroll position with longer delay after all updates
+        setTimeout(restoreScrollPosition, 100);
+      }, 50);
       
     } catch (error) {
       console.error('Error saving match details:', error);
       setError('Failed to save match details. Please try again.');
-    } finally {
+      toast.error('Failed to save match details. Please try again.');
       setLoading(false);
+      // Restore scroll position in case of error
+      restoreScrollPosition();
     }
   };
 
-  // Swap participants in a match
-  const handleSwapParticipants = async () => {
-    if (!selectedMatch || !selectedEvent || selectedMatch.winnerId) {
-      alert("Cannot swap participants in a match that already has a winner.");
-      return;
-    }
-    
-    if (!selectedMatch.participant1Id || !selectedMatch.participant2Id) {
-      alert("Cannot swap participants when one or both are not assigned yet.");
-      return;
-    }
-    
-    if (!confirm("Are you sure you want to swap the participants in this match?")) {
-      return;
-    }
-    
-    setLoading(true);
+  // Update handleSwapParticipants to preserve scroll position
+  const handleSwapParticipants = async (matchId) => {
+    // Save scroll position before any DOM updates
+    saveScrollPosition();
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Get the current bracket data from the database
-      const { data: bracketData, error: bracketError } = await supabase
-        .from('event_brackets')
-        .select('matches, id')
-        .eq('event_id', selectedEvent.id)
-        .single();
-      
-      if (bracketError) throw bracketError;
-      
-      // Update the match by swapping participants
-      const updatedMatches = bracketData.matches.map(round => {
-        return round.map(match => {
-          if (match.id === selectedMatch.id) {
-            return {
-              ...match,
-              participant1Id: selectedMatch.participant2Id,
-              participant1Name: selectedMatch.participant2Name,
-              participant2Id: selectedMatch.participant1Id,
-              participant2Name: selectedMatch.participant1Name
-            };
-          }
-          return match;
-        });
+      const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=swapParticipants&matchId=${matchId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
       });
-      
-      // Save the updated bracket back to the database
-      const { error: updateError } = await supabase
-        .from('event_brackets')
-        .update({ 
-          matches: updatedMatches,
-          updated_at: new Date()
-        })
-        .eq('id', bracketData.id);
-      
-      if (updateError) throw updateError;
-      
-      // Update local state
-      setBracketData(updatedMatches);
-      setSelectedMatch(null);
-      
-      alert('Participants swapped successfully!');
+
+      if (response.ok) {
+        // Update UI without reload
+        setBracketData(prev => {
+          const updated = { ...prev };
+          // Find the match in the rounds
+          for (let r = 0; r < updated.rounds.length; r++) {
+            for (let m = 0; m < updated.rounds[r].matches.length; m++) {
+              if (updated.rounds[r].matches[m].id === matchId) {
+                // Swap the participants
+                const match = { ...updated.rounds[r].matches[m] };
+                const temp = match.participant1;
+                match.participant1 = match.participant2;
+                match.participant2 = temp;
+                updated.rounds[r].matches[m] = match;
+                break;
+              }
+            }
+          }
+          return updated;
+        });
+        
+        toast.success('Participants swapped successfully');
+      } else {
+        const error = await response.text();
+        toast.error(`Failed to swap participants: ${error}`);
+      }
     } catch (error) {
       console.error('Error swapping participants:', error);
-      setError('Failed to swap participants. Please try again.');
+      toast.error(`Error swapping participants: ${error.message}`);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add this new function to reset all match times
-  const handleResetMatchTimes = async () => {
-    if (!selectedEvent) return;
-    
-    if (!confirm(`Are you sure you want to reset all match times for "${selectedEvent.title}"? This will clear the scheduled time for all matches.`)) {
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Call the API endpoint to reset match times
-      const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=resetTimes`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to reset match times: ${response.status}`);
-      }
-      
-      await fetchBracketData(selectedEvent.id);
-      alert('All match times have been reset successfully!');
-    } catch (error) {
-      console.error('Error resetting match times:', error);
-      setError('Failed to reset match times. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Update the handleDeleteBracket function to require typing the event name
-  const handleDeleteBracket = async () => {
-    if (!selectedEvent) return;
-    
-    // First confirmation with warning
-    if (!confirm(`⚠️ WARNING: You are about to DELETE the entire bracket for "${selectedEvent.title}"\n\nThis will remove ALL match data, including:\n• Match winners\n• Scheduled times\n• Match locations\n• All notes\n\nThis action CANNOT be undone and all match scheduling information will be permanently lost!`)) {
-      return;
-    }
-    
-    // Second confirmation requiring event name to be typed
-    const confirmText = prompt(`For safety, please type the name of the event to confirm deletion:\n\n"${selectedEvent.title}"`);
-    
-    // If user cancels or types incorrect name, abort
-    if (!confirmText || confirmText.trim() !== selectedEvent.title) {
-      alert('Bracket deletion canceled. The event name did not match.');
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Call the API endpoint to delete bracket
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to delete bracket: ${response.status}`);
-      }
-      
-      // Clear the bracket data
-      setBracketData(null);
-      setSelectedMatch(null);
-      
-      // Update the event list to reflect that this event no longer has a bracket
-      setEvents(prevEvents => 
-        prevEvents.map(event => 
-          event.id === selectedEvent.id 
-            ? {...event, hasBracket: false, bracketCreatedAt: null, bracketUpdatedAt: null} 
-            : event
-        )
-      );
-      
-      // Update the selected event
-      setSelectedEvent(prev => ({...prev, hasBracket: false}));
-      
-      alert('Bracket deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting bracket:', error);
-      setError('Failed to delete bracket. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Update the handleGenerateBracket function to pass force=true parameter
-  const handleGenerateBracket = async () => {
-    if (!selectedEvent) return;
-    
-    let shouldForceRegenerate = false;
-    
-    if (bracketData) {
-      // More detailed warning for regenerating existing bracket
-      if (!confirm(`⚠️ CAUTION: You are about to REGENERATE the bracket for "${selectedEvent.title}"\n\nThis will:\n• Reset ALL matches\n• Remove ALL winners\n• Reset the entire tournament structure\n• Randomly re-seed all participants\n\nAlready scheduled match times and locations will remain in the database but may apply to different matches.`)) {
-        return;
-      }
-      
-      // For regeneration, also ask user to type the word "REGENERATE" to confirm
-      const confirmText = prompt(`To confirm that you want to REGENERATE the bracket for "${selectedEvent.title}", please type REGENERATE (all caps):`);
-      
-      if (!confirmText || confirmText !== "REGENERATE") {
-        alert('Bracket regeneration canceled.');
-        return;
-      }
-      
-      shouldForceRegenerate = true;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Call the API endpoint to generate bracket
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        // Add body with force parameter when regenerating
-        body: JSON.stringify({
-          force: shouldForceRegenerate
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to generate bracket: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data && data.bracket) {
-        setBracketData(data.bracket);
-        setParticipants(data.participants || []);
-        
-        // Update the event list to reflect that this event now has a bracket
-        setEvents(prevEvents => 
-          prevEvents.map(event => 
-            event.id === selectedEvent.id 
-              ? {...event, hasBracket: true, bracketCreatedAt: new Date(), bracketUpdatedAt: new Date()} 
-              : event
-          )
-        );
-        
-        // Update the selected event
-        setSelectedEvent(prev => ({...prev, hasBracket: true}));
-        
-        alert(bracketData ? 'Bracket regenerated successfully!' : 'Bracket generated successfully!');
-      }
-    } catch (error) {
-      console.error('Error generating bracket:', error);
-      setError('Failed to generate bracket. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to clear a match winner
-  const handleClearWinner = async (matchId) => {
-    if (!confirm('Are you sure you want to clear the winner for this match? This will undo all subsequent advancements.')) {
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Clear match winner through the API
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket/clear-winner`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          matchId: matchId
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to clear winner: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data && data.bracket) {
-        // Set timestamp to force client-side cache bust
-        const timestamp = Date.now();
-        
-        // Open the public bracket view in a new tab to see the changes
-        window.open(`/events/${selectedEvent.id}/bracket?t=${timestamp}`, '_blank');
-        
-        // Update our local state
-        setBracketData(data.bracket);
-        setSelectedMatch(null);
-      }
-    } catch (error) {
-      console.error('Error clearing winner:', error);
-      setError(error.message || 'Failed to clear match winner');
-    } finally {
-      setLoading(false);
+      // Restore scroll position after all DOM updates
+      restoreScrollPosition();
     }
   };
 
   // Toggle round expansion
   const toggleRound = (roundIndex) => {
+    // Save scroll position before toggling
+    saveScrollPosition();
+    
     setExpandedRounds(prev => ({
       ...prev,
       [roundIndex]: !prev[roundIndex]
     }));
+    
+    // Restore scroll position after state update
+    setTimeout(restoreScrollPosition, 50);
   };
 
   // Toggle all rounds
-  const toggleAllRounds = (expand = false) => {
-    if (!bracketData) return;
+  const toggleAllRounds = (expand) => {
+    // Save scroll position before toggling all rounds
+    saveScrollPosition();
     
-    const newExpandedState = {};
-    bracketData.forEach((_, index) => {
-      newExpandedState[index] = expand;
+    if (!bracketData || !bracketData.rounds) return;
+    
+    const newState = {};
+    bracketData.rounds.forEach((_, index) => {
+      newState[index] = expand;
     });
     
-    setExpandedRounds(newExpandedState);
+    setExpandedRounds(newState);
+    
+    // Restore scroll position after state update
+    setTimeout(restoreScrollPosition, 100);
+  };
+
+  // Add a helper function to check if a match is ready to play
+  const isMatchReadyToPlay = (match) => {
+    return !match.winnerId && 
+      match.participant1Id && 
+      match.participant2Id && 
+      match.participant1Name !== 'TBD' && 
+      match.participant2Name !== 'TBD' &&
+      match.participant1Name !== 'Bye' && 
+      match.participant2Name !== 'Bye';
   };
 
   // Render match details modal
@@ -1134,27 +985,11 @@ export default function BracketManager() {
     const participant1Name = getParticipantName(selectedMatch.participant1Id);
     const participant2Name = getParticipantName(selectedMatch.participant2Id);
     
-    // Get the last scheduled time from previous match
-    let previousMatchTime = '';
-    if (bracketData) {
-      const previousMatchId = selectedMatch.id - 1;
-      for (const round of bracketData) {
-        const previousMatch = round.find(m => m.id === previousMatchId);
-        if (previousMatch && previousMatch.scheduledTime) {
-          previousMatchTime = formatDatetimeForInput(previousMatch.scheduledTime);
-          break;
-        }
-      }
-    }
+    // Get the last scheduled time from previous match using our helper function
+    const previousMatchTime = findPreviousMatchTime(selectedMatch.id);
     
     // Check if both participants are valid and neither is a bye
-    const canSelectWinner = 
-      selectedMatch.participant1Id && 
-      selectedMatch.participant2Id && 
-      participant1Name !== 'TBD' && 
-      participant2Name !== 'TBD' &&
-      participant1Name !== 'Bye' && 
-      participant2Name !== 'Bye';
+    const canSelectWinner = isMatchReadyToPlay(selectedMatch);
     
     return (
       <div className={styles.modalOverlay}>
@@ -1213,7 +1048,7 @@ export default function BracketManager() {
                 </div>
                 <button 
                   className={styles.undoWinnerButton}
-                  onClick={() => handleClearWinner(selectedMatch.id)}
+                  onClick={handleClearWinner}
                 >
                   <FaUndo /> Undo Winner Selection
                 </button>
@@ -1247,66 +1082,10 @@ export default function BracketManager() {
             
             <div className={styles.formGroup}>
               <label>Scheduled Time</label>
-              {/* We need to handle datetime-local inputs carefully as browsers may default to noon */}
               <input 
                 type="datetime-local" 
                 value={matchDetails.scheduledTime} 
-                onChange={(e) => {
-                  // Handle empty string case specifically
-                  const newValue = e.target.value;
-                  console.log("Time changed to:", newValue);
-                  
-                  // Check if this might be a default 12:00 time
-                  if (newValue) {
-                    const date = new Date(newValue);
-                    const hours = date.getHours();
-                    const minutes = date.getMinutes();
-                    
-                    console.log("Time parsed as:", date.toString());
-                    console.log("Hours detected:", hours, "Minutes:", minutes);
-                    
-                    // Specifically check for the browser issue with AM times
-                    const inputHour = parseInt(newValue.split('T')[1].split(':')[0], 10);
-                    console.log("Hour from input string:", inputHour);
-                    
-                    // If the browser parsed 11 AM as 12 PM (common issue)
-                    if (inputHour === 11 && hours === 12) {
-                      console.log("Detected AM to PM conversion issue, fixing...");
-                      
-                      // Explicitly set the hours to 11 (or whatever was in the input)
-                      const [datePart, timePart] = newValue.split('T');
-                      const adjustedValue = `${datePart}T${timePart}`;
-                      console.log("Preserving exact input time:", adjustedValue);
-                      
-                      setMatchDetails({...matchDetails, scheduledTime: adjustedValue});
-                      return;
-                    }
-                    
-                    // If it's exactly 12:00, and user just selected a date (browser default behavior)
-                    // we'll set it to a more reasonable time like 16:00 (4 PM)
-                    if (hours === 12 && minutes === 0) {
-                      console.log("Detected browser default time, adjusting to 16:00");
-                      // Create a new date with 4 PM instead
-                      date.setHours(16, 0, 0, 0);
-                      
-                      // Format back to HTML datetime-local format
-                      const year = date.getFullYear();
-                      const month = String(date.getMonth() + 1).padStart(2, '0');
-                      const day = String(date.getDate()).padStart(2, '0');
-                      const adjustedHours = "16";
-                      const adjustedMinutes = "00";
-                      
-                      const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
-                      console.log("Adjusted time to:", adjustedValue);
-                      
-                      setMatchDetails({...matchDetails, scheduledTime: adjustedValue});
-                      return;
-                    }
-                  }
-                  
-                  // If not a special case, just use the value as is
-                  setMatchDetails({...matchDetails, scheduledTime: newValue});
-                }}
+                onChange={(e) => handleDatetimeInputChange(e.target.value)}
                 disabled={selectedMatch.winnerId}
               />
             </div>
@@ -1344,7 +1123,7 @@ export default function BracketManager() {
                 <>
                   <button 
                     className={styles.swapButton}
-                    onClick={handleSwapParticipants}
+                    onClick={() => handleSwapParticipants(selectedMatch.id)}
                     disabled={!selectedMatch.participant1Id || !selectedMatch.participant2Id}
                   >
                     <FaExchangeAlt /> Swap Participants
@@ -1440,6 +1219,266 @@ export default function BracketManager() {
     );
   };
 
+  // Update handleResetMatchTimes to preserve scroll position
+  const handleResetMatchTimes = async () => {
+    // Save scroll position before any DOM updates
+    saveScrollPosition();
+    
+    if (!selectedEvent) return;
+    
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=resetTimes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        // Instead of reloading, update the local bracket data by setting scheduledTime to null
+        if (bracketData) {
+          const updatedBracket = bracketData.map(round => {
+            return round.map(match => {
+              if (match.scheduledTime) {
+                return { ...match, scheduledTime: null };
+              }
+              return match;
+            });
+          });
+          
+          setBracketData(updatedBracket);
+        }
+        
+        toast.success('All match times have been reset successfully!');
+      } else {
+        const error = await response.text();
+        toast.error(`Failed to reset match times: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error resetting match times:', error);
+      toast.error(`Error resetting match times: ${error.message}`);
+    } finally {
+      // Restore scroll position after all DOM updates
+      restoreScrollPosition();
+    }
+  };
+
+  // Update handleDeleteBracket to preserve scroll position
+  const handleDeleteBracket = async () => {
+    if (!selectedEvent) return;
+    
+    // First confirmation with warning
+    if (!confirm(`⚠️ WARNING: You are about to DELETE the entire bracket for "${selectedEvent.title}"\n\nThis will remove ALL match data, including:\n• Match winners\n• Scheduled times\n• Match locations\n• All notes\n\nThis action CANNOT be undone and all match scheduling information will be permanently lost!`)) {
+      return;
+    }
+    
+    // Second confirmation requiring event name to be typed
+    const confirmText = prompt(`For safety, please type the name of the event to confirm deletion:\n\n"${selectedEvent.title}"`);
+    
+    // If user cancels or types incorrect name, abort
+    if (!confirmText || confirmText.trim() !== selectedEvent.title) {
+      toast.error('Bracket deletion canceled. The event name did not match.');
+      return;
+    }
+    
+    // No need to save scroll position here as we're deleting the entire bracket
+    setLoading(true);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
+      // Call the API endpoint to delete bracket
+      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to delete bracket: ${response.status}`);
+      }
+      
+      // Clear the bracket data
+      setBracketData(null);
+      setSelectedMatch(null);
+      
+      // Update the event list to reflect that this event no longer has a bracket
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === selectedEvent.id 
+            ? {...event, hasBracket: false, bracketCreatedAt: null, bracketUpdatedAt: null} 
+            : event
+        )
+      );
+      
+      // Update the selected event
+      setSelectedEvent(prev => ({...prev, hasBracket: false}));
+      
+      toast.success('Bracket deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting bracket:', error);
+      setError('Failed to delete bracket. Please try again.');
+      toast.error('Failed to delete bracket. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update handleGenerateBracket function to use toast instead of alerts
+  const handleGenerateBracket = async () => {
+    if (!selectedEvent) return;
+    
+    let shouldForceRegenerate = false;
+    
+    if (bracketData) {
+      // More detailed warning for regenerating existing bracket
+      if (!confirm(`⚠️ CAUTION: You are about to REGENERATE the bracket for "${selectedEvent.title}"\n\nThis will:\n• Reset ALL matches\n• Remove ALL winners\n• Reset the entire tournament structure\n• Randomly re-seed all participants\n\nAlready scheduled match times and locations will remain in the database but may apply to different matches.`)) {
+        return;
+      }
+      
+      // For regeneration, also ask user to type the word "REGENERATE" to confirm
+      const confirmText = prompt(`To confirm that you want to REGENERATE the bracket for "${selectedEvent.title}", please type REGENERATE (all caps):`);
+      
+      if (!confirmText || confirmText !== "REGENERATE") {
+        toast.error('Bracket regeneration canceled.');
+        return;
+      }
+      
+      shouldForceRegenerate = true;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
+      // Call the API endpoint to generate bracket
+      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        // Add body with force parameter when regenerating
+        body: JSON.stringify({
+          force: shouldForceRegenerate
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to generate bracket: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.bracket) {
+        setBracketData(data.bracket);
+        setParticipants(data.participants || []);
+        
+        // Update the event list to reflect that this event now has a bracket
+        setEvents(prevEvents => 
+          prevEvents.map(event => 
+            event.id === selectedEvent.id 
+              ? {...event, hasBracket: true, bracketCreatedAt: new Date(), bracketUpdatedAt: new Date()} 
+              : event
+          )
+        );
+        
+        // Update the selected event
+        setSelectedEvent(prev => ({...prev, hasBracket: true}));
+        
+        toast.success(bracketData ? 'Bracket regenerated successfully!' : 'Bracket generated successfully!');
+      }
+    } catch (error) {
+      console.error('Error generating bracket:', error);
+      setError('Failed to generate bracket. Please try again.');
+      toast.error('Failed to generate bracket. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the scroll position save/restore functions to target the correct element
+  const saveScrollPosition = () => {
+    const bracketSection = document.getElementById('bracketSection');
+    const bracketMatchesList = document.getElementById('bracketMatchesList');
+    
+    if (bracketSection) {
+      scrollPositionRef.current.bracketSection = { 
+        x: bracketSection.scrollLeft, 
+        y: bracketSection.scrollTop 
+      };
+    }
+    
+    if (bracketMatchesList) {
+      scrollPositionRef.current.bracketMatchesList = { 
+        x: bracketMatchesList.scrollLeft, 
+        y: bracketMatchesList.scrollTop 
+      };
+    }
+    
+    scrollPositionRef.current.window = {
+      x: window.scrollX,
+      y: window.scrollY
+    };
+    
+    console.log('Saved scroll positions:', scrollPositionRef.current);
+  };
+
+  // Improve restore function to handle scrolling more robustly
+  const restoreScrollPosition = () => {
+    // Use a longer timeout to ensure DOM is updated
+    setTimeout(() => {
+      try {
+        const bracketSection = document.getElementById('bracketSection');
+        const bracketMatchesList = document.getElementById('bracketMatchesList');
+        
+        if (bracketSection && scrollPositionRef.current.bracketSection) {
+          console.log('Restoring bracketSection scroll to:', scrollPositionRef.current.bracketSection);
+          bracketSection.scrollTo({
+            left: scrollPositionRef.current.bracketSection.x,
+            top: scrollPositionRef.current.bracketSection.y,
+            behavior: 'auto'
+          });
+        }
+        
+        if (bracketMatchesList && scrollPositionRef.current.bracketMatchesList) {
+          console.log('Restoring bracketMatchesList scroll to:', scrollPositionRef.current.bracketMatchesList);
+          bracketMatchesList.scrollTo({
+            left: scrollPositionRef.current.bracketMatchesList.x,
+            top: scrollPositionRef.current.bracketMatchesList.y,
+            behavior: 'auto'
+          });
+        }
+        
+        if (scrollPositionRef.current.window) {
+          console.log('Restoring window scroll to:', scrollPositionRef.current.window);
+          window.scrollTo({
+            left: scrollPositionRef.current.window.x,
+            top: scrollPositionRef.current.window.y,
+            behavior: 'auto'
+          });
+        }
+        
+        console.log('Restored all scroll positions');
+      } catch (err) {
+        console.error('Error restoring scroll position:', err);
+      }
+    }, 300); // Longer delay to ensure DOM updates are complete
+  };
+
   return (
     <AdminPageWrapper title="Tournament Bracket Manager">
       <Head>
@@ -1522,7 +1561,7 @@ export default function BracketManager() {
           )}
         </div>
         
-        <div className={styles.bracketSection}>
+        <div className={styles.bracketSection} id="bracketSection">
           <div className={styles.bracketHeader}>
             <h2>Tournament Bracket</h2>
             {selectedEvent && (
@@ -1588,7 +1627,7 @@ export default function BracketManager() {
               </Link>
             </div>
           ) : (
-            <div className={styles.bracketMatchesList}>
+            <div className={styles.bracketMatchesList} id="bracketMatchesList">
               <div className={styles.roundControls}>
                 <button 
                   className={styles.expandButton} 
@@ -1627,15 +1666,7 @@ export default function BracketManager() {
                               {round.filter(m => m.winnerId).length} completed
                             </span>
                             <span className={styles.readyCount}>
-                              {round.filter(m => 
-                                !m.winnerId && 
-                                m.participant1Id && 
-                                m.participant2Id && 
-                                m.participant1Name !== 'TBD' && 
-                                m.participant2Name !== 'TBD' &&
-                                m.participant1Name !== 'Bye' && 
-                                m.participant2Name !== 'Bye'
-                              ).length} ready
+                              {round.filter(m => isMatchReadyToPlay(m)).length} ready
                             </span>
                           </>
                         )}
@@ -1650,10 +1681,7 @@ export default function BracketManager() {
                     <div className={styles.matchesList}>
                       {round.map((match) => {
                         // Determine if match is ready to be played
-                        const isMatchReady = !match.winnerId && 
-                          match.participant1Id && match.participant2Id && 
-                          match.participant1Name !== 'TBD' && match.participant2Name !== 'TBD' &&
-                          match.participant1Name !== 'Bye' && match.participant2Name !== 'Bye';
+                        const isMatchReady = isMatchReadyToPlay(match);
                         
                         // Get participant names (including team members for duos)
                         const participant1Name = getParticipantName(match.participant1Id);
