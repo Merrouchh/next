@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
+import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
 
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
@@ -14,9 +15,10 @@ export default function AdminDashboard() {
     totalUsers: 0,
     activeUsers: 0,
     totalEvents: 0,
-    activeSessions: 0,
+    activeSessions: [],
     loading: true
   });
+  const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
 
   useEffect(() => {
     // Fetch basic stats for the admin dashboard
@@ -24,52 +26,53 @@ export default function AdminDashboard() {
       if (!user) return;
       
       try {
+        setStats(prev => ({ ...prev, loading: true }));
+        
+        // Get active sessions using the same function as dashboard.js
+        const activeSessions = await fetchActiveUserSessions();
+        console.log('Active sessions:', activeSessions);
+        
         // Get session for auth
         const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
         
-        // This would normally call your API endpoints to get stats
-        // For now, we'll use mock data
+        // Get events count
+        const { count: eventsCount, error: eventsError } = await supabase
+          .from('events')
+          .select('id', { count: 'exact', head: true });
+          
+        if (eventsError) {
+          console.error('Error fetching events count:', eventsError);
+        }
         
-        // Mock data loading delay
-        setTimeout(() => {
-          setStats({
-            totalUsers: 125,
-            activeUsers: 42,
-            totalEvents: 8,
-            activeSessions: 6,
-            loading: false
-          });
-        }, 800);
+        // Get users count
+        const { count: usersCount, error: usersError } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true });
+          
+        if (usersError) {
+          console.error('Error fetching users count:', usersError);
+        }
         
-        // Example of how you might fetch real stats:
-        /*
-        const [usersRes, eventsRes, sessionsRes] = await Promise.all([
-          fetch('/api/admin/stats/users', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-          }),
-          fetch('/api/admin/stats/events', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-          }),
-          fetch('/api/admin/stats/sessions', {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-          })
-        ]);
+        // Get active users (users with activity in the last 24 hours)
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
         
-        const [usersData, eventsData, sessionsData] = await Promise.all([
-          usersRes.json(),
-          eventsRes.json(),
-          sessionsRes.json()
-        ]);
+        const { count: activeUsersCount, error: activeUsersError } = await supabase
+          .from('user_sessions')
+          .select('user_id', { count: 'exact', head: true })
+          .gt('created_at', oneDayAgo.toISOString());
+          
+        if (activeUsersError) {
+          console.error('Error fetching active users count:', activeUsersError);
+        }
         
         setStats({
-          totalUsers: usersData.total,
-          activeUsers: usersData.active,
-          totalEvents: eventsData.total,
-          activeSessions: sessionsData.active,
+          totalUsers: usersCount || 0,
+          activeUsers: activeUsersCount || 0,
+          totalEvents: eventsCount || 0,
+          activeSessions: activeSessions || [],
           loading: false
         });
-        */
       } catch (error) {
         console.error('Error fetching admin stats:', error);
         setStats(prev => ({ ...prev, loading: false }));
@@ -78,6 +81,12 @@ export default function AdminDashboard() {
     
     fetchAdminStats();
   }, [user, supabase]);
+
+  // Format the session count similar to dashboard.js
+  const formatSessionCount = (activeCount) => {
+    const totalCapacity = 14;
+    return `${activeCount}/${totalCapacity}`;
+  };
 
   // Admin features with icons and descriptions
   const adminFeatures = [
@@ -125,6 +134,57 @@ export default function AdminDashboard() {
     }
   ];
 
+  // Add a refresh function to the component
+  const handleRefresh = async () => {
+    setStats(prev => ({ ...prev, loading: true }));
+    try {
+      // Get active sessions
+      const activeSessions = await fetchActiveUserSessions();
+      
+      // Get events count
+      const { count: eventsCount, error: eventsError } = await supabase
+        .from('events')
+        .select('id', { count: 'exact', head: true });
+        
+      if (eventsError) {
+        console.error('Error fetching events count:', eventsError);
+      }
+      
+      // Get users count
+      const { count: usersCount, error: usersError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+        
+      if (usersError) {
+        console.error('Error fetching users count:', usersError);
+      }
+      
+      // Get active users (users with activity in the last 24 hours)
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const { count: activeUsersCount, error: activeUsersError } = await supabase
+        .from('user_sessions')
+        .select('user_id', { count: 'exact', head: true })
+        .gt('created_at', oneDayAgo.toISOString());
+        
+      if (activeUsersError) {
+        console.error('Error fetching active users count:', activeUsersError);
+      }
+      
+      setStats({
+        totalUsers: usersCount || 0,
+        activeUsers: activeUsersCount || 0,
+        totalEvents: eventsCount || 0,
+        activeSessions: activeSessions || [],
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error refreshing admin stats:', error);
+      setStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   return (
     <AdminPageWrapper title="Admin Dashboard">
       <Head>
@@ -167,16 +227,20 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <div className={styles.statCard}>
+            <div
+              className={`${styles.statCard} ${styles.clickableStatCard}`}
+              onClick={() => setShowActiveSessionsModal(true)}
+            >
               <div className={styles.statIcon} style={{ backgroundColor: 'rgba(52, 168, 83, 0.2)' }}>
                 <FaDesktop style={{ color: '#34A853' }} />
               </div>
               <div className={styles.statContent}>
                 <div className={styles.statTitle}>Active Sessions</div>
                 <div className={styles.statValue}>
-                  {stats.loading ? <div className={styles.statLoading}></div> : stats.activeSessions}
+                  {stats.loading ? <div className={styles.statLoading}></div> : formatSessionCount(stats.activeSessions.length)}
                 </div>
                 <div className={styles.statSubtext}>Computers in use</div>
+                <div className={styles.viewDetailsLink}>Click to view details</div>
               </div>
             </div>
             
@@ -192,6 +256,16 @@ export default function AdminDashboard() {
                 <div className={styles.statSubtext}>In the last 24 hours</div>
               </div>
             </div>
+          </div>
+          <div className={styles.refreshButtonContainer}>
+            <button 
+              onClick={handleRefresh}
+              disabled={stats.loading}
+              className={`${sharedStyles.primaryButton} ${styles.refreshButton}`}
+            >
+              <FaDesktop className={sharedStyles.buttonIcon} />
+              {stats.loading ? 'Refreshing...' : 'Refresh Stats'}
+            </button>
           </div>
         </section>
         
@@ -254,6 +328,72 @@ export default function AdminDashboard() {
           </div>
         </section>
       </div>
+
+      {/* Active Sessions Modal */}
+      {showActiveSessionsModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <h3>Active Computer Sessions</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowActiveSessionsModal(false)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {stats.activeSessions.length === 0 ? (
+                <div className={styles.noSessions}>
+                  <p>No active sessions at this time</p>
+                </div>
+              ) : (
+                <div className={styles.sessionsList}>
+                  {stats.activeSessions.map((session, index) => (
+                    <div key={index} className={styles.sessionItem}>
+                      <div className={styles.sessionComputer}>
+                        <FaDesktop />
+                        <span>{session.computer_name || `Computer ${session.computer_id}`}</span>
+                      </div>
+                      <div className={styles.sessionInfo}>
+                        <div className={styles.sessionUser}>
+                          <strong>User:</strong> {session.user_name || "Unknown"}
+                        </div>
+                        <div className={styles.sessionTime}>
+                          <strong>Time Left:</strong> {session.time_left || "Unknown"}
+                        </div>
+                        {session.start_time && (
+                          <div className={styles.sessionStart}>
+                            <strong>Started:</strong> {new Date(session.start_time).toLocaleTimeString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <button 
+                className={styles.refreshButton}
+                onClick={handleRefresh}
+                disabled={stats.loading}
+              >
+                {stats.loading ? 'Refreshing...' : 'Refresh Now'}
+              </button>
+              <button 
+                className={styles.viewAllButton}
+                onClick={() => {
+                  setShowActiveSessionsModal(false);
+                  router.push('/avcomputers');
+                }}
+              >
+                View All Computers
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminPageWrapper>
   );
 } 
