@@ -79,7 +79,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Update the fetchActiveSessionsWithDetails function to use only API calls
+  // Update the fetchActiveSessionsWithDetails function to use the new API endpoint
   const fetchActiveSessionsWithDetails = async () => {
     try {
       // First, get the basic active sessions
@@ -95,80 +95,44 @@ export default function AdminDashboard() {
       // Create a copy to work with
       const enhancedSessions = [...activeSessions];
       
-      // Get user details for all sessions at once from single API call
-      try {
-        const response = await fetch('/api/admin/sessions/active', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          const detailedSessions = await response.json();
-          console.log('Detailed sessions from API:', detailedSessions);
-          
-          if (detailedSessions && Array.isArray(detailedSessions)) {
-            // Try to match and enrich our session data
-            detailedSessions.forEach(detailedSession => {
-              if (!detailedSession.userId) return;
-              
-              const matchingIndex = enhancedSessions.findIndex(
-                s => s.userId === detailedSession.userId || s.hostId === detailedSession.hostId
-              );
-              
-              if (matchingIndex !== -1) {
-                enhancedSessions[matchingIndex] = {
-                  ...enhancedSessions[matchingIndex],
-                  ...detailedSession
-                };
-              }
-            });
-          }
-        }
-      } catch (bulkError) {
-        console.error('Error fetching bulk session details:', bulkError);
-      }
-      
-      // For any sessions that still don't have names or time info, 
-      // fetch them individually
+      // For each session, fetch username and time left in parallel
       await Promise.all(enhancedSessions.map(async (session, index) => {
         if (!session.userId) return;
         
-        // Fetch username if not already present
-        if (!session.userName) {
-          try {
-            // Direct API call to fetchuserdata
-            const userResponse = await fetch(`/api/fetchuserdata/${session.userId}`, {
-              headers: { 'Content-Type': 'application/json' }
-            });
+        // Fetch username using our new dedicated API endpoint
+        try {
+          const userResponse = await fetch(`/api/users/${session.userId}/username`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log(`Username API response for ${session.userId}:`, userData);
             
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              
-              if (userData && userData.username) {
-                enhancedSessions[index].userName = userData.username;
-              } else if (userData && userData.result && userData.result.name) {
-                enhancedSessions[index].userName = userData.result.name;
-              }
+            if (userData && userData.success && userData.username) {
+              enhancedSessions[index].userName = userData.username;
+            } else {
+              console.log(`No username found for user ${session.userId}`);
+              enhancedSessions[index].userName = `User ${session.userId}`;
             }
-          } catch (userError) {
-            console.error(`Error fetching user data for ${session.userId}:`, userError);
           }
+        } catch (userError) {
+          console.error(`Error fetching username for ${session.userId}:`, userError);
+          enhancedSessions[index].userName = `User ${session.userId}`;
         }
         
-        // Fetch time left if not already present
-        if (!session.timeLeft) {
-          try {
-            const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
-              headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (balanceResponse.ok) {
-              const balanceData = await balanceResponse.json();
-              enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
-            }
-          } catch (error) {
-            console.error(`Error fetching balance for session ${index}:`, error);
+        // Fetch time left
+        try {
+          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
           }
+        } catch (error) {
+          console.error(`Error fetching balance for session ${index}:`, error);
         }
       }));
       
