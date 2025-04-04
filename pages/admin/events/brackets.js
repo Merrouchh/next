@@ -28,6 +28,51 @@ export default function BracketManager() {
   const [participantToReplace, setParticipantToReplace] = useState(null);
   const [lastScheduledTime, setLastScheduledTime] = useState('');
 
+  // Format datetime string for form input
+  const formatDatetimeForInput = (datetimeString) => {
+    if (!datetimeString) return '';
+    try {
+      const date = new Date(datetimeString);
+      if (isNaN(date.getTime())) return '';
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (e) {
+      console.error('Error formatting datetime for input:', e);
+      return '';
+    }
+  };
+  
+  // Parse time with AM/PM awareness
+  const parseTimeWithMeridiem = (timeStr) => {
+    try {
+      if (!timeStr) return null;
+      
+      // Check for 12-hour format or handle the datetime-local input
+      const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
+      
+      // Parse the hours and minutes
+      let hours, minutes;
+      
+      if (timePart.includes(':')) {
+        [hours, minutes] = timePart.split(':').map(num => parseInt(num, 10));
+      } else {
+        return null;
+      }
+      
+      // If we've already got the time in 24-hour format from the input
+      return { hours, minutes };
+    } catch (e) {
+      console.error('Error parsing time with meridiem:', e);
+      return null;
+    }
+  };
+
   // Fetch events with brackets
   useEffect(() => {
     const fetchEvents = async () => {
@@ -418,20 +463,44 @@ export default function BracketManager() {
     if (!match) return;
     
     setSelectedMatch(match);
+    console.log('Match clicked:', match);
+    
+    // Format the scheduledTime for the input element
+    const formattedTime = formatDatetimeForInput(match.scheduledTime);
     
     // Initialize matchDetails with existing data from the match
     setMatchDetails({
-      scheduledTime: match.scheduledTime || '',
+      scheduledTime: formattedTime,
       location: match.location || '',
       notes: match.notes || ''
     });
     
-    // If this match doesn't have a scheduled time yet, suggest the last time
-    if (!match.scheduledTime && lastScheduledTime) {
-      setMatchDetails(prev => ({
-        ...prev,
-        scheduledTime: lastScheduledTime
-      }));
+    // Check if this is a match with no players yet or TBD players
+    const isEmptyMatch = (!match.participant1Id || match.participant1Name === 'TBD') && 
+                          (!match.participant2Id || match.participant2Name === 'TBD');
+    
+    // If this match doesn't have a scheduled time yet, suggest the last time only if
+    // appropriate conditions are met
+    if (!match.scheduledTime) {
+      console.log('No scheduled time, checking conditions...');
+      console.log('Is empty match:', isEmptyMatch);
+      console.log('Last scheduled time:', lastScheduledTime);
+      
+      if (!isEmptyMatch && lastScheduledTime) {
+        // Apply the last scheduled time if players exist
+        console.log('Using last scheduled time as template');
+        setMatchDetails(prev => ({
+          ...prev,
+          scheduledTime: lastScheduledTime
+        }));
+      } else if (isEmptyMatch) {
+        // For empty matches, don't auto-suggest a time
+        console.log('Empty match, not suggesting time');
+        setMatchDetails(prev => ({
+          ...prev,
+          scheduledTime: ''
+        }));
+      }
     }
   };
 
@@ -554,9 +623,29 @@ export default function BracketManager() {
       
       let result;
       
+      // Process the scheduled time explicitly to ensure it's exactly what the user intended
+      let scheduledTime = matchDetails.scheduledTime || null;
+      if (scheduledTime) {
+        // Parse it first to verify the exact time components
+        const parsedTime = parseTimeWithMeridiem(scheduledTime);
+        console.log('Parsed time components:', parsedTime);
+        
+        if (parsedTime) {
+          // Create a new date with these exact hour/minute values
+          const date = new Date(scheduledTime);
+          // Force the specific hours and minutes to make sure they're preserved
+          date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+          
+          // Format for database (ISO string)
+          scheduledTime = date.toISOString();
+          console.log('Final scheduled time for database:', scheduledTime);
+          console.log('Time in local format:', date.toString());
+        }
+      }
+      
       // Prepare the data to save - use null for empty strings to ensure database consistency
       const dataToSave = {
-        scheduled_time: matchDetails.scheduledTime || null,
+        scheduled_time: scheduledTime,
         location: matchDetails.location || null,
         notes: matchDetails.notes || null,
         updated_at: new Date()
@@ -598,7 +687,7 @@ export default function BracketManager() {
           if (match.id === selectedMatch.id) {
             const updatedMatch = {
               ...match,
-              scheduledTime: matchDetails.scheduledTime || null,
+              scheduledTime: scheduledTime,
               location: matchDetails.location || null,
               notes: matchDetails.notes || null
             };
@@ -609,9 +698,11 @@ export default function BracketManager() {
         });
       });
       
-      // Store the last scheduled time for next match suggestion
-      if (matchDetails.scheduledTime) {
-        setLastScheduledTime(matchDetails.scheduledTime);
+      // Store the last scheduled time for next match suggestion (in the same format as input)
+      if (scheduledTime) {
+        console.log('Setting last scheduled time:', scheduledTime);
+        // Store it in the input-compatible format
+        setLastScheduledTime(scheduledTime);
       }
       
       console.log('Setting updated bracket data');
@@ -1060,10 +1151,66 @@ export default function BracketManager() {
             
             <div className={styles.formGroup}>
               <label>Scheduled Time</label>
+              {/* We need to handle datetime-local inputs carefully as browsers may default to noon */}
               <input 
                 type="datetime-local" 
                 value={matchDetails.scheduledTime} 
-                onChange={(e) => setMatchDetails({...matchDetails, scheduledTime: e.target.value})}
+                onChange={(e) => {
+                  // Handle empty string case specifically
+                  const newValue = e.target.value;
+                  console.log("Time changed to:", newValue);
+                  
+                  // Check if this might be a default 12:00 time
+                  if (newValue) {
+                    const date = new Date(newValue);
+                    const hours = date.getHours();
+                    const minutes = date.getMinutes();
+                    
+                    console.log("Time parsed as:", date.toString());
+                    console.log("Hours detected:", hours, "Minutes:", minutes);
+                    
+                    // Specifically check for the browser issue with AM times
+                    const inputHour = parseInt(newValue.split('T')[1].split(':')[0], 10);
+                    console.log("Hour from input string:", inputHour);
+                    
+                    // If the browser parsed 11 AM as 12 PM (common issue)
+                    if (inputHour === 11 && hours === 12) {
+                      console.log("Detected AM to PM conversion issue, fixing...");
+                      
+                      // Explicitly set the hours to 11 (or whatever was in the input)
+                      const [datePart, timePart] = newValue.split('T');
+                      const adjustedValue = `${datePart}T${timePart}`;
+                      console.log("Preserving exact input time:", adjustedValue);
+                      
+                      setMatchDetails({...matchDetails, scheduledTime: adjustedValue});
+                      return;
+                    }
+                    
+                    // If it's exactly 12:00, and user just selected a date (browser default behavior)
+                    // we'll set it to a more reasonable time like 16:00 (4 PM)
+                    if (hours === 12 && minutes === 0) {
+                      console.log("Detected browser default time, adjusting to 16:00");
+                      // Create a new date with 4 PM instead
+                      date.setHours(16, 0, 0, 0);
+                      
+                      // Format back to HTML datetime-local format
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const adjustedHours = "16";
+                      const adjustedMinutes = "00";
+                      
+                      const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
+                      console.log("Adjusted time to:", adjustedValue);
+                      
+                      setMatchDetails({...matchDetails, scheduledTime: adjustedValue});
+                      return;
+                    }
+                  }
+                  
+                  // If not a special case, just use the value as is
+                  setMatchDetails({...matchDetails, scheduledTime: newValue});
+                }}
                 disabled={selectedMatch.winnerId}
               />
             </div>
@@ -1090,7 +1237,9 @@ export default function BracketManager() {
               />
             </div>
             
-            {lastScheduledTime && !selectedMatch.scheduledTime && (
+            {lastScheduledTime && !selectedMatch.scheduledTime && 
+             ((selectedMatch.participant1Id && selectedMatch.participant1Name !== 'TBD') || 
+              (selectedMatch.participant2Id && selectedMatch.participant2Name !== 'TBD')) && (
               <div className={styles.templateTimeInfo}>
                 Using previous match time as template
               </div>
@@ -1119,8 +1268,10 @@ export default function BracketManager() {
               <Link 
                 href={`/events/${selectedEvent?.id}/bracket`}
                 className={styles.viewBracketButton}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                View Full Bracket
+                <FaTrophy /> View Public Bracket
               </Link>
             </div>
           </div>
@@ -1285,7 +1436,7 @@ export default function BracketManager() {
                 {bracketData && (
                   <>
                     <Link 
-                      href={`/events/${selectedEvent.id}/bracket`}
+                      href={`/events/${selectedEvent?.id}/bracket`}
                       className={styles.viewBracketButton}
                       target="_blank"
                       rel="noopener noreferrer"
