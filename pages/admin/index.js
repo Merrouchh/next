@@ -20,7 +20,62 @@ export default function AdminDashboard() {
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
 
-  // Add a direct fetch for active sessions with more details
+  // Better approach to fetch usernames from the profiles table by gizmo_id
+  const fetchUsernameByGizmoId = async (gizmoId) => {
+    try {
+      console.log(`Fetching username for gizmo_id: ${gizmoId}`);
+      
+      // First approach: Try profiles table with gizmo_id
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('gizmo_id', gizmoId)
+        .single();
+        
+      if (profilesData) {
+        const name = profilesData.display_name || profilesData.username;
+        console.log(`Found name in profiles by gizmo_id: ${name}`);
+        return name;
+      }
+      
+      // Second approach: Try users table with gizmo_id
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('username')
+        .eq('gizmo_id', gizmoId)
+        .single();
+        
+      if (userData && userData.username) {
+        console.log(`Found name in users table: ${userData.username}`);
+        return userData.username;
+      }
+      
+      // Fallback: Try an API call
+      try {
+        const response = await fetch(`/api/user/${gizmoId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.username) {
+            console.log(`Found name via API: ${data.username}`);
+            return data.username;
+          }
+        }
+      } catch (apiError) {
+        console.error('API error fetching username:', apiError);
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Exception in fetchUsernameByGizmoId:', error);
+      return null;
+    }
+  };
+
+  // Update the fetchActiveSessionsWithDetails function to get usernames
   const fetchActiveSessionsWithDetails = async () => {
     try {
       // First, get the basic active sessions
@@ -40,7 +95,20 @@ export default function AdminDashboard() {
       await Promise.all(enhancedSessions.map(async (session, index) => {
         if (!session.userId) return;
         
-        // Try to get balance/time info directly
+        // First, try to get the username
+        try {
+          const username = await fetchUsernameByGizmoId(session.userId);
+          if (username) {
+            enhancedSessions[index].userName = username;
+            console.log(`Found username for ${session.userId}: ${username}`);
+          } else {
+            console.log(`No username found for user ${session.userId}`);
+          }
+        } catch (userError) {
+          console.error(`Error fetching username for ${session.userId}:`, userError);
+        }
+        
+        // Then, try to get balance/time info directly
         try {
           const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
             headers: { 'Content-Type': 'application/json' }
@@ -54,6 +122,9 @@ export default function AdminDashboard() {
           console.error(`Error fetching balance for session ${index}:`, error);
         }
       }));
+      
+      // Log the enhanced sessions
+      console.log('Enhanced sessions with usernames:', enhancedSessions);
       
       // Return the enhanced sessions with time info
       return enhancedSessions;
