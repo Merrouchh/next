@@ -32,6 +32,22 @@ const useInterval = (callback, delay) => {
   }, [delay]);
 };
 
+// Move allComputers outside of the AdminDashboard component to make it globally available
+const allComputers = {
+  normal: Array.from({ length: 8 }, (_, i) => ({
+    id: i + 1,
+    hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+    number: i + 1,
+    type: 'normal'
+  })),
+  vip: Array.from({ length: 6 }, (_, i) => ({
+    id: i + 9,
+    hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
+    number: i + 1,
+    type: 'vip'
+  }))
+};
+
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
   const router = useRouter();
@@ -491,21 +507,6 @@ export default function AdminDashboard() {
   };
 
   // Add computer data structures
-  const allComputers = {
-    normal: Array.from({ length: 8 }, (_, i) => ({
-      id: i + 1,
-      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
-      number: i + 1,
-      type: 'normal'
-    })),
-    vip: Array.from({ length: 6 }, (_, i) => ({
-      id: i + 9,
-      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
-      number: i + 1,
-      type: 'vip'
-    }))
-  };
-
   console.log("Initial computer definitions:", allComputers);
 
   // Force prepareComputersWithSessionData to return data immediately as a fallback
@@ -860,6 +861,7 @@ export default function AdminDashboard() {
                 getSessionStatus={getSessionStatus}
                 prepareComputersWithSessionData={prepareComputersWithSessionData}
                 router={router}
+                allComputers={allComputers}
               />
             </div>
           )}
@@ -928,8 +930,8 @@ export default function AdminDashboard() {
   );
 }
 
-// Fix the grid view component to properly handle and display computers
-const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
+// Update ComputerGridView to accept allComputers as a prop
+const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router, allComputers }) => {
   const [computerData, setComputerData] = React.useState({
     sortedVipComputers: allComputers.vip.sort((a, b) => a.number - b.number),
     normalRow1: [7, 5, 3, 1].map(num => allComputers.normal.find(pc => pc.number === num)),
