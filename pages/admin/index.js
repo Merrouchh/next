@@ -548,8 +548,7 @@ export default function AdminDashboard() {
             </div>
             
             <div
-              className={`${styles.statCard} ${styles.clickableStatCard}`}
-              onClick={() => setShowActiveSessionsModal(true)}
+              className={`${styles.statCard}`}
             >
               <div className={styles.statIcon} style={{ backgroundColor: 'rgba(52, 168, 83, 0.2)' }}>
                 <FaDesktop style={{ color: '#34A853' }} />
@@ -560,7 +559,6 @@ export default function AdminDashboard() {
                   {stats.loading ? <div className={styles.statLoading}></div> : formatSessionCount(stats.activeSessions.length)}
                 </div>
                 <div className={styles.statSubtext}>Computers in use</div>
-                <div className={styles.viewDetailsLink}>Click to view details</div>
               </div>
             </div>
             
@@ -639,7 +637,14 @@ export default function AdminDashboard() {
               <div>
                 <div className={styles.summaryLabel}>Availability</div>
                 <div className={styles.summaryValue}>
-                  {stats.loading ? '...' : `${14 - stats.activeSessions.length} free`}
+                  {stats.loading ? (
+                    '...'
+                  ) : (
+                    <>
+                      {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} Normal +{' '}
+                      {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} VIP
+                    </>
+                  )}
                 </div>
               </div>
             </div>
