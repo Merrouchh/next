@@ -506,11 +506,17 @@ export default function AdminDashboard() {
     }))
   };
 
-  // Fix the prepareComputersWithSessionData function to optimize API requests
+  console.log("Initial computer definitions:", allComputers);
+
+  // Force prepareComputersWithSessionData to return data immediately as a fallback
   const prepareComputersWithSessionData = React.useCallback(async () => {
+    console.log("Preparing computers with session data");
     // Deep clone the computers to avoid modifying the source
     const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
     const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
+    
+    console.log("Initial normalComputers:", normalComputers);
+    console.log("Initial vipComputers:", vipComputers);
     
     // Mark all computers as available initially
     normalComputers.forEach(pc => pc.available = true);
@@ -520,7 +526,8 @@ export default function AdminDashboard() {
     const userAccountMap = {};
     
     // If there are active sessions, check which users have accounts
-    if (stats.activeSessions.length > 0) {
+    if (stats.activeSessions && stats.activeSessions.length > 0) {
+      console.log("Active sessions:", stats.activeSessions);
       const gizmoIds = stats.activeSessions
         .filter(session => session.userId)
         .map(session => session.userId);
@@ -548,35 +555,51 @@ export default function AdminDashboard() {
     }
     
     // For each active session, find the matching computer and update it
-    stats.activeSessions.forEach(session => {
-      const computerType = getComputerType(session.hostId).toLowerCase();
-      const computers = computerType === 'vip' ? vipComputers : normalComputers;
-      
-      // Find the computer that matches this session
-      const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
-      
-      if (computerIndex !== -1) {
-        // Update the computer with session data
-        computers[computerIndex] = {
-          ...computers[computerIndex],
-          available: false,
-          userId: session.userId,
-          userName: session.userName || `User ${session.userId}`,
-          timeLeft: session.timeLeft || 'No Time',
-          startTime: session.startTime,
-          hasAccount: userAccountMap[session.userId] || false
-        };
-      }
-    });
+    if (stats.activeSessions && stats.activeSessions.length > 0) {
+      stats.activeSessions.forEach(session => {
+        if (!session.hostId) {
+          console.warn("Session missing hostId:", session);
+          return;
+        }
+        
+        const computerType = getComputerType(session.hostId).toLowerCase();
+        const computers = computerType === 'vip' ? vipComputers : normalComputers;
+        
+        // Find the computer that matches this session
+        const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
+        
+        if (computerIndex !== -1) {
+          // Update the computer with session data
+          computers[computerIndex] = {
+            ...computers[computerIndex],
+            available: false,
+            userId: session.userId,
+            userName: session.userName || `User ${session.userId}`,
+            timeLeft: session.timeLeft || 'No Time',
+            startTime: session.startTime,
+            hasAccount: userAccountMap[session.userId] || false
+          };
+        } else {
+          console.warn(`No computer found for hostId ${session.hostId} (${computerType})`);
+        }
+      });
+    }
+    
+    // Prepare the computer rows
+    const normalRow1 = [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num));
+    const normalRow2 = [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num));
+    const sortedVipComputers = [...vipComputers].sort((a, b) => a.number - b.number);
+    
+    console.log("Final sortedVipComputers:", sortedVipComputers);
+    console.log("Final normalRow1:", normalRow1);
+    console.log("Final normalRow2:", normalRow2);
     
     return { 
       normalComputers, 
       vipComputers,
-      // Sort VIP computers by number (1-6)
-      sortedVipComputers: [...vipComputers].sort((a, b) => a.number - b.number),
-      // Create arrays for the normal computer rows with specific ordering
-      normalRow1: [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num)),
-      normalRow2: [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num))
+      sortedVipComputers,
+      normalRow1,
+      normalRow2
     };
   }, [stats.activeSessions, supabase, allComputers]);
 
@@ -905,50 +928,45 @@ export default function AdminDashboard() {
   );
 }
 
-// Add loading indicator to ComputerGridView to show something while data loads
+// Fix the grid view component to properly handle and display computers
 const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
-  // Move useState hook outside of conditional rendering
   const [computerData, setComputerData] = React.useState({
-    sortedVipComputers: [],
-    normalRow1: [],
-    normalRow2: []
+    sortedVipComputers: allComputers.vip.sort((a, b) => a.number - b.number),
+    normalRow1: [7, 5, 3, 1].map(num => allComputers.normal.find(pc => pc.number === num)),
+    normalRow2: [8, 6, 4, 2].map(num => allComputers.normal.find(pc => pc.number === num))
   });
-
-  // Add a loading state to avoid multiple simultaneous requests
+  
   const [isLoading, setIsLoading] = React.useState(true);
   
   // Reference to track if component is mounted
   const isMountedRef = React.useRef(true);
   
-  // Move the useEffect hook outside of conditional rendering
+  // Load computer data when component mounts or active sessions change
   React.useEffect(() => {
-    let isCancelled = false;
-
-    async function loadComputerData() {
-      if (isLoading === false) return;
-      
+    const fetchData = async () => {
       try {
-        console.log("Loading computer data in grid view...");
+        setIsLoading(true);
+        console.log("ComputerGridView: Fetching computer data");
+        
         const data = await prepareComputersWithSessionData();
         
-        // Only update state if not cancelled and component is mounted
-        if (!isCancelled && isMountedRef.current) {
-          console.log("Setting computer data:", data);
+        if (isMountedRef.current) {
           setComputerData(data);
-          setIsLoading(false);
+          console.log("Computer data loaded:", data);
         }
       } catch (error) {
-        console.error('Error loading computer data:', error);
-        if (!isCancelled && isMountedRef.current) {
+        console.error("Error loading computer data:", error);
+      } finally {
+        if (isMountedRef.current) {
           setIsLoading(false);
         }
       }
-    }
+    };
     
-    loadComputerData();
+    fetchData();
     
     return () => {
-      isCancelled = true;
+      isMountedRef.current = false;
     };
   }, [stats.activeSessions, prepareComputersWithSessionData]);
   
@@ -958,32 +976,6 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
       isMountedRef.current = false;
     };
   }, []);
-
-  // Force re-render when active sessions change
-  React.useEffect(() => {
-    if (stats.activeSessions.length > 0) {
-      setIsLoading(true);
-    }
-  }, [stats.activeSessions]);
-  
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p>Loading computer data...</p>
-      </div>
-    );
-  }
-
-  // Pre-initialize with empty data if needed
-  if (!computerData.sortedVipComputers || computerData.sortedVipComputers.length === 0) {
-    return (
-      <div className={styles.noDataMessage}>
-        <p>No computer data available. Please try refreshing.</p>
-      </div>
-    );
-  }
   
   return (
     <>
@@ -1074,140 +1066,132 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
           </span>
         </h3>
         <div className={styles.computerGridSpecial}>
-          {computerData.normalRow1 && computerData.normalRow1.length > 0 ? (
-            computerData.normalRow1.map(computer => computer && (
-              <div 
-                key={`normal-${computer.id}`}
-                className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
-              >
-                <div className={styles.computerHeader}>
-                  <div className={`${styles.computerIcon} ${styles.normal}`}>
-                    <FaDesktop />
-                  </div>
-                  <div className={styles.computerName}>
-                    Normal {computer.number}
-                  </div>
-                  {computer.available && 
-                    <div className={styles.availableBadge}>Available</div>
-                  }
+          {computerData.normalRow1.map(computer => computer && (
+            <div 
+              key={`normal-${computer.id}`}
+              className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+            >
+              <div className={styles.computerHeader}>
+                <div className={`${styles.computerIcon} ${styles.normal}`}>
+                  <FaDesktop />
                 </div>
-                
-                <div className={styles.computerBody}>
-                  {computer.available ? (
-                    <div className={styles.emptyCardPlaceholder}>
-                      No active session
-                    </div>
-                  ) : (
-                    <div className={styles.userInfo}>
-                      <div className={styles.userName}>
-                        <span className={styles.userInfoLabel}>User:</span>
-                        <span>
-                          {computer.userName}
-                          {computer.hasAccount && (
-                            <span className={styles.accountIndicator} title="User has website account">
-                              <FaCheck size={10} />
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <div className={styles.timeInfo}>
-                        <span className={styles.userInfoLabel}>Time Left:</span>
-                        <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
-                          {formatTimeLeft(computer.timeLeft)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                <div className={styles.computerName}>
+                  Normal {computer.number}
                 </div>
-                
-                {!computer.available && (
-                  <div className={styles.computerFooter}>
-                    <div className={styles.sessionIdSmall}>
-                      User ID: {computer.userId}
+                {computer.available && 
+                  <div className={styles.availableBadge}>Available</div>
+                }
+              </div>
+              
+              <div className={styles.computerBody}>
+                {computer.available ? (
+                  <div className={styles.emptyCardPlaceholder}>
+                    No active session
+                  </div>
+                ) : (
+                  <div className={styles.userInfo}>
+                    <div className={styles.userName}>
+                      <span className={styles.userInfoLabel}>User:</span>
+                      <span>
+                        {computer.userName}
+                        {computer.hasAccount && (
+                          <span className={styles.accountIndicator} title="User has website account">
+                            <FaCheck size={10} />
+                          </span>
+                        )}
+                      </span>
                     </div>
-                    <button 
-                      className={styles.actionButton}
-                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                      title="View user profile"
-                    >
-                      <FaUsers size={12} />
-                    </button>
+                    <div className={styles.timeInfo}>
+                      <span className={styles.userInfoLabel}>Time Left:</span>
+                      <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                        {formatTimeLeft(computer.timeLeft)}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-            ))
-          ) : (
-            <div className={styles.loadingComputerPlaceholder}>Loading normal computers...</div>
-          )}
+              
+              {!computer.available && (
+                <div className={styles.computerFooter}>
+                  <div className={styles.sessionIdSmall}>
+                    User ID: {computer.userId}
+                  </div>
+                  <button 
+                    className={styles.actionButton}
+                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                    title="View user profile"
+                  >
+                    <FaUsers size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
         
         {/* Second row: 8,6,4,2 */}
         <div className={styles.computerGridSpecial}>
-          {computerData.normalRow2 && computerData.normalRow2.length > 0 ? (
-            computerData.normalRow2.map(computer => computer && (
-              <div 
-                key={`normal-${computer.id}`}
-                className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
-              >
-                <div className={styles.computerHeader}>
-                  <div className={`${styles.computerIcon} ${styles.normal}`}>
-                    <FaDesktop />
-                  </div>
-                  <div className={styles.computerName}>
-                    Normal {computer.number}
-                  </div>
-                  {computer.available && 
-                    <div className={styles.availableBadge}>Available</div>
-                  }
+          {computerData.normalRow2.map(computer => computer && (
+            <div 
+              key={`normal-${computer.id}`}
+              className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+            >
+              <div className={styles.computerHeader}>
+                <div className={`${styles.computerIcon} ${styles.normal}`}>
+                  <FaDesktop />
                 </div>
-                
-                <div className={styles.computerBody}>
-                  {computer.available ? (
-                    <div className={styles.emptyCardPlaceholder}>
-                      No active session
-                    </div>
-                  ) : (
-                    <div className={styles.userInfo}>
-                      <div className={styles.userName}>
-                        <span className={styles.userInfoLabel}>User:</span>
-                        <span>
-                          {computer.userName}
-                          {computer.hasAccount && (
-                            <span className={styles.accountIndicator} title="User has website account">
-                              <FaCheck size={10} />
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <div className={styles.timeInfo}>
-                        <span className={styles.userInfoLabel}>Time Left:</span>
-                        <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
-                          {formatTimeLeft(computer.timeLeft)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                <div className={styles.computerName}>
+                  Normal {computer.number}
                 </div>
-                
-                {!computer.available && (
-                  <div className={styles.computerFooter}>
-                    <div className={styles.sessionIdSmall}>
-                      User ID: {computer.userId}
+                {computer.available && 
+                  <div className={styles.availableBadge}>Available</div>
+                }
+              </div>
+              
+              <div className={styles.computerBody}>
+                {computer.available ? (
+                  <div className={styles.emptyCardPlaceholder}>
+                    No active session
+                  </div>
+                ) : (
+                  <div className={styles.userInfo}>
+                    <div className={styles.userName}>
+                      <span className={styles.userInfoLabel}>User:</span>
+                      <span>
+                        {computer.userName}
+                        {computer.hasAccount && (
+                          <span className={styles.accountIndicator} title="User has website account">
+                            <FaCheck size={10} />
+                          </span>
+                        )}
+                      </span>
                     </div>
-                    <button 
-                      className={styles.actionButton}
-                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                      title="View user profile"
-                    >
-                      <FaUsers size={12} />
-                    </button>
+                    <div className={styles.timeInfo}>
+                      <span className={styles.userInfoLabel}>Time Left:</span>
+                      <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                        {formatTimeLeft(computer.timeLeft)}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-            ))
-          ) : (
-            <div className={styles.loadingComputerPlaceholder}>Loading normal computers...</div>
-          )}
+              
+              {!computer.available && (
+                <div className={styles.computerFooter}>
+                  <div className={styles.sessionIdSmall}>
+                    User ID: {computer.userId}
+                  </div>
+                  <button 
+                    className={styles.actionButton}
+                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                    title="View user profile"
+                  >
+                    <FaUsers size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </>
