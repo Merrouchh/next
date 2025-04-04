@@ -1,10 +1,7 @@
-/* Dark Theme Styles */
 .adminDashboard {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  background-color: #121212;
-  color: #e0e0e0;
 }
 
 .sectionTitle {
@@ -670,141 +667,142 @@
   border-color: rgba(255, 215, 0, 0.3);
 }
 
-/* Computer grid layout styles */
+/* Dark Theme Grid Layout */
 .sessionsGridLayout {
-  display: grid;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-/* Common styles for computer grids */
-.computerGrid,
-.vipGrid,
-.normalGrid {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 1rem;
-}
-
-/* VIP grid - 6 computers in a single row */
-.vipGrid {
-  grid-template-columns: repeat(6, 1fr);
-}
-
-/* Normal grid - 4 computers in each row (specific order defined in JS) */
-.normalGrid {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, auto);
-}
-
-/* Make computer cards more compact */
-.computerCard {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  transition: all 0.2s ease;
-  position: relative;
-  border-top: 3px solid transparent;
-  height: 120px; /* Fixed height for consistency */
+  gap: 24px;
+  padding: 4px;
 }
 
-.computerCard:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-/* Computer header with icon and name */
-.computerHeader {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
-  gap: 6px;
-}
-
-.computerIcon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.computerIcon.vip {
-  color: #f59e0b;
-}
-
-.computerIcon.normal {
-  color: #3b82f6;
-}
-
-.computerName {
+.sectionHeader {
+  font-size: 1.1rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Status colors for computer cards */
-.available {
-  border-top-color: #10b981;
-}
-
-.low {
-  border-top-color: #f59e0b;
-}
-
-.critical {
-  border-top-color: #ef4444;
-}
-
-.normal {
-  border-top-color: #3b82f6;
-}
-
-/* Available badge */
-.availableBadge {
-  background-color: #10b981;
-  color: white;
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: auto;
-  font-weight: 500;
-}
-
-/* Empty card placeholder */
-.emptyCardPlaceholder {
-  color: #6b7280;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-style: italic;
-}
-
-/* User info in computer card */
-.userInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-}
-
-.userName, .timeInfo {
+  color: #ddd;
+  padding: 0 0 10px 0;
+  border-bottom: 1px solid #333;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.sectionHeaderCount {
+  font-size: 0.85rem;
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.computerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.computerCard {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  border: 1px solid #2a2a2a;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.computerCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.computerCard.active {
+  border-top: 3px solid #34A853;
+}
+
+.computerCard.warning {
+  border-top: 3px solid #FBBC05;
+}
+
+.computerCard.noTime {
+  border-top: 3px solid #EA4335;
+}
+
+.computerCard.available {
+  border-top: 3px solid #444;
+  opacity: 0.75;
+}
+
+.computerHeader {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background-color: #252525;
+  border-bottom: 1px solid #333;
+}
+
+.computerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-right: 8px;
+  font-size: 0.9rem;
+}
+
+.computerIcon.normal {
+  background-color: rgba(66, 133, 244, 0.2);
+  color: #4285F4;
+}
+
+.computerIcon.vip {
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #9C27B0;
+}
+
+.computerName {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.computerInfo {
+  flex: 1;
+  padding: 12px;
+}
+
+.computerBody {
+  padding: 12px;
+  flex: 1;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.userName, .timeInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #ddd;
+}
+
 .userInfoLabel {
-  color: #6b7280;
+  color: #aaa;
   font-weight: 500;
 }
 
@@ -812,95 +810,218 @@
   font-weight: 600;
 }
 
-.timeValue.normal {
-  color: #3b82f6;
+.timeValue.active {
+  color: #34A853;
 }
 
-.timeValue.low {
-  color: #f59e0b;
+.timeValue.warning {
+  color: #FBBC05;
 }
 
-.timeValue.critical {
-  color: #ef4444;
+.timeValue.noTime {
+  color: #EA4335;
 }
 
-/* Computer card body */
-.computerBody {
-  flex: 1;
-  font-size: 0.8rem;
+.availableBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(52, 168, 83, 0.25);
+  color: #34A853;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(52, 168, 83, 0.4);
 }
 
-/* Computer card footer */
 .computerFooter {
+  padding: 8px 12px;
+  border-top: 1px solid #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #f3f4f6;
-  font-size: 0.7rem;
+  background-color: #252525;
 }
 
 .sessionIdSmall {
-  color: #6b7280;
   font-size: 0.65rem;
+  color: #777;
 }
 
 .actionButton {
-  background-color: #f3f4f6;
-  border: none;
-  border-radius: 4px;
-  padding: 4px;
-  cursor: pointer;
+  background: none;
+  border: 1px solid #444;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #4285F4;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .actionButton:hover {
-  background-color: #e5e7eb;
+  background-color: #4285F4;
+  color: white;
+  border-color: #4285F4;
 }
 
-/* Section headers */
-.sectionHeader {
+.emptyCardPlaceholder {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  justify-content: center;
+  height: 80px;
+  background-color: #252525;
+  border-radius: 4px;
+  border: 1px dashed #444;
+  color: #777;
+  font-size: 0.8rem;
+  margin: 6px 0;
+}
+
+/* Summary section */
+.computerSummary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.summaryItem {
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #333;
+  min-width: 200px;
+}
+
+.summaryIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.summaryLabel {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.summaryValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* List view for the dark theme */
+.darkSessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.darkSessionItem {
+  display: flex;
+  padding: 16px;
+  border-left: 4px solid transparent;
+  background-color: #252525;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.darkSessionItem:hover {
+  background-color: #2e2e2e;
+}
+
+.darkSessionItem.active {
+  border-left-color: #34A853;
+}
+
+.darkSessionItem.warning {
+  border-left-color: #FBBC05;
+}
+
+.darkSessionItem.noTime {
+  border-left-color: #EA4335;
+}
+
+.noSessionsMessage {
+  padding: 30px;
+  text-align: center;
+  background-color: #252525;
+  border-radius: 8px;
+  color: #999;
   font-size: 1rem;
+  border: 1px solid #333;
 }
 
-.sectionHeaderCount {
-  margin-left: 8px;
-  font-size: 0.75rem;
-  background-color: #f3f4f6;
-  padding: 2px 8px;
+/* Live updating indicator in the computer section */
+.liveUpdatingText {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #34A853;
+  padding: 4px 8px;
+  background-color: rgba(52, 168, 83, 0.1);
   border-radius: 12px;
-  color: #6b7280;
-  font-weight: 500;
+  border: 1px solid rgba(52, 168, 83, 0.2);
 }
 
-/* Responsive adjustments */
+.liveDot {
+  width: 6px;
+  height: 6px;
+  background-color: #34A853;
+  border-radius: 50%;
+  margin-right: 6px;
+  animation: pulse 1.5s infinite;
+}
+
+/* Computer grid layout for specific rows */
+.computerGridRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Make VIP computers display in one row */
+.sectionHeader + .computerGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+/* Make responsive for smaller screens */
 @media (max-width: 1200px) {
-  .vipGrid {
+  .sectionHeader + .computerGrid {
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, auto);
+  }
+  
+  .computerGridRow {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .normalGrid {
+  .sectionHeader + .computerGrid {
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(4, auto);
   }
   
-  .vipGrid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(3, auto);
-  }
-}
-
-@media (max-width: 480px) {
-  .normalGrid, .vipGrid {
-    grid-template-columns: 1fr;
+  .computerGridRow {
+    grid-template-columns: repeat(1, 1fr);
   }
 } 
