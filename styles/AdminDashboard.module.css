@@ -628,35 +628,86 @@
   to { transform: rotate(360deg); }
 }
 
-/* Grid Layout for Sessions */
+/* Embedded Computer Section */
+.computersSection {
+  margin-bottom: 2rem;
+}
+
+.computerViewToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.viewTypeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #2a2a2a;
+  color: #aaa;
+  border: 1px solid #333;
+}
+
+.viewTypeButton:hover {
+  background: #333;
+  color: #ddd;
+}
+
+.viewTypeButton.active {
+  background: #333;
+  color: #FFD700;
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* Dark Theme Grid Layout */
 .sessionsGridLayout {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 24px;
+  padding: 4px;
 }
 
 .sectionHeader {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
-  padding: 0 0 8px 0;
-  border-bottom: 1px solid #eaeaea;
+  color: #ddd;
+  padding: 0 0 10px 0;
+  border-bottom: 1px solid #333;
   margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionHeaderCount {
+  font-size: 0.85rem;
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
 .computerGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
 }
 
 .computerCard {
-  background-color: white;
+  background-color: #1e1e1e;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  border: 1px solid #eaeaea;
+  border: 1px solid #2a2a2a;
   transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
@@ -665,7 +716,8 @@
 
 .computerCard:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.3);
 }
 
 .computerCard.active {
@@ -681,42 +733,43 @@
 }
 
 .computerCard.available {
-  border-top: 3px solid #cccccc;
-  opacity: 0.7;
+  border-top: 3px solid #444;
+  opacity: 0.75;
 }
 
 .computerHeader {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #eaeaea;
+  padding: 14px 16px;
+  background-color: #252525;
+  border-bottom: 1px solid #333;
 }
 
 .computerIcon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   margin-right: 12px;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .computerIcon.normal {
-  background-color: rgba(66, 133, 244, 0.1);
+  background-color: rgba(66, 133, 244, 0.2);
   color: #4285F4;
 }
 
 .computerIcon.vip {
-  background-color: rgba(156, 39, 176, 0.1);
+  background-color: rgba(156, 39, 176, 0.2);
   color: #9C27B0;
 }
 
 .computerName {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  color: #fff;
 }
 
 .computerInfo {
@@ -725,13 +778,14 @@
 }
 
 .computerBody {
-  padding: 12px 16px;
+  padding: 16px;
+  flex: 1;
 }
 
 .userInfo {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -739,10 +793,11 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
+  color: #ddd;
 }
 
 .userInfoLabel {
-  color: #666;
+  color: #aaa;
   font-weight: 500;
 }
 
@@ -755,7 +810,7 @@
 }
 
 .timeValue.warning {
-  color: #F29900;
+  color: #FBBC05;
 }
 
 .timeValue.noTime {
@@ -766,33 +821,34 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #34A853;
-  color: white;
+  background-color: rgba(52, 168, 83, 0.25);
+  color: #34A853;
   font-size: 0.7rem;
   padding: 2px 8px;
   border-radius: 12px;
   font-weight: 600;
+  border: 1px solid rgba(52, 168, 83, 0.4);
 }
 
 .computerFooter {
   padding: 12px 16px;
-  border-top: 1px solid #eaeaea;
+  border-top: 1px solid #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f8f9fa;
+  background-color: #252525;
 }
 
 .sessionIdSmall {
   font-size: 0.7rem;
-  color: #999;
+  color: #777;
 }
 
 .actionButton {
   background: none;
-  border: 1px solid #e0e0e0;
-  width: 28px;
-  height: 28px;
+  border: 1px solid #444;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -812,29 +868,98 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 140px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px dashed #ddd;
-  color: #999;
+  height: 120px;
+  background-color: #252525;
+  border-radius: 4px;
+  border: 1px dashed #444;
+  color: #777;
   font-size: 0.9rem;
+  margin: 10px 0;
 }
 
-.toggleViewButton {
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: #4285F4;
-  font-size: 0.9rem;
+/* Summary section */
+.computerSummary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.summaryItem {
+  background-color: #252525;
+  border-radius: 8px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  transition: background-color 0.2s;
+  gap: 12px;
+  border: 1px solid #333;
+  min-width: 200px;
 }
 
-.toggleViewButton:hover {
-  background-color: rgba(66, 133, 244, 0.08);
+.summaryIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.summaryLabel {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.summaryValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* List view for the dark theme */
+.darkSessionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.darkSessionItem {
+  display: flex;
+  padding: 16px;
+  border-left: 4px solid transparent;
+  background-color: #252525;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.darkSessionItem:hover {
+  background-color: #2e2e2e;
+}
+
+.darkSessionItem.active {
+  border-left-color: #34A853;
+}
+
+.darkSessionItem.warning {
+  border-left-color: #FBBC05;
+}
+
+.darkSessionItem.noTime {
+  border-left-color: #EA4335;
+}
+
+.noSessionsMessage {
+  padding: 30px;
+  text-align: center;
+  background-color: #252525;
+  border-radius: 8px;
+  color: #999;
+  font-size: 1rem;
+  border: 1px solid #333;
 } 
