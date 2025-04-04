@@ -173,7 +173,8 @@ export default function AdminDashboard() {
     if (!user) return;
     
     try {
-      setStats(prev => ({ ...prev, loading: true }));
+      // Instead of setting loading:true, use a separate silentRefresh state flag
+      // that doesn't affect the UI
       
       // Get active sessions with time details
       const sessionsWithDetails = await fetchActiveSessionsWithDetails();
@@ -209,13 +210,14 @@ export default function AdminDashboard() {
         console.error('Error fetching active users count:', activeUsersError);
       }
       
-      setStats({
-        totalUsers: usersCount || 0,
-        activeUsers: activeUsersCount || 0,
-        totalEvents: eventsCount || 0,
-        activeSessions: sessionsWithDetails || [],
-        loading: false
-      });
+      // Update stats without changing loading state for refresh
+      setStats(prev => ({
+        totalUsers: usersCount || prev.totalUsers,
+        activeUsers: activeUsersCount || prev.activeUsers,
+        totalEvents: eventsCount || prev.totalEvents,
+        activeSessions: sessionsWithDetails || prev.activeSessions,
+        loading: false // Always set loading to false
+      }));
     } catch (error) {
       console.error('Error fetching admin stats:', error);
       setStats(prev => ({ ...prev, loading: false }));
@@ -227,9 +229,20 @@ export default function AdminDashboard() {
     fetchAdminStats();
   }, 3000);
 
-  // Initial data fetch on mount
+  // Add initial useEffect to set loading to false after first data fetch
   useEffect(() => {
+    // Only set loading to true for the initial fetch
+    setStats(prev => ({ ...prev, loading: true }));
+    
+    // Fetch initial data
     fetchAdminStats();
+    
+    // Set a timeout to ensure loading state is cleared even if fetch fails
+    const timer = setTimeout(() => {
+      setStats(prev => ({ ...prev, loading: false }));
+    }, 2000);
+    
+    return () => clearTimeout(timer);
   }, [user, supabase]);
 
   // Format the session count similar to dashboard.js
@@ -500,7 +513,7 @@ export default function AdminDashboard() {
               <div className={styles.statContent}>
                 <div className={styles.statTitle}>Total Users</div>
                 <div className={styles.statValue}>
-                  {stats.loading ? <div className={styles.statLoading}></div> : stats.totalUsers}
+                  {stats.totalUsers}
                 </div>
                 <div className={styles.statSubtext}>Registered accounts</div>
               </div>
@@ -513,7 +526,7 @@ export default function AdminDashboard() {
               <div className={styles.statContent}>
                 <div className={styles.statTitle}>Events</div>
                 <div className={styles.statValue}>
-                  {stats.loading ? <div className={styles.statLoading}></div> : stats.totalEvents}
+                  {stats.totalEvents}
                 </div>
                 <div className={styles.statSubtext}>Total events</div>
               </div>
@@ -528,7 +541,7 @@ export default function AdminDashboard() {
               <div className={styles.statContent}>
                 <div className={styles.statTitle}>Active Sessions</div>
                 <div className={styles.statValue}>
-                  {stats.loading ? <div className={styles.statLoading}></div> : formatSessionCount(stats.activeSessions.length)}
+                  {formatSessionCount(stats.activeSessions.length)}
                 </div>
                 <div className={styles.statSubtext}>Computers in use</div>
               </div>
@@ -541,7 +554,7 @@ export default function AdminDashboard() {
               <div className={styles.statContent}>
                 <div className={styles.statTitle}>Active Users</div>
                 <div className={styles.statValue}>
-                  {stats.loading ? <div className={styles.statLoading}></div> : stats.activeUsers}
+                  {stats.activeUsers}
                 </div>
                 <div className={styles.statSubtext}>In the last 24 hours</div>
               </div>
@@ -563,7 +576,7 @@ export default function AdminDashboard() {
               <div>
                 <div className={styles.summaryLabel}>Active Sessions</div>
                 <div className={styles.summaryValue}>
-                  {stats.loading ? '...' : formatSessionCount(stats.activeSessions.length)}
+                  {formatSessionCount(stats.activeSessions.length)}
                 </div>
               </div>
             </div>
@@ -575,7 +588,7 @@ export default function AdminDashboard() {
               <div>
                 <div className={styles.summaryLabel}>VIP Computers</div>
                 <div className={styles.summaryValue}>
-                  {stats.loading ? '...' : `${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length}/6`}
+                  {`${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length}/6`}
                 </div>
               </div>
             </div>
@@ -587,7 +600,7 @@ export default function AdminDashboard() {
               <div>
                 <div className={styles.summaryLabel}>Normal Computers</div>
                 <div className={styles.summaryValue}>
-                  {stats.loading ? '...' : `${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length}/8`}
+                  {`${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length}/8`}
                 </div>
               </div>
             </div>
@@ -599,14 +612,10 @@ export default function AdminDashboard() {
               <div>
                 <div className={styles.summaryLabel}>Availability</div>
                 <div className={styles.summaryValue}>
-                  {stats.loading ? (
-                    '...'
-                  ) : (
-                    <>
-                      {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} Normal +{' '}
-                      {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} VIP
-                    </>
-                  )}
+                  <>
+                    {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} Normal +{' '}
+                    {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} VIP
+                  </>
                 </div>
               </div>
             </div>
