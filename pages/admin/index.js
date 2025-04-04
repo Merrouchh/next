@@ -852,6 +852,7 @@ export default function AdminDashboard() {
                 getSessionStatus={getSessionStatus}
                 prepareComputersWithSessionData={prepareComputersWithSessionData}
                 router={router}
+                allComputers={allComputers}
               />
             </div>
           )}
@@ -921,7 +922,7 @@ export default function AdminDashboard() {
 }
 
 // Update the ComputerGridView component to better handle dependencies
-const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
+const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router, allComputers }) => {
   const [computerData, setComputerData] = React.useState({
     sortedVipComputers: [],
     normalRow1: [],
@@ -993,7 +994,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
       isMountedRef.current = false;
       abortController.abort();
     };
-  }, [stats.activeSessions, getComputerType]);
+  }, [stats.activeSessions, getComputerType, allComputers]);
   
   return (
     <>
