@@ -456,11 +456,34 @@ export default function AdminDashboard() {
     }))
   };
 
-  // Add a function to prepare computers with session data
+  // Modify the prepareComputersWithSessionData function to sort computers in the requested order
   const prepareComputersWithSessionData = () => {
+    // Create normal computers in the specified order
+    // First row: 7, 6, 3, 1
+    // Second row: 8, 5, 4, 2
+    const normalComputersOrder = [
+      { id: 7, hostId: 16, number: 7, type: 'normal', gridArea: '1 / 1 / 2 / 2' },
+      { id: 6, hostId: 11, number: 6, type: 'normal', gridArea: '1 / 2 / 2 / 3' },
+      { id: 3, hostId: 8, number: 3, type: 'normal', gridArea: '1 / 3 / 2 / 4' },
+      { id: 1, hostId: 26, number: 1, type: 'normal', gridArea: '1 / 4 / 2 / 5' },
+      { id: 8, hostId: 14, number: 8, type: 'normal', gridArea: '2 / 1 / 3 / 2' },
+      { id: 5, hostId: 17, number: 5, type: 'normal', gridArea: '2 / 2 / 3 / 3' },
+      { id: 4, hostId: 5, number: 4, type: 'normal', gridArea: '2 / 3 / 3 / 4' },
+      { id: 2, hostId: 12, number: 2, type: 'normal', gridArea: '2 / 4 / 3 / 5' }
+    ];
+    
+    // VIP computers in order from 1-6
+    // Map VIP numbers (9-14) to display numbers (1-6)
+    const vipComputersOrder = Array.from({ length: 6 }, (_, i) => ({
+      id: i + 9,
+      hostId: [21, 22, 25, 20, 24, 23][i],
+      number: i + 1,
+      type: 'vip'
+    }));
+    
     // Deep clone the computers to avoid modifying the source
-    const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
-    const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
+    const normalComputers = JSON.parse(JSON.stringify(normalComputersOrder));
+    const vipComputers = JSON.parse(JSON.stringify(vipComputersOrder));
     
     // Mark all computers as available initially
     normalComputers.forEach(pc => pc.available = true);
@@ -723,7 +746,7 @@ export default function AdminDashboard() {
                           {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} active
                         </span>
                       </h3>
-                      <div className={styles.computerGrid}>
+                      <div className={styles.vipGrid}>
                         {vipComputers.map(computer => {
                           const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
                           
@@ -793,7 +816,7 @@ export default function AdminDashboard() {
                           {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} active
                         </span>
                       </h3>
-                      <div className={styles.computerGrid}>
+                      <div className={styles.normalGrid}>
                         {normalComputers.map(computer => {
                           const timeStatus = computer.available ? 'available' : getSessionStatus(computer.timeLeft);
                           
@@ -801,6 +824,7 @@ export default function AdminDashboard() {
                             <div 
                               key={`normal-${computer.id}`}
                               className={`${styles.computerCard} ${styles[timeStatus]}`}
+                              style={{ gridArea: computer.gridArea }}
                             >
                               <div className={styles.computerHeader}>
                                 <div className={`${styles.computerIcon} ${styles.normal}`}>
