@@ -138,7 +138,7 @@ export default function AdminDashboard() {
     }
   ];
 
-  // Add a function to fetch detailed information for each active session
+  // Update the function to better handle user data and time left
   const fetchDetailedSessionInfo = async (sessions) => {
     if (!sessions || sessions.length === 0) return [];
     
@@ -148,40 +148,70 @@ export default function AdminDashboard() {
       
       // Fetch detailed information for each session
       await Promise.all(detailedSessions.map(async (session, index) => {
-        if (!session.userId) return;
-        
         try {
-          // Fetch user details from the Supabase profiles table
+          // First, ensure we have a userId to work with
+          const userId = session.userId;
+          if (!userId) return;
+          
+          console.log(`Fetching details for user ID: ${userId}`);
+          
+          // Directly fetch from the users table using user's gizmo_id
           const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('username, display_name')
-            .eq('gizmo_id', session.userId)
+            .from('users')
+            .select('id, username')
+            .eq('gizmo_id', userId)
             .single();
           
-          if (userData) {
-            detailedSessions[index].userName = userData.display_name || userData.username;
+          if (userError) {
+            console.error(`Error fetching user info for ID ${userId}:`, userError);
           }
           
-          // If we don't have time left info, try to fetch it
-          if (!session.time_left && !session.timeLeft) {
-            const response = await fetch(`/api/users/${session.userId}/balance`, {
+          if (userData) {
+            console.log(`Found user data for ${userId}:`, userData);
+            detailedSessions[index].userName = userData.username;
+            
+            // Now also fetch from profiles for any additional info
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', userData.id)
+              .single();
+              
+            if (profileData && profileData.display_name) {
+              detailedSessions[index].userName = profileData.display_name;
+            }
+          }
+          
+          // Fetch time remaining directly from the API
+          try {
+            console.log(`Fetching balance for user ${userId}`);
+            const balanceResponse = await fetch(`/api/fetchuserbalance/${userId}`, {
               method: 'GET',
               headers: { 'Content-Type': 'application/json' }
             });
             
-            if (response.ok) {
-              const balanceData = await response.json();
-              detailedSessions[index].timeLeft = balanceData.balance || 'No Time';
+            if (balanceResponse.ok) {
+              const balanceData = await balanceResponse.json();
+              console.log(`Balance data for user ${userId}:`, balanceData);
+              
+              if (balanceData && balanceData.balance) {
+                detailedSessions[index].timeLeft = balanceData.balance;
+              }
+            } else {
+              console.log(`Error fetching balance for user ${userId}: ${balanceResponse.status}`);
             }
+          } catch (balanceError) {
+            console.error(`Error in balance fetch for ${userId}:`, balanceError);
           }
         } catch (error) {
-          console.error(`Error fetching details for session ${index}:`, error);
+          console.error(`Error processing session ${index}:`, error);
         }
       }));
       
+      console.log('Final detailed sessions:', detailedSessions);
       return detailedSessions;
     } catch (error) {
-      console.error('Error fetching detailed session info:', error);
+      console.error('Error in fetchDetailedSessionInfo:', error);
       return sessions;
     }
   };
@@ -301,6 +331,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     console.log('Active sessions data:', stats.activeSessions);
   }, [stats.activeSessions]);
+
+  // Add a debugging helper
+  const debugLog = (message, data) => {
+    console.log(`[DEBUG] ${message}:`, data);
+  };
 
   return (
     <AdminPageWrapper title="Admin Dashboard">
@@ -475,19 +510,29 @@ export default function AdminDashboard() {
               ) : (
                 <div className={styles.sessionsList}>
                   {stats.activeSessions.map((session, index) => {
+                    debugLog(`Rendering session ${index}`, session);
+                    
                     const computerType = getComputerType(session.hostId);
                     const computerNumber = getComputerNumber(session.hostId);
-                    const timeStatus = getSessionStatus(session.time_left || session.timeLeft);
                     
-                    // Debug each session
-                    console.log('Session data:', {
-                      computerType,
-                      computerNumber,
-                      timeStatus,
-                      hostId: session.hostId,
+                    // Handle time left data
+                    const rawTimeLeft = session.time_left || session.timeLeft;
+                    debugLog(`Raw time left for session ${index}`, rawTimeLeft);
+                    
+                    const timeStatus = getSessionStatus(rawTimeLeft);
+                    const formattedTimeLeft = formatTimeLeft(rawTimeLeft);
+                    
+                    // Handle username
+                    const username = 
+                      session.user_name || 
+                      session.userName || 
+                      (session.userId ? `User ${session.userId}` : "Unknown");
+                    
+                    debugLog(`Username for session ${index}`, {
+                      user_name: session.user_name,
+                      userName: session.userName,
                       userId: session.userId,
-                      userName: session.user_name || session.userName,
-                      timeLeft: session.time_left || session.timeLeft
+                      final: username
                     });
                     
                     return (
@@ -501,16 +546,25 @@ export default function AdminDashboard() {
                         </div>
                         <div className={styles.sessionInfo}>
                           <div className={styles.sessionUser}>
-                            <strong>User:</strong> {session.user_name || session.userName || session.userId || "Unknown"}
+                            <strong>User:</strong> {username}
+                            {!session.userName && !session.user_name && session.userId && (
+                              <span className={styles.fetchingIndicator}> (fetching details...)</span>
+                            )}
                           </div>
                           <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
-                            <strong>Time Left:</strong> {formatTimeLeft(session.time_left || session.timeLeft)}
+                            <strong>Time Left:</strong> {formattedTimeLeft}
+                            {!formattedTimeLeft && (
+                              <span className={styles.fetchingIndicator}> (calculating...)</span>
+                            )}
                           </div>
                           {(session.start_time || session.startTime) && (
                             <div className={styles.sessionStart}>
                               <strong>Started:</strong> {new Date(session.start_time || session.startTime).toLocaleTimeString()}
                             </div>
                           )}
+                          <div className={styles.sessionId}>
+                            <small>Host ID: {session.hostId} / User ID: {session.userId}</small>
+                          </div>
                         </div>
                         <div className={styles.sessionActions}>
                           <button 
