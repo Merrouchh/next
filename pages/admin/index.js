@@ -487,6 +487,7 @@ export default function AdminDashboard() {
       id: i + 9,
       hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
       number: i + 1,
+      displayNumber: i + 9,
       type: 'vip'
     }))
   };
@@ -949,7 +950,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                     <FaDesktop />
                   </div>
                   <div className={styles.computerName}>
-                    VIP {computer.number}
+                    VIP {computer.displayNumber || (computer.number + 8)}
                   </div>
                   {computer.available && 
                     <div className={styles.availableBadge}>Available</div>
