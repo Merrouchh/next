@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList, FaLaptop, FaCheck } from 'react-icons/fa';
@@ -8,9 +8,9 @@ import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
 
-// Add a custom useInterval hook for polling
-function useInterval(callback, delay) {
-  const savedCallback = useRef();
+// Add useInterval custom hook for auto-refresh
+const useInterval = (callback, delay) => {
+  const savedCallback = React.useRef();
 
   // Remember the latest callback
   useEffect(() => {
@@ -27,7 +27,7 @@ function useInterval(callback, delay) {
       return () => clearInterval(id);
     }
   }, [delay]);
-}
+};
 
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
@@ -41,7 +41,6 @@ export default function AdminDashboard() {
   });
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
   const [sessionViewMode, setSessionViewMode] = useState('grid'); // 'list' or 'grid'
-  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Replace the username fetching function to use only API endpoints
   const fetchUsernameByGizmoId = async (gizmoId) => {
@@ -169,22 +168,15 @@ export default function AdminDashboard() {
     }
   };
 
-  // Refactor fetchAdminStats into a callback that can be used by the interval
-  const fetchAdminStats = useCallback(async () => {
+  // Replace handleRefresh function with fetchAdminStats
+  const fetchAdminStats = async () => {
     if (!user) return;
     
     try {
-      // Don't set loading to true for automatic refreshes to avoid UI flicker
-      const isManualRefresh = !lastUpdated;
-      if (isManualRefresh) {
-        setStats(prev => ({ ...prev, loading: true }));
-      }
+      setStats(prev => ({ ...prev, loading: true }));
       
       // Get active sessions with time details
       const sessionsWithDetails = await fetchActiveSessionsWithDetails();
-      
-      // Get session for auth
-      const { data: sessionData } = await supabase.auth.getSession();
       
       // Get events count
       const { count: eventsCount, error: eventsError } = await supabase
@@ -224,31 +216,21 @@ export default function AdminDashboard() {
         activeSessions: sessionsWithDetails || [],
         loading: false
       });
-      
-      // Update the last refreshed timestamp
-      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching admin stats:', error);
       setStats(prev => ({ ...prev, loading: false }));
     }
-  }, [user, supabase, lastUpdated]);
-  
-  // Use interval to automatically refresh data every 5 seconds
+  };
+
+  // Set up auto-refresh with useInterval (3 seconds = 3000ms)
   useInterval(() => {
     fetchAdminStats();
-  }, 5000);
-  
-  // Initial data load
+  }, 3000);
+
+  // Initial data fetch on mount
   useEffect(() => {
     fetchAdminStats();
-  }, [fetchAdminStats]);
-
-  // Format the last updated time as a readable string
-  const getLastUpdatedString = () => {
-    if (!lastUpdated) return 'Loading...';
-    
-    return `Live data • Last updated: ${lastUpdated.toLocaleTimeString()}`;
-  };
+  }, [user, supabase]);
 
   // Format the session count similar to dashboard.js
   const formatSessionCount = (activeCount) => {
@@ -510,11 +492,6 @@ export default function AdminDashboard() {
             <span className={styles.sectionTitleLine}></span>
           </h2>
           
-          <div className={styles.liveDataIndicator}>
-            <div className={styles.liveDot}></div>
-            <span>{getLastUpdatedString()}</span>
-          </div>
-          
           <div className={styles.statsGrid}>
             <div className={styles.statCard}>
               <div className={styles.statIcon} style={{ backgroundColor: 'rgba(66, 133, 244, 0.2)' }}>
@@ -648,6 +625,12 @@ export default function AdminDashboard() {
             >
               <FaList size={14} /> List View
             </button>
+            
+            <div style={{ marginLeft: 'auto' }}>
+              <small className={styles.liveUpdatingText}>
+                <span className={styles.liveDot}></span> Live updating
+              </small>
+            </div>
           </div>
           
           {stats.activeSessions.length === 0 && !stats.loading ? (
