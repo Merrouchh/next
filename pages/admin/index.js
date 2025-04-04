@@ -8,7 +8,7 @@ import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
 
-// Fix the useInterval custom hook to properly clean up
+// Add useInterval custom hook for auto-refresh
 const useInterval = (callback, delay) => {
   const savedCallback = React.useRef();
 
@@ -24,28 +24,19 @@ const useInterval = (callback, delay) => {
     }
     if (delay !== null) {
       const id = setInterval(tick, delay);
-      return () => {
-        clearInterval(id);
-        console.log('Interval cleared on unmount/delay change');
-      };
+      return () => clearInterval(id);
     }
   }, [delay]);
 };
 
-// Move allComputers outside of the AdminDashboard component to make it globally available
-const allComputers = {
-  normal: Array.from({ length: 8 }, (_, i) => ({
-    id: i + 1,
-    hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
-    number: i + 1,
-    type: 'normal'
-  })),
-  vip: Array.from({ length: 6 }, (_, i) => ({
-    id: i + 9,
-    hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
-    number: i + 1,
-    type: 'vip'
-  }))
+// Add a debugMode flag for controlling console logs
+const debugMode = false;
+
+// Update the debugging helper
+const debugLog = (message, data) => {
+  if (debugMode) {
+    console.log(`[DEBUG] ${message}:`, data);
+  }
 };
 
 export default function AdminDashboard() {
@@ -61,10 +52,13 @@ export default function AdminDashboard() {
   const [showActiveSessionsModal, setShowActiveSessionsModal] = useState(false);
   const [sessionViewMode, setSessionViewMode] = useState('grid'); // 'list' or 'grid'
 
+  // Add a ref for the AbortController
+  const abortControllerRef = React.useRef(null);
+
   // Replace the username fetching function to use only API endpoints
   const fetchUsernameByGizmoId = async (gizmoId) => {
     try {
-      console.log(`Fetching username for gizmo_id: ${gizmoId}`);
+      debugLog(`Fetching username for gizmo_id`, gizmoId);
       
       // First try to get username from Gizmo API
       try {
@@ -76,7 +70,7 @@ export default function AdminDashboard() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log(`User data from API for ${gizmoId}:`, data);
+          debugLog(`User data from API for ${gizmoId}`, data);
           
           if (data && data.username) {
             return data.username;
@@ -99,7 +93,7 @@ export default function AdminDashboard() {
         
         if (userResponse.ok) {
           const userData = await userResponse.json();
-          console.log(`User info for ${gizmoId}:`, userData);
+          debugLog(`User info for ${gizmoId}`, userData);
           
           if (userData && userData.username) {
             return userData.username;
@@ -131,7 +125,7 @@ export default function AdminDashboard() {
         return [];
       }
       
-      console.log('Basic active sessions:', activeSessions);
+      debugLog('Basic active sessions', activeSessions);
       
       // Create a copy to work with
       const enhancedSessions = [...activeSessions];
@@ -140,46 +134,41 @@ export default function AdminDashboard() {
       await Promise.all(enhancedSessions.map(async (session, index) => {
         if (!session.userId) return;
         
-        // Create options with signal if provided
-        const fetchOptions = signal ? { 
-          headers: { 'Content-Type': 'application/json' },
-          signal 
-        } : { 
-          headers: { 'Content-Type': 'application/json' } 
-        };
-        
         // Fetch username using our new dedicated API endpoint with gizmoId parameter
         try {
-          const userResponse = await fetch(`/api/users/${session.userId}/username`, fetchOptions);
+          const userResponse = await fetch(`/api/users/${session.userId}/username`, {
+            headers: { 'Content-Type': 'application/json' },
+            signal: signal
+          });
           
-          if (!signal || !signal.aborted) { // Check if request was aborted
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              
-              if (userData && userData.success && userData.username) {
-                enhancedSessions[index].userName = userData.username;
-              } else {
-                enhancedSessions[index].userName = `User ${session.userId}`;
-              }
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            debugLog(`Username API response for user`, { userId: session.userId, data: userData });
+            
+            if (userData && userData.success && userData.username) {
+              enhancedSessions[index].userName = userData.username;
+            } else {
+              debugLog(`No username found for user`, session.userId);
+              enhancedSessions[index].userName = `User ${session.userId}`;
             }
           }
         } catch (userError) {
-          // Ignore AbortError as it's expected when component unmounts
           if (userError.name !== 'AbortError') {
             console.error(`Error fetching username for ${session.userId}:`, userError);
+            enhancedSessions[index].userName = `User ${session.userId}`;
           }
-          enhancedSessions[index].userName = `User ${session.userId}`;
         }
         
-        // Fetch time left with the same abort mechanism
+        // Fetch time left
         try {
-          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, fetchOptions);
+          const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
+            headers: { 'Content-Type': 'application/json' },
+            signal: signal
+          });
           
-          if (!signal || !signal.aborted) {
-            if (balanceResponse.ok) {
-              const balanceData = await balanceResponse.json();
-              enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
-            }
+          if (balanceResponse.ok) {
+            const balanceData = await balanceResponse.json();
+            enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
@@ -189,11 +178,13 @@ export default function AdminDashboard() {
       }));
       
       // Log the final enhanced sessions
-      console.log('Final enhanced sessions with usernames:', enhancedSessions);
+      debugLog('Final enhanced sessions with usernames', enhancedSessions);
       
       return enhancedSessions;
     } catch (error) {
-      console.error('Error in fetchActiveSessionsWithDetails:', error);
+      if (error.name !== 'AbortError') {
+        console.error('Error in fetchActiveSessionsWithDetails:', error);
+      }
       return [];
     }
   };
@@ -203,49 +194,46 @@ export default function AdminDashboard() {
     if (!user) return;
     
     try {
-      // Create cancel tokens/flags for each fetch operation
-      const controller = new AbortController();
-      const signal = controller.signal;
+      // Create a new AbortController for this request
+      abortControllerRef.current = new AbortController();
+      const { signal } = abortControllerRef.current;
       
       // Get active sessions with time details
-      const sessionsPromise = fetchActiveSessionsWithDetails(signal);
+      const sessionsWithDetails = await fetchActiveSessionsWithDetails(signal);
       
       // Get events count
-      const eventsPromise = supabase
+      const { count: eventsCount, error: eventsError } = await supabase
         .from('events')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(signal);
         
+      if (eventsError && eventsError.code !== 'AbortError') {
+        console.error('Error fetching events count:', eventsError);
+      }
+      
       // Get users count
-      const usersPromise = supabase
+      const { count: usersCount, error: usersError } = await supabase
         .from('profiles')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(signal);
         
+      if (usersError && usersError.code !== 'AbortError') {
+        console.error('Error fetching users count:', usersError);
+      }
+      
       // Get active users (users with activity in the last 24 hours)
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
       
-      const activeUsersPromise = supabase
+      const { count: activeUsersCount, error: activeUsersError } = await supabase
         .from('user_sessions')
         .select('user_id', { count: 'exact', head: true })
-        .gt('created_at', oneDayAgo.toISOString());
-      
-      // Await all promises in parallel
-      const [
-        sessionsWithDetails,
-        { count: eventsCount, error: eventsError },
-        { count: usersCount, error: usersError },
-        { count: activeUsersCount, error: activeUsersError }
-      ] = await Promise.all([
-        sessionsPromise,
-        eventsPromise,
-        usersPromise,
-        activeUsersPromise
-      ]);
-      
-      // Check for errors
-      if (eventsError) console.error('Error fetching events count:', eventsError);
-      if (usersError) console.error('Error fetching users count:', usersError);
-      if (activeUsersError) console.error('Error fetching active users count:', activeUsersError);
+        .gt('created_at', oneDayAgo.toISOString())
+        .abortSignal(signal);
+        
+      if (activeUsersError && activeUsersError.code !== 'AbortError') {
+        console.error('Error fetching active users count:', activeUsersError);
+      }
       
       // Update stats without changing loading state for refresh
       setStats(prev => ({
@@ -255,60 +243,46 @@ export default function AdminDashboard() {
         activeSessions: sessionsWithDetails || prev.activeSessions,
         loading: false // Always set loading to false
       }));
-      
-      return {
-        totalUsers: usersCount,
-        activeUsers: activeUsersCount,
-        totalEvents: eventsCount,
-        activeSessions: sessionsWithDetails
-      };
     } catch (error) {
-      console.error('Error fetching admin stats:', error);
-      setStats(prev => ({ ...prev, loading: false }));
-      return null;
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching admin stats:', error);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
     }
   };
 
-  // Set up auto-refresh with useInterval (3 seconds = 3000ms)
+  // Set up auto-refresh with useInterval (reduce to 5 seconds = 5000ms to prevent excessive API calls)
   useInterval(() => {
-    fetchAdminStats();
-  }, 3000);
+    // Only fetch if component is mounted and the tab is active
+    if (document.visibilityState === 'visible') {
+      fetchAdminStats();
+    }
+  }, 5000);
 
-  // Fix useEffect cleanup in the main component
+  // Update the cleanup effect to use the ref
+  useEffect(() => {
+    return () => {
+      // Abort any pending requests when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Add initial useEffect to set loading to false after first data fetch
   useEffect(() => {
     // Only set loading to true for the initial fetch
     setStats(prev => ({ ...prev, loading: true }));
     
-    let isMounted = true;
-    
     // Fetch initial data
-    const fetchData = async () => {
-      try {
-        await fetchAdminStats();
-      } catch (error) {
-        console.error('Initial fetch error:', error);
-      }
-      
-      // Only update state if component is still mounted
-      if (isMounted) {
-        setStats(prev => ({ ...prev, loading: false }));
-      }
-    };
-    
-    fetchData();
+    fetchAdminStats();
     
     // Set a timeout to ensure loading state is cleared even if fetch fails
     const timer = setTimeout(() => {
-      if (isMounted) {
-        setStats(prev => ({ ...prev, loading: false }));
-      }
+      setStats(prev => ({ ...prev, loading: false }));
     }, 2000);
     
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      console.log('Component cleanup: timers cleared');
-    };
+    return () => clearTimeout(timer);
   }, [user, supabase]);
 
   // Format the session count similar to dashboard.js
@@ -371,7 +345,7 @@ export default function AdminDashboard() {
     const detailedSessions = [...sessions];
     
     // Early debug log
-    console.log('Original sessions from API:', detailedSessions);
+    debugLog('Original sessions from API', detailedSessions);
     
     // Process each session to extract and normalize data
     detailedSessions.forEach((session, index) => {
@@ -427,7 +401,7 @@ export default function AdminDashboard() {
       await Promise.all(fetchPromises);
       
       // Final log of enhanced session data
-      console.log('Enhanced session data:', detailedSessions);
+      debugLog('Enhanced session data', detailedSessions);
       return detailedSessions;
     } catch (error) {
       console.error('Error while enhancing session data:', error);
@@ -493,13 +467,8 @@ export default function AdminDashboard() {
 
   // Add this to the component
   useEffect(() => {
-    console.log('Active sessions data:', stats.activeSessions);
+    debugLog('Active sessions data', stats.activeSessions);
   }, [stats.activeSessions]);
-
-  // Add a debugging helper
-  const debugLog = (message, data) => {
-    console.log(`[DEBUG] ${message}:`, data);
-  };
 
   // Add a toggleView function
   const toggleSessionViewMode = () => {
@@ -507,17 +476,26 @@ export default function AdminDashboard() {
   };
 
   // Add computer data structures
-  console.log("Initial computer definitions:", allComputers);
+  const allComputers = {
+    normal: Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+      number: i + 1,
+      type: 'normal'
+    })),
+    vip: Array.from({ length: 6 }, (_, i) => ({
+      id: i + 9,
+      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
+      number: i + 1,
+      type: 'vip'
+    }))
+  };
 
-  // Force prepareComputersWithSessionData to return data immediately as a fallback
-  const prepareComputersWithSessionData = React.useCallback(async () => {
-    console.log("Preparing computers with session data");
+  // Replace the prepareComputersWithSessionData function to include account verification
+  const prepareComputersWithSessionData = async () => {
     // Deep clone the computers to avoid modifying the source
     const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
     const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
-    
-    console.log("Initial normalComputers:", normalComputers);
-    console.log("Initial vipComputers:", vipComputers);
     
     // Mark all computers as available initially
     normalComputers.forEach(pc => pc.available = true);
@@ -527,8 +505,7 @@ export default function AdminDashboard() {
     const userAccountMap = {};
     
     // If there are active sessions, check which users have accounts
-    if (stats.activeSessions && stats.activeSessions.length > 0) {
-      console.log("Active sessions:", stats.activeSessions);
+    if (stats.activeSessions.length > 0) {
       const gizmoIds = stats.activeSessions
         .filter(session => session.userId)
         .map(session => session.userId);
@@ -546,6 +523,8 @@ export default function AdminDashboard() {
             data.forEach(user => {
               userAccountMap[user.gizmo_id] = true;
             });
+            
+            debugLog('Users with accounts', userAccountMap);
           } else if (error) {
             console.error('Error checking user accounts:', error);
           }
@@ -556,53 +535,37 @@ export default function AdminDashboard() {
     }
     
     // For each active session, find the matching computer and update it
-    if (stats.activeSessions && stats.activeSessions.length > 0) {
-      stats.activeSessions.forEach(session => {
-        if (!session.hostId) {
-          console.warn("Session missing hostId:", session);
-          return;
-        }
-        
-        const computerType = getComputerType(session.hostId).toLowerCase();
-        const computers = computerType === 'vip' ? vipComputers : normalComputers;
-        
-        // Find the computer that matches this session
-        const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
-        
-        if (computerIndex !== -1) {
-          // Update the computer with session data
-          computers[computerIndex] = {
-            ...computers[computerIndex],
-            available: false,
-            userId: session.userId,
-            userName: session.userName || `User ${session.userId}`,
-            timeLeft: session.timeLeft || 'No Time',
-            startTime: session.startTime,
-            hasAccount: userAccountMap[session.userId] || false
-          };
-        } else {
-          console.warn(`No computer found for hostId ${session.hostId} (${computerType})`);
-        }
-      });
-    }
-    
-    // Prepare the computer rows
-    const normalRow1 = [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num));
-    const normalRow2 = [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num));
-    const sortedVipComputers = [...vipComputers].sort((a, b) => a.number - b.number);
-    
-    console.log("Final sortedVipComputers:", sortedVipComputers);
-    console.log("Final normalRow1:", normalRow1);
-    console.log("Final normalRow2:", normalRow2);
+    stats.activeSessions.forEach(session => {
+      const computerType = getComputerType(session.hostId).toLowerCase();
+      const computers = computerType === 'vip' ? vipComputers : normalComputers;
+      
+      // Find the computer that matches this session
+      const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
+      
+      if (computerIndex !== -1) {
+        // Update the computer with session data
+        computers[computerIndex] = {
+          ...computers[computerIndex],
+          available: false,
+          userId: session.userId,
+          userName: session.userName || `User ${session.userId}`,
+          timeLeft: session.timeLeft || 'No Time',
+          startTime: session.startTime,
+          hasAccount: userAccountMap[session.userId] || false
+        };
+      }
+    });
     
     return { 
       normalComputers, 
       vipComputers,
-      sortedVipComputers,
-      normalRow1,
-      normalRow2
+      // Sort VIP computers by number (1-6)
+      sortedVipComputers: [...vipComputers].sort((a, b) => a.number - b.number),
+      // Create arrays for the normal computer rows with specific ordering
+      normalRow1: [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num)),
+      normalRow2: [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num))
     };
-  }, [stats.activeSessions, supabase, allComputers]);
+  };
 
   // Add a function to count low time computers
   const countLowTimeComputers = (sessions) => {
@@ -861,7 +824,6 @@ export default function AdminDashboard() {
                 getSessionStatus={getSessionStatus}
                 prepareComputersWithSessionData={prepareComputersWithSessionData}
                 router={router}
-                allComputers={allComputers}
               />
             </div>
           )}
@@ -930,54 +892,37 @@ export default function AdminDashboard() {
   );
 }
 
-// Update ComputerGridView to accept allComputers as a prop
-const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router, allComputers }) => {
+// Add this ComputerGridView component at the end of the file, before the last export
+const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
+  // Move useState hook outside of conditional rendering
   const [computerData, setComputerData] = React.useState({
-    sortedVipComputers: allComputers.vip.sort((a, b) => a.number - b.number),
-    normalRow1: [7, 5, 3, 1].map(num => allComputers.normal.find(pc => pc.number === num)),
-    normalRow2: [8, 6, 4, 2].map(num => allComputers.normal.find(pc => pc.number === num))
+    sortedVipComputers: [],
+    normalRow1: [],
+    normalRow2: []
   });
   
-  const [isLoading, setIsLoading] = React.useState(true);
-  
-  // Reference to track if component is mounted
-  const isMountedRef = React.useRef(true);
-  
-  // Load computer data when component mounts or active sessions change
+  // Move the useEffect hook outside of conditional rendering
   React.useEffect(() => {
-    const fetchData = async () => {
+    let isMounted = true;
+    
+    async function loadComputerData() {
       try {
-        setIsLoading(true);
-        console.log("ComputerGridView: Fetching computer data");
-        
         const data = await prepareComputersWithSessionData();
-        
-        if (isMountedRef.current) {
+        if (isMounted) {
           setComputerData(data);
-          console.log("Computer data loaded:", data);
         }
       } catch (error) {
         console.error("Error loading computer data:", error);
-      } finally {
-        if (isMountedRef.current) {
-          setIsLoading(false);
-        }
       }
-    };
+    }
     
-    fetchData();
+    loadComputerData();
     
+    // Cleanup function to prevent setting state on unmounted component
     return () => {
-      isMountedRef.current = false;
+      isMounted = false;
     };
   }, [stats.activeSessions, prepareComputersWithSessionData]);
-  
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
   
   return (
     <>
