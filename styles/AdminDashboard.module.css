@@ -918,8 +918,8 @@
   color: #fff;
 }
 
-/* Low Time Summary Item */
-.summaryItem:nth-child(5) .summaryValue {
+/* Low Time Summary Item - update selector for the new position */
+.summaryItem:nth-child(3) .summaryValue {
   font-weight: 600;
   color: #FF9800;
 }

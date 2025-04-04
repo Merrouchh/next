@@ -652,30 +652,6 @@ export default function AdminDashboard() {
             </div>
             
             <div className={styles.summaryItem}>
-              <div className={styles.summaryIcon} style={{ backgroundColor: 'rgba(156, 39, 176, 0.2)' }}>
-                <FaLaptop style={{ color: '#9C27B0' }} />
-              </div>
-              <div>
-                <div className={styles.summaryLabel}>VIP Computers</div>
-                <div className={styles.summaryValue}>
-                  {`${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length}/6`}
-                </div>
-              </div>
-            </div>
-            
-            <div className={styles.summaryItem}>
-              <div className={styles.summaryIcon} style={{ backgroundColor: 'rgba(66, 133, 244, 0.2)' }}>
-                <FaLaptop style={{ color: '#4285F4' }} />
-              </div>
-              <div>
-                <div className={styles.summaryLabel}>Normal Computers</div>
-                <div className={styles.summaryValue}>
-                  {`${stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length}/8`}
-                </div>
-              </div>
-            </div>
-            
-            <div className={styles.summaryItem}>
               <div className={styles.summaryIcon} style={{ backgroundColor: 'rgba(234, 67, 53, 0.2)' }}>
                 <FaCheck style={{ color: '#EA4335' }} />
               </div>
@@ -690,7 +666,6 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            {/* New Low Time Left Summary Item */}
             <div className={styles.summaryItem}>
               <div className={styles.summaryIcon} style={{ backgroundColor: 'rgba(255, 152, 0, 0.2)' }}>
                 <FaClock style={{ color: '#FF9800' }} />
