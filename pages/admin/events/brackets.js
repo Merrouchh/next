@@ -29,6 +29,19 @@ export default function BracketManager() {
   const [lastScheduledTime, setLastScheduledTime] = useState('');
   const [expandedRounds, setExpandedRounds] = useState({});
 
+  // Load last scheduled time from localStorage on component mount
+  useEffect(() => {
+    try {
+      const storedTime = localStorage.getItem('lastScheduledTime');
+      if (storedTime) {
+        console.log('Loaded last scheduled time from localStorage:', storedTime);
+        setLastScheduledTime(storedTime);
+      }
+    } catch (e) {
+      console.error('Error loading from localStorage:', e);
+    }
+  }, []);
+
   // Format datetime string for form input
   const formatDatetimeForInput = (datetimeString) => {
     if (!datetimeString) return '';
@@ -481,6 +494,33 @@ export default function BracketManager() {
       }
     }
     
+    // Try to get last scheduled time from localStorage
+    let storedLastTime = '';
+    try {
+      storedLastTime = localStorage.getItem('lastScheduledTime') || '';
+    } catch (e) {
+      console.error('Error accessing localStorage:', e);
+    }
+    
+    // Try to find the previous match from the current one 
+    // (typically matches are numbered sequentially)
+    let previousMatchTime = '';
+    if (bracketData) {
+      // Look for the previous match number (e.g., if current is 22, look for 21)
+      const previousMatchId = match.id - 1;
+      console.log('Looking for previous match:', previousMatchId);
+      
+      // Find the previous match in the bracket data
+      for (const round of bracketData) {
+        const previousMatch = round.find(m => m.id === previousMatchId);
+        if (previousMatch && previousMatch.scheduledTime) {
+          previousMatchTime = formatDatetimeForInput(previousMatch.scheduledTime);
+          console.log('Found previous match with time:', previousMatchTime);
+          break;
+        }
+      }
+    }
+    
     // Format the scheduledTime for the input element
     const formattedTime = formatDatetimeForInput(match.scheduledTime);
     
@@ -491,30 +531,25 @@ export default function BracketManager() {
       notes: match.notes || ''
     });
     
-    // Check if this is a match with no players yet or TBD players
-    const isEmptyMatch = (!match.participant1Id || match.participant1Name === 'TBD') && 
-                          (!match.participant2Id || match.participant2Name === 'TBD');
-    
-    // If this match doesn't have a scheduled time yet, suggest the last time only if
-    // appropriate conditions are met
+    // If this match doesn't have a scheduled time yet, use available template times
     if (!match.scheduledTime) {
       console.log('No scheduled time, checking conditions...');
-      console.log('Is empty match:', isEmptyMatch);
-      console.log('Last scheduled time:', lastScheduledTime);
+      console.log('Stored last time:', storedLastTime);
+      console.log('Previous match time:', previousMatchTime);
       
-      if (!isEmptyMatch && lastScheduledTime) {
-        // Apply the last scheduled time if players exist
-        console.log('Using last scheduled time as template');
+      // Always apply a template time if one is available, regardless of whether
+      // the match has participants assigned or not
+      if (previousMatchTime) {
+        console.log('Using previous match time as template');
         setMatchDetails(prev => ({
           ...prev,
-          scheduledTime: lastScheduledTime
+          scheduledTime: previousMatchTime
         }));
-      } else if (isEmptyMatch) {
-        // For empty matches, don't auto-suggest a time
-        console.log('Empty match, not suggesting time');
+      } else if (storedLastTime) {
+        console.log('Using stored last scheduled time as template');
         setMatchDetails(prev => ({
           ...prev,
-          scheduledTime: ''
+          scheduledTime: storedLastTime
         }));
       }
     }
@@ -722,6 +757,15 @@ export default function BracketManager() {
         console.log('Setting last scheduled time:', scheduledTime);
         // Store it in the input-compatible format
         setLastScheduledTime(scheduledTime);
+        
+        // Also store in localStorage for persistence
+        try {
+          const formattedForInput = formatDatetimeForInput(scheduledTime);
+          console.log('Storing in localStorage:', formattedForInput);
+          localStorage.setItem('lastScheduledTime', formattedForInput);
+        } catch (e) {
+          console.error('Error storing in localStorage:', e);
+        }
       }
       
       console.log('Setting updated bracket data');
@@ -1090,6 +1134,19 @@ export default function BracketManager() {
     const participant1Name = getParticipantName(selectedMatch.participant1Id);
     const participant2Name = getParticipantName(selectedMatch.participant2Id);
     
+    // Get the last scheduled time from previous match
+    let previousMatchTime = '';
+    if (bracketData) {
+      const previousMatchId = selectedMatch.id - 1;
+      for (const round of bracketData) {
+        const previousMatch = round.find(m => m.id === previousMatchId);
+        if (previousMatch && previousMatch.scheduledTime) {
+          previousMatchTime = formatDatetimeForInput(previousMatch.scheduledTime);
+          break;
+        }
+      }
+    }
+    
     // Check if both participants are valid and neither is a bye
     const canSelectWinner = 
       selectedMatch.participant1Id && 
@@ -1276,9 +1333,7 @@ export default function BracketManager() {
               />
             </div>
             
-            {lastScheduledTime && !selectedMatch.scheduledTime && 
-             ((selectedMatch.participant1Id && selectedMatch.participant1Name !== 'TBD') || 
-              (selectedMatch.participant2Id && selectedMatch.participant2Name !== 'TBD')) && (
+            {(lastScheduledTime || previousMatchTime) && !selectedMatch.scheduledTime && (
               <div className={styles.templateTimeInfo}>
                 Using previous match time as template
               </div>

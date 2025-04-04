@@ -473,7 +473,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
         fetchUserBalanceWithDebt(user.gizmo_id),
       ]);
 
-      // Update state with essential data
+      // Update state with essential data and trigger upcoming matches refresh
       setPageState({
         loading: false,
         error: null,
@@ -484,7 +484,8 @@ const Dashboard = ({ _initialClips, metaData }) => {
           userPoints: points?.points || 0,
           timeInfo,
           balanceInfo,
-          isLoadingPicture: true
+          isLoadingPicture: true,
+          upcomingMatchesKey: Date.now() // Add a timestamp to force UpcomingMatches refresh
         }
       });
 
@@ -681,16 +682,21 @@ const Dashboard = ({ _initialClips, metaData }) => {
             </div>
           </div>
 
-          <UpcomingMatches userId={user?.id} />
+          <UpcomingMatches 
+            userId={user?.id} 
+            key={pageState.data.upcomingMatchesKey || 'default'} 
+          />
 
           <TopUsersCard 
             topUsers={pageState.data.topUsers} 
             handleNavigation={handleNavigation}
+            key={`top-users-${pageState.data.upcomingMatchesKey || 'default'}`}
           />
 
           <ActiveSessionsCard 
             activeSessions={pageState.data.activeSessions || []} 
             handleNavigation={handleNavigation}
+            key={`active-sessions-${pageState.data.upcomingMatchesKey || 'default'}`}
           />
 
           <RefreshCard 
