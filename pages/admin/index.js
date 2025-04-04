@@ -8,7 +8,7 @@ import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
 
-// Add useInterval custom hook for auto-refresh
+// Fix the useInterval custom hook with proper cleanup
 const useInterval = (callback, delay) => {
   const savedCallback = React.useRef();
 
@@ -24,7 +24,10 @@ const useInterval = (callback, delay) => {
     }
     if (delay !== null) {
       const id = setInterval(tick, delay);
-      return () => clearInterval(id);
+      return () => {
+        // Clear interval on component unmount or delay change
+        clearInterval(id);
+      };
     }
   }, [delay]);
 };
@@ -102,13 +105,13 @@ export default function AdminDashboard() {
   };
 
   // Update the fetchActiveSessionsWithDetails function to use the new API endpoint
-  const fetchActiveSessionsWithDetails = async () => {
+  const fetchActiveSessionsWithDetails = async (signal) => {
     try {
       // First, get the basic active sessions
-      const activeSessions = await fetchActiveUserSessions();
+      const activeSessions = await fetchActiveUserSessions(signal);
       
       // If no sessions, return empty array
-      if (!activeSessions || activeSessions.length === 0) {
+      if (!activeSessions || activeSessions.length === 0 || signal?.aborted) {
         return [];
       }
       
@@ -119,15 +122,16 @@ export default function AdminDashboard() {
       
       // For each session, fetch username and time left in parallel
       await Promise.all(enhancedSessions.map(async (session, index) => {
-        if (!session.userId) return;
+        if (!session.userId || signal?.aborted) return;
         
         // Fetch username using our new dedicated API endpoint with gizmoId parameter
         try {
           const userResponse = await fetch(`/api/users/${session.userId}/username`, {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            signal // Pass the abort signal to fetch
           });
           
-          if (userResponse.ok) {
+          if (userResponse.ok && !signal?.aborted) {
             const userData = await userResponse.json();
             console.log(`Username API response for ${session.userId}:`, userData);
             
@@ -139,61 +143,70 @@ export default function AdminDashboard() {
             }
           }
         } catch (userError) {
-          console.error(`Error fetching username for ${session.userId}:`, userError);
-          enhancedSessions[index].userName = `User ${session.userId}`;
+          if (!signal?.aborted) {
+            console.error(`Error fetching username for ${session.userId}:`, userError);
+            enhancedSessions[index].userName = `User ${session.userId}`;
+          }
         }
         
         // Fetch time left
         try {
           const balanceResponse = await fetch(`/api/fetchuserbalance/${session.userId}`, {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            signal // Pass the abort signal to fetch
           });
           
-          if (balanceResponse.ok) {
+          if (balanceResponse.ok && !signal?.aborted) {
             const balanceData = await balanceResponse.json();
             enhancedSessions[index].timeLeft = balanceData.balance || 'No Time';
           }
         } catch (error) {
-          console.error(`Error fetching balance for session ${index}:`, error);
+          if (!signal?.aborted) {
+            console.error(`Error fetching balance for session ${index}:`, error);
+          }
         }
       }));
+      
+      // Don't update anything if the request was aborted
+      if (signal?.aborted) return [];
       
       // Log the final enhanced sessions
       console.log('Final enhanced sessions with usernames:', enhancedSessions);
       
       return enhancedSessions;
     } catch (error) {
-      console.error('Error in fetchActiveSessionsWithDetails:', error);
+      if (!signal?.aborted) {
+        console.error('Error in fetchActiveSessionsWithDetails:', error);
+      }
       return [];
     }
   };
 
   // Replace handleRefresh function with fetchAdminStats
-  const fetchAdminStats = async () => {
+  const fetchAdminStats = async (signal) => {
     if (!user) return;
     
     try {
-      // Instead of setting loading:true, use a separate silentRefresh state flag
-      // that doesn't affect the UI
-      
       // Get active sessions with time details
-      const sessionsWithDetails = await fetchActiveSessionsWithDetails();
+      const sessionsWithDetails = await fetchActiveSessionsWithDetails(signal);
       
-      // Get events count
+      // Get events count with abort signal
       const { count: eventsCount, error: eventsError } = await supabase
         .from('events')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(signal);
         
-      if (eventsError) {
+      if (eventsError && !signal?.aborted) {
         console.error('Error fetching events count:', eventsError);
       }
       
-      // Get users count
+      // Get users count with abort signal
       const { count: usersCount, error: usersError } = await supabase
         .from('profiles')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(signal);
         
-      if (usersError) {
+      if (usersError && !signal?.aborted) {
         console.error('Error fetching users count:', usersError);
       }
       
@@ -204,11 +217,15 @@ export default function AdminDashboard() {
       const { count: activeUsersCount, error: activeUsersError } = await supabase
         .from('user_sessions')
         .select('user_id', { count: 'exact', head: true })
-        .gt('created_at', oneDayAgo.toISOString());
+        .gt('created_at', oneDayAgo.toISOString())
+        .abortSignal(signal);
         
-      if (activeUsersError) {
+      if (activeUsersError && !signal?.aborted) {
         console.error('Error fetching active users count:', activeUsersError);
       }
+      
+      // Don't update state if the request was aborted
+      if (signal?.aborted) return;
       
       // Update stats without changing loading state for refresh
       setStats(prev => ({
@@ -219,30 +236,64 @@ export default function AdminDashboard() {
         loading: false // Always set loading to false
       }));
     } catch (error) {
-      console.error('Error fetching admin stats:', error);
-      setStats(prev => ({ ...prev, loading: false }));
+      // Only log errors if the request wasn't aborted
+      if (!signal?.aborted) {
+        console.error('Error fetching admin stats:', error);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
     }
   };
 
   // Set up auto-refresh with useInterval (3 seconds = 3000ms)
   useInterval(() => {
-    fetchAdminStats();
+    // Create a new AbortController for each interval call
+    const intervalAbortController = new AbortController();
+    const signal = intervalAbortController.signal;
+    
+    // Call with the abort signal
+    fetchAdminStats(signal);
+    
+    // Clean up the controller after 2.5 seconds (prevent hanging requests)
+    setTimeout(() => {
+      if (!signal.aborted) {
+        intervalAbortController.abort();
+      }
+    }, 2500);
   }, 3000);
 
-  // Add initial useEffect to set loading to false after first data fetch
+  // Fix initial useEffect to handle AbortController for fetch cleanup
   useEffect(() => {
+    // Create an AbortController for fetch requests
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+    
     // Only set loading to true for the initial fetch
     setStats(prev => ({ ...prev, loading: true }));
     
-    // Fetch initial data
-    fetchAdminStats();
+    // Fetch initial data with abort signal
+    const initialFetch = async () => {
+      try {
+        // Make fetch calls cancellable
+        await fetchAdminStats(signal);
+      } catch (error) {
+        if (!signal.aborted) {
+          console.error('Error fetching initial admin stats:', error);
+        }
+      }
+    };
+    
+    initialFetch();
     
     // Set a timeout to ensure loading state is cleared even if fetch fails
     const timer = setTimeout(() => {
       setStats(prev => ({ ...prev, loading: false }));
     }, 2000);
     
-    return () => clearTimeout(timer);
+    // Cleanup function to run on unmount
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [user, supabase]);
 
   // Format the session count similar to dashboard.js
@@ -457,7 +508,7 @@ export default function AdminDashboard() {
   };
 
   // Replace the prepareComputersWithSessionData function to include account verification
-  const prepareComputersWithSessionData = async () => {
+  const prepareComputersWithSessionData = async (signal) => {
     // Deep clone the computers to avoid modifying the source
     const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
     const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
@@ -475,29 +526,41 @@ export default function AdminDashboard() {
         .filter(session => session.userId)
         .map(session => session.userId);
       
-      if (gizmoIds.length > 0) {
+      if (gizmoIds.length > 0 && !signal?.aborted) {
         try {
           // Query the users table to see which gizmo_ids exist
           const { data, error } = await supabase
             .from('users')
             .select('gizmo_id')
-            .in('gizmo_id', gizmoIds);
+            .in('gizmo_id', gizmoIds)
+            .abortSignal(signal);
             
-          if (data && !error) {
+          if (data && !error && !signal?.aborted) {
             // Create a map of gizmo_id to account status
             data.forEach(user => {
               userAccountMap[user.gizmo_id] = true;
             });
             
             console.log('Users with accounts:', userAccountMap);
-          } else if (error) {
+          } else if (error && !signal?.aborted) {
             console.error('Error checking user accounts:', error);
           }
         } catch (err) {
-          console.error('Exception checking user accounts:', err);
+          if (!signal?.aborted) {
+            console.error('Exception checking user accounts:', err);
+          }
         }
       }
     }
+    
+    // Stop if request was aborted
+    if (signal?.aborted) return { 
+      normalComputers, 
+      vipComputers,
+      sortedVipComputers: [], 
+      normalRow1: [], 
+      normalRow2: [] 
+    };
     
     // For each active session, find the matching computer and update it
     stats.activeSessions.forEach(session => {
@@ -866,13 +929,35 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
     normalRow2: []
   });
   
+  // Add a ref to track if the component is mounted
+  const isMountedRef = React.useRef(true);
+  
   // Move the useEffect hook outside of conditional rendering
   React.useEffect(() => {
+    // Create an AbortController for fetch operations
+    const abortController = new AbortController();
+    
     async function loadComputerData() {
-      const data = await prepareComputersWithSessionData();
-      setComputerData(data);
+      try {
+        const data = await prepareComputersWithSessionData(abortController.signal);
+        // Only update state if the component is still mounted
+        if (isMountedRef.current) {
+          setComputerData(data);
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error('Error loading computer data:', error);
+        }
+      }
     }
+    
     loadComputerData();
+    
+    // Set up cleanup
+    return () => {
+      isMountedRef.current = false;
+      abortController.abort();
+    };
   }, [stats.activeSessions, prepareComputersWithSessionData]);
   
   return (
