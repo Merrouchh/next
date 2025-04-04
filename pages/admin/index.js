@@ -905,7 +905,7 @@ export default function AdminDashboard() {
   );
 }
 
-// Fix the ComputerGridView component to properly update its dependencies
+// Add loading indicator to ComputerGridView to show something while data loads
 const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
   // Move useState hook outside of conditional rendering
   const [computerData, setComputerData] = React.useState({
@@ -915,7 +915,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
   });
 
   // Add a loading state to avoid multiple simultaneous requests
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   
   // Reference to track if component is mounted
   const isMountedRef = React.useRef(true);
@@ -925,19 +925,20 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
     let isCancelled = false;
 
     async function loadComputerData() {
-      if (isLoading) return;
+      if (isLoading === false) return;
       
       try {
-        setIsLoading(true);
+        console.log("Loading computer data in grid view...");
         const data = await prepareComputersWithSessionData();
         
         // Only update state if not cancelled and component is mounted
         if (!isCancelled && isMountedRef.current) {
+          console.log("Setting computer data:", data);
           setComputerData(data);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Error loading computer data:', error);
-      } finally {
         if (!isCancelled && isMountedRef.current) {
           setIsLoading(false);
         }
@@ -949,7 +950,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
     return () => {
       isCancelled = true;
     };
-  }, [stats.activeSessions, prepareComputersWithSessionData, isLoading]);
+  }, [stats.activeSessions, prepareComputersWithSessionData]);
   
   // Cleanup on unmount
   React.useEffect(() => {
@@ -957,6 +958,32 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
       isMountedRef.current = false;
     };
   }, []);
+
+  // Force re-render when active sessions change
+  React.useEffect(() => {
+    if (stats.activeSessions.length > 0) {
+      setIsLoading(true);
+    }
+  }, [stats.activeSessions]);
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Loading computer data...</p>
+      </div>
+    );
+  }
+
+  // Pre-initialize with empty data if needed
+  if (!computerData.sortedVipComputers || computerData.sortedVipComputers.length === 0) {
+    return (
+      <div className={styles.noDataMessage}>
+        <p>No computer data available. Please try refreshing.</p>
+      </div>
+    );
+  }
   
   return (
     <>
@@ -1047,132 +1074,140 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
           </span>
         </h3>
         <div className={styles.computerGridSpecial}>
-          {computerData.normalRow1.map(computer => computer && (
-            <div 
-              key={`normal-${computer.id}`}
-              className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
-            >
-              <div className={styles.computerHeader}>
-                <div className={`${styles.computerIcon} ${styles.normal}`}>
-                  <FaDesktop />
-                </div>
-                <div className={styles.computerName}>
-                  Normal {computer.number}
-                </div>
-                {computer.available && 
-                  <div className={styles.availableBadge}>Available</div>
-                }
-              </div>
-              
-              <div className={styles.computerBody}>
-                {computer.available ? (
-                  <div className={styles.emptyCardPlaceholder}>
-                    No active session
+          {computerData.normalRow1 && computerData.normalRow1.length > 0 ? (
+            computerData.normalRow1.map(computer => computer && (
+              <div 
+                key={`normal-${computer.id}`}
+                className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+              >
+                <div className={styles.computerHeader}>
+                  <div className={`${styles.computerIcon} ${styles.normal}`}>
+                    <FaDesktop />
                   </div>
-                ) : (
-                  <div className={styles.userInfo}>
-                    <div className={styles.userName}>
-                      <span className={styles.userInfoLabel}>User:</span>
-                      <span>
-                        {computer.userName}
-                        {computer.hasAccount && (
-                          <span className={styles.accountIndicator} title="User has website account">
-                            <FaCheck size={10} />
-                          </span>
-                        )}
-                      </span>
+                  <div className={styles.computerName}>
+                    Normal {computer.number}
+                  </div>
+                  {computer.available && 
+                    <div className={styles.availableBadge}>Available</div>
+                  }
+                </div>
+                
+                <div className={styles.computerBody}>
+                  {computer.available ? (
+                    <div className={styles.emptyCardPlaceholder}>
+                      No active session
                     </div>
-                    <div className={styles.timeInfo}>
-                      <span className={styles.userInfoLabel}>Time Left:</span>
-                      <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
-                        {formatTimeLeft(computer.timeLeft)}
-                      </span>
+                  ) : (
+                    <div className={styles.userInfo}>
+                      <div className={styles.userName}>
+                        <span className={styles.userInfoLabel}>User:</span>
+                        <span>
+                          {computer.userName}
+                          {computer.hasAccount && (
+                            <span className={styles.accountIndicator} title="User has website account">
+                              <FaCheck size={10} />
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className={styles.timeInfo}>
+                        <span className={styles.userInfoLabel}>Time Left:</span>
+                        <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                          {formatTimeLeft(computer.timeLeft)}
+                        </span>
+                      </div>
                     </div>
+                  )}
+                </div>
+                
+                {!computer.available && (
+                  <div className={styles.computerFooter}>
+                    <div className={styles.sessionIdSmall}>
+                      User ID: {computer.userId}
+                    </div>
+                    <button 
+                      className={styles.actionButton}
+                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                      title="View user profile"
+                    >
+                      <FaUsers size={12} />
+                    </button>
                   </div>
                 )}
               </div>
-              
-              {!computer.available && (
-                <div className={styles.computerFooter}>
-                  <div className={styles.sessionIdSmall}>
-                    User ID: {computer.userId}
-                  </div>
-                  <button 
-                    className={styles.actionButton}
-                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                    title="View user profile"
-                  >
-                    <FaUsers size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className={styles.loadingComputerPlaceholder}>Loading normal computers...</div>
+          )}
         </div>
         
         {/* Second row: 8,6,4,2 */}
         <div className={styles.computerGridSpecial}>
-          {computerData.normalRow2.map(computer => computer && (
-            <div 
-              key={`normal-${computer.id}`}
-              className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
-            >
-              <div className={styles.computerHeader}>
-                <div className={`${styles.computerIcon} ${styles.normal}`}>
-                  <FaDesktop />
-                </div>
-                <div className={styles.computerName}>
-                  Normal {computer.number}
-                </div>
-                {computer.available && 
-                  <div className={styles.availableBadge}>Available</div>
-                }
-              </div>
-              
-              <div className={styles.computerBody}>
-                {computer.available ? (
-                  <div className={styles.emptyCardPlaceholder}>
-                    No active session
+          {computerData.normalRow2 && computerData.normalRow2.length > 0 ? (
+            computerData.normalRow2.map(computer => computer && (
+              <div 
+                key={`normal-${computer.id}`}
+                className={`${styles.computerCard} ${styles[computer.available ? 'available' : getSessionStatus(computer.timeLeft)]}`}
+              >
+                <div className={styles.computerHeader}>
+                  <div className={`${styles.computerIcon} ${styles.normal}`}>
+                    <FaDesktop />
                   </div>
-                ) : (
-                  <div className={styles.userInfo}>
-                    <div className={styles.userName}>
-                      <span className={styles.userInfoLabel}>User:</span>
-                      <span>
-                        {computer.userName}
-                        {computer.hasAccount && (
-                          <span className={styles.accountIndicator} title="User has website account">
-                            <FaCheck size={10} />
-                          </span>
-                        )}
-                      </span>
+                  <div className={styles.computerName}>
+                    Normal {computer.number}
+                  </div>
+                  {computer.available && 
+                    <div className={styles.availableBadge}>Available</div>
+                  }
+                </div>
+                
+                <div className={styles.computerBody}>
+                  {computer.available ? (
+                    <div className={styles.emptyCardPlaceholder}>
+                      No active session
                     </div>
-                    <div className={styles.timeInfo}>
-                      <span className={styles.userInfoLabel}>Time Left:</span>
-                      <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
-                        {formatTimeLeft(computer.timeLeft)}
-                      </span>
+                  ) : (
+                    <div className={styles.userInfo}>
+                      <div className={styles.userName}>
+                        <span className={styles.userInfoLabel}>User:</span>
+                        <span>
+                          {computer.userName}
+                          {computer.hasAccount && (
+                            <span className={styles.accountIndicator} title="User has website account">
+                              <FaCheck size={10} />
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className={styles.timeInfo}>
+                        <span className={styles.userInfoLabel}>Time Left:</span>
+                        <span className={`${styles.timeValue} ${styles[getSessionStatus(computer.timeLeft)]}`}>
+                          {formatTimeLeft(computer.timeLeft)}
+                        </span>
+                      </div>
                     </div>
+                  )}
+                </div>
+                
+                {!computer.available && (
+                  <div className={styles.computerFooter}>
+                    <div className={styles.sessionIdSmall}>
+                      User ID: {computer.userId}
+                    </div>
+                    <button 
+                      className={styles.actionButton}
+                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                      title="View user profile"
+                    >
+                      <FaUsers size={12} />
+                    </button>
                   </div>
                 )}
               </div>
-              
-              {!computer.available && (
-                <div className={styles.computerFooter}>
-                  <div className={styles.sessionIdSmall}>
-                    User ID: {computer.userId}
-                  </div>
-                  <button 
-                    className={styles.actionButton}
-                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                    title="View user profile"
-                  >
-                    <FaUsers size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className={styles.loadingComputerPlaceholder}>Loading normal computers...</div>
+          )}
         </div>
       </div>
     </>
