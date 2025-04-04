@@ -30,7 +30,11 @@ export default function AdminDashboard() {
         
         // Get active sessions using the same function as dashboard.js
         const activeSessions = await fetchActiveUserSessions();
-        console.log('Active sessions:', activeSessions);
+        console.log('Basic active sessions:', activeSessions);
+        
+        // Fetch detailed information for each session
+        const detailedSessions = await fetchDetailedSessionInfo(activeSessions);
+        console.log('Detailed sessions:', detailedSessions);
         
         // Get session for auth
         const { data: sessionData } = await supabase.auth.getSession();
@@ -70,7 +74,7 @@ export default function AdminDashboard() {
           totalUsers: usersCount || 0,
           activeUsers: activeUsersCount || 0,
           totalEvents: eventsCount || 0,
-          activeSessions: activeSessions || [],
+          activeSessions: detailedSessions || [],
           loading: false
         });
       } catch (error) {
@@ -134,12 +138,64 @@ export default function AdminDashboard() {
     }
   ];
 
-  // Add a refresh function to the component
+  // Add a function to fetch detailed information for each active session
+  const fetchDetailedSessionInfo = async (sessions) => {
+    if (!sessions || sessions.length === 0) return [];
+    
+    try {
+      // Create a copy of the sessions array to avoid mutating the original
+      const detailedSessions = [...sessions];
+      
+      // Fetch detailed information for each session
+      await Promise.all(detailedSessions.map(async (session, index) => {
+        if (!session.userId) return;
+        
+        try {
+          // Fetch user details from the Supabase profiles table
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('username, display_name')
+            .eq('gizmo_id', session.userId)
+            .single();
+          
+          if (userData) {
+            detailedSessions[index].userName = userData.display_name || userData.username;
+          }
+          
+          // If we don't have time left info, try to fetch it
+          if (!session.time_left && !session.timeLeft) {
+            const response = await fetch(`/api/users/${session.userId}/balance`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+              const balanceData = await response.json();
+              detailedSessions[index].timeLeft = balanceData.balance || 'No Time';
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching details for session ${index}:`, error);
+        }
+      }));
+      
+      return detailedSessions;
+    } catch (error) {
+      console.error('Error fetching detailed session info:', error);
+      return sessions;
+    }
+  };
+
+  // Update the handleRefresh function to use the new detailed session info
   const handleRefresh = async () => {
     setStats(prev => ({ ...prev, loading: true }));
     try {
       // Get active sessions
       const activeSessions = await fetchActiveUserSessions();
+      
+      // Fetch detailed information for each session
+      const detailedSessions = await fetchDetailedSessionInfo(activeSessions);
+      console.log('Detailed sessions:', detailedSessions);
       
       // Get events count
       const { count: eventsCount, error: eventsError } = await supabase
@@ -176,7 +232,7 @@ export default function AdminDashboard() {
         totalUsers: usersCount || 0,
         activeUsers: activeUsersCount || 0,
         totalEvents: eventsCount || 0,
-        activeSessions: activeSessions || [],
+        activeSessions: detailedSessions || [],
         loading: false
       });
     } catch (error) {
@@ -185,19 +241,36 @@ export default function AdminDashboard() {
     }
   };
 
-  // Add these new helper functions at the top of the component
+  // Fix the active session helper functions
   const formatTimeLeft = (timeLeft) => {
     if (!timeLeft || timeLeft === 'No Time') return 'No Time';
+    // If it's already in the right format, return it
+    if (typeof timeLeft === 'string' && timeLeft.includes(':')) return timeLeft;
+    // Otherwise, try to format it
     return timeLeft;
   };
 
   const getSessionStatus = (timeLeft) => {
     if (!timeLeft || timeLeft === 'No Time') return 'noTime';
     
-    // Parse time string like "1 : 30" into hours and minutes
-    const timeParts = timeLeft.split(' : ');
-    const hours = parseInt(timeParts[0]) || 0;
-    const minutes = parseInt(timeParts[1]) || 0;
+    let hours = 0;
+    let minutes = 0;
+    
+    // Handle different time formats
+    if (typeof timeLeft === 'string') {
+      if (timeLeft.includes(':')) {
+        // Format "HH:MM" or "H:MM"
+        const parts = timeLeft.split(':');
+        hours = parseInt(parts[0]) || 0;
+        minutes = parseInt(parts[1]) || 0;
+      } else if (timeLeft.includes(' : ')) {
+        // Format "H : MM"
+        const parts = timeLeft.split(' : ');
+        hours = parseInt(parts[0]) || 0;
+        minutes = parseInt(parts[1]) || 0;
+      }
+    }
+    
     const totalMinutes = hours * 60 + minutes;
     
     if (totalMinutes < 60) return 'warning'; // Less than 1 hour
@@ -223,6 +296,11 @@ export default function AdminDashboard() {
     
     return computerMap[computerId] || computerId;
   };
+
+  // Add this to the component
+  useEffect(() => {
+    console.log('Active sessions data:', stats.activeSessions);
+  }, [stats.activeSessions]);
 
   return (
     <AdminPageWrapper title="Admin Dashboard">
@@ -399,7 +477,18 @@ export default function AdminDashboard() {
                   {stats.activeSessions.map((session, index) => {
                     const computerType = getComputerType(session.hostId);
                     const computerNumber = getComputerNumber(session.hostId);
-                    const timeStatus = getSessionStatus(session.time_left);
+                    const timeStatus = getSessionStatus(session.time_left || session.timeLeft);
+                    
+                    // Debug each session
+                    console.log('Session data:', {
+                      computerType,
+                      computerNumber,
+                      timeStatus,
+                      hostId: session.hostId,
+                      userId: session.userId,
+                      userName: session.user_name || session.userName,
+                      timeLeft: session.time_left || session.timeLeft
+                    });
                     
                     return (
                       <div 
@@ -412,14 +501,14 @@ export default function AdminDashboard() {
                         </div>
                         <div className={styles.sessionInfo}>
                           <div className={styles.sessionUser}>
-                            <strong>User:</strong> {session.user_name || "Unknown"}
+                            <strong>User:</strong> {session.user_name || session.userName || session.userId || "Unknown"}
                           </div>
                           <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
-                            <strong>Time Left:</strong> {formatTimeLeft(session.time_left)}
+                            <strong>Time Left:</strong> {formatTimeLeft(session.time_left || session.timeLeft)}
                           </div>
-                          {session.start_time && (
+                          {(session.start_time || session.startTime) && (
                             <div className={styles.sessionStart}>
-                              <strong>Started:</strong> {new Date(session.start_time).toLocaleTimeString()}
+                              <strong>Started:</strong> {new Date(session.start_time || session.startTime).toLocaleTimeString()}
                             </div>
                           )}
                         </div>
