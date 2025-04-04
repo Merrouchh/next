@@ -920,34 +920,69 @@ export default function AdminDashboard() {
   );
 }
 
-// Add this ComputerGridView component at the end of the file, before the last export
+// Update the ComputerGridView component to better handle dependencies
 const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
-  // Move useState hook outside of conditional rendering
   const [computerData, setComputerData] = React.useState({
     sortedVipComputers: [],
     normalRow1: [],
     normalRow2: []
   });
   
-  // Add a ref to track if the component is mounted
   const isMountedRef = React.useRef(true);
   
-  // Move the useEffect hook outside of conditional rendering
+  // Fix missing supabase and dependencies by using useEffect directly
   React.useEffect(() => {
-    // Create an AbortController for fetch operations
     const abortController = new AbortController();
     
+    // Create a local function that doesn't depend on missing props
     async function loadComputerData() {
       try {
-        const data = await prepareComputersWithSessionData(abortController.signal);
+        // Deep clone the computers to avoid modifying the source
+        const normalComputers = JSON.parse(JSON.stringify(allComputers.normal));
+        const vipComputers = JSON.parse(JSON.stringify(allComputers.vip));
+        
+        // Mark all computers as available initially
+        normalComputers.forEach(pc => pc.available = true);
+        vipComputers.forEach(pc => pc.available = true);
+        
+        // For each active session, find the matching computer and update it
+        stats.activeSessions.forEach(session => {
+          const computerType = getComputerType(session.hostId).toLowerCase();
+          const computers = computerType === 'vip' ? vipComputers : normalComputers;
+          
+          // Find the computer that matches this session
+          const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
+          
+          if (computerIndex !== -1) {
+            // Update the computer with session data
+            computers[computerIndex] = {
+              ...computers[computerIndex],
+              available: false,
+              userId: session.userId,
+              userName: session.userName || `User ${session.userId}`,
+              timeLeft: session.timeLeft || 'No Time',
+              startTime: session.startTime,
+              hasAccount: session.hasAccount || false
+            };
+          }
+        });
+        
+        const result = { 
+          normalComputers, 
+          vipComputers,
+          // Sort VIP computers by number (1-6)
+          sortedVipComputers: [...vipComputers].sort((a, b) => a.number - b.number),
+          // Create arrays for the normal computer rows with specific ordering
+          normalRow1: [7, 5, 3, 1].map(num => normalComputers.find(pc => pc.number === num)),
+          normalRow2: [8, 6, 4, 2].map(num => normalComputers.find(pc => pc.number === num))
+        };
+        
         // Only update state if the component is still mounted
         if (isMountedRef.current) {
-          setComputerData(data);
+          setComputerData(result);
         }
       } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error('Error loading computer data:', error);
-        }
+        console.error('Error loading computer data:', error);
       }
     }
     
@@ -958,7 +993,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
       isMountedRef.current = false;
       abortController.abort();
     };
-  }, [stats.activeSessions, prepareComputersWithSessionData]);
+  }, [stats.activeSessions, getComputerType]);
   
   return (
     <>
