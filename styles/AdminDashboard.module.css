@@ -918,6 +918,12 @@
   color: #fff;
 }
 
+/* Low Time Summary Item */
+.summaryItem:nth-child(5) .summaryValue {
+  font-weight: 600;
+  color: #FF9800;
+}
+
 /* List view for the dark theme */
 .darkSessionsList {
   display: flex;

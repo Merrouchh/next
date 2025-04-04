@@ -532,6 +532,34 @@ export default function AdminDashboard() {
     };
   };
 
+  // Add a function to count low time computers
+  const countLowTimeComputers = (sessions) => {
+    if (!sessions || sessions.length === 0) return { normal: 0, vip: 0 };
+    
+    const lowTime = {
+      normal: 0,
+      vip: 0
+    };
+    
+    sessions.forEach(session => {
+      // Skip if no time left data
+      if (!session.timeLeft || session.timeLeft === 'No Time') return;
+      
+      // Check if time left is less than 1 hour
+      const status = getSessionStatus(session.timeLeft);
+      if (status === 'warning') {
+        const computerType = getComputerType(session.hostId);
+        if (computerType === 'Normal') {
+          lowTime.normal++;
+        } else if (computerType === 'VIP') {
+          lowTime.vip++;
+        }
+      }
+    });
+    
+    return lowTime;
+  };
+
   return (
     <AdminPageWrapper title="Admin Dashboard">
       <Head>
@@ -658,6 +686,26 @@ export default function AdminDashboard() {
                     {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} Normal +{' '}
                     {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} VIP
                   </>
+                </div>
+              </div>
+            </div>
+            
+            {/* New Low Time Left Summary Item */}
+            <div className={styles.summaryItem}>
+              <div className={styles.summaryIcon} style={{ backgroundColor: 'rgba(255, 152, 0, 0.2)' }}>
+                <FaClock style={{ color: '#FF9800' }} />
+              </div>
+              <div>
+                <div className={styles.summaryLabel}>Low Time Left</div>
+                <div className={styles.summaryValue}>
+                  {(() => {
+                    const lowTime = countLowTimeComputers(stats.activeSessions);
+                    return (
+                      <>
+                        {lowTime.normal} Normal + {lowTime.vip} VIP
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
