@@ -88,22 +88,13 @@ export const validateUserCredentials = async (username, password) => {
   }
 };
     
-export const fetchActiveUserSessions = async (signal) => {
+export const fetchActiveUserSessions = async () => {
   try {
-    const options = signal ? { signal } : {};
-    const response = await fetch('/api/fetchactivesessions', options);
-    
-    if (!signal || !signal.aborted) {
-      if (response.ok) {
-        const data = await response.json();
-        return data.result || [];
-      }
-    }
-    return [];
+    const response = await fetch('/api/fetchactivesessions', fetchConfig);
+    if (!response.ok) throw new Error('Failed to fetch sessions');
+    const data = await response.json();
+    return data.result || [];
   } catch (error) {
-    if (error.name !== 'AbortError') {
-      console.error('Error fetching active sessions:', error);
-    }
     return [];
   }
 };
