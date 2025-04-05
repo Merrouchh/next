@@ -331,6 +331,23 @@ export default function SessionsPage() {
     return `${activeCount}/${totalCapacity}`;
   };
 
+  // Computer data structures
+  const allComputers = {
+    normal: Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+      number: i + 1,
+      type: 'normal'
+    })),
+    vip: Array.from({ length: 6 }, (_, i) => ({
+      id: i + 9,
+      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
+      number: i + 1,
+      displayNumber: i + 9,
+      type: 'vip'
+    }))
+  };
+
   // Get computer type from ID
   const getComputerType = (computerId) => {
     // Computer IDs from avcomputers.js
@@ -356,23 +373,6 @@ export default function SessionsPage() {
   // Toggle view mode between grid and list
   const toggleSessionViewMode = () => {
     setSessionViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
-  };
-
-  // Computer data structures
-  const allComputers = {
-    normal: Array.from({ length: 8 }, (_, i) => ({
-      id: i + 1,
-      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
-      number: i + 1,
-      type: 'normal'
-    })),
-    vip: Array.from({ length: 6 }, (_, i) => ({
-      id: i + 9,
-      hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
-      number: i + 1,
-      displayNumber: i + 9,
-      type: 'vip'
-    }))
   };
 
   // Formatting functions
