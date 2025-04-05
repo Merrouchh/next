@@ -954,17 +954,26 @@ export default function BracketManager() {
     // Save scroll position before toggling all rounds
     saveScrollPosition();
     
-    if (!bracketData || !bracketData.rounds) return;
+    if (!bracketData) return;
+    
+    // Check if bracketData is an array (of rounds) or has a rounds property
+    const rounds = Array.isArray(bracketData) ? bracketData : bracketData.rounds;
+    
+    if (!rounds || !rounds.length) {
+      console.error('Invalid bracket data structure for toggling rounds:', bracketData);
+      return;
+    }
     
     const newState = {};
-    bracketData.rounds.forEach((_, index) => {
+    rounds.forEach((_, index) => {
       newState[index] = expand;
     });
     
+    console.log(`Setting all rounds to ${expand ? 'expanded' : 'collapsed'}:`, newState);
     setExpandedRounds(newState);
     
-    // Restore scroll position after state update
-    setTimeout(restoreScrollPosition, 100);
+    // Restore scroll position after state update with a longer timeout
+    setTimeout(restoreScrollPosition, 200);
   };
 
   // Add a helper function to check if a match is ready to play
