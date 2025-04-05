@@ -713,6 +713,13 @@ export default function AdminDashboard() {
                   {formatSessionCount(stats.activeSessions.length)}
                 </div>
               </div>
+              <button 
+                className={styles.viewAllButton}
+                onClick={() => router.push('/admin/sessions')}
+                title="View all sessions"
+              >
+                View All
+              </button>
             </div>
             
             <div className={styles.summaryItem}>
