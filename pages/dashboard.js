@@ -19,6 +19,7 @@ import {
   uploadUserPicture
 } from '../utils/api';
 import { toast } from 'react-hot-toast';
+import { FaBell } from 'react-icons/fa';
 
 export async function getServerSideProps({ res }) {
   // Keep existing cache headers
@@ -189,6 +190,107 @@ const SessionRefreshButton = () => {
     >
       {isLoading || isRefreshing ? 'Refreshing...' : 'Refresh Session & Retry'}
     </button>
+  );
+};
+
+// Add a DebtCard component to display debt info with payment recommendations
+const DebtCard = ({ debtAmount }) => {
+  // If no debt or debt is 0, don't render the card
+  if (!debtAmount || debtAmount <= 0) {
+    return null;
+  }
+
+  // Calculate recommended payment based on debt amount
+  const getRecommendedPayment = (amount) => {
+    if (amount <= 20) {
+      return { 
+        text: 'Full amount payment required',
+        amount: amount,
+        percent: 100
+      };
+    } else if (amount <= 50) {
+      const payment = Math.ceil(amount / 2);
+      return { 
+        text: 'At least 50% payment required',
+        amount: payment,
+        percent: 50
+      };
+    } else if (amount <= 100) {
+      const payment = Math.ceil(amount * 0.4);
+      return { 
+        text: 'At least 40% payment required',
+        amount: payment,
+        percent: 40
+      };
+    } else if (amount <= 150) {
+      const payment = Math.ceil(amount * 0.35);
+      return { 
+        text: 'At least 35% payment required',
+        amount: payment,
+        percent: 35
+      };
+    } else if (amount <= 300) {
+      const payment = Math.ceil(amount * 0.30);
+      return { 
+        text: 'At least 30% payment required',
+        amount: payment,
+        percent: 30
+      };
+    } else if (amount <= 600) {
+      const payment = Math.ceil(amount * 0.25);
+      return { 
+        text: 'At least 25% payment required',
+        amount: payment,
+        percent: 25
+      };
+    } else {
+      const payment = Math.ceil(amount * 0.20);
+      return { 
+        text: 'At least 20% payment required',
+        amount: payment,
+        percent: 20
+      };
+    }
+  };
+
+  const recommendation = getRecommendedPayment(debtAmount);
+
+  return (
+    <div className={`${styles.statCard} ${styles.mediumCard} ${styles.debtCard}`}>
+      <div className={styles.statHeader}>
+        <div className={styles.statIcon} style={{ color: '#EA4335', background: 'rgba(234, 67, 53, 0.2)' }}>
+          <FaBell size={24} />
+        </div>
+        <h3 className={styles.statTitle}>Debt Payment Required</h3>
+      </div>
+      <div className={styles.debtCardContent}>
+        <div className={styles.debtAmount}>
+          <span className={styles.debtLabel}>Current Debt:</span>
+          <span className={styles.debtValue}>{debtAmount} DH</span>
+        </div>
+        <div className={styles.paymentRecommendation}>
+          <div className={styles.recommendationText}>
+            {recommendation.text}
+          </div>
+          <div className={styles.recommendedAmount}>
+            <span className={styles.minPaymentLabel}>Minimum Payment:</span>
+            <span className={styles.minPaymentValue}>{recommendation.amount} DH</span>
+            <span className={styles.percentBadge}>{recommendation.percent}%</span>
+          </div>
+        </div>
+        <div className={styles.debtWarning}>
+          Please settle your debt to maintain good standing with Merrouch Gaming Center.
+        </div>
+        <div className={styles.debtActions}>
+          <button 
+            className={`${sharedStyles.primaryButton} ${styles.payButton}`}
+            onClick={() => router.push('/contact')}
+          >
+            Contact Us to Pay
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -703,6 +805,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
             onRefresh={handleRefresh}
             isLoading={pageState.loading}
           />
+
+          {/* Add the DebtCard component if user has debt */}
+          {pageState.data.balanceInfo && pageState.data.balanceInfo.rawBalance < 0 && (
+            <DebtCard debtAmount={Math.abs(pageState.data.balanceInfo.rawBalance)} />
+          )}
         </div>
 
         {/* Admin Section - Only visible to admin users */}

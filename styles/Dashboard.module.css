@@ -1267,3 +1267,122 @@
   }
 }
 
+/* Debt Card Styles */
+.debtCard {
+  background: linear-gradient(135deg, #1a1a1a, #222);
+  border-color: #d32f2f;
+  animation: pulseWarning 2s ease-in-out infinite;
+}
+
+.debtCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(211, 47, 47, 0.25);
+  border-color: #ff5252;
+}
+
+.debtCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.debtAmount {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.debtLabel {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 5px;
+}
+
+.debtValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ff5252;
+}
+
+.paymentRecommendation {
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid #FFD700;
+}
+
+.recommendationText {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #FFD700;
+}
+
+.recommendedAmount {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.minPaymentLabel {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.minPaymentValue {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #FFD700;
+}
+
+.percentBadge {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.debtWarning {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #aaa;
+  font-style: italic;
+  padding: 0 5px;
+}
+
+.debtActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.payButton {
+  width: 100%;
+  padding: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.payButton:hover {
+  background: #ea4335;
+  border-color: #ea4335;
+}
+
+@keyframes pulseWarning {
+  0% {
+    border-color: rgba(211, 47, 47, 0.5);
+  }
+  50% {
+    border-color: rgba(211, 47, 47, 1);
+  }
+  100% {
+    border-color: rgba(211, 47, 47, 0.5);
+  }
+}
+
