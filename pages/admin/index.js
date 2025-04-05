@@ -1020,20 +1020,26 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                   )}
                 </div>
                 
-                {!computer.available && (
-                  <div className={styles.computerFooter}>
+                <div className={styles.computerFooter}>
+                  {computer.available ? (
                     <div className={styles.sessionIdSmall}>
-                      User ID: {computer.userId}
+                      Host ID: {computer.hostId}
                     </div>
-                    <button 
-                      className={styles.actionButton}
-                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                      title="View user profile"
-                    >
-                      <FaUsers size={12} />
-                    </button>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <div className={styles.sessionIdSmall}>
+                        Host ID: {computer.hostId} / User ID: {computer.userId}
+                      </div>
+                      <button 
+                        className={styles.actionButton}
+                        onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                        title="View user profile"
+                      >
+                        <FaUsers size={12} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -1094,20 +1100,26 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                 )}
               </div>
               
-              {!computer.available && (
-                <div className={styles.computerFooter}>
+              <div className={styles.computerFooter}>
+                {computer.available ? (
                   <div className={styles.sessionIdSmall}>
-                    User ID: {computer.userId}
+                    Host ID: {computer.hostId}
                   </div>
-                  <button 
-                    className={styles.actionButton}
-                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                    title="View user profile"
-                  >
-                    <FaUsers size={12} />
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <div className={styles.sessionIdSmall}>
+                      Host ID: {computer.hostId} / User ID: {computer.userId}
+                    </div>
+                    <button 
+                      className={styles.actionButton}
+                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                      title="View user profile"
+                    >
+                      <FaUsers size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1159,20 +1171,26 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                 )}
               </div>
               
-              {!computer.available && (
-                <div className={styles.computerFooter}>
+              <div className={styles.computerFooter}>
+                {computer.available ? (
                   <div className={styles.sessionIdSmall}>
-                    User ID: {computer.userId}
+                    Host ID: {computer.hostId}
                   </div>
-                  <button 
-                    className={styles.actionButton}
-                    onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
-                    title="View user profile"
-                  >
-                    <FaUsers size={12} />
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <div className={styles.sessionIdSmall}>
+                      Host ID: {computer.hostId} / User ID: {computer.userId}
+                    </div>
+                    <button 
+                      className={styles.actionButton}
+                      onClick={() => router.push(`/admin/users?id=${computer.userId}`)}
+                      title="View user profile"
+                    >
+                      <FaUsers size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
