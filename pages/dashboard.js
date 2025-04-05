@@ -281,6 +281,9 @@ const DebtCard = ({ debtAmount, hasTime }) => {
         <div className={styles.debtWarning}>
           The minimum debt payment is {recommendation.amount} DH. 
           {!hasTime && <strong> If you have no time remaining, you must pay your debt to continue gaming.</strong>}
+          <div className={styles.debtPolicy}>
+            <strong>No more debt can be accumulated until your current debt is fully paid (0%).</strong>
+          </div>
         </div>
       </div>
     </div>

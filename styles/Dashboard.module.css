@@ -1386,3 +1386,14 @@
   }
 }
 
+.debtPolicy {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: rgba(234, 67, 53, 0.15);
+  border-left: 4px solid #ea4335;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #fff;
+}
+
