@@ -47,6 +47,11 @@ export default function AdminDashboard() {
     activeUsers: 0,
     totalEvents: 0,
     activeSessions: [],
+    tableCounts: {
+      profiles: 0,
+      users: 0,
+      auth_users: 0
+    },
     loading: true
   });
 
@@ -75,14 +80,39 @@ export default function AdminDashboard() {
         console.error('Error fetching events count:', eventsError);
       }
       
-      // Get users count
-      const { count: usersCount, error: usersError } = await supabase
+      // Get users count from profiles table
+      const { count: profilesCount, error: profilesError } = await supabase
         .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .abortSignal(signal);
+        
+      if (profilesError && profilesError.code !== 'AbortError') {
+        console.error('Error fetching profiles count:', profilesError);
+      }
+      
+      // Get users count from users table
+      const { count: usersCount, error: usersError } = await supabase
+        .from('users')
         .select('id', { count: 'exact', head: true })
         .abortSignal(signal);
         
       if (usersError && usersError.code !== 'AbortError') {
         console.error('Error fetching users count:', usersError);
+      }
+      
+      // Get auth users count - only works if you have access to auth.users
+      let authUsersCount = 0;
+      try {
+        const { count, error } = await supabase
+          .from('auth.users')
+          .select('id', { count: 'exact', head: true })
+          .abortSignal(signal);
+          
+        if (!error) {
+          authUsersCount = count;
+        }
+      } catch (authError) {
+        console.log('Could not access auth.users table - restricted access');
       }
       
       // Get active users (users with activity in the last 24 hours)
@@ -101,10 +131,15 @@ export default function AdminDashboard() {
       
       // Update stats without changing loading state for refresh
       setStats(prev => ({
-        totalUsers: usersCount || prev.totalUsers,
+        totalUsers: profilesCount || prev.totalUsers,
         activeUsers: activeUsersCount || prev.activeUsers,
         totalEvents: eventsCount || prev.totalEvents,
         activeSessions: sessionsWithDetails || prev.activeSessions,
+        tableCounts: {
+          profiles: profilesCount || prev.tableCounts.profiles,
+          users: usersCount || prev.tableCounts.users,
+          auth_users: authUsersCount || prev.tableCounts.auth_users
+        },
         loading: false // Always set loading to false
       }));
     } catch (error) {
@@ -272,6 +307,48 @@ export default function AdminDashboard() {
                   {stats.activeUsers}
                 </div>
                 <div className={styles.statSubtext}>In the last 24 hours</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <section className={styles.databaseSection}>
+          <h2 className={styles.sectionTitle}>
+            <span className={styles.sectionTitleText}>Database Tables</span>
+            <span className={styles.sectionTitleLine}></span>
+          </h2>
+          
+          <div className={styles.databaseGrid}>
+            <div className={styles.tableCard}>
+              <div className={styles.tableIcon}>
+                <FaUsers />
+              </div>
+              <div className={styles.tableContent}>
+                <div className={styles.tableName}>profiles</div>
+                <div className={styles.tableCount}>{stats.tableCounts.profiles}</div>
+                <div className={styles.tableDescription}>User profile data</div>
+              </div>
+            </div>
+            
+            <div className={styles.tableCard}>
+              <div className={styles.tableIcon}>
+                <FaUsers />
+              </div>
+              <div className={styles.tableContent}>
+                <div className={styles.tableName}>users</div>
+                <div className={styles.tableCount}>{stats.tableCounts.users}</div>
+                <div className={styles.tableDescription}>Gizmo users data</div>
+              </div>
+            </div>
+            
+            <div className={styles.tableCard}>
+              <div className={styles.tableIcon}>
+                <FaUsers />
+              </div>
+              <div className={styles.tableContent}>
+                <div className={styles.tableName}>auth.users</div>
+                <div className={styles.tableCount}>{stats.tableCounts.auth_users}</div>
+                <div className={styles.tableDescription}>Auth system users</div>
               </div>
             </div>
           </div>
