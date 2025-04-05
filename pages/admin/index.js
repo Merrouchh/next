@@ -77,28 +77,16 @@ export default function AdminDashboard() {
         console.error('Error fetching events count:', eventsError);
       }
       
-      // Get users count from profiles table
-      const { count: profilesCount, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .abortSignal(signal);
-        
-      if (profilesError && profilesError.code !== 'AbortError') {
-        console.error('Error fetching profiles count:', profilesError);
-      }
-      
-      // Get users count from users table (this has Gizmo users)
-      const { count: gizmoUsersCount, error: gizmoUsersError } = await supabase
+      // Get users count - since Gizmo accounts are website users,
+      // just count from the main users table
+      const { count: usersCount, error: usersError } = await supabase
         .from('users')
         .select('id', { count: 'exact', head: true })
         .abortSignal(signal);
         
-      if (gizmoUsersError && gizmoUsersError.code !== 'AbortError') {
-        console.error('Error fetching Gizmo users count:', gizmoUsersError);
+      if (usersError && usersError.code !== 'AbortError') {
+        console.error('Error fetching users count:', usersError);
       }
-      
-      // Calculate total users (sum of both counts)
-      const totalUsers = (profilesCount || 0) + (gizmoUsersCount || 0);
       
       // Get active users (users with activity in the last 24 hours)
       const oneDayAgo = new Date();
@@ -116,9 +104,7 @@ export default function AdminDashboard() {
       
       // Update stats without changing loading state for refresh
       setStats(prev => ({
-        totalUsers: totalUsers || prev.totalUsers,
-        profilesCount: profilesCount || 0,
-        gizmoUsersCount: gizmoUsersCount || 0,
+        totalUsers: usersCount || prev.totalUsers,
         activeUsers: activeUsersCount || prev.activeUsers,
         totalEvents: eventsCount || prev.totalEvents,
         activeSessions: sessionsWithDetails || prev.activeSessions,
@@ -244,7 +230,7 @@ export default function AdminDashboard() {
                   {stats.totalUsers}
                 </div>
                 <div className={styles.statSubtext}>
-                  Website: {stats.profilesCount} | Gizmo: {stats.gizmoUsersCount}
+                  Registered accounts
                 </div>
               </div>
             </div>
