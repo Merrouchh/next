@@ -1397,3 +1397,23 @@
   color: #fff;
 }
 
+.debtRules {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #ddd;
+}
+
+.debtRuleItem {
+  margin-bottom: 6px;
+}
+
+.debtRuleItem:first-child {
+  color: #FFD700;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+

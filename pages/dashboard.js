@@ -282,7 +282,18 @@ const DebtCard = ({ debtAmount, hasTime }) => {
           The minimum debt payment is {recommendation.amount} DH. 
           {!hasTime && <strong> If you have no time remaining, you must pay your debt to continue gaming.</strong>}
           <div className={styles.debtPolicy}>
-            <strong>No more debt can be accumulated until your current debt is fully paid (0%).</strong>
+            <strong>No more debt can be accumulated until your current debt is fully paid.</strong>
+          </div>
+          <div className={styles.debtRules}>
+            <div className={styles.debtRuleItem}>
+              <strong>Debt Rules:</strong>
+            </div>
+            <div className={styles.debtRuleItem}>
+              - Only 50 DH packs are eligible for debt
+            </div>
+            <div className={styles.debtRuleItem}>
+              - Snacks and drinks cannot be purchased on debt
+            </div>
           </div>
         </div>
       </div>
