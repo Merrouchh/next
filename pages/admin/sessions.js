@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { FaUsers, FaDesktop, FaClock, FaTh, FaList, FaLaptop, FaCheck, FaUser, FaExclamationTriangle, FaSpinner, FaSync } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import AdminPageWrapper from '../../components/AdminPageWrapper';
+import AdminLayout from '../../components/AdminLayout';
 import styles from '../../styles/AdminDashboard.module.css';
 import { fetchActiveUserSessions } from '../../utils/api';
 
@@ -842,7 +842,7 @@ export default function SessionsManager() {
   };
 
   return (
-    <AdminPageWrapper title="Session Management">
+    <AdminLayout>
       <Head>
         <title>Session Management | Merrouch Gaming Center</title>
         <meta name="description" content="Manage active gaming sessions" />
@@ -857,35 +857,41 @@ export default function SessionsManager() {
           </h2>
           
           <div className={styles.computerViewControls}>
-            <div className={styles.computerViewToggle}>
+            <div className={styles.viewToggle}>
               <button 
-                className={`${styles.viewTypeButton} ${sessionViewMode === 'grid' ? styles.active : ''}`}
+                className={`${styles.viewToggleButton} ${sessionViewMode === 'grid' ? styles.active : ''}`}
                 onClick={() => setSessionViewMode('grid')}
+                title="Grid View"
               >
-                <FaTh size={14} /> Grid View
+                <FaTh />
               </button>
-              
-              {stats.activeSessions.length > 0 && (
-                <button 
-                  className={`${styles.viewTypeButton} ${sessionViewMode === 'list' ? styles.active : ''}`}
-                  onClick={() => setSessionViewMode('list')}
-                >
-                  <FaList size={14} /> List View
-                </button>
-              )}
-              
-              <div style={{ marginLeft: 'auto' }}>
-                <small className={styles.liveUpdatingText}>
-                  <span className={styles.liveDot}></span> Live updating
-                </small>
-              </div>
+              <button 
+                className={`${styles.viewToggleButton} ${sessionViewMode === 'list' ? styles.active : ''}`}
+                onClick={() => setSessionViewMode('list')}
+                title="List View"
+              >
+                <FaList />
+              </button>
             </div>
+            <button 
+              className={styles.refreshButton}
+              onClick={fetchSessionStats}
+              disabled={stats.loading}
+            >
+              {stats.loading ? <FaSpinner className={styles.spinner} /> : <FaSync />}
+              {stats.loading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
           
           <div className={styles.computersContainer}>
             {stats.loading ? (
-              <div className={styles.loading}>Loading session data...</div>
-            ) : stats.activeSessions.length === 0 && sessionViewMode === 'list' ? (
+              <div className={styles.loadingContainer}>
+                <div className={styles.spinner}>
+                  <FaSpinner className={styles.spinnerIcon} />
+                </div>
+                <p>Loading sessions...</p>
+              </div>
+            ) : stats.activeSessions.length === 0 ? (
               <div className={styles.noSessionsMessage}>
                 <p>No active gaming sessions at this time</p>
               </div>
@@ -913,6 +919,6 @@ export default function SessionsManager() {
           </div>
         </section>
       </div>
-    </AdminPageWrapper>
+    </AdminLayout>
   );
 } 

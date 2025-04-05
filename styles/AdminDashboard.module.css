@@ -686,14 +686,20 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e1e5eb;
+  border-bottom: 1px solid #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ddd;
 }
 
 .sectionHeaderCount {
   margin-left: 12px;
   font-size: 0.875rem;
-  color: #64748b;
-  font-weight: normal;
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
 .computerGrid {
@@ -893,9 +899,10 @@
 .sessionTableContainer {
   margin-top: 20px;
   overflow-x: auto;
-  background: #fff;
+  background: #1e1e1e;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #333;
 }
 
 .sessionTable {
@@ -904,17 +911,18 @@
 }
 
 .sessionTable th {
-  background-color: #f5f7fa;
-  color: #5e6c84;
+  background-color: #252525;
+  color: #ccc;
   font-weight: 600;
   text-align: left;
   padding: 12px 16px;
-  border-bottom: 1px solid #e1e5eb;
+  border-bottom: 1px solid #333;
 }
 
 .sessionTable td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e1e5eb;
+  border-bottom: 1px solid #333;
+  color: #ddd;
 }
 
 .sessionTable tr:last-child td {
@@ -922,7 +930,7 @@
 }
 
 .sessionTable tr:hover {
-  background-color: #f9fafc;
+  background-color: #2a2a2a;
 }
 
 .computerCell {
@@ -940,21 +948,22 @@
 }
 
 .computerBadge.vip {
-  background-color: #ffe0b2;
-  color: #e65100;
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #9C27B0;
 }
 
 .computerBadge.normal {
-  background-color: #c8e6c9;
-  color: #2e7d32;
+  background-color: rgba(66, 133, 244, 0.2);
+  color: #4285F4;
 }
 
 .computerNumber {
   font-weight: 600;
+  color: #ddd;
 }
 
 .hostId, .userId {
-  color: #64748b;
+  color: #999;
   font-size: 0.75rem;
   margin-left: 4px;
 }
@@ -969,19 +978,23 @@
 }
 
 .timeCell.expired {
-  color: #d32f2f;
+  color: #EA4335;
 }
 
 .timeCell.warning {
-  color: #f57c00;
+  color: #FBBC05;
 }
 
 .timeCell.medium {
-  color: #0288d1;
+  color: #4285F4;
 }
 
 .timeCell.good {
-  color: #388e3c;
+  color: #34A853;
+}
+
+.timeCell.noTime {
+  color: #EA4335;
 }
 
 .actionButtons {
@@ -992,7 +1005,7 @@
 .emptyTableMessage {
   text-align: center;
   padding: 24px;
-  color: #64748b;
+  color: #999;
 }
 
 .controls {
@@ -1003,25 +1016,26 @@
 
 .viewToggle {
   display: flex;
-  border: 1px solid #e1e5eb;
+  border: 1px solid #333;
   border-radius: 4px;
   overflow: hidden;
 }
 
 .viewToggleButton {
-  background: #fff;
+  background: #252525;
   border: none;
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s;
+  color: #ddd;
 }
 
 .viewToggleButton:hover {
-  background: #f5f7fa;
+  background: #303030;
 }
 
 .viewToggleButton.active {
-  background: #0070f3;
+  background: #4285F4;
   color: white;
 }
 
@@ -1029,16 +1043,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
-  border: 1px solid #e1e5eb;
+  background: #252525;
+  border: 1px solid #333;
   border-radius: 4px;
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s;
+  color: #ddd;
 }
 
 .refreshButton:hover {
-  background: #f5f7fa;
+  background: #303030;
 }
 
 .refreshButton:disabled {
@@ -1062,6 +1077,10 @@
   justify-content: center;
   padding: 40px;
   text-align: center;
+  color: #ddd;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
 }
 
 .errorContainer {
@@ -1071,7 +1090,10 @@
   justify-content: center;
   padding: 40px;
   text-align: center;
-  color: #d32f2f;
+  color: #EA4335;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
 }
 
 .errorIcon {
@@ -1082,7 +1104,7 @@
 .retryButton {
   margin-top: 16px;
   padding: 8px 16px;
-  background: #0070f3;
+  background: #4285F4;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1105,10 +1127,11 @@
 .summaryItem {
   display: flex;
   align-items: center;
-  background: white;
+  background: #1e1e1e;
   padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #333;
 }
 
 .summaryIcon {
@@ -1123,14 +1146,14 @@
 
 .summaryLabel {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #999;
   margin-bottom: 4px;
 }
 
 .summaryValue {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #ddd;
 }
 
 /* Sessions page styles */
@@ -1143,6 +1166,6 @@
 
 .title {
   font-size: 1.75rem;
-  color: #1e293b;
+  color: #ddd;
   margin: 0;
 } 
