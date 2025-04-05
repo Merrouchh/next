@@ -194,7 +194,7 @@ const SessionRefreshButton = () => {
 };
 
 // Add a DebtCard component to display debt info with payment recommendations
-const DebtCard = ({ debtAmount }) => {
+const DebtCard = ({ debtAmount, hasTime }) => {
   // If no debt or debt is 0, don't render the card
   if (!debtAmount || debtAmount <= 0) {
     return null;
@@ -279,15 +279,8 @@ const DebtCard = ({ debtAmount }) => {
           </div>
         </div>
         <div className={styles.debtWarning}>
-          Please settle your debt to maintain good standing with Merrouch Gaming Center.
-        </div>
-        <div className={styles.debtActions}>
-          <button 
-            className={`${sharedStyles.primaryButton} ${styles.payButton}`}
-            onClick={() => router.push('/contact')}
-          >
-            Contact Us to Pay
-          </button>
+          The minimum debt payment is {recommendation.amount} DH. 
+          {!hasTime && <strong> If you have no time remaining, you must pay your debt to continue gaming.</strong>}
         </div>
       </div>
     </div>
@@ -808,7 +801,10 @@ const Dashboard = ({ _initialClips, metaData }) => {
 
           {/* Add the DebtCard component if user has debt */}
           {pageState.data.balanceInfo && pageState.data.balanceInfo.rawBalance < 0 && (
-            <DebtCard debtAmount={Math.abs(pageState.data.balanceInfo.rawBalance)} />
+            <DebtCard 
+              debtAmount={Math.abs(pageState.data.balanceInfo.rawBalance)} 
+              hasTime={Object.values(pageState.data.timeInfo || {}).some(time => time?.hours > 0 || time?.minutes > 0)}
+            />
           )}
         </div>
 
