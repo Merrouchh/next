@@ -650,7 +650,10 @@ export default function AdminDashboard() {
               </div>
             </div>
             
-            <div className={styles.statCard}>
+            <div 
+              className={`${styles.statCard} ${styles.clickableStatCard}`} 
+              onClick={() => router.push('/admin/events')}
+            >
               <div className={styles.statIcon} style={{ backgroundColor: 'rgba(234, 67, 53, 0.2)' }}>
                 <FaCalendarAlt style={{ color: '#EA4335' }} />
               </div>
