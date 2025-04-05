@@ -754,12 +754,15 @@ export default function AdminDashboard() {
             >
               <FaTh size={14} /> Grid View
             </button>
-            <button 
-              className={`${styles.viewTypeButton} ${sessionViewMode === 'list' ? styles.active : ''}`}
-              onClick={() => setSessionViewMode('list')}
-            >
-              <FaList size={14} /> List View
-            </button>
+            
+            {stats.activeSessions.length > 0 && (
+              <button 
+                className={`${styles.viewTypeButton} ${sessionViewMode === 'list' ? styles.active : ''}`}
+                onClick={() => setSessionViewMode('list')}
+              >
+                <FaList size={14} /> List View
+              </button>
+            )}
             
             <div style={{ marginLeft: 'auto' }}>
               <small className={styles.liveUpdatingText}>
@@ -768,87 +771,85 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          {sessionViewMode === 'list' ? (
+          {stats.activeSessions.length === 0 && !stats.loading && sessionViewMode === 'list' ? (
+            <div className={styles.noSessionsMessage}>
+              <p>No active gaming sessions at this time</p>
+            </div>
+          ) : sessionViewMode === 'list' ? (
             <div className={styles.darkSessionsList}>
-              {stats.activeSessions.length === 0 && !stats.loading ? (
-                <div className={styles.noSessionsMessage}>
-                  <p>No active gaming sessions at this time</p>
-                </div>
-              ) : (
-                stats.activeSessions
-                  .map((session, index) => ({
-                    ...session,
-                    index, // Keep original index for stable sorting
-                    timeLeftMinutes: parseTimeLeftToMinutes(session.timeLeft || session.time_left)
-                  }))
-                  .sort((a, b) => a.timeLeftMinutes - b.timeLeftMinutes) // Sort by time left (ascending)
-                  .map((session) => {
-                    // Basic session info
-                    const sessionInfo = {
-                      id: session.id || session.index,
-                      userId: session.userId,
-                      hostId: session.hostId,
-                      userName: session.userName || session.user_name || null,
-                      timeLeft: session.timeLeft || session.time_left || null,
-                      startTime: session.startTime || session.start_time || null,
-                      hasAccount: session.hasAccount || false
-                    };
-                    
-                    // Get computer details
-                    const computerType = getComputerType(sessionInfo.hostId);
-                    const computerNumber = getComputerNumber(sessionInfo.hostId);
-                    
-                    // Format the time display
-                    const formattedTimeLeft = formatTimeLeft(sessionInfo.timeLeft) || 'No Time';
-                    const timeStatus = getSessionStatus(sessionInfo.timeLeft);
-                    
-                    // Get display username with fallback
-                    const displayName = sessionInfo.userName || `User ${sessionInfo.userId}`;
-                    
-                    return (
-                      <div 
-                        key={sessionInfo.id} 
-                        className={`${styles.darkSessionItem} ${styles[timeStatus]}`}
-                      >
-                        <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
-                          <FaDesktop />
-                          <span>{computerType} {computerNumber}</span>
-                        </div>
-                        <div className={styles.sessionInfo}>
-                          <div className={styles.sessionUser}>
-                            <strong>User:</strong> 
-                            {displayName}
-                            {sessionInfo.hasAccount && (
-                              <span className={styles.accountIndicator} title="User has website account">
-                                <FaCheck size={10} />
-                              </span>
-                            )}
-                          </div>
-                          <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
-                            <strong>Time Left:</strong> {formattedTimeLeft}
-                          </div>
-                          {sessionInfo.startTime && (
-                            <div className={styles.sessionStart}>
-                              <strong>Started:</strong> {new Date(sessionInfo.startTime).toLocaleTimeString()}
-                            </div>
+              {stats.activeSessions
+                .map((session, index) => ({
+                  ...session,
+                  index, // Keep original index for stable sorting
+                  timeLeftMinutes: parseTimeLeftToMinutes(session.timeLeft || session.time_left)
+                }))
+                .sort((a, b) => a.timeLeftMinutes - b.timeLeftMinutes) // Sort by time left (ascending)
+                .map((session) => {
+                  // Basic session info
+                  const sessionInfo = {
+                    id: session.id || session.index,
+                    userId: session.userId,
+                    hostId: session.hostId,
+                    userName: session.userName || session.user_name || null,
+                    timeLeft: session.timeLeft || session.time_left || null,
+                    startTime: session.startTime || session.start_time || null,
+                    hasAccount: session.hasAccount || false
+                  };
+                  
+                  // Get computer details
+                  const computerType = getComputerType(sessionInfo.hostId);
+                  const computerNumber = getComputerNumber(sessionInfo.hostId);
+                  
+                  // Format the time display
+                  const formattedTimeLeft = formatTimeLeft(sessionInfo.timeLeft) || 'No Time';
+                  const timeStatus = getSessionStatus(sessionInfo.timeLeft);
+                  
+                  // Get display username with fallback
+                  const displayName = sessionInfo.userName || `User ${sessionInfo.userId}`;
+                  
+                  return (
+                    <div 
+                      key={sessionInfo.id} 
+                      className={`${styles.darkSessionItem} ${styles[timeStatus]}`}
+                    >
+                      <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
+                        <FaDesktop />
+                        <span>{computerType} {computerNumber}</span>
+                      </div>
+                      <div className={styles.sessionInfo}>
+                        <div className={styles.sessionUser}>
+                          <strong>User:</strong> 
+                          {displayName}
+                          {sessionInfo.hasAccount && (
+                            <span className={styles.accountIndicator} title="User has website account">
+                              <FaCheck size={10} />
+                            </span>
                           )}
-                          <div className={styles.sessionId}>
-                            <small>Host ID: {sessionInfo.hostId} / User ID: {sessionInfo.userId}</small>
-                          </div>
                         </div>
-                        <div className={styles.sessionActions}>
-                          <button 
-                            className={styles.viewUserButton}
-                            onClick={() => router.push(`/admin/users?id=${sessionInfo.userId}`)}
-                            title="View user profile"
-                          >
-                            <FaUsers />
-                          </button>
+                        <div className={`${styles.sessionTime} ${styles[timeStatus]}`}>
+                          <strong>Time Left:</strong> {formattedTimeLeft}
+                        </div>
+                        {sessionInfo.startTime && (
+                          <div className={styles.sessionStart}>
+                            <strong>Started:</strong> {new Date(sessionInfo.startTime).toLocaleTimeString()}
+                          </div>
+                        )}
+                        <div className={styles.sessionId}>
+                          <small>Host ID: {sessionInfo.hostId} / User ID: {sessionInfo.userId}</small>
                         </div>
                       </div>
-                    );
-                  })
-              )}
+                      <div className={styles.sessionActions}>
+                        <button 
+                          className={styles.viewUserButton}
+                          onClick={() => router.push(`/admin/users?id=${sessionInfo.userId}`)}
+                          title="View user profile"
+                        >
+                          <FaUsers />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           ) : (
             <div className={styles.sessionsGridLayout}>
@@ -961,12 +962,6 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
   
   return (
     <>
-      {stats.activeSessions.length === 0 && !stats.loading && (
-        <div className={styles.noSessionsMessage} style={{ marginBottom: '20px' }}>
-          <p>No active gaming sessions at this time</p>
-        </div>
-      )}
-      
       {/* VIP Section */}
       <div>
         <h3 className={styles.sectionHeader}>
