@@ -1095,4 +1095,11 @@
 /* Remove the unused time gap styles but keep this one simplified */
 .timeGapSetting, .timeGapControls, .suggestedTimeInfo {
   display: none;
+}
+
+.inputHelp {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 0.75rem;
 } 

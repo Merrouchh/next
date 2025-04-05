@@ -67,11 +67,13 @@ export default function BracketManager() {
       return '';
     }
   };
-  
-  // Parse time with AM/PM awareness
+
+  // Parse time with AM/PM awareness - updated to better handle mobile input
   const parseTimeWithMeridiem = (timeStr) => {
     try {
       if (!timeStr) return null;
+      
+      console.log('Parsing time input:', timeStr);
       
       // Check for 12-hour format or handle the datetime-local input
       const timePart = timeStr.includes('T') ? timeStr.split('T')[1] : timeStr;
@@ -80,12 +82,35 @@ export default function BracketManager() {
       let hours, minutes;
       
       if (timePart.includes(':')) {
-        [hours, minutes] = timePart.split(':').map(num => parseInt(num, 10));
+        const timeParts = timePart.split(':');
+        hours = parseInt(timeParts[0], 10);
+        minutes = parseInt(timeParts[1], 10);
+        
+        // Validate parsed values
+        if (isNaN(hours) || isNaN(minutes)) {
+          console.error('Invalid time format', { hours, minutes });
+          return null;
+        }
+        
+        // Handle mobile format issues - ensure hours is between 0-23
+        if (hours < 0 || hours > 23) {
+          console.error('Hours out of range:', hours);
+          return null;
+        }
+        
+        // Ensure minutes is between 0-59
+        if (minutes < 0 || minutes > 59) {
+          console.error('Minutes out of range:', minutes);
+          return null;
+        }
+        
+        console.log('Successfully parsed time:', { hours, minutes });
       } else {
+        console.error('Time format does not include colon');
         return null;
       }
       
-      // If we've already got the time in 24-hour format from the input
+      // Return the parsed time
       return { hours, minutes };
     } catch (e) {
       console.error('Error parsing time with meridiem:', e);
@@ -670,25 +695,75 @@ export default function BracketManager() {
     
     console.log('Validating time input:', timeInput);
     
-    // Parse the time components to ensure correct format
-    const parsedTime = parseTimeWithMeridiem(timeInput);
-    console.log('Parsed time components:', parsedTime);
-    
-    if (parsedTime) {
-      // Create a new date with these exact hour/minute values
-      const date = new Date(timeInput);
-      // Force the specific hours and minutes to make sure they're preserved
-      date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+    try {
+      // Handle potential input format issues
+      let inputToUse = timeInput;
       
-      // Format for database (ISO string)
-      const formattedTime = date.toISOString();
-      console.log('Final scheduled time for database:', formattedTime);
-      console.log('Time in local format:', date.toString());
+      // Check if input contains the 'T' separator for datetime-local
+      if (!inputToUse.includes('T') && inputToUse.includes(' ')) {
+        // Try to convert space-separated format to T-separated format
+        console.log('Converting space-separated format to T-separated format');
+        const [datePart, timePart] = inputToUse.split(' ');
+        if (datePart && timePart) {
+          inputToUse = `${datePart}T${timePart}`;
+          console.log('Converted input:', inputToUse);
+        }
+      }
       
-      return formattedTime;
+      // Parse the time components to ensure correct format
+      const parsedTime = parseTimeWithMeridiem(inputToUse);
+      console.log('Parsed time components:', parsedTime);
+      
+      if (parsedTime) {
+        // Create a new date with these exact hour/minute values
+        let date;
+        
+        try {
+          date = new Date(inputToUse);
+          
+          // Check if the date is valid
+          if (isNaN(date.getTime())) {
+            console.error('Invalid date created from input');
+            return null;
+          }
+          
+          // Force the specific hours and minutes to make sure they're preserved
+          date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+          
+          // If hours don't match what we set, there might be a timezone issue
+          const actualHours = date.getHours();
+          if (actualHours !== parsedTime.hours) {
+            console.log('Hours mismatch, adjusting for timezone issue', { 
+              expected: parsedTime.hours, 
+              actual: actualHours 
+            });
+            
+            // Try to correct by creating a new Date with the local timezone offset
+            const localDate = new Date();
+            const timezoneOffset = localDate.getTimezoneOffset() * 60000; // convert to milliseconds
+            
+            // Try to create a date with timezone adjustment
+            date = new Date(date.getTime() - timezoneOffset);
+            date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
+          }
+          
+          // Format for database (ISO string)
+          const formattedTime = date.toISOString();
+          console.log('Final scheduled time for database:', formattedTime);
+          console.log('Time in local format:', date.toString());
+          
+          return formattedTime;
+        } catch (dateError) {
+          console.error('Error creating date object:', dateError);
+          return null;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Validation error:', error);
+      return null;
     }
-    
-    return null;
   };
 
   // Create a helper function to handle datetime input changes
@@ -701,53 +776,84 @@ export default function BracketManager() {
       return;
     }
     
+    // Handle potential format differences from mobile devices
+    let formattedValue = value;
+    
+    // Special handling for mobile inputs that might include spaces instead of T
+    if (value.includes(' ') && !value.includes('T')) {
+      try {
+        // Try to normalize the format from "YYYY-MM-DD HH:MM" to "YYYY-MM-DDThh:mm"
+        const [datePart, timePart] = value.split(' ');
+        if (datePart && timePart) {
+          formattedValue = `${datePart}T${timePart}`;
+          console.log("Normalized space-separated format to:", formattedValue);
+        }
+      } catch (e) {
+        console.error("Error normalizing datetime format:", e);
+      }
+    }
+    
     // Check if this might be a default 12:00 time
-    const date = new Date(value);
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    
-    console.log("Time parsed as:", date.toString());
-    console.log("Hours detected:", hours, "Minutes:", minutes);
-    
-    // Specifically check for the browser issue with AM times
-    const inputHour = parseInt(value.split('T')[1].split(':')[0], 10);
-    console.log("Hour from input string:", inputHour);
-    
-    // If the browser parsed 11 AM as 12 PM (common issue)
-    if (inputHour < 12 && hours === 12) {
-      console.log("Detected AM to PM conversion issue, fixing...");
+    try {
+      const date = new Date(formattedValue);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
       
-      // Explicitly set the hours to the input hour
-      const [datePart, timePart] = value.split('T');
-      const adjustedValue = `${datePart}T${timePart}`;
-      console.log("Preserving exact input time:", adjustedValue);
+      console.log("Time parsed as:", date.toString());
+      console.log("Hours detected:", hours, "Minutes:", minutes);
       
-      setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
-      return;
+      // Try to extract input hour directly from string to avoid timezone issues
+      let inputHour, inputMinutes;
+      
+      if (formattedValue.includes('T')) {
+        [inputHour, inputMinutes] = formattedValue.split('T')[1].split(':').map(num => parseInt(num, 10));
+      } else if (formattedValue.includes(' ')) {
+        [inputHour, inputMinutes] = formattedValue.split(' ')[1].split(':').map(num => parseInt(num, 10));
+      }
+      
+      console.log("Direct extraction from input string - Hour:", inputHour, "Minutes:", inputMinutes);
+      
+      // If input hour is valid and different from parsed hour (timezone issue)
+      if (!isNaN(inputHour) && !isNaN(inputMinutes) && inputHour !== hours) {
+        console.log("Detected time parsing issue, using directly extracted time");
+        
+        // Create adjusted value using the extracted values
+        const [datePart] = formattedValue.includes('T') 
+          ? formattedValue.split('T') 
+          : formattedValue.split(' ');
+          
+        const adjustedValue = `${datePart}T${String(inputHour).padStart(2, '0')}:${String(inputMinutes).padStart(2, '0')}`;
+        console.log("Using directly extracted time:", adjustedValue);
+        
+        setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
+        return;
+      }
+      
+      // If it's exactly 12:00, and user just selected a date (browser default behavior)
+      if (hours === 12 && minutes === 0) {
+        console.log("Detected browser default time, adjusting to 16:00");
+        // Create a new date with 4 PM instead
+        date.setHours(16, 0, 0, 0);
+        
+        // Format back to HTML datetime-local format
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const adjustedHours = "16";
+        const adjustedMinutes = "00";
+        
+        const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
+        console.log("Adjusted time to:", adjustedValue);
+        
+        setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
+        return;
+      }
+    } catch (e) {
+      console.error("Error processing datetime input:", e);
     }
     
-    // If it's exactly 12:00, and user just selected a date (browser default behavior)
-    if (hours === 12 && minutes === 0) {
-      console.log("Detected browser default time, adjusting to 16:00");
-      // Create a new date with 4 PM instead
-      date.setHours(16, 0, 0, 0);
-      
-      // Format back to HTML datetime-local format
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const adjustedHours = "16";
-      const adjustedMinutes = "00";
-      
-      const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
-      console.log("Adjusted time to:", adjustedValue);
-      
-      setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
-      return;
-    }
-    
-    // If not a special case, just use the value as is
-    setMatchDetails(prev => ({...prev, scheduledTime: value}));
+    // If not a special case, use the formatted value
+    setMatchDetails(prev => ({...prev, scheduledTime: formattedValue}));
   };
 
   // Modify handleSaveMatchDetails to only update state and avoid any page refreshes
@@ -1096,7 +1202,12 @@ export default function BracketManager() {
                 value={matchDetails.scheduledTime} 
                 onChange={(e) => handleDatetimeInputChange(e.target.value)}
                 disabled={selectedMatch.winnerId}
+                pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
+                step="60"
               />
+              <small className={styles.inputHelp}>
+                Format: YYYY-MM-DD HH:MM (24-hour time)
+              </small>
             </div>
             
             <div className={styles.formGroup}>
