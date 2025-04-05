@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { FaUsers, FaDesktop, FaClock, FaTh, FaList, FaLaptop, FaCheck, FaUser, FaExclamationTriangle, FaSpinner, FaSync } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
-import AdminLayout from '../../components/AdminLayout';
+import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import { fetchActiveUserSessions } from '../../utils/api';
 
@@ -842,7 +842,7 @@ export default function SessionsManager() {
   };
 
   return (
-    <AdminLayout>
+    <AdminPageWrapper title="Session Management">
       <Head>
         <title>Session Management | Merrouch Gaming Center</title>
         <meta name="description" content="Manage active gaming sessions" />
@@ -919,6 +919,6 @@ export default function SessionsManager() {
           </div>
         </section>
       </div>
-    </AdminLayout>
+    </AdminPageWrapper>
   );
 } 

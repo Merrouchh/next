@@ -710,18 +710,20 @@
 }
 
 .computerCard {
-  background: white;
+  background-color: #1e1e1e;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #2a2a2a;
 }
 
 .computerCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 215, 0, 0.3);
 }
 
 .computerCard.available {
@@ -751,8 +753,9 @@
 .computerHeader {
   display: flex;
   align-items: center;
-  padding: 12px;
-  background: #f5f7fa;
+  padding: 14px 16px;
+  background-color: #252525;
+  border-bottom: 1px solid #333;
   position: relative;
 }
 
@@ -778,28 +781,32 @@
 
 .computerName {
   font-weight: 600;
-  color: #1e293b;
+  font-size: 1rem;
+  color: #fff;
 }
 
 .availableBadge {
   position: absolute;
-  right: 12px;
-  background-color: #4caf50;
-  color: white;
-  font-size: 0.75rem;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(52, 168, 83, 0.25);
+  color: #34A853;
+  font-size: 0.7rem;
   padding: 2px 8px;
   border-radius: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(52, 168, 83, 0.4);
 }
 
 .computerBody {
-  padding: 12px;
+  padding: 16px;
   flex-grow: 1;
 }
 
 .emptyCardPlaceholder {
   padding: 16px 0;
   text-align: center;
-  color: #64748b;
+  color: #777;
   font-style: italic;
 }
 
@@ -817,7 +824,7 @@
 
 .userInfoLabel {
   font-size: 0.75rem;
-  color: #64748b;
+  color: #aaa;
 }
 
 .timeValue {
@@ -845,12 +852,12 @@
 }
 
 .computerFooter {
-  padding: 8px 12px;
-  background: #f5f7fa;
-  border-top: 1px solid #e1e5eb;
+  padding: 12px 16px;
+  border-top: 1px solid #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #252525;
 }
 
 .sessionIdSmall {
@@ -1168,4 +1175,14 @@
   font-size: 1.75rem;
   color: #ddd;
   margin: 0;
+}
+
+.noSessionsMessage {
+  padding: 30px;
+  text-align: center;
+  background-color: #252525;
+  border-radius: 8px;
+  color: #999;
+  font-size: 1rem;
+  border: 1px solid #333;
 } 
