@@ -670,6 +670,14 @@ const Dashboard = ({ _initialClips, metaData }) => {
         </section>
 
         <div className={styles.statsGrid}>
+          {/* Add the DebtCard component as the first card if user has debt */}
+          {pageState.data.balanceInfo && pageState.data.balanceInfo.rawBalance < 0 && (
+            <DebtCard 
+              debtAmount={Math.abs(pageState.data.balanceInfo.rawBalance)} 
+              hasTime={Object.values(pageState.data.timeInfo || {}).some(time => time?.hours > 0 || time?.minutes > 0)}
+            />
+          )}
+          
           <div className={`${styles.statCard} ${styles.largeCard}`}>
             <div className={styles.statHeader}>
               <div className={styles.statIcon}>
@@ -811,14 +819,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
             onRefresh={handleRefresh}
             isLoading={pageState.loading}
           />
-
-          {/* Add the DebtCard component if user has debt */}
-          {pageState.data.balanceInfo && pageState.data.balanceInfo.rawBalance < 0 && (
-            <DebtCard 
-              debtAmount={Math.abs(pageState.data.balanceInfo.rawBalance)} 
-              hasTime={Object.values(pageState.data.timeInfo || {}).some(time => time?.hours > 0 || time?.minutes > 0)}
-            />
-          )}
         </div>
 
         {/* Admin Section - Only visible to admin users */}
