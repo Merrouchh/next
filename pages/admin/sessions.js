@@ -401,71 +401,59 @@ export default function SessionsManager() {
         <title>MerrouchGaming - Session Manager</title>
       </Head>
       
-      <div className={styles.statsContainer}>
-        <h1 className={styles.dashboardTitle}>Session Manager</h1>
-        
-        <div className={styles.toggleViewContainer}>
-          <button
-            className={`${styles.viewToggleButton} ${sessionViewMode === 'grid' ? styles.activeViewButton : ''}`}
-            onClick={() => setSessionViewMode('grid')}
-            title="Grid View"
-          >
-            <FaTh />
-          </button>
-          <button
-            className={`${styles.viewToggleButton} ${sessionViewMode === 'list' ? styles.activeViewButton : ''}`}
-            onClick={() => setSessionViewMode('list')}
-            title="List View"
-          >
-            <FaList />
-          </button>
+      <div className={styles.adminDashboard}>
+        <div className={styles.sessionManagerHeader}>
+          <h1 className={styles.dashboardTitle}>SESSION MANAGER</h1>
+          <div className={styles.viewToggle}>
+            <FaTh className={sessionViewMode === 'grid' ? styles.activeViewIcon : styles.viewIcon} onClick={() => setSessionViewMode('grid')} />
+          </div>
         </div>
         
         {/* Session Status Overview */}
         <div className={styles.statsCards}>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FaUsers />
+            <div className={styles.statIconContainer}>
+              <FaUsers className={styles.statIconLarge} />
             </div>
-            <div className={styles.statInfo}>
-              <h3>Active Sessions</h3>
-              <p className={styles.statValue}>
+            <div className={styles.statContent}>
+              <h3 className={styles.statName}>ACTIVE SESSIONS</h3>
+              <p className={styles.statValueLarge}>
                 {formatSessionCount(stats.activeSessions.length)}
               </p>
             </div>
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FaDesktop />
+            <div className={styles.statIconContainer}>
+              <FaDesktop className={styles.statIconLarge} />
             </div>
-            <div className={styles.statInfo}>
-              <h3>Normal PCs</h3>
-              <p className={styles.statValue}>
+            <div className={styles.statContent}>
+              <h3 className={styles.statName}>NORMAL PCS</h3>
+              <p className={styles.statValueLarge}>
                 {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length}/8
               </p>
             </div>
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FaLaptop />
+            <div className={styles.statIconContainer}>
+              <FaLaptop className={styles.statIconLarge} />
             </div>
-            <div className={styles.statInfo}>
-              <h3>VIP PCs</h3>
-              <p className={styles.statValue}>
+            <div className={styles.statContent}>
+              <h3 className={styles.statName}>VIP PCS</h3>
+              <p className={styles.statValueLarge}>
                 {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length}/6
               </p>
             </div>
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <FaClock />
+            <div className={styles.statIconContainer}>
+              <FaClock className={styles.statIconLarge} />
             </div>
-            <div className={styles.statInfo}>
-              <h3>Low Time</h3>
-              <p className={styles.statValue}>
+            <div className={styles.statContent}>
+              <h3 className={styles.statName}>LOW TIME</h3>
+              <p className={styles.statValueLarge}>
                 {countLowTimeComputers(stats.activeSessions).normal + 
                  countLowTimeComputers(stats.activeSessions).vip}
               </p>
@@ -473,115 +461,100 @@ export default function SessionsManager() {
           </div>
         </div>
         
-        {/* Computer Grid View */}
-        {sessionViewMode === 'grid' && (
-          <div className={styles.computerStatusSection}>
-            <div className={styles.sectionHeader}>
-              <h2>Computer Status</h2>
+        <h2 className={styles.computerStatusTitle}>COMPUTER STATUS</h2>
+        
+        {/* VIP Computers Section */}
+        <div className={styles.computerSection}>
+          <h3 className={styles.computerSectionTitle}>VIP COMPUTERS</h3>
+          <div className={styles.computerGrid}>
+            {prepareComputersWithSessionData().sortedVipComputers.map(computer => (
+              <div 
+                key={computer.id} 
+                className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
+              >
+                {computer.session ? (
+                  <div className={styles.sessionInfo}>
+                    <div className={styles.computerLabel}>
+                      VIP {computer.number}
+                    </div>
+                    <div className={styles.userName}>{computer.session.userName}</div>
+                    <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
+                      {computer.session.timeLeft}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.emptyComputer}>
+                    <div className={styles.computerLabel}>VIP {computer.number}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Normal Computers Section */}
+        <div className={styles.computerSection}>
+          <h3 className={styles.computerSectionTitle}>NORMAL COMPUTERS</h3>
+          <div className={styles.normalComputerGrid}>
+            {/* First Row (7, 5, 3, 1) */}
+            <div className={styles.normalComputerRow}>
+              {prepareComputersWithSessionData().normalRow1.map(computer => (
+                <div 
+                  key={computer.id} 
+                  className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
+                >
+                  {computer.session ? (
+                    <div className={styles.sessionInfo}>
+                      <div className={styles.computerLabel}>
+                        Normal {computer.number}
+                      </div>
+                      <div className={styles.userName}>{computer.session.userName}</div>
+                      <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
+                        {computer.session.timeLeft}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.emptyComputer}>
+                      <div className={styles.computerLabel}>Normal {computer.number}</div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
             
-            <div className={styles.computerGridContainer}>
-              {/* VIP Computers */}
-              <div className={styles.computerSection}>
-                <h3 className={styles.computerSectionTitle}>VIP Computers</h3>
-                <div className={styles.vipComputerGrid}>
-                  {prepareComputersWithSessionData().sortedVipComputers.map(computer => (
-                    <div 
-                      key={computer.id} 
-                      className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
-                    >
-                      <div className={styles.computerHeader}>
-                        <span className={styles.computerNumber}>VIP {computer.number}</span>
-                        <span className={styles.hostId}>ID: {computer.hostId}</span>
+            {/* Second Row (8, 6, 4, 2) */}
+            <div className={styles.normalComputerRow}>
+              {prepareComputersWithSessionData().normalRow2.map(computer => (
+                <div 
+                  key={computer.id} 
+                  className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
+                >
+                  {computer.session ? (
+                    <div className={styles.sessionInfo}>
+                      <div className={styles.computerLabel}>
+                        Normal {computer.number}
                       </div>
-                      
-                      {computer.session ? (
-                        <div className={styles.sessionInfo}>
-                          <div className={styles.userName}>{computer.session.userName}</div>
-                          <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
-                            {computer.session.timeLeft}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className={styles.availableTag}>
-                          <FaCheck /> Available
-                        </div>
-                      )}
+                      <div className={styles.userName}>{computer.session.userName}</div>
+                      <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
+                        {computer.session.timeLeft}
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className={styles.emptyComputer}>
+                      <div className={styles.computerLabel}>Normal {computer.number}</div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              
-              {/* Normal Computers */}
-              <div className={styles.computerSection}>
-                <h3 className={styles.computerSectionTitle}>Normal Computers</h3>
-                <div className={styles.normalComputerGrid}>
-                  {/* First Row (7, 5, 3, 1) */}
-                  <div className={styles.normalComputerRow}>
-                    {prepareComputersWithSessionData().normalRow1.map(computer => (
-                      <div 
-                        key={computer.id} 
-                        className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
-                      >
-                        <div className={styles.computerHeader}>
-                          <span className={styles.computerNumber}>Normal {computer.number}</span>
-                          <span className={styles.hostId}>ID: {computer.hostId}</span>
-                        </div>
-                        
-                        {computer.session ? (
-                          <div className={styles.sessionInfo}>
-                            <div className={styles.userName}>{computer.session.userName}</div>
-                            <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
-                              {computer.session.timeLeft}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className={styles.availableTag}>
-                            <FaCheck /> Available
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Second Row (8, 6, 4, 2) */}
-                  <div className={styles.normalComputerRow}>
-                    {prepareComputersWithSessionData().normalRow2.map(computer => (
-                      <div 
-                        key={computer.id} 
-                        className={`${styles.computerCard} ${computer.session ? styles.activeComputer : styles.inactiveComputer}`}
-                      >
-                        <div className={styles.computerHeader}>
-                          <span className={styles.computerNumber}>Normal {computer.number}</span>
-                          <span className={styles.hostId}>ID: {computer.hostId}</span>
-                        </div>
-                        
-                        {computer.session ? (
-                          <div className={styles.sessionInfo}>
-                            <div className={styles.userName}>{computer.session.userName}</div>
-                            <div className={`${styles.timeLeft} ${styles[computer.session.status]}`}>
-                              {computer.session.timeLeft}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className={styles.availableTag}>
-                            <FaCheck /> Available
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        )}
+        </div>
         
         {/* List View of Active Sessions */}
         {sessionViewMode === 'list' && (
           <div className={styles.activeSessionsSection}>
             <div className={styles.sectionHeader}>
-              <h2>Active Sessions</h2>
+              <h2 className={styles.sectionHeaderTitle}>Active Sessions</h2>
             </div>
             
             <div className={styles.sessionsListContainer}>
