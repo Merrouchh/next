@@ -638,6 +638,9 @@ export default function BracketManager() {
     const formattedTime = formatDatetimeForInput(match.scheduledTime);
     
     // Initialize matchDetails with existing data from the match
+    // Log the notes for debugging purposes
+    console.log('Match notes to set:', match.notes);
+    
     setMatchDetails({
       scheduledTime: formattedTime,
       location: match.location || '',
@@ -968,11 +971,20 @@ export default function BracketManager() {
       // Process the scheduled time using our helper function
       const scheduledTime = validateAndFormatScheduledTime(matchDetails.scheduledTime);
       
+      // Convert empty strings to null for proper database storage
+      const location = matchDetails.location && matchDetails.location.trim() !== '' 
+        ? matchDetails.location 
+        : null;
+        
+      const notes = matchDetails.notes && matchDetails.notes.trim() !== '' 
+        ? matchDetails.notes 
+        : null;
+      
       // Prepare the data to save - use null for empty strings to ensure database consistency
       const dataToSave = {
         scheduled_time: scheduledTime,
-        location: matchDetails.location || null,
-        notes: matchDetails.notes || null,
+        location: location,
+        notes: notes,
         updated_at: new Date()
       };
       
@@ -1020,8 +1032,8 @@ export default function BracketManager() {
             const updatedMatch = {
               ...match,
               scheduledTime: scheduledTime,
-              location: matchDetails.location || null,
-              notes: matchDetails.notes || null
+              location: location,
+              notes: notes
             };
             console.log('Updated match in bracket:', updatedMatch);
             return updatedMatch;
@@ -1183,6 +1195,14 @@ export default function BracketManager() {
     // Check if both participants are valid and neither is a bye
     const canSelectWinner = isMatchReadyToPlay(selectedMatch);
     
+    // Log current match details for debugging
+    console.log('Rendering modal with match details:', {
+      matchId: selectedMatch.id,
+      scheduledTime: matchDetails.scheduledTime,
+      location: matchDetails.location,
+      notes: matchDetails.notes
+    });
+    
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
@@ -1291,7 +1311,7 @@ export default function BracketManager() {
               <label>Location</label>
               <input 
                 type="text" 
-                value={matchDetails.location} 
+                value={matchDetails.location || ''} 
                 onChange={(e) => setMatchDetails({...matchDetails, location: e.target.value})}
                 placeholder="e.g., Station 3, Main Stage"
                 disabled={selectedMatch.winnerId}
@@ -1301,7 +1321,7 @@ export default function BracketManager() {
             <div className={styles.formGroup}>
               <label>Notes</label>
               <textarea 
-                value={matchDetails.notes} 
+                value={matchDetails.notes || ''} 
                 onChange={(e) => setMatchDetails({...matchDetails, notes: e.target.value})}
                 placeholder="Any additional information about this match"
                 rows={3}
