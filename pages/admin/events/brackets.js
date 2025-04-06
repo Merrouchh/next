@@ -475,6 +475,83 @@ export default function BracketManager() {
     }
   };
 
+  // Function to handle clearing a winner from a match
+  const handleClearWinner = async () => {
+    if (loading || !selectedMatch) return;
+    
+    if (!confirm(`Are you sure you want to clear the winner? This will remove the participant from all subsequent rounds.`)) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get the session for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
+      // Clear the winner using the clear-winner API endpoint
+      const response = await fetch(`/api/events/${selectedEvent.id}/bracket/clear-winner`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          matchId: selectedMatch.id
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to clear match winner: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.bracket) {
+        // Set timestamp to force client-side cache bust
+        const timestamp = Date.now();
+        
+        // Update our local state
+        setBracketData(data.bracket);
+        
+        // Find and update the selected match with the cleared winner
+        const updatedMatch = findMatchInBracket(data.bracket, selectedMatch.id);
+        if (updatedMatch) {
+          setSelectedMatch(updatedMatch);
+        } else {
+          setSelectedMatch(null);
+        }
+        
+        toast.success('Winner has been cleared successfully');
+      }
+    } catch (error) {
+      console.error('Error clearing winner:', error);
+      setError(error.message || 'Failed to clear winner');
+      toast.error(`Error: ${error.message || 'Failed to clear winner'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Helper function to find a match in the bracket data
+  const findMatchInBracket = (bracketData, matchId) => {
+    if (!bracketData) return null;
+    
+    for (const round of bracketData) {
+      const match = round.find(m => m.id === matchId);
+      if (match) return match;
+    }
+    
+    return null;
+  };
+
   // Get participant name by ID with team member names for duos
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
