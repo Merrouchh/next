@@ -456,20 +456,16 @@ export default function BracketManager() {
       const data = await response.json();
       
       if (data && data.bracket) {
-        // Set timestamp to force client-side cache bust
-        const timestamp = Date.now();
-        
-        // Open the public bracket view in a new tab to see the changes
-        window.open(`/events/${selectedEvent.id}/bracket?t=${timestamp}`, '_blank');
-        
         // Update our local state
         setBracketData(data.bracket);
+        toast.success('Winner set successfully!');
       }
       
       setSelectedMatch(null);
     } catch (error) {
       console.error('Error setting winner:', error);
       setError(error.message || 'Failed to set winner');
+      toast.error(`Error: ${error.message || 'Failed to set winner'}`);
     } finally {
       setLoading(false);
     }
