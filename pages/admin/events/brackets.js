@@ -1151,40 +1151,23 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Update the handleSaveMatchDetails function to improve state management
+  // Handle saving match details with guaranteed state update
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
     
-    // Save scroll position before any DOM updates
-    saveScrollPosition();
-    
     if (!selectedMatch || !selectedEvent) return;
     
     setLoading(true);
+    setError(null);
     
     try {
       console.log('Saving match details:', matchDetails);
       
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Check if match details already exist for this match
-      const { data: existingDetails, error: checkError } = await supabase
-        .from('event_match_details')
-        .select('id')
-        .eq('event_id', selectedEvent.id)
-        .eq('match_id', selectedMatch.id)
-        .single();
-      
-      console.log('Existing details:', existingDetails);
-      if (checkError) console.log('Check error:', checkError);
+      // Save current bracket data state before any changes
+      const currentBracketDataSnapshot = JSON.parse(JSON.stringify(bracketData));
       
       // Process the scheduled time using our helper function
       const scheduledTime = validateAndFormatScheduledTime(matchDetails.scheduledTime);
@@ -1197,6 +1180,31 @@ export default function BracketManager() {
       const notes = matchDetails.notes && matchDetails.notes.trim() !== '' 
         ? matchDetails.notes 
         : null;
+      
+      // Store the last scheduled time for next match suggestion
+      if (scheduledTime) {
+        console.log('Setting last scheduled time:', scheduledTime);
+        setLastScheduledTime(scheduledTime);
+        
+        try {
+          const formattedForInput = formatDatetimeForInput(scheduledTime);
+          console.log('Storing in localStorage:', formattedForInput);
+          localStorage.setItem('lastScheduledTime', formattedForInput);
+        } catch (e) {
+          console.error('Error storing in localStorage:', e);
+        }
+      }
+      
+      // Check if match details already exist for this match
+      const { data: existingDetails, error: checkError } = await supabase
+        .from('event_match_details')
+        .select('id')
+        .eq('event_id', selectedEvent.id)
+        .eq('match_id', selectedMatch.id)
+        .single();
+      
+      console.log('Existing details:', existingDetails);
+      if (checkError) console.log('Check error:', checkError);
       
       // Prepare the data to save - use null for empty strings to ensure database consistency
       const dataToSave = {
@@ -1244,44 +1252,73 @@ export default function BracketManager() {
         }
       }
       
-      // Store the last scheduled time for next match suggestion
-      if (scheduledTime) {
-        console.log('Setting last scheduled time:', scheduledTime);
-        setLastScheduledTime(scheduledTime);
-        
-        try {
-          const formattedForInput = formatDatetimeForInput(scheduledTime);
-          console.log('Storing in localStorage:', formattedForInput);
-          localStorage.setItem('lastScheduledTime', formattedForInput);
-        } catch (e) {
-          console.error('Error storing in localStorage:', e);
-        }
+      // Now fetch ALL match details to make sure we have the complete latest data
+      const { data: allMatchDetails, error: allMatchDetailsError } = await supabase
+        .from('event_match_details')
+        .select('*')
+        .eq('event_id', selectedEvent.id);
+      
+      if (allMatchDetailsError) {
+        console.error('Error fetching all match details:', allMatchDetailsError);
+        throw allMatchDetailsError;
       }
       
-      // Create the updated match details object with UI-friendly values (empty strings instead of null)
-      const updatedMatchDetails = {
-        scheduledTime: scheduledTime || '',
-        location: location || '',
-        notes: notes || ''
-      };
+      console.log('All match details:', allMatchDetails);
       
-      // Directly update the bracket data in state
-      const updatedBracket = updateMatchInBracketData(selectedMatch.id, updatedMatchDetails);
+      // Create a map of match details for faster lookup
+      const matchDetailsMap = {};
+      allMatchDetails.forEach(detail => {
+        if (detail && detail.match_id) {
+          matchDetailsMap[detail.match_id] = detail;
+        }
+      });
+      
+      console.log('Match details map:', matchDetailsMap);
+      
+      // Update the bracket data with all the details from database
+      const updatedBracket = currentBracketDataSnapshot.map(round => {
+        return round.map(match => {
+          // Get details from the map if they exist
+          const details = matchDetailsMap[match.id];
+          
+          if (details) {
+            return {
+              ...match,
+              scheduledTime: details.scheduled_time || '',
+              location: details.location || '',
+              notes: details.notes || ''
+            };
+          }
+          
+          // If not in our map but still in the current state, preserve existing details
+          return {
+            ...match,
+            scheduledTime: match.scheduledTime || '',
+            location: match.location || '',
+            notes: match.notes || ''
+          };
+        });
+      });
       
       // Show success message
       toast.success('Match details saved successfully!');
       
-      // Update bracket data immediately with our directly modified version
-      console.log('Setting directly updated bracket data');
+      // Before setting the state, double-check the first match details for debugging
+      if (updatedBracket[0] && updatedBracket[0][0]) {
+        console.log('First match in updated bracket:', {
+          id: updatedBracket[0][0].id,
+          scheduledTime: updatedBracket[0][0].scheduledTime,
+          hasDetails: Boolean(updatedBracket[0][0].scheduledTime || updatedBracket[0][0].location || updatedBracket[0][0].notes)
+        });
+      }
+      
+      // Update the bracket data with the refreshed data
       setBracketData(updatedBracket);
       
-      // Close modal after updating state
+      // Close modal
       setTimeout(() => {
         setSelectedMatch(null);
         setLoading(false);
-        
-        // Restore scroll position with longer delay after all updates
-        setTimeout(restoreScrollPosition, 100);
       }, 50);
       
     } catch (error) {
@@ -1289,8 +1326,6 @@ export default function BracketManager() {
       setError('Failed to save match details. Please try again.');
       toast.error('Failed to save match details. Please try again.');
       setLoading(false);
-      // Restore scroll position in case of error
-      restoreScrollPosition();
     }
   };
 
