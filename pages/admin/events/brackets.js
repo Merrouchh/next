@@ -992,7 +992,90 @@ export default function BracketManager() {
     setMatchDetails(prev => ({...prev, scheduledTime: formattedValue}));
   };
 
-  // Update the handleSaveMatchDetails function to correctly handle the bracket data structure
+  // Make a helper function to fetch the bracket data after saving match details
+  const refreshBracketAfterSave = async (eventId) => {
+    console.log('Refreshing bracket data after save for event:', eventId);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      const response = await fetch(`/api/events/${eventId}/bracket`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to refresh bracket data: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.bracket) {
+        // Fetch match details from database
+        const { data: matchDetailsData, error: matchDetailsError } = await supabase
+          .from('event_match_details')
+          .select('*')
+          .eq('event_id', eventId);
+        
+        if (matchDetailsError) {
+          console.error('Error fetching match details:', matchDetailsError);
+          return null;
+        }
+        
+        console.log('Refreshed match details data from database:', matchDetailsData);
+        
+        // Create a deep copy of the bracket data
+        let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
+        
+        // Create a map for faster lookups of match details
+        const detailsMap = {};
+        matchDetailsData.forEach(detail => {
+          if (detail && detail.match_id) {
+            detailsMap[detail.match_id] = detail;
+          }
+        });
+        
+        // Apply details to each match
+        for (let r = 0; r < enrichedBracket.length; r++) {
+          for (let m = 0; m < enrichedBracket[r].length; m++) {
+            const match = enrichedBracket[r][m];
+            const details = detailsMap[match.id];
+            
+            if (details) {
+              console.log(`Found details for match ${match.id} during refresh:`, details);
+              enrichedBracket[r][m] = {
+                ...match,
+                scheduledTime: details.scheduled_time || '',
+                location: details.location || '',
+                notes: details.notes || ''
+              };
+            } else {
+              enrichedBracket[r][m] = {
+                ...match,
+                scheduledTime: '',
+                location: '',
+                notes: ''
+              };
+            }
+          }
+        }
+        
+        console.log('Refreshed bracket data with details applied');
+        return enrichedBracket;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error refreshing bracket data:', error);
+      return null;
+    }
+  };
+
+  // Update the handleSaveMatchDetails function to refresh data from the API after saving
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1049,6 +1132,7 @@ export default function BracketManager() {
       
       console.log('Data to save:', dataToSave);
       
+      // Save to database
       if (existingDetails) {
         // Update existing record
         const result = await supabase
@@ -1084,80 +1168,11 @@ export default function BracketManager() {
         }
       }
       
-      // Keep track of the currently selected match ID
-      const savedMatchId = selectedMatch.id;
-      
-      console.log('Before update, bracketData structure:', {
-        isArray: Array.isArray(bracketData),
-        length: bracketData.length,
-        firstItem: bracketData[0] ? {
-          isArray: Array.isArray(bracketData[0]),
-          length: bracketData[0].length
-        } : null
-      });
-      
-      // CRITICAL FIX: Make sure we're working with the right data structure
-      // Update the local state with the new details
-      const updatedBracket = [...bracketData]; // Make a deep copy
-      
-      // Log a match sample before update
-      if (bracketData[0] && bracketData[0][0]) {
-        console.log('SAMPLE MATCH BEFORE UPDATE:', bracketData[0][0]);
-      }
-      
-      // Update matches in the bracket
-      for (let r = 0; r < updatedBracket.length; r++) {
-        if (!Array.isArray(updatedBracket[r])) {
-          console.error('Expected round to be an array, got:', updatedBracket[r]);
-          continue;
-        }
-        
-        for (let m = 0; m < updatedBracket[r].length; m++) {
-          const match = updatedBracket[r][m];
-          
-          if (match.id === savedMatchId) {
-            // This is the match we just updated
-            console.log(`Updating match ${match.id} in bracket data`);
-            updatedBracket[r][m] = {
-              ...match,
-              scheduledTime: scheduledTime || '',
-              location: location || '',
-              notes: notes || ''
-            };
-          } else {
-            // Make sure every match has the right properties
-            updatedBracket[r][m] = {
-              ...match,
-              scheduledTime: match.scheduledTime || '',
-              location: match.location || '',
-              notes: match.notes || ''
-            };
-          }
-        }
-      }
-      
-      // Log the updated bracket format
-      console.log('Updated bracket structure:', {
-        isArray: Array.isArray(updatedBracket),
-        length: updatedBracket.length,
-        firstItem: updatedBracket[0] ? {
-          isArray: Array.isArray(updatedBracket[0]),
-          length: updatedBracket[0].length
-        } : null
-      });
-      
-      // Log a match sample after update
-      if (updatedBracket[0] && updatedBracket[0][0]) {
-        console.log('SAMPLE MATCH AFTER UPDATE:', updatedBracket[0][0]);
-      }
-      
-      // Store the last scheduled time for next match suggestion (in the same format as input)
+      // Store the last scheduled time for next match suggestion
       if (scheduledTime) {
         console.log('Setting last scheduled time:', scheduledTime);
-        // Store it in the input-compatible format
         setLastScheduledTime(scheduledTime);
         
-        // Also store in localStorage for persistence
         try {
           const formattedForInput = formatDatetimeForInput(scheduledTime);
           console.log('Storing in localStorage:', formattedForInput);
@@ -1167,13 +1182,19 @@ export default function BracketManager() {
         }
       }
       
+      // Fetch updated bracket data from API - CRITICAL: This ensures we get fresh data
+      const refreshedBracket = await refreshBracketAfterSave(selectedEvent.id);
+      
       // Show success message
       toast.success('Match details saved successfully!');
       
-      // Update bracket data immediately to ensure the UI is updated correctly
-      setBracketData(updatedBracket);
+      // Update bracket data with refreshed data if available, otherwise keep current state
+      if (refreshedBracket) {
+        console.log('Setting refreshed bracket data');
+        setBracketData(refreshedBracket);
+      }
       
-      // Close modal after updating state to ensure data is preserved
+      // Close modal after updating state
       setTimeout(() => {
         setSelectedMatch(null);
         setLoading(false);
