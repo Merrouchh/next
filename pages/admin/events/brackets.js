@@ -1224,13 +1224,14 @@ export default function BracketManager() {
     }));
     
     // Restore scroll position after state update
-    setTimeout(restoreScrollPosition, 50);
+    restoreScrollPosition();
   };
 
   // Toggle all rounds
   const toggleAllRounds = (expand) => {
     // Save scroll position before toggling all rounds
     saveScrollPosition();
+    
     
     if (!bracketData) return;
     
@@ -1742,71 +1743,77 @@ export default function BracketManager() {
 
   // Update the scroll position save/restore functions to target the correct element
   const saveScrollPosition = () => {
-    const bracketSection = document.getElementById('bracketSection');
-    const bracketMatchesList = document.getElementById('bracketMatchesList');
-    
-    if (bracketSection) {
-      scrollPositionRef.current.bracketSection = { 
-        x: bracketSection.scrollLeft, 
-        y: bracketSection.scrollTop 
-      };
+    try {
+      const bracketSection = document.getElementById('bracketSection');
+      const bracketMatchesList = document.getElementById('bracketMatchesList');
+      const windowScrollPos = { x: window.pageXOffset || window.scrollX, y: window.pageYOffset || window.scrollY };
+      
+      console.log('Saving scroll positions...');
+      
+      if (bracketSection) {
+        scrollPositionRef.current.bracketSection = { 
+          x: bracketSection.scrollLeft, 
+          y: bracketSection.scrollTop 
+        };
+        console.log('Saved bracketSection position:', scrollPositionRef.current.bracketSection);
+      }
+      
+      if (bracketMatchesList) {
+        scrollPositionRef.current.bracketMatchesList = { 
+          x: bracketMatchesList.scrollLeft, 
+          y: bracketMatchesList.scrollTop 
+        };
+        console.log('Saved bracketMatchesList position:', scrollPositionRef.current.bracketMatchesList);
+      }
+      
+      scrollPositionRef.current.window = windowScrollPos;
+      console.log('Saved window position:', windowScrollPos);
+    } catch (err) {
+      console.error('Error saving scroll positions:', err);
     }
-    
-    if (bracketMatchesList) {
-      scrollPositionRef.current.bracketMatchesList = { 
-        x: bracketMatchesList.scrollLeft, 
-        y: bracketMatchesList.scrollTop 
-      };
-    }
-    
-    scrollPositionRef.current.window = {
-      x: window.scrollX,
-      y: window.scrollY
-    };
-    
-    console.log('Saved scroll positions:', scrollPositionRef.current);
   };
 
   // Improve restore function to handle scrolling more robustly
   const restoreScrollPosition = () => {
-    // Use a longer timeout to ensure DOM is updated
-    setTimeout(() => {
+    const applyScrollPositions = () => {
       try {
         const bracketSection = document.getElementById('bracketSection');
         const bracketMatchesList = document.getElementById('bracketMatchesList');
         
         if (bracketSection && scrollPositionRef.current.bracketSection) {
           console.log('Restoring bracketSection scroll to:', scrollPositionRef.current.bracketSection);
-          bracketSection.scrollTo({
-            left: scrollPositionRef.current.bracketSection.x,
-            top: scrollPositionRef.current.bracketSection.y,
-            behavior: 'auto'
-          });
+          bracketSection.scrollLeft = scrollPositionRef.current.bracketSection.x;
+          bracketSection.scrollTop = scrollPositionRef.current.bracketSection.y;
         }
         
         if (bracketMatchesList && scrollPositionRef.current.bracketMatchesList) {
           console.log('Restoring bracketMatchesList scroll to:', scrollPositionRef.current.bracketMatchesList);
-          bracketMatchesList.scrollTo({
-            left: scrollPositionRef.current.bracketMatchesList.x,
-            top: scrollPositionRef.current.bracketMatchesList.y,
-            behavior: 'auto'
-          });
+          bracketMatchesList.scrollLeft = scrollPositionRef.current.bracketMatchesList.x;
+          bracketMatchesList.scrollTop = scrollPositionRef.current.bracketMatchesList.y;
         }
         
         if (scrollPositionRef.current.window) {
           console.log('Restoring window scroll to:', scrollPositionRef.current.window);
-          window.scrollTo({
-            left: scrollPositionRef.current.window.x,
-            top: scrollPositionRef.current.window.y,
-            behavior: 'auto'
-          });
+          window.scrollTo(
+            scrollPositionRef.current.window.x,
+            scrollPositionRef.current.window.y
+          );
         }
         
-        console.log('Restored all scroll positions');
+        console.log('Scroll positions restored');
       } catch (err) {
         console.error('Error restoring scroll position:', err);
       }
-    }, 300); // Longer delay to ensure DOM updates are complete
+    };
+
+    // First attempt at time 0
+    applyScrollPositions();
+    
+    // Then retry a few times with increasing delays to ensure it works
+    // even after React has fully rendered the updated components
+    setTimeout(applyScrollPositions, 100);
+    setTimeout(applyScrollPositions, 300);
+    setTimeout(applyScrollPositions, 500);
   };
 
   // Add console logging to better track match details throughout the lifecycle
