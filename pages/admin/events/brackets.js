@@ -511,21 +511,31 @@ export default function BracketManager() {
       const data = await response.json();
       
       if (data && data.bracket) {
-        // Set timestamp to force client-side cache bust
-        const timestamp = Date.now();
-        
         // Update our local state
         setBracketData(data.bracket);
         
-        // Find and update the selected match with the cleared winner
+        // Find the updated match in the bracket data
         const updatedMatch = findMatchInBracket(data.bracket, selectedMatch.id);
+        
         if (updatedMatch) {
-          setSelectedMatch(updatedMatch);
+          // Important: Create a complete copy of the match to ensure React detects the change
+          const updatedMatchCopy = JSON.parse(JSON.stringify(updatedMatch));
+          console.log('Updated match after clearing winner:', updatedMatchCopy);
+          
+          // Ensure the winnerId is definitely cleared
+          updatedMatchCopy.winnerId = null;
+          
+          // Update the selected match with the cleared winner
+          setSelectedMatch(updatedMatchCopy);
         } else {
+          // If we can't find the match, close the modal
+          console.error('Could not find the updated match in bracket data');
           setSelectedMatch(null);
         }
         
         toast.success('Winner has been cleared successfully');
+      } else {
+        throw new Error('Invalid response data');
       }
     } catch (error) {
       console.error('Error clearing winner:', error);
@@ -1323,18 +1333,24 @@ export default function BracketManager() {
   const renderMatchDetailsModal = () => {
     if (!selectedMatch) return null;
     
+    // Get participant names
     const participant1Name = getParticipantName(selectedMatch.participant1Id);
     const participant2Name = getParticipantName(selectedMatch.participant2Id);
     
-    // Get the last scheduled time from previous match using our helper function
+    // Get the last scheduled time from previous match
     const previousMatchTime = findPreviousMatchTime(selectedMatch.id);
     
     // Check if both participants are valid and neither is a bye
     const canSelectWinner = isMatchReadyToPlay(selectedMatch);
     
-    // Log current match details for debugging
+    // Explicitly check if match has a winner to prevent UI issues
+    const hasWinner = Boolean(selectedMatch.winnerId);
+    
+    // Log current match details and winner state for debugging
     console.log('Rendering modal with match details:', {
       matchId: selectedMatch.id,
+      winnerId: selectedMatch.winnerId,
+      hasWinner: hasWinner,
       scheduledTime: matchDetails.scheduledTime,
       location: matchDetails.location,
       notes: matchDetails.notes
@@ -1361,34 +1377,36 @@ export default function BracketManager() {
             }}
           >
             <div className={styles.matchParticipants}>
-              <div className={`${styles.modalParticipant} ${selectedMatch.winnerId === selectedMatch.participant1Id ? styles.winner : ''}`}>
+              <div className={`${styles.modalParticipant} ${hasWinner && selectedMatch.winnerId === selectedMatch.participant1Id ? styles.winner : ''}`}>
                 {participant1Name}
-                {selectedMatch.winnerId === selectedMatch.participant1Id && (
+                {hasWinner && selectedMatch.winnerId === selectedMatch.participant1Id && (
                   <FaCrown className={styles.crownIcon} />
                 )}
               </div>
               <div className={styles.versus}>vs</div>
-              <div className={`${styles.modalParticipant} ${selectedMatch.winnerId === selectedMatch.participant2Id ? styles.winner : ''}`}>
+              <div className={`${styles.modalParticipant} ${hasWinner && selectedMatch.winnerId === selectedMatch.participant2Id ? styles.winner : ''}`}>
                 {participant2Name}
-                {selectedMatch.winnerId === selectedMatch.participant2Id && (
+                {hasWinner && selectedMatch.winnerId === selectedMatch.participant2Id && (
                   <FaCrown className={styles.crownIcon} />
                 )}
               </div>
             </div>
             
-            {canSelectWinner && !selectedMatch.winnerId && (
+            {canSelectWinner && !hasWinner && (
               <div className={styles.winnerSelection}>
                 <h4>Select Winner</h4>
                 <div className={styles.winnerButtons}>
                   <button 
                     className={styles.winnerButton}
                     onClick={() => handleSetWinner(selectedMatch.id, selectedMatch.participant1Id)}
+                    type="button"
                   >
                     {participant1Name} Wins
                   </button>
                   <button 
                     className={styles.winnerButton}
                     onClick={() => handleSetWinner(selectedMatch.id, selectedMatch.participant2Id)}
+                    type="button"
                   >
                     {participant2Name} Wins
                   </button>
@@ -1396,7 +1414,7 @@ export default function BracketManager() {
               </div>
             )}
             
-            {selectedMatch.winnerId && (
+            {hasWinner && (
               <div className={styles.winnerDisplay}>
                 <h4>Winner</h4>
                 <div className={styles.winnerName}>
@@ -1405,13 +1423,14 @@ export default function BracketManager() {
                 <button 
                   className={styles.undoWinnerButton}
                   onClick={handleClearWinner}
+                  type="button"
                 >
                   <FaUndo /> Undo Winner Selection
                 </button>
               </div>
             )}
             
-            {!selectedMatch.winnerId && isFirstRoundMatch() && (
+            {!hasWinner && isFirstRoundMatch() && (
               <div className={styles.opponentSwapSection}>
                 <h4>Swap Participants</h4>
                 <div className={styles.opponentButtons}>
@@ -1419,6 +1438,7 @@ export default function BracketManager() {
                     className={styles.opponentButton} 
                     onClick={() => handleChangeOpponent('participant1')}
                     disabled={selectedMatch.participant1Id === 'bye'}
+                    type="button"
                   >
                     <FaExchangeAlt /> Swap {participant1Name}
                   </button>
@@ -1426,6 +1446,7 @@ export default function BracketManager() {
                     className={styles.opponentButton} 
                     onClick={() => handleChangeOpponent('participant2')}
                     disabled={selectedMatch.participant2Id === 'bye'}
+                    type="button"
                   >
                     <FaExchangeAlt /> Swap {participant2Name}
                   </button>
@@ -1442,7 +1463,7 @@ export default function BracketManager() {
                 type="datetime-local" 
                 value={matchDetails.scheduledTime} 
                 onChange={(e) => handleDatetimeInputChange(e.target.value)}
-                disabled={selectedMatch.winnerId}
+                disabled={hasWinner}
                 pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
                 step="60"
               />
@@ -1458,7 +1479,7 @@ export default function BracketManager() {
                 value={matchDetails.location || ''} 
                 onChange={(e) => setMatchDetails({...matchDetails, location: e.target.value})}
                 placeholder="e.g., Station 3, Main Stage"
-                disabled={selectedMatch.winnerId}
+                disabled={hasWinner}
               />
             </div>
             
@@ -1469,18 +1490,18 @@ export default function BracketManager() {
                 onChange={(e) => setMatchDetails({...matchDetails, notes: e.target.value})}
                 placeholder="Any additional information about this match"
                 rows={3}
-                disabled={selectedMatch.winnerId}
+                disabled={hasWinner}
               />
             </div>
             
-            {(lastScheduledTime || previousMatchTime) && !selectedMatch.scheduledTime && (
+            {(lastScheduledTime || previousMatchTime) && !matchDetails.scheduledTime && (
               <div className={styles.templateTimeInfo}>
                 Using previous match time as template
               </div>
             )}
             
             <div className={styles.modalActions}>
-              {!selectedMatch.winnerId && (
+              {!hasWinner && (
                 <>
                   <button 
                     className={styles.swapButton}
@@ -1490,6 +1511,7 @@ export default function BracketManager() {
                       handleSwapParticipants(selectedMatch.id);
                     }}
                     disabled={!selectedMatch.participant1Id || !selectedMatch.participant2Id}
+                    type="button"
                   >
                     <FaExchangeAlt /> Swap Participants
                   </button>
