@@ -938,7 +938,10 @@ export default function BracketManager() {
 
   // Modify handleSaveMatchDetails to only update state and avoid any page refreshes
   const handleSaveMatchDetails = async (e) => {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     // Save scroll position before any DOM updates
     saveScrollPosition();
@@ -1215,7 +1218,14 @@ export default function BracketManager() {
               &times;
             </button>
           </div>
-          <div className={styles.modalBody}>
+          <form 
+            className={styles.modalBody}
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSaveMatchDetails(e);
+            }}
+          >
             <div className={styles.matchParticipants}>
               <div className={`${styles.modalParticipant} ${selectedMatch.winnerId === selectedMatch.participant1Id ? styles.winner : ''}`}>
                 {participant1Name}
@@ -1340,15 +1350,19 @@ export default function BracketManager() {
                 <>
                   <button 
                     className={styles.swapButton}
-                    onClick={() => handleSwapParticipants(selectedMatch.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSwapParticipants(selectedMatch.id);
+                    }}
                     disabled={!selectedMatch.participant1Id || !selectedMatch.participant2Id}
                   >
                     <FaExchangeAlt /> Swap Participants
                   </button>
                   
                   <button 
+                    type="submit"
                     className={styles.saveButton}
-                    onClick={handleSaveMatchDetails}
                   >
                     Save Details
                   </button>
@@ -1364,7 +1378,7 @@ export default function BracketManager() {
                 <FaTrophy /> View Public Bracket
               </Link>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     );
