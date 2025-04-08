@@ -1148,7 +1148,7 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Replace your handleSaveMatchDetails function with this simplified version
+  // Replace your handleSaveMatchDetails function with this optimized version
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1246,15 +1246,44 @@ export default function BracketManager() {
         }
       }
       
-      // CRITICAL: Update our local match details map
+      // CRITICAL: Update our local match details map with preserved formatting
+      const updatedDetails = {
+        scheduledTime: scheduledTime || '',
+        location: location || '',
+        notes: notes || ''
+      };
+      
       setMatchDetailsMap(prev => ({
         ...prev,
-        [selectedMatch.id]: {
-          scheduledTime: scheduledTime || '',
-          location: location || '',
-          notes: notes || ''
-        }
+        [selectedMatch.id]: updatedDetails
       }));
+      
+      console.log('Updated matchDetailsMap for match', selectedMatch.id, 'with:', updatedDetails);
+      
+      // Update the bracketData in memory for immediate UI feedback
+      if (bracketData) {
+        const updatedBracketData = JSON.parse(JSON.stringify(bracketData));
+        
+        // Find and update the match in the bracket data
+        let matchUpdated = false;
+        for (let r = 0; r < updatedBracketData.length && !matchUpdated; r++) {
+          for (let m = 0; m < updatedBracketData[r].length && !matchUpdated; m++) {
+            if (updatedBracketData[r][m].id === selectedMatch.id) {
+              updatedBracketData[r][m] = {
+                ...updatedBracketData[r][m],
+                scheduledTime: scheduledTime || '',
+                location: location || '',
+                notes: notes || ''
+              };
+              matchUpdated = true;
+            }
+          }
+        }
+        
+        if (matchUpdated) {
+          setBracketData(updatedBracketData);
+        }
+      }
       
       // Success message
       toast.success('Match details saved successfully!');
@@ -1961,17 +1990,16 @@ export default function BracketManager() {
       // Extract all match details from bracket data
       bracketData.forEach(round => {
         round.forEach(match => {
-          if (match.scheduledTime || match.location || match.notes) {
-            detailsMap[match.id] = {
-              scheduledTime: match.scheduledTime || '',
-              location: match.location || '',
-              notes: match.notes || ''
-            };
-          }
+          // Always store match details in the map, even if empty
+          detailsMap[match.id] = {
+            scheduledTime: match.scheduledTime || '',
+            location: match.location || '',
+            notes: match.notes || ''
+          };
         });
       });
       
-      console.log('Initialized matchDetailsMap from bracketData:', detailsMap);
+      console.log('Initialized matchDetailsMap from bracketData with', Object.keys(detailsMap).length, 'entries');
       setMatchDetailsMap(detailsMap);
     }
   }, [bracketData]);
