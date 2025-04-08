@@ -703,6 +703,7 @@ export default function BracketManager() {
         throw new Error('No authentication token available');
       }
       
+      // Fetch the bracket data
       const response = await fetch(`/api/events/${eventId}/bracket`, {
         method: 'GET',
         headers: {
@@ -715,6 +716,7 @@ export default function BracketManager() {
         console.log('No bracket data found (404)');
         setBracketData(null);
         setParticipants([]);
+        setLoading(false);
         return;
       }
       
@@ -726,107 +728,77 @@ export default function BracketManager() {
       const data = await response.json();
       console.log('Received bracket data from API:', data);
       
-      if (data && data.bracket) {
-        // Fetch additional match details from database if they exist
-        console.log('Fetching match details for event:', eventId);
-        const { data: matchDetailsData, error: matchDetailsError } = await supabase
-          .from('event_match_details')
-          .select('*')
-          .eq('event_id', eventId);
-        
-        if (matchDetailsError) {
-          console.error('Error fetching match details:', matchDetailsError);
-        }
-        
-        console.log('Match details data from database:', matchDetailsData);
-        
-        // Create a deep copy of the bracket data to avoid reference issues
-        let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
-        
-        // If we have additional match details, merge them into the bracket data
-        if (!matchDetailsError && matchDetailsData && matchDetailsData.length > 0) {
-          console.log('Enriching bracket with match details - found', matchDetailsData.length, 'details records');
-          
-          // Create a map for faster lookups
-          const detailsMap = {};
-          matchDetailsData.forEach(detail => {
-            if (detail && detail.match_id) {
-              detailsMap[detail.match_id] = detail;
-            }
-          });
-          
-          // Log the first few entries in the details map to verify
-          const sampleKeys = Object.keys(detailsMap).slice(0, 3);
-          sampleKeys.forEach(key => {
-            console.log(`Details map entry for match ${key}:`, detailsMap[key]);
-          });
-          
-          // Apply details to each match
-          for (let r = 0; r < enrichedBracket.length; r++) {
-            for (let m = 0; m < enrichedBracket[r].length; m++) {
-              const match = enrichedBracket[r][m];
-              const details = detailsMap[match.id];
-              
-              if (details) {
-                console.log(`Found details for match ${match.id}:`, details);
-                // Explicitly handle each field to avoid undefined/null issues
-                enrichedBracket[r][m] = {
-                  ...match,
-                  scheduledTime: details.scheduled_time || '',
-                  location: details.location || '',
-                  notes: details.notes || ''
-                };
-              } else {
-                // Ensure match always has these properties even if no details exist
-                enrichedBracket[r][m] = {
-                  ...match,
-                  scheduledTime: match.scheduledTime || '',
-                  location: match.location || '',
-                  notes: match.notes || ''
-                };
-              }
-            }
-          }
-          
-          const sampleMatch = enrichedBracket[0][0];
-          console.log('Enriched bracket with match details. Sample match:', {
-            id: sampleMatch.id,
-            scheduledTime: sampleMatch.scheduledTime,
-            location: sampleMatch.location,
-            notes: sampleMatch.notes
-          });
-        } else {
-          console.log('No match details found to enrich bracket data');
-          // Still ensure all matches have the expected properties
-          for (let r = 0; r < enrichedBracket.length; r++) {
-            for (let m = 0; m < enrichedBracket[r].length; m++) {
-              const match = enrichedBracket[r][m];
-              enrichedBracket[r][m] = {
-                ...match,
-                scheduledTime: match.scheduledTime || '',
-                location: match.location || '',
-                notes: match.notes || ''
-              };
-            }
-          }
-        }
-        
-        console.log('Setting enriched bracket data with first match:', enrichedBracket[0][0]);
-        setBracketData(enrichedBracket);
-        setParticipants(data.participants || []);
-        
-        // Initialize expanded rounds - ensure the first round is expanded by default
-        const initialExpandedState = {};
-        enrichedBracket.forEach((_, index) => {
-          // Expand only the first round by default
-          initialExpandedState[index] = index === 0;
-        });
-        setExpandedRounds(initialExpandedState);
-      } else {
+      if (!data || !data.bracket) {
         console.log('No valid bracket data in response');
         setBracketData(null);
         setParticipants([]);
+        setLoading(false);
+        return;
       }
+      
+      // Fetch additional match details
+      const { data: matchDetailsData, error: matchDetailsError } = await supabase
+        .from('event_match_details')
+        .select('*')
+        .eq('event_id', eventId);
+      
+      if (matchDetailsError) {
+        console.error('Error fetching match details:', matchDetailsError);
+      }
+      
+      // Create a map of match details for faster lookup
+      const detailsMap = {};
+      if (matchDetailsData && matchDetailsData.length > 0) {
+        matchDetailsData.forEach(detail => {
+          if (detail && detail.match_id) {
+            detailsMap[detail.match_id] = detail;
+          }
+        });
+      }
+      
+      // Create a deep copy of the bracket data to avoid reference issues
+      let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
+      
+      // Apply the match details to the bracket data
+      for (let r = 0; r < enrichedBracket.length; r++) {
+        for (let m = 0; m < enrichedBracket[r].length; m++) {
+          const match = enrichedBracket[r][m];
+          const details = detailsMap[match.id];
+          
+          // Apply details if they exist, otherwise ensure empty strings
+          enrichedBracket[r][m] = {
+            ...match,
+            scheduledTime: details?.scheduled_time || '',
+            location: details?.location || '',
+            notes: details?.notes || ''
+          };
+        }
+      }
+      
+      // Initialize the matchDetailsMap from the enriched bracket
+      const matchDetailsMapData = {};
+      enrichedBracket.forEach(round => {
+        round.forEach(match => {
+          matchDetailsMapData[match.id] = {
+            scheduledTime: match.scheduledTime || '',
+            location: match.location || '',
+            notes: match.notes || ''
+          };
+        });
+      });
+      
+      // Set state with the enriched data
+      setBracketData(enrichedBracket);
+      setParticipants(data.participants || []);
+      setMatchDetailsMap(matchDetailsMapData);
+      
+      // Initialize expanded rounds - ensure the first round is expanded by default
+      const initialExpandedState = {};
+      enrichedBracket.forEach((_, index) => {
+        initialExpandedState[index] = index === 0;  // Expand only first round
+      });
+      setExpandedRounds(initialExpandedState);
+      
     } catch (error) {
       console.error('Error fetching bracket data:', error);
       setError(error.message || 'Failed to load bracket data');
@@ -839,166 +811,94 @@ export default function BracketManager() {
   const validateAndFormatScheduledTime = (timeInput) => {
     if (!timeInput) return null;
     
-    console.log('Validating time input:', timeInput);
-    
     try {
-      // Handle potential input format issues
-      let inputToUse = timeInput;
-      
-      // Check if input contains the 'T' separator for datetime-local
-      if (!inputToUse.includes('T') && inputToUse.includes(' ')) {
-        // Try to convert space-separated format to T-separated format
-        console.log('Converting space-separated format to T-separated format');
-        const [datePart, timePart] = inputToUse.split(' ');
+      // Handle formats like "YYYY-MM-DD HH:MM" and convert to "YYYY-MM-DDThh:mm"
+      let formattedInput = timeInput;
+      if (timeInput.includes(' ') && !timeInput.includes('T')) {
+        const [datePart, timePart] = timeInput.split(' ');
         if (datePart && timePart) {
-          inputToUse = `${datePart}T${timePart}`;
-          console.log('Converted input:', inputToUse);
+          formattedInput = `${datePart}T${timePart}`;
         }
       }
       
-      // Parse the time components to ensure correct format
-      const parsedTime = parseTimeWithMeridiem(inputToUse);
-      console.log('Parsed time components:', parsedTime);
+      // Create a date object from the input
+      const date = new Date(formattedInput);
       
-      if (parsedTime) {
-        // Create a new date with these exact hour/minute values
-        let date;
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date created from input');
+        return null;
+      }
+      
+      // Handle time part separately to avoid timezone issues
+      const timeMatch = formattedInput.match(/(\d{1,2}):(\d{1,2})$/);
+      if (timeMatch) {
+        const hours = parseInt(timeMatch[1], 10);
+        const minutes = parseInt(timeMatch[2], 10);
         
-        try {
-          date = new Date(inputToUse);
-          
-          // Check if the date is valid
-          if (isNaN(date.getTime())) {
-            console.error('Invalid date created from input');
-            return null;
-          }
-          
-          // Force the specific hours and minutes to make sure they're preserved
-          date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
-          
-          // If hours don't match what we set, there might be a timezone issue
-          const actualHours = date.getHours();
-          if (actualHours !== parsedTime.hours) {
-            console.log('Hours mismatch, adjusting for timezone issue', { 
-              expected: parsedTime.hours, 
-              actual: actualHours 
-            });
-            
-            // Try to correct by creating a new Date with the local timezone offset
-            const localDate = new Date();
-            const timezoneOffset = localDate.getTimezoneOffset() * 60000; // convert to milliseconds
-            
-            // Try to create a date with timezone adjustment
-            date = new Date(date.getTime() - timezoneOffset);
-            date.setHours(parsedTime.hours, parsedTime.minutes, 0, 0);
-          }
-          
-          // Format for database (ISO string)
-          const formattedTime = date.toISOString();
-          console.log('Final scheduled time for database:', formattedTime);
-          console.log('Time in local format:', date.toString());
-          
-          return formattedTime;
-        } catch (dateError) {
-          console.error('Error creating date object:', dateError);
+        // Validate hours and minutes
+        if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+          // Set the exact time to avoid timezone issues
+          date.setHours(hours, minutes, 0, 0);
+        } else {
+          console.error('Invalid hours or minutes', { hours, minutes });
           return null;
         }
       }
       
-      return null;
+      // Return as ISO string for database storage
+      return date.toISOString();
     } catch (error) {
-      console.error('Validation error:', error);
+      console.error('Error validating time input:', error);
       return null;
     }
   };
 
   // Create a helper function to handle datetime input changes
   const handleDatetimeInputChange = (value) => {
-    console.log("Time changed to:", value);
-    
     // Empty value case
     if (!value) {
       setMatchDetails(prev => ({...prev, scheduledTime: ''}));
       return;
     }
     
-    // Handle potential format differences from mobile devices
+    // Normalize format from "YYYY-MM-DD HH:MM" to "YYYY-MM-DDThh:mm" for consistency
     let formattedValue = value;
-    
-    // Special handling for mobile inputs that might include spaces instead of T
     if (value.includes(' ') && !value.includes('T')) {
-      try {
-        // Try to normalize the format from "YYYY-MM-DD HH:MM" to "YYYY-MM-DDThh:mm"
-        const [datePart, timePart] = value.split(' ');
-        if (datePart && timePart) {
-          formattedValue = `${datePart}T${timePart}`;
-          console.log("Normalized space-separated format to:", formattedValue);
-        }
-      } catch (e) {
-        console.error("Error normalizing datetime format:", e);
+      const [datePart, timePart] = value.split(' ');
+      if (datePart && timePart) {
+        formattedValue = `${datePart}T${timePart}`;
       }
     }
     
-    // Check if this might be a default 12:00 time
     try {
-      const date = new Date(formattedValue);
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
+      // Parse the date to extract components
+      const dateObj = new Date(formattedValue);
       
-      console.log("Time parsed as:", date.toString());
-      console.log("Hours detected:", hours, "Minutes:", minutes);
+      // Handle browser default time (12:00) by changing it to 16:00
+      if (dateObj.getHours() === 12 && dateObj.getMinutes() === 0) {
+        // Extract date part
+        const datePart = formattedValue.split('T')[0];
+        // Set time to 16:00 (4PM)
+        formattedValue = `${datePart}T16:00`;
+      }
       
-      // Try to extract input hour directly from string to avoid timezone issues
-      let inputHour, inputMinutes;
-      
+      // Handle possible timezone issues by extracting time directly from input
       if (formattedValue.includes('T')) {
-        [inputHour, inputMinutes] = formattedValue.split('T')[1].split(':').map(num => parseInt(num, 10));
-      } else if (formattedValue.includes(' ')) {
-        [inputHour, inputMinutes] = formattedValue.split(' ')[1].split(':').map(num => parseInt(num, 10));
-      }
-      
-      console.log("Direct extraction from input string - Hour:", inputHour, "Minutes:", inputMinutes);
-      
-      // If input hour is valid and different from parsed hour (timezone issue)
-      if (!isNaN(inputHour) && !isNaN(inputMinutes) && inputHour !== hours) {
-        console.log("Detected time parsing issue, using directly extracted time");
+        const [datePart, timePart] = formattedValue.split('T');
+        const [inputHour, inputMinute] = timePart.split(':').map(num => parseInt(num, 10));
         
-        // Create adjusted value using the extracted values
-        const [datePart] = formattedValue.includes('T') 
-          ? formattedValue.split('T') 
-          : formattedValue.split(' ');
-          
-        const adjustedValue = `${datePart}T${String(inputHour).padStart(2, '0')}:${String(inputMinutes).padStart(2, '0')}`;
-        console.log("Using directly extracted time:", adjustedValue);
-        
-        setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
-        return;
-      }
-      
-      // If it's exactly 12:00, and user just selected a date (browser default behavior)
-      if (hours === 12 && minutes === 0) {
-        console.log("Detected browser default time, adjusting to 16:00");
-        // Create a new date with 4 PM instead
-        date.setHours(16, 0, 0, 0);
-        
-        // Format back to HTML datetime-local format
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const adjustedHours = "16";
-        const adjustedMinutes = "00";
-        
-        const adjustedValue = `${year}-${month}-${day}T${adjustedHours}:${adjustedMinutes}`;
-        console.log("Adjusted time to:", adjustedValue);
-        
-        setMatchDetails(prev => ({...prev, scheduledTime: adjustedValue}));
-        return;
+        // If parsed time doesn't match input time, create a corrected version
+        if (!isNaN(inputHour) && !isNaN(inputMinute) && 
+            (inputHour !== dateObj.getHours() || inputMinute !== dateObj.getMinutes())) {
+          formattedValue = `${datePart}T${String(inputHour).padStart(2, '0')}:${String(inputMinute).padStart(2, '0')}`;
+        }
       }
     } catch (e) {
       console.error("Error processing datetime input:", e);
     }
     
-    // If not a special case, use the formatted value
+    // Update state with the formatted value
     setMatchDetails(prev => ({...prev, scheduledTime: formattedValue}));
   };
 
