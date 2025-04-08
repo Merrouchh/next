@@ -1185,6 +1185,14 @@ export default function BracketManager() {
       match.participant2Name !== 'Bye';
   };
 
+  // Helper function to view the public bracket in a new tab
+  const handleViewPublicBracket = () => {
+    // Set timestamp to force client-side cache bust
+    const timestamp = Date.now();
+    // Open the public bracket view in a new tab
+    window.open(`/events/${selectedEvent?.id}/bracket?t=${timestamp}`, '_blank');
+  };
+
   // Render match details modal
   const renderMatchDetailsModal = () => {
     if (!selectedMatch) return null;
@@ -1369,14 +1377,13 @@ export default function BracketManager() {
                 </>
               )}
               
-              <Link 
-                href={`/events/${selectedEvent?.id}/bracket`}
+              <button 
+                type="button"
                 className={styles.viewBracketButton}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={handleViewPublicBracket}
               >
                 <FaTrophy /> View Public Bracket
-              </Link>
+              </button>
             </div>
           </form>
         </div>
@@ -1799,14 +1806,12 @@ export default function BracketManager() {
               <div className={styles.bracketActions}>
                 {bracketData && (
                   <>
-                    <Link 
-                      href={`/events/${selectedEvent?.id}/bracket`}
+                    <button 
                       className={styles.viewBracketButton}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={handleViewPublicBracket}
                     >
                       <FaTrophy /> View Public Bracket
-                    </Link>
+                    </button>
                     <button 
                       className={styles.resetTimesButton}
                       onClick={handleResetMatchTimes}
