@@ -1148,7 +1148,7 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Replace your handleSaveMatchDetails function with this optimized version
+  // Replace your handleSaveMatchDetails function with this improved version
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1183,7 +1183,7 @@ export default function BracketManager() {
         updated_at: new Date()
       };
       
-      console.log('Data to save:', dataToSave);
+      console.log('Data to save to database:', dataToSave);
       
       // Check if match details already exist for this match
       const { data: existingDetails, error: checkError } = await supabase
@@ -1246,19 +1246,24 @@ export default function BracketManager() {
         }
       }
       
-      // CRITICAL: Update our local match details map with preserved formatting
-      const updatedDetails = {
+      // Format cleaned data for UI storage - very important
+      const cleanDetailsForUI = {
         scheduledTime: scheduledTime || '',
         location: location || '',
         notes: notes || ''
       };
       
-      setMatchDetailsMap(prev => ({
-        ...prev,
-        [selectedMatch.id]: updatedDetails
-      }));
+      console.log('Clean details for UI:', cleanDetailsForUI);
       
-      console.log('Updated matchDetailsMap for match', selectedMatch.id, 'with:', updatedDetails);
+      // CRITICAL: Update our local match details map with the clean data
+      setMatchDetailsMap(prev => {
+        const updated = {
+          ...prev,
+          [selectedMatch.id]: cleanDetailsForUI
+        };
+        console.log(`Updated matchDetailsMap for match ${selectedMatch.id}:`, updated[selectedMatch.id]);
+        return updated;
+      });
       
       // Update the bracketData in memory for immediate UI feedback
       if (bracketData) {
@@ -1276,21 +1281,37 @@ export default function BracketManager() {
                 notes: notes || ''
               };
               matchUpdated = true;
+              console.log(`Updated match ${selectedMatch.id} in bracketData:`, updatedBracketData[r][m]);
             }
           }
         }
         
         if (matchUpdated) {
+          // Force re-render by setting a new object
+          console.log('Setting updated bracket data');
           setBracketData(updatedBracketData);
         }
+      }
+      
+      // Re-render the updated details by refreshing selectedMatch too
+      if (selectedMatch) {
+        console.log('Updating selectedMatch with new details');
+        setSelectedMatch({
+          ...selectedMatch,
+          scheduledTime: scheduledTime || '',
+          location: location || '',
+          notes: notes || ''
+        });
       }
       
       // Success message
       toast.success('Match details saved successfully!');
       
       // Close modal
-      setSelectedMatch(null);
-      setLoading(false);
+      setTimeout(() => {
+        setSelectedMatch(null);
+        setLoading(false);
+      }, 300);
       
     } catch (error) {
       console.error('Error saving match details:', error);
@@ -2021,6 +2042,35 @@ export default function BracketManager() {
     // Always show "Edit Details" for consistency
     const buttonText = 'Edit Details';
     
+    // Format the date display
+    const formattedDate = scheduledTimeToShow ? (
+      (() => {
+        try {
+          const date = new Date(scheduledTimeToShow);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleString([], {
+              month: 'short', 
+              day: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit'
+            });
+          }
+          console.log(`Invalid date for match ${match.id}:`, scheduledTimeToShow);
+          return 'Invalid date';
+        } catch (e) {
+          console.error('Error formatting date:', e, scheduledTimeToShow);
+          return 'Invalid date';
+        }
+      })()
+    ) : '';
+    
+    console.log(`Match ${match.id} render details:`, { 
+      scheduledTimeToShow, 
+      formattedDate,
+      locationToShow, 
+      notesToShow
+    });
+    
     return (
       <div 
         key={`match-${match.id}`} 
@@ -2031,23 +2081,7 @@ export default function BracketManager() {
           <span className={styles.matchId}>Match #{match.id}</span>
           {scheduledTimeToShow && (
             <span className={styles.scheduledTime}>
-              <FaClock /> {(() => {
-                try {
-                  const date = new Date(scheduledTimeToShow);
-                  if (!isNaN(date.getTime())) {
-                    return date.toLocaleString([], {
-                      month: 'short', 
-                      day: 'numeric', 
-                      hour: '2-digit', 
-                      minute: '2-digit'
-                    });
-                  }
-                  return 'Invalid date';
-                } catch (e) {
-                  console.error('Error formatting date:', e, scheduledTimeToShow);
-                  return 'Invalid date';
-                }
-              })()}
+              <FaClock /> {formattedDate}
             </span>
           )}
           {locationToShow && (
