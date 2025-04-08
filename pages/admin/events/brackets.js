@@ -35,6 +35,8 @@ export default function BracketManager() {
     window: { x: 0, y: 0 }
   });
   const [matchDetailsMap, setMatchDetailsMap] = useState({});
+  // Add state to track the last edited match for auto-scrolling
+  const [lastEditedMatch, setLastEditedMatch] = useState(null);
 
   // Load last scheduled time from localStorage on component mount
   useEffect(() => {
@@ -463,6 +465,9 @@ export default function BracketManager() {
         
         // Immediately fetch fresh data to ensure match details are preserved
         await fetchBracketData(selectedEvent.id);
+        
+        // After data refresh, set this as the last edited match to trigger scrolling
+        setLastEditedMatch(matchId);
       }
       
       setSelectedMatch(null);
@@ -1060,6 +1065,9 @@ export default function BracketManager() {
     
     if (!selectedMatch || !selectedEvent) return;
     
+    // Save the match ID before clearing selectedMatch
+    const editedMatchId = selectedMatch.id;
+    
     setLoading(true);
     setError(null);
     
@@ -1157,6 +1165,9 @@ export default function BracketManager() {
       
       // Fetch fresh data from the database to ensure all states are in sync
       await fetchBracketData(selectedEvent.id);
+      
+      // After data refresh, set this as the last edited match to trigger scrolling
+      setLastEditedMatch(editedMatchId);
       
       setLoading(false);
     } catch (error) {
@@ -1878,6 +1889,65 @@ export default function BracketManager() {
     }
   }, [bracketData]);
 
+  // Scroll to a specific match in the UI
+  const scrollToMatch = (matchId) => {
+    if (!matchId) return;
+    
+    // Give time for the DOM to update
+    setTimeout(() => {
+      const matchElement = document.getElementById(`match-${matchId}`);
+      if (matchElement) {
+        console.log(`Scrolling to match ${matchId}`);
+        
+        // First ensure the round this match belongs to is expanded
+        if (bracketData) {
+          const roundIndex = bracketData.findIndex(round => 
+            round.some(m => m.id === matchId)
+          );
+          
+          if (roundIndex !== -1 && !expandedRounds[roundIndex]) {
+            console.log(`Expanding round ${roundIndex} to show match ${matchId}`);
+            setExpandedRounds(prev => ({
+              ...prev,
+              [roundIndex]: true
+            }));
+            
+            // Need an additional delay to let the round expand
+            setTimeout(() => {
+              const matchElement = document.getElementById(`match-${matchId}`);
+              if (matchElement) {
+                matchElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight the match temporarily
+                matchElement.classList.add(styles.highlighted);
+                setTimeout(() => {
+                  matchElement.classList.remove(styles.highlighted);
+                }, 2000);
+              }
+            }, 300);
+            return;
+          }
+          
+          // If round is already expanded, scroll immediately
+          matchElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Highlight the match temporarily
+          matchElement.classList.add(styles.highlighted);
+          setTimeout(() => {
+            matchElement.classList.remove(styles.highlighted);
+          }, 2000);
+        }
+      } else {
+        console.log(`Could not find element for match ${matchId}`);
+      }
+    }, 100);
+  };
+
+  // Use effect to scroll to last edited match when it changes
+  useEffect(() => {
+    if (lastEditedMatch) {
+      scrollToMatch(lastEditedMatch);
+    }
+  }, [lastEditedMatch, expandedRounds]);
+
   // Render match item with explicit property checks
   const renderMatchItem = (match, isMatchReady) => {
     // Get participant names (including team members for duos)
@@ -1933,6 +2003,7 @@ export default function BracketManager() {
     
     return (
       <div 
+        id={`match-${match.id}`}
         key={`match-${match.id}`} 
         className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
         onClick={() => handleMatchClick(match)}

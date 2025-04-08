@@ -1102,4 +1102,19 @@
   margin-top: 4px;
   color: #888;
   font-size: 0.75rem;
+}
+
+/* Add highlighting styles for the last edited match */
+.highlighted {
+  animation: highlightPulse 2s ease-in-out;
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+  border: 2px solid #4CAF50 !important;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes highlightPulse {
+  0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.8); }
+  100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.5); }
 } 
