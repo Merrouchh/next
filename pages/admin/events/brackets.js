@@ -730,7 +730,8 @@ export default function BracketManager() {
         
         console.log('Match details data from database:', matchDetailsData);
         
-        let enrichedBracket = [...data.bracket];
+        // Create a deep copy of the bracket data to avoid reference issues
+        let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
         
         // If we have additional match details, merge them into the bracket data
         if (!matchDetailsError && matchDetailsData && matchDetailsData.length > 0) {
@@ -750,41 +751,54 @@ export default function BracketManager() {
             console.log(`Details map entry for match ${key}:`, detailsMap[key]);
           });
           
-          enrichedBracket = enrichedBracket.map(round => {
-            return round.map(match => {
+          // Apply details to each match
+          for (let r = 0; r < enrichedBracket.length; r++) {
+            for (let m = 0; m < enrichedBracket[r].length; m++) {
+              const match = enrichedBracket[r][m];
               const details = detailsMap[match.id];
+              
               if (details) {
                 console.log(`Found details for match ${match.id}:`, details);
                 // Explicitly handle each field to avoid undefined/null issues
-                return {
+                enrichedBracket[r][m] = {
                   ...match,
                   scheduledTime: details.scheduled_time || '',
                   location: details.location || '',
                   notes: details.notes || ''
                 };
+              } else {
+                // Ensure match always has these properties even if no details exist
+                enrichedBracket[r][m] = {
+                  ...match,
+                  scheduledTime: match.scheduledTime || '',
+                  location: match.location || '',
+                  notes: match.notes || ''
+                };
               }
-              // Ensure match always has these properties even if no details exist
-              return {
+            }
+          }
+          
+          const sampleMatch = enrichedBracket[0][0];
+          console.log('Enriched bracket with match details. Sample match:', {
+            id: sampleMatch.id,
+            scheduledTime: sampleMatch.scheduledTime,
+            location: sampleMatch.location,
+            notes: sampleMatch.notes
+          });
+        } else {
+          console.log('No match details found to enrich bracket data');
+          // Still ensure all matches have the expected properties
+          for (let r = 0; r < enrichedBracket.length; r++) {
+            for (let m = 0; m < enrichedBracket[r].length; m++) {
+              const match = enrichedBracket[r][m];
+              enrichedBracket[r][m] = {
                 ...match,
                 scheduledTime: match.scheduledTime || '',
                 location: match.location || '',
                 notes: match.notes || ''
               };
-            });
-          });
-          
-          console.log('Enriched bracket with match details. Sample match:', enrichedBracket[0][0]);
-        } else {
-          console.log('No match details found to enrich bracket data');
-          // Still ensure all matches have the expected properties
-          enrichedBracket = enrichedBracket.map(round => {
-            return round.map(match => ({
-              ...match,
-              scheduledTime: match.scheduledTime || '',
-              location: match.location || '',
-              notes: match.notes || ''
-            }));
-          });
+            }
+          }
         }
         
         console.log('Setting enriched bracket data with first match:', enrichedBracket[0][0]);
@@ -1829,6 +1843,93 @@ export default function BracketManager() {
     }
   }, [bracketData]);
 
+  // Log the values of a specific match to debug why details aren't persisting
+  useEffect(() => {
+    if (bracketData && bracketData.length > 0 && bracketData[0].length > 0) {
+      // Check if the first match has details to verify data structure
+      const firstMatch = bracketData[0][0];
+      console.log('DEBUG - First match in bracket:', { 
+        id: firstMatch.id,
+        scheduledTime: firstMatch.scheduledTime,
+        hasScheduledTime: !!firstMatch.scheduledTime,
+        location: firstMatch.location,
+        hasLocation: !!firstMatch.location,
+        notes: firstMatch.notes,
+        hasNotes: !!firstMatch.notes,
+        buttonType: (firstMatch.scheduledTime || firstMatch.location || firstMatch.notes) ? 'Edit Details' : 'Add Details'
+      });
+    }
+  }, [bracketData]);
+
+  // Render match item with explicit property checks
+  const renderMatchItem = (match, isMatchReady) => {
+    // Get participant names (including team members for duos)
+    const participant1Name = getParticipantName(match.participant1Id);
+    const participant2Name = getParticipantName(match.participant2Id);
+    
+    // Explicitly check for existence of details
+    const hasDetails = Boolean(match.scheduledTime || match.location || match.notes);
+    const buttonText = hasDetails ? 'Edit Details' : 'Add Details';
+    
+    return (
+      <div 
+        key={`match-${match.id}`} 
+        className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
+        onClick={() => handleMatchClick(match)}
+      >
+        <div className={styles.matchHeader}>
+          <span className={styles.matchId}>Match #{match.id}</span>
+          {match.scheduledTime && (
+            <span className={styles.scheduledTime}>
+              <FaClock /> {new Date(match.scheduledTime).toLocaleString([], {
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit'
+              })}
+            </span>
+          )}
+          {match.location && (
+            <span className={styles.matchLocation}>
+              @ {match.location}
+            </span>
+          )}
+        </div>
+        
+        <div className={styles.matchParticipants}>
+          <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
+            {participant1Name}
+            {match.winnerId === match.participant1Id && (
+              <FaCrown className={styles.crownIcon} />
+            )}
+          </div>
+          <div className={styles.versus}>vs</div>
+          <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
+            {participant2Name}
+            {match.winnerId === match.participant2Id && (
+              <FaCrown className={styles.crownIcon} />
+            )}
+          </div>
+        </div>
+        
+        <div className={styles.matchActions}>
+          <button className={styles.editButton} onClick={(e) => {
+            e.stopPropagation();
+            handleMatchClick(match);
+          }}>
+            <FaEdit /> {buttonText}
+          </button>
+          
+          {match.notes && (
+            <div className={styles.matchNotes}>
+              <strong>Notes:</strong> {match.notes}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AdminPageWrapper title="Tournament Bracket Manager">
       <Head>
@@ -2031,68 +2132,7 @@ export default function BracketManager() {
                         // Determine if match is ready to be played
                         const isMatchReady = isMatchReadyToPlay(match);
                         
-                        // Get participant names (including team members for duos)
-                        const participant1Name = getParticipantName(match.participant1Id);
-                        const participant2Name = getParticipantName(match.participant2Id);
-                        
-                        return (
-                          <div 
-                            key={`match-${match.id}`} 
-                            className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
-                            onClick={() => handleMatchClick(match)}
-                          >
-                            <div className={styles.matchHeader}>
-                              <span className={styles.matchId}>Match #{match.id}</span>
-                              {match.scheduledTime && (
-                                <span className={styles.scheduledTime}>
-                                  <FaClock /> {new Date(match.scheduledTime).toLocaleString([], {
-                                    month: 'short', 
-                                    day: 'numeric', 
-                                    hour: '2-digit', 
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                              )}
-                              {match.location && (
-                                <span className={styles.matchLocation}>
-                                  @ {match.location}
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className={styles.matchParticipants}>
-                              <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
-                                {participant1Name}
-                                {match.winnerId === match.participant1Id && (
-                                  <FaCrown className={styles.crownIcon} />
-                                )}
-                              </div>
-                              <div className={styles.versus}>vs</div>
-                              <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
-                                {participant2Name}
-                                {match.winnerId === match.participant2Id && (
-                                  <FaCrown className={styles.crownIcon} />
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div className={styles.matchActions}>
-                              <button className={styles.editButton} onClick={(e) => {
-                                e.stopPropagation();
-                                handleMatchClick(match);
-                              }}>
-                                <FaEdit /> 
-                                {(match.scheduledTime || match.location || match.notes) ? 'Edit Details' : 'Add Details'}
-                              </button>
-                              
-                              {match.notes && (
-                                <div className={styles.matchNotes}>
-                                  <strong>Notes:</strong> {match.notes}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
+                        return renderMatchItem(match, isMatchReady);
                       })}
                     </div>
                   )}
