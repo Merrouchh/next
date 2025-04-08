@@ -460,6 +460,9 @@ export default function BracketManager() {
         // Update our local state
         setBracketData(data.bracket);
         toast.success('Winner set successfully!');
+        
+        // Immediately fetch fresh data to ensure match details are preserved
+        await fetchBracketData(selectedEvent.id);
       }
       
       setSelectedMatch(null);
@@ -1982,12 +1985,18 @@ export default function BracketManager() {
     const locationToShow = matchDetailsFromMap?.location || match.location || '';
     const notesToShow = matchDetailsFromMap?.notes || match.notes || '';
     
-    // Debug log for scheduled time
-    console.log(`Match ${match.id} scheduled time:`, {
-      fromMap: matchDetailsFromMap?.scheduledTime,
-      fromMatch: match.scheduledTime,
-      final: scheduledTimeToShow
-    });
+    // Log match details to help debug
+    if (match.winnerId) {
+      console.log(`Match ${match.id} with winner details:`, {
+        winnerId: match.winnerId,
+        hasScheduledTime: !!scheduledTimeToShow,
+        scheduledTime: scheduledTimeToShow,
+        hasLocation: !!locationToShow,
+        location: locationToShow,
+        hasNotes: !!notesToShow, 
+        notes: notesToShow
+      });
+    }
     
     // Always show "Edit Details" for consistency
     const buttonText = 'Edit Details';
@@ -1997,11 +2006,6 @@ export default function BracketManager() {
     if (scheduledTimeToShow) {
       try {
         const date = new Date(scheduledTimeToShow);
-        console.log(`Parsing date for match ${match.id}:`, {
-          input: scheduledTimeToShow,
-          parsed: date,
-          isValid: !isNaN(date.getTime())
-        });
         
         if (!isNaN(date.getTime())) {
           formattedDate = date.toLocaleString([], {
