@@ -1246,9 +1246,9 @@ export default function BracketManager() {
         }
       }
       
-      // Format cleaned data for UI storage - very important
+      // Format cleaned data for UI storage - very important to use the raw scheduledTime
       const cleanDetailsForUI = {
-        scheduledTime: scheduledTime || '',
+        scheduledTime: scheduledTime,  // Keep this as ISO string format
         location: location || '',
         notes: notes || ''
       };
@@ -1276,7 +1276,7 @@ export default function BracketManager() {
             if (updatedBracketData[r][m].id === selectedMatch.id) {
               updatedBracketData[r][m] = {
                 ...updatedBracketData[r][m],
-                scheduledTime: scheduledTime || '',
+                scheduledTime: scheduledTime, // Keep this as ISO string format
                 location: location || '',
                 notes: notes || ''
               };
@@ -1298,7 +1298,7 @@ export default function BracketManager() {
         console.log('Updating selectedMatch with new details');
         setSelectedMatch({
           ...selectedMatch,
-          scheduledTime: scheduledTime || '',
+          scheduledTime: scheduledTime, // Keep this as ISO string format
           location: location || '',
           notes: notes || ''
         });
@@ -1307,7 +1307,7 @@ export default function BracketManager() {
       // Success message
       toast.success('Match details saved successfully!');
       
-      // Close modal
+      // Close modal after a delay to ensure state updates are processed
       setTimeout(() => {
         setSelectedMatch(null);
         setLoading(false);
@@ -2039,37 +2039,43 @@ export default function BracketManager() {
     const locationToShow = matchDetailsFromMap?.location || match.location || '';
     const notesToShow = matchDetailsFromMap?.notes || match.notes || '';
     
+    // Debug log for scheduled time
+    console.log(`Match ${match.id} scheduled time:`, {
+      fromMap: matchDetailsFromMap?.scheduledTime,
+      fromMatch: match.scheduledTime,
+      final: scheduledTimeToShow
+    });
+    
     // Always show "Edit Details" for consistency
     const buttonText = 'Edit Details';
     
-    // Format the date display
-    const formattedDate = scheduledTimeToShow ? (
-      (() => {
-        try {
-          const date = new Date(scheduledTimeToShow);
-          if (!isNaN(date.getTime())) {
-            return date.toLocaleString([], {
-              month: 'short', 
-              day: 'numeric', 
-              hour: '2-digit', 
-              minute: '2-digit'
-            });
-          }
-          console.log(`Invalid date for match ${match.id}:`, scheduledTimeToShow);
-          return 'Invalid date';
-        } catch (e) {
-          console.error('Error formatting date:', e, scheduledTimeToShow);
-          return 'Invalid date';
+    // Format the date display with additional debugging
+    let formattedDate = '';
+    if (scheduledTimeToShow) {
+      try {
+        const date = new Date(scheduledTimeToShow);
+        console.log(`Parsing date for match ${match.id}:`, {
+          input: scheduledTimeToShow,
+          parsed: date,
+          isValid: !isNaN(date.getTime())
+        });
+        
+        if (!isNaN(date.getTime())) {
+          formattedDate = date.toLocaleString([], {
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit'
+          });
+        } else {
+          console.warn(`Invalid date for match ${match.id}:`, scheduledTimeToShow);
+          formattedDate = 'Invalid date';
         }
-      })()
-    ) : '';
-    
-    console.log(`Match ${match.id} render details:`, { 
-      scheduledTimeToShow, 
-      formattedDate,
-      locationToShow, 
-      notesToShow
-    });
+      } catch (e) {
+        console.error('Error formatting date:', e, scheduledTimeToShow);
+        formattedDate = 'Invalid date';
+      }
+    }
     
     return (
       <div 
