@@ -615,15 +615,6 @@ export default function BracketManager() {
     setSelectedMatch(match);
     console.log('Match clicked:', match);
     
-    // Log all match details for debugging
-    console.log('Match details when clicked:', {
-      id: match.id,
-      scheduledTime: match.scheduledTime,
-      formattedTime: match.scheduledTime ? formatDatetimeForInput(match.scheduledTime) : '',
-      location: match.location,
-      notes: match.notes
-    });
-    
     // Find which round this match belongs to
     if (bracketData) {
       const roundIndex = bracketData.findIndex(round => 
@@ -650,25 +641,30 @@ export default function BracketManager() {
     // Get previous match time using our helper function
     const previousMatchTime = findPreviousMatchTime(match.id);
     
-    // Format the scheduledTime for the input element if it exists
-    const formattedTime = match.scheduledTime ? formatDatetimeForInput(match.scheduledTime) : '';
+    // First check if we have details in our matchDetailsMap
+    const detailsFromMap = matchDetailsMap[match.id];
     
-    // Initialize matchDetails with existing data from the match
-    // Log the notes for debugging purposes
+    // Format the scheduledTime for the input element if it exists
+    // Prioritize map data, then match data, then fallback options
+    const scheduledTime = detailsFromMap?.scheduledTime || match.scheduledTime || '';
+    const formattedTime = scheduledTime ? formatDatetimeForInput(scheduledTime) : '';
+    const location = detailsFromMap?.location || match.location || '';
+    const notes = detailsFromMap?.notes || match.notes || '';
+    
     console.log('Setting match details to:', {
       scheduledTime: formattedTime,
-      location: match.location || '',
-      notes: match.notes || ''
+      location: location,
+      notes: notes
     });
     
     setMatchDetails({
       scheduledTime: formattedTime,
-      location: match.location || '',
-      notes: match.notes || ''
+      location: location,
+      notes: notes
     });
     
     // If this match doesn't have a scheduled time yet, use available template times
-    if (!match.scheduledTime) {
+    if (!formattedTime) {
       console.log('No scheduled time, checking conditions...');
       console.log('Stored last time:', storedLastTime);
       console.log('Previous match time:', previousMatchTime);
@@ -1989,28 +1985,13 @@ export default function BracketManager() {
     // Get details from our cached map if they exist, otherwise use the match details
     const matchDetailsFromMap = matchDetailsMap[match.id];
     
-    // Check if this match has any details
-    const hasDetails = Boolean(
-      (matchDetailsFromMap) || 
-      (match.scheduledTime || match.location || match.notes)
-    );
+    // Always prioritize map data, but fall back to direct match data
+    const scheduledTimeToShow = matchDetailsFromMap?.scheduledTime || match.scheduledTime || '';
+    const locationToShow = matchDetailsFromMap?.location || match.location || '';
+    const notesToShow = matchDetailsFromMap?.notes || match.notes || '';
     
-    // Determine scheduled time to display - prioritize our map data
-    const scheduledTimeToShow = matchDetailsFromMap && matchDetailsFromMap.scheduledTime 
-      ? matchDetailsFromMap.scheduledTime 
-      : match.scheduledTime;
-    
-    // Determine location to display
-    const locationToShow = matchDetailsFromMap && matchDetailsFromMap.location
-      ? matchDetailsFromMap.location
-      : match.location;
-    
-    // Determine notes to display
-    const notesToShow = matchDetailsFromMap && matchDetailsFromMap.notes
-      ? matchDetailsFromMap.notes
-      : match.notes;
-    
-    const buttonText = hasDetails ? 'Edit Details' : 'Add Details';
+    // Always show "Edit Details" for consistency
+    const buttonText = 'Edit Details';
     
     return (
       <div 
