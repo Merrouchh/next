@@ -1049,7 +1049,10 @@ export default function BracketManager() {
           }
         });
         
-        // Apply details to each match
+        // Log details map for debugging
+        console.log(`Found ${Object.keys(detailsMap).length} match details records in database`);
+        
+        // Apply details to each match in a way that preserves all detail fields
         for (let r = 0; r < enrichedBracket.length; r++) {
           for (let m = 0; m < enrichedBracket[r].length; m++) {
             const match = enrichedBracket[r][m];
@@ -1057,6 +1060,9 @@ export default function BracketManager() {
             
             if (details) {
               console.log(`Found details for match ${match.id} during refresh:`, details);
+              
+              // Keep original match properties but add the details
+              // Important: Use empty strings instead of null for UI compatibility
               enrichedBracket[r][m] = {
                 ...match,
                 scheduledTime: details.scheduled_time || '',
@@ -1064,14 +1070,43 @@ export default function BracketManager() {
                 notes: details.notes || ''
               };
             } else {
-              enrichedBracket[r][m] = {
-                ...match,
-                scheduledTime: '',
-                location: '',
-                notes: ''
-              };
+              // For matches without details in the database, preserve what's in current state
+              // Check if this match exists in current bracketData
+              const currentMatch = findMatchInBracket(bracketData, match.id);
+              
+              if (currentMatch && (currentMatch.scheduledTime || currentMatch.location || currentMatch.notes)) {
+                console.log(`Using existing details for match ${match.id} from current state`);
+                
+                enrichedBracket[r][m] = {
+                  ...match,
+                  scheduledTime: currentMatch.scheduledTime || '',
+                  location: currentMatch.location || '',
+                  notes: currentMatch.notes || ''
+                };
+              } else {
+                // No details in db or current state
+                enrichedBracket[r][m] = {
+                  ...match,
+                  scheduledTime: '',
+                  location: '',
+                  notes: ''
+                };
+              }
             }
           }
+        }
+        
+        // Sample log to verify data before returning
+        if (enrichedBracket[0] && enrichedBracket[0][0]) {
+          console.log('SAMPLE: First match after enrichment:', {
+            id: enrichedBracket[0][0].id,
+            scheduledTime: enrichedBracket[0][0].scheduledTime,
+            hasScheduledTime: !!enrichedBracket[0][0].scheduledTime,
+            location: enrichedBracket[0][0].location,
+            hasLocation: !!enrichedBracket[0][0].location,
+            notes: enrichedBracket[0][0].notes,
+            hasNotes: !!enrichedBracket[0][0].notes
+          });
         }
         
         console.log('Refreshed bracket data with details applied');
@@ -1085,7 +1120,38 @@ export default function BracketManager() {
     }
   };
 
-  // Update the handleSaveMatchDetails function to refresh data from the API after saving
+  // Create a helper function to directly update bracket data without needing a refresh
+  const updateMatchInBracketData = (matchId, updatedDetails) => {
+    // Deep copy the current bracket data to avoid reference issues
+    const updatedBracket = JSON.parse(JSON.stringify(bracketData));
+    
+    // Find the match and update it
+    let matchFound = false;
+    
+    for (let r = 0; r < updatedBracket.length; r++) {
+      for (let m = 0; m < updatedBracket[r].length; m++) {
+        if (updatedBracket[r][m].id === matchId) {
+          console.log(`Directly updating match ${matchId} in state with details:`, updatedDetails);
+          
+          // Update only the detail fields
+          updatedBracket[r][m] = {
+            ...updatedBracket[r][m],
+            scheduledTime: updatedDetails.scheduledTime || '',
+            location: updatedDetails.location || '',
+            notes: updatedDetails.notes || ''
+          };
+          
+          matchFound = true;
+          break;
+        }
+      }
+      if (matchFound) break;
+    }
+    
+    return updatedBracket;
+  };
+
+  // Update the handleSaveMatchDetails function to improve state management
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1192,17 +1258,22 @@ export default function BracketManager() {
         }
       }
       
-      // Fetch updated bracket data from API - CRITICAL: This ensures we get fresh data
-      const refreshedBracket = await refreshBracketAfterSave(selectedEvent.id);
+      // Create the updated match details object with UI-friendly values (empty strings instead of null)
+      const updatedMatchDetails = {
+        scheduledTime: scheduledTime || '',
+        location: location || '',
+        notes: notes || ''
+      };
+      
+      // Directly update the bracket data in state
+      const updatedBracket = updateMatchInBracketData(selectedMatch.id, updatedMatchDetails);
       
       // Show success message
       toast.success('Match details saved successfully!');
       
-      // Update bracket data with refreshed data if available, otherwise keep current state
-      if (refreshedBracket) {
-        console.log('Setting refreshed bracket data');
-        setBracketData(refreshedBracket);
-      }
+      // Update bracket data immediately with our directly modified version
+      console.log('Setting directly updated bracket data');
+      setBracketData(updatedBracket);
       
       // Close modal after updating state
       setTimeout(() => {
