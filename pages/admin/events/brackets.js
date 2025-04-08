@@ -1246,73 +1246,16 @@ export default function BracketManager() {
         }
       }
       
-      // Format cleaned data for UI storage - very important to use the raw scheduledTime
-      const cleanDetailsForUI = {
-        scheduledTime: scheduledTime,  // Keep this as ISO string format
-        location: location || '',
-        notes: notes || ''
-      };
-      
-      console.log('Clean details for UI:', cleanDetailsForUI);
-      
-      // CRITICAL: Update our local match details map with the clean data
-      setMatchDetailsMap(prev => {
-        const updated = {
-          ...prev,
-          [selectedMatch.id]: cleanDetailsForUI
-        };
-        console.log(`Updated matchDetailsMap for match ${selectedMatch.id}:`, updated[selectedMatch.id]);
-        return updated;
-      });
-      
-      // Update the bracketData in memory for immediate UI feedback
-      if (bracketData) {
-        const updatedBracketData = JSON.parse(JSON.stringify(bracketData));
-        
-        // Find and update the match in the bracket data
-        let matchUpdated = false;
-        for (let r = 0; r < updatedBracketData.length && !matchUpdated; r++) {
-          for (let m = 0; m < updatedBracketData[r].length && !matchUpdated; m++) {
-            if (updatedBracketData[r][m].id === selectedMatch.id) {
-              updatedBracketData[r][m] = {
-                ...updatedBracketData[r][m],
-                scheduledTime: scheduledTime, // Keep this as ISO string format
-                location: location || '',
-                notes: notes || ''
-              };
-              matchUpdated = true;
-              console.log(`Updated match ${selectedMatch.id} in bracketData:`, updatedBracketData[r][m]);
-            }
-          }
-        }
-        
-        if (matchUpdated) {
-          // Force re-render by setting a new object
-          console.log('Setting updated bracket data');
-          setBracketData(updatedBracketData);
-        }
-      }
-      
-      // Re-render the updated details by refreshing selectedMatch too
-      if (selectedMatch) {
-        console.log('Updating selectedMatch with new details');
-        setSelectedMatch({
-          ...selectedMatch,
-          scheduledTime: scheduledTime, // Keep this as ISO string format
-          location: location || '',
-          notes: notes || ''
-        });
-      }
-      
       // Success message
       toast.success('Match details saved successfully!');
       
-      // Close modal after a delay to ensure state updates are processed
-      setTimeout(() => {
-        setSelectedMatch(null);
-        setLoading(false);
-      }, 300);
+      // Clear the selected match
+      setSelectedMatch(null);
       
+      // Fetch fresh data from the database to ensure all states are in sync
+      await fetchBracketData(selectedEvent.id);
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error saving match details:', error);
       setError('Failed to save match details. Please try again.');
