@@ -34,6 +34,7 @@ export default function BracketManager() {
     bracketMatchesList: { x: 0, y: 0 },
     window: { x: 0, y: 0 }
   });
+  const [matchDetailsMap, setMatchDetailsMap] = useState({});
 
   // Load last scheduled time from localStorage on component mount
   useEffect(() => {
@@ -1151,7 +1152,7 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Handle saving match details with guaranteed state update
+  // Replace your handleSaveMatchDetails function with this simplified version
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1166,9 +1167,6 @@ export default function BracketManager() {
     try {
       console.log('Saving match details:', matchDetails);
       
-      // Save current bracket data state before any changes
-      const currentBracketDataSnapshot = JSON.parse(JSON.stringify(bracketData));
-      
       // Process the scheduled time using our helper function
       const scheduledTime = validateAndFormatScheduledTime(matchDetails.scheduledTime);
       
@@ -1176,24 +1174,20 @@ export default function BracketManager() {
       const location = matchDetails.location && matchDetails.location.trim() !== '' 
         ? matchDetails.location 
         : null;
-        
+      
       const notes = matchDetails.notes && matchDetails.notes.trim() !== '' 
         ? matchDetails.notes 
         : null;
       
-      // Store the last scheduled time for next match suggestion
-      if (scheduledTime) {
-        console.log('Setting last scheduled time:', scheduledTime);
-        setLastScheduledTime(scheduledTime);
-        
-        try {
-          const formattedForInput = formatDatetimeForInput(scheduledTime);
-          console.log('Storing in localStorage:', formattedForInput);
-          localStorage.setItem('lastScheduledTime', formattedForInput);
-        } catch (e) {
-          console.error('Error storing in localStorage:', e);
-        }
-      }
+      // Prepare the data to save - use null for empty strings to ensure database consistency
+      const dataToSave = {
+        scheduled_time: scheduledTime,
+        location: location,
+        notes: notes,
+        updated_at: new Date()
+      };
+      
+      console.log('Data to save:', dataToSave);
       
       // Check if match details already exist for this match
       const { data: existingDetails, error: checkError } = await supabase
@@ -1206,16 +1200,6 @@ export default function BracketManager() {
       console.log('Existing details:', existingDetails);
       if (checkError) console.log('Check error:', checkError);
       
-      // Prepare the data to save - use null for empty strings to ensure database consistency
-      const dataToSave = {
-        scheduled_time: scheduledTime,
-        location: location,
-        notes: notes,
-        updated_at: new Date()
-      };
-      
-      console.log('Data to save:', dataToSave);
-      
       // Save to database
       if (existingDetails) {
         // Update existing record
@@ -1224,9 +1208,9 @@ export default function BracketManager() {
           .update(dataToSave)
           .eq('id', existingDetails.id)
           .select();
-        
+      
         console.log('Database update result:', result);
-        
+      
         if (result.error) {
           console.error('Error in database update operation:', result.error);
           throw result.error;
@@ -1243,83 +1227,45 @@ export default function BracketManager() {
             }
           ])
           .select();
-        
+      
         console.log('Database insert result:', result);
-        
+      
         if (result.error) {
           console.error('Error in database insert operation:', result.error);
           throw result.error;
         }
       }
       
-      // Now fetch ALL match details to make sure we have the complete latest data
-      const { data: allMatchDetails, error: allMatchDetailsError } = await supabase
-        .from('event_match_details')
-        .select('*')
-        .eq('event_id', selectedEvent.id);
-      
-      if (allMatchDetailsError) {
-        console.error('Error fetching all match details:', allMatchDetailsError);
-        throw allMatchDetailsError;
+      // Store the last scheduled time for next match suggestion
+      if (scheduledTime) {
+        console.log('Setting last scheduled time:', scheduledTime);
+        setLastScheduledTime(scheduledTime);
+        
+        try {
+          const formattedForInput = formatDatetimeForInput(scheduledTime);
+          console.log('Storing in localStorage:', formattedForInput);
+          localStorage.setItem('lastScheduledTime', formattedForInput);
+        } catch (e) {
+          console.error('Error storing in localStorage:', e);
+        }
       }
       
-      console.log('All match details:', allMatchDetails);
-      
-      // Create a map of match details for faster lookup
-      const matchDetailsMap = {};
-      allMatchDetails.forEach(detail => {
-        if (detail && detail.match_id) {
-          matchDetailsMap[detail.match_id] = detail;
+      // CRITICAL: Update our local match details map
+      setMatchDetailsMap(prev => ({
+        ...prev,
+        [selectedMatch.id]: {
+          scheduledTime: scheduledTime || '',
+          location: location || '',
+          notes: notes || ''
         }
-      });
+      }));
       
-      console.log('Match details map:', matchDetailsMap);
-      
-      // Update the bracket data with all the details from database
-      const updatedBracket = currentBracketDataSnapshot.map(round => {
-        return round.map(match => {
-          // Get details from the map if they exist
-          const details = matchDetailsMap[match.id];
-          
-          if (details) {
-            return {
-              ...match,
-              scheduledTime: details.scheduled_time || '',
-              location: details.location || '',
-              notes: details.notes || ''
-            };
-          }
-          
-          // If not in our map but still in the current state, preserve existing details
-          return {
-            ...match,
-            scheduledTime: match.scheduledTime || '',
-            location: match.location || '',
-            notes: match.notes || ''
-          };
-        });
-      });
-      
-      // Show success message
+      // Success message
       toast.success('Match details saved successfully!');
       
-      // Before setting the state, double-check the first match details for debugging
-      if (updatedBracket[0] && updatedBracket[0][0]) {
-        console.log('First match in updated bracket:', {
-          id: updatedBracket[0][0].id,
-          scheduledTime: updatedBracket[0][0].scheduledTime,
-          hasDetails: Boolean(updatedBracket[0][0].scheduledTime || updatedBracket[0][0].location || updatedBracket[0][0].notes)
-        });
-      }
-      
-      // Update the bracket data with the refreshed data
-      setBracketData(updatedBracket);
-      
       // Close modal
-      setTimeout(() => {
-        setSelectedMatch(null);
-        setLoading(false);
-      }, 50);
+      setSelectedMatch(null);
+      setLoading(false);
       
     } catch (error) {
       console.error('Error saving match details:', error);
@@ -2010,14 +1956,60 @@ export default function BracketManager() {
     }
   }, [bracketData]);
 
+  // Add this effect to initialize the matchDetailsMap whenever bracketData is loaded
+  useEffect(() => {
+    if (bracketData) {
+      // Create a map of match details for caching
+      const detailsMap = {};
+      
+      // Extract all match details from bracket data
+      bracketData.forEach(round => {
+        round.forEach(match => {
+          if (match.scheduledTime || match.location || match.notes) {
+            detailsMap[match.id] = {
+              scheduledTime: match.scheduledTime || '',
+              location: match.location || '',
+              notes: match.notes || ''
+            };
+          }
+        });
+      });
+      
+      console.log('Initialized matchDetailsMap from bracketData:', detailsMap);
+      setMatchDetailsMap(detailsMap);
+    }
+  }, [bracketData]);
+
   // Render match item with explicit property checks
   const renderMatchItem = (match, isMatchReady) => {
     // Get participant names (including team members for duos)
     const participant1Name = getParticipantName(match.participant1Id);
     const participant2Name = getParticipantName(match.participant2Id);
     
-    // Explicitly check for existence of details
-    const hasDetails = Boolean(match.scheduledTime || match.location || match.notes);
+    // Get details from our cached map if they exist, otherwise use the match details
+    const matchDetailsFromMap = matchDetailsMap[match.id];
+    
+    // Check if this match has any details
+    const hasDetails = Boolean(
+      (matchDetailsFromMap) || 
+      (match.scheduledTime || match.location || match.notes)
+    );
+    
+    // Determine scheduled time to display - prioritize our map data
+    const scheduledTimeToShow = matchDetailsFromMap && matchDetailsFromMap.scheduledTime 
+      ? matchDetailsFromMap.scheduledTime 
+      : match.scheduledTime;
+    
+    // Determine location to display
+    const locationToShow = matchDetailsFromMap && matchDetailsFromMap.location
+      ? matchDetailsFromMap.location
+      : match.location;
+    
+    // Determine notes to display
+    const notesToShow = matchDetailsFromMap && matchDetailsFromMap.notes
+      ? matchDetailsFromMap.notes
+      : match.notes;
+    
     const buttonText = hasDetails ? 'Edit Details' : 'Add Details';
     
     return (
@@ -2028,9 +2020,9 @@ export default function BracketManager() {
       >
         <div className={styles.matchHeader}>
           <span className={styles.matchId}>Match #{match.id}</span>
-          {match.scheduledTime && (
+          {scheduledTimeToShow && (
             <span className={styles.scheduledTime}>
-              <FaClock /> {new Date(match.scheduledTime).toLocaleString([], {
+              <FaClock /> {new Date(scheduledTimeToShow).toLocaleString([], {
                 month: 'short', 
                 day: 'numeric', 
                 hour: '2-digit', 
@@ -2038,9 +2030,9 @@ export default function BracketManager() {
               })}
             </span>
           )}
-          {match.location && (
+          {locationToShow && (
             <span className={styles.matchLocation}>
-              @ {match.location}
+              @ {locationToShow}
             </span>
           )}
         </div>
@@ -2069,9 +2061,9 @@ export default function BracketManager() {
             <FaEdit /> {buttonText}
           </button>
           
-          {match.notes && (
+          {notesToShow && (
             <div className={styles.matchNotes}>
-              <strong>Notes:</strong> {match.notes}
+              <strong>Notes:</strong> {notesToShow}
             </div>
           )}
         </div>
