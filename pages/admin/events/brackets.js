@@ -604,6 +604,15 @@ export default function BracketManager() {
     setSelectedMatch(match);
     console.log('Match clicked:', match);
     
+    // Log all match details for debugging
+    console.log('Match details when clicked:', {
+      id: match.id,
+      scheduledTime: match.scheduledTime,
+      formattedTime: match.scheduledTime ? formatDatetimeForInput(match.scheduledTime) : '',
+      location: match.location,
+      notes: match.notes
+    });
+    
     // Find which round this match belongs to
     if (bracketData) {
       const roundIndex = bracketData.findIndex(round => 
@@ -630,12 +639,16 @@ export default function BracketManager() {
     // Get previous match time using our helper function
     const previousMatchTime = findPreviousMatchTime(match.id);
     
-    // Format the scheduledTime for the input element
-    const formattedTime = formatDatetimeForInput(match.scheduledTime);
+    // Format the scheduledTime for the input element if it exists
+    const formattedTime = match.scheduledTime ? formatDatetimeForInput(match.scheduledTime) : '';
     
     // Initialize matchDetails with existing data from the match
     // Log the notes for debugging purposes
-    console.log('Match notes to set:', match.notes);
+    console.log('Setting match details to:', {
+      scheduledTime: formattedTime,
+      location: match.location || '',
+      notes: match.notes || ''
+    });
     
     setMatchDetails({
       scheduledTime: formattedTime,
@@ -1057,16 +1070,15 @@ export default function BracketManager() {
         }
       }
       
-      // Close modal first before updating state to prevent jumping
-      setSelectedMatch(null);
-      
-      // Show success message - no need to refresh the page
+      // Show success message
       toast.success('Match details saved successfully!');
       
-      // Update bracket data after modal is closed
+      // Update bracket data immediately to ensure the UI is updated correctly
+      setBracketData(updatedBracket);
+      
+      // Close modal after updating state to ensure data is preserved
       setTimeout(() => {
-        console.log('Setting updated bracket data');
-        setBracketData(updatedBracket);
+        setSelectedMatch(null);
         setLoading(false);
         
         // Restore scroll position with longer delay after all updates
