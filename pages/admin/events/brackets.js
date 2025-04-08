@@ -1891,19 +1891,28 @@ export default function BracketManager() {
 
   // Scroll to a specific match in the UI
   const scrollToMatch = (matchId) => {
-    if (!matchId) return;
+    if (!matchId) {
+      console.log('No match ID provided for scrolling');
+      return;
+    }
+    
+    console.log(`Attempting to scroll to match ${matchId}`);
     
     // Give time for the DOM to update
     setTimeout(() => {
       const matchElement = document.getElementById(`match-${matchId}`);
+      console.log(`Looking for element with ID: match-${matchId}`);
+      
       if (matchElement) {
-        console.log(`Scrolling to match ${matchId}`);
+        console.log(`Found match element for match ${matchId}, preparing to scroll`);
         
         // First ensure the round this match belongs to is expanded
         if (bracketData) {
           const roundIndex = bracketData.findIndex(round => 
             round.some(m => m.id === matchId)
           );
+          
+          console.log(`Match ${matchId} found in round ${roundIndex}, expanded status:`, expandedRounds[roundIndex]);
           
           if (roundIndex !== -1 && !expandedRounds[roundIndex]) {
             console.log(`Expanding round ${roundIndex} to show match ${matchId}`);
@@ -1915,28 +1924,61 @@ export default function BracketManager() {
             // Need an additional delay to let the round expand
             setTimeout(() => {
               const matchElement = document.getElementById(`match-${matchId}`);
+              console.log(`Re-checking for match element after round expansion:`, !!matchElement);
+              
               if (matchElement) {
-                matchElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Scroll more gently to avoid major page shifts
+                const rect = matchElement.getBoundingClientRect();
+                const offset = window.pageYOffset;
+                const top = rect.top + offset - 200; // Position with some space above
+                
+                console.log(`Scrolling to position:`, top);
+                window.scrollTo({
+                  top: top,
+                  behavior: 'smooth'
+                });
+                
                 // Highlight the match temporarily
                 matchElement.classList.add(styles.highlighted);
+                console.log(`Added highlight class to match ${matchId}`);
+                
                 setTimeout(() => {
                   matchElement.classList.remove(styles.highlighted);
                 }, 2000);
+              } else {
+                console.log(`Could not find match element after round expansion`);
               }
             }, 300);
             return;
           }
           
           // If round is already expanded, scroll immediately
-          matchElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const rect = matchElement.getBoundingClientRect();
+          const offset = window.pageYOffset;
+          const top = rect.top + offset - 200; // Position with some space above
+          
+          console.log(`Round already expanded, scrolling to position:`, top);
+          window.scrollTo({
+            top: top,
+            behavior: 'smooth'
+          });
+          
           // Highlight the match temporarily
           matchElement.classList.add(styles.highlighted);
+          console.log(`Added highlight class to match ${matchId}`);
+          
           setTimeout(() => {
             matchElement.classList.remove(styles.highlighted);
           }, 2000);
+        } else {
+          console.log(`No bracket data available for finding rounds`);
         }
       } else {
-        console.log(`Could not find element for match ${matchId}`);
+        console.log(`Could not find element for match ${matchId}, available IDs:`, 
+          Array.from(document.querySelectorAll('[id^="match-"]'))
+            .map(el => el.id)
+            .join(', ')
+        );
       }
     }, 100);
   };
@@ -1948,7 +1990,7 @@ export default function BracketManager() {
     }
   }, [lastEditedMatch, expandedRounds]);
 
-  // Render match item with explicit property checks
+  // Update the renderMatchItem function to add an id to each match div
   const renderMatchItem = (match, isMatchReady) => {
     // Get participant names (including team members for duos)
     const participant1Name = getParticipantName(match.participant1Id);
@@ -2001,10 +2043,12 @@ export default function BracketManager() {
       }
     }
     
+    const matchItemId = `match-${match.id}`;
+    
     return (
       <div 
-        id={`match-${match.id}`}
-        key={`match-${match.id}`} 
+        id={matchItemId}
+        key={matchItemId}
         className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
         onClick={() => handleMatchClick(match)}
       >
