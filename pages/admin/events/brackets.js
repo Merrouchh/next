@@ -734,7 +734,7 @@ export default function BracketManager() {
         
         // If we have additional match details, merge them into the bracket data
         if (!matchDetailsError && matchDetailsData && matchDetailsData.length > 0) {
-          console.log('Enriching bracket with match details...');
+          console.log('Enriching bracket with match details - found', matchDetailsData.length, 'details records');
           
           // Create a map for faster lookups
           const detailsMap = {};
@@ -742,6 +742,12 @@ export default function BracketManager() {
             if (detail && detail.match_id) {
               detailsMap[detail.match_id] = detail;
             }
+          });
+          
+          // Log the first few entries in the details map to verify
+          const sampleKeys = Object.keys(detailsMap).slice(0, 3);
+          sampleKeys.forEach(key => {
+            console.log(`Details map entry for match ${key}:`, detailsMap[key]);
           });
           
           enrichedBracket = enrichedBracket.map(round => {
@@ -1064,22 +1070,43 @@ export default function BracketManager() {
         }
       }
       
+      // Keep track of the currently selected match ID
+      const savedMatchId = selectedMatch.id;
+      
       // Update the local state with the new details
       const updatedBracket = bracketData.map(round => {
         return round.map(match => {
-          if (match.id === selectedMatch.id) {
+          if (match.id === savedMatchId) {
+            // Explicitly handle each field to avoid undefined/null issues
+            // Use empty strings instead of null for UI consistency
             const updatedMatch = {
               ...match,
-              scheduledTime: scheduledTime,
-              location: location,
-              notes: notes
+              scheduledTime: scheduledTime || '',
+              location: location || '',
+              notes: notes || ''
             };
             console.log('Updated match in bracket:', updatedMatch);
             return updatedMatch;
           }
-          return match;
+          // Important: preserve existing match details and ensure all matches have the expected properties
+          return {
+            ...match,
+            scheduledTime: match.scheduledTime || '',
+            location: match.location || '',
+            notes: match.notes || ''
+          };
         });
       });
+      
+      // Log the first match from the updated bracket to verify details are preserved
+      if (updatedBracket[0] && updatedBracket[0][0]) {
+        console.log('First match after update:', {
+          id: updatedBracket[0][0].id,
+          scheduledTime: updatedBracket[0][0].scheduledTime,
+          location: updatedBracket[0][0].location,
+          notes: updatedBracket[0][0].notes
+        });
+      }
       
       // Store the last scheduled time for next match suggestion (in the same format as input)
       if (scheduledTime) {
@@ -1752,28 +1779,24 @@ export default function BracketManager() {
     }, 300); // Longer delay to ensure DOM updates are complete
   };
 
-  // Helper function to validate that all matches have their details properly set
+  // Add console logging to better track match details throughout the lifecycle
   useEffect(() => {
     if (bracketData) {
-      console.log('Checking bracket data for match details:');
-      let matchesWithDetails = 0;
-      let totalMatches = 0;
-      
-      bracketData.forEach((round, roundIndex) => {
-        round.forEach((match) => {
-          totalMatches++;
-          if (match.scheduledTime || match.location || match.notes) {
-            matchesWithDetails++;
-            console.log(`Match #${match.id} has details:`, {
-              scheduledTime: match.scheduledTime,
-              location: match.location,
-              notes: match.notes
-            });
-          }
-        });
-      });
-      
-      console.log(`Found ${matchesWithDetails} matches with details out of ${totalMatches} total matches`);
+      // Log a detailed breakdown of the first two matches from the first round to help debug
+      try {
+        const matchesSample = bracketData[0].slice(0, 2);
+        console.log('DETAIL CHECK - Sample matches from bracketData:', matchesSample.map(match => ({
+          id: match.id,
+          hasScheduledTime: !!match.scheduledTime,
+          scheduledTime: match.scheduledTime, 
+          hasLocation: !!match.location,
+          location: match.location,
+          hasNotes: !!match.notes,
+          notes: match.notes
+        })));
+      } catch (e) {
+        console.error('Error logging sample matches:', e);
+      }
     }
   }, [bracketData]);
 
