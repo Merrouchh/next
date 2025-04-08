@@ -735,11 +735,21 @@ export default function BracketManager() {
         // If we have additional match details, merge them into the bracket data
         if (!matchDetailsError && matchDetailsData && matchDetailsData.length > 0) {
           console.log('Enriching bracket with match details...');
+          
+          // Create a map for faster lookups
+          const detailsMap = {};
+          matchDetailsData.forEach(detail => {
+            if (detail && detail.match_id) {
+              detailsMap[detail.match_id] = detail;
+            }
+          });
+          
           enrichedBracket = enrichedBracket.map(round => {
             return round.map(match => {
-              const details = matchDetailsData.find(d => d.match_id === match.id);
+              const details = detailsMap[match.id];
               if (details) {
                 console.log(`Found details for match ${match.id}:`, details);
+                // Explicitly handle each field to avoid undefined/null issues
                 return {
                   ...match,
                   scheduledTime: details.scheduled_time || '',
@@ -747,14 +757,31 @@ export default function BracketManager() {
                   notes: details.notes || ''
                 };
               }
-              return match;
+              // Ensure match always has these properties even if no details exist
+              return {
+                ...match,
+                scheduledTime: match.scheduledTime || '',
+                location: match.location || '',
+                notes: match.notes || ''
+              };
             });
           });
+          
+          console.log('Enriched bracket with match details. Sample match:', enrichedBracket[0][0]);
         } else {
           console.log('No match details found to enrich bracket data');
+          // Still ensure all matches have the expected properties
+          enrichedBracket = enrichedBracket.map(round => {
+            return round.map(match => ({
+              ...match,
+              scheduledTime: match.scheduledTime || '',
+              location: match.location || '',
+              notes: match.notes || ''
+            }));
+          });
         }
         
-        console.log('Setting enriched bracket data:', enrichedBracket);
+        console.log('Setting enriched bracket data with first match:', enrichedBracket[0][0]);
         setBracketData(enrichedBracket);
         setParticipants(data.participants || []);
         
@@ -1725,6 +1752,31 @@ export default function BracketManager() {
     }, 300); // Longer delay to ensure DOM updates are complete
   };
 
+  // Helper function to validate that all matches have their details properly set
+  useEffect(() => {
+    if (bracketData) {
+      console.log('Checking bracket data for match details:');
+      let matchesWithDetails = 0;
+      let totalMatches = 0;
+      
+      bracketData.forEach((round, roundIndex) => {
+        round.forEach((match) => {
+          totalMatches++;
+          if (match.scheduledTime || match.location || match.notes) {
+            matchesWithDetails++;
+            console.log(`Match #${match.id} has details:`, {
+              scheduledTime: match.scheduledTime,
+              location: match.location,
+              notes: match.notes
+            });
+          }
+        });
+      });
+      
+      console.log(`Found ${matchesWithDetails} matches with details out of ${totalMatches} total matches`);
+    }
+  }, [bracketData]);
+
   return (
     <AdminPageWrapper title="Tournament Bracket Manager">
       <Head>
@@ -1978,7 +2030,7 @@ export default function BracketManager() {
                                 handleMatchClick(match);
                               }}>
                                 <FaEdit /> 
-                                {match.scheduledTime ? 'Edit Details' : 'Add Details'}
+                                {(match.scheduledTime || match.location || match.notes) ? 'Edit Details' : 'Add Details'}
                               </button>
                               
                               {match.notes && (
