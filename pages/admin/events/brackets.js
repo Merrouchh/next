@@ -978,7 +978,7 @@ export default function BracketManager() {
     setMatchDetails(prev => ({...prev, scheduledTime: formattedValue}));
   };
 
-  // Modify handleSaveMatchDetails to only update state and avoid any page refreshes
+  // Update the handleSaveMatchDetails function to correctly handle the bracket data structure
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1073,39 +1073,68 @@ export default function BracketManager() {
       // Keep track of the currently selected match ID
       const savedMatchId = selectedMatch.id;
       
+      console.log('Before update, bracketData structure:', {
+        isArray: Array.isArray(bracketData),
+        length: bracketData.length,
+        firstItem: bracketData[0] ? {
+          isArray: Array.isArray(bracketData[0]),
+          length: bracketData[0].length
+        } : null
+      });
+      
+      // CRITICAL FIX: Make sure we're working with the right data structure
       // Update the local state with the new details
-      const updatedBracket = bracketData.map(round => {
-        return round.map(match => {
+      const updatedBracket = [...bracketData]; // Make a deep copy
+      
+      // Log a match sample before update
+      if (bracketData[0] && bracketData[0][0]) {
+        console.log('SAMPLE MATCH BEFORE UPDATE:', bracketData[0][0]);
+      }
+      
+      // Update matches in the bracket
+      for (let r = 0; r < updatedBracket.length; r++) {
+        if (!Array.isArray(updatedBracket[r])) {
+          console.error('Expected round to be an array, got:', updatedBracket[r]);
+          continue;
+        }
+        
+        for (let m = 0; m < updatedBracket[r].length; m++) {
+          const match = updatedBracket[r][m];
+          
           if (match.id === savedMatchId) {
-            // Explicitly handle each field to avoid undefined/null issues
-            // Use empty strings instead of null for UI consistency
-            const updatedMatch = {
+            // This is the match we just updated
+            console.log(`Updating match ${match.id} in bracket data`);
+            updatedBracket[r][m] = {
               ...match,
               scheduledTime: scheduledTime || '',
               location: location || '',
               notes: notes || ''
             };
-            console.log('Updated match in bracket:', updatedMatch);
-            return updatedMatch;
+          } else {
+            // Make sure every match has the right properties
+            updatedBracket[r][m] = {
+              ...match,
+              scheduledTime: match.scheduledTime || '',
+              location: match.location || '',
+              notes: match.notes || ''
+            };
           }
-          // Important: preserve existing match details and ensure all matches have the expected properties
-          return {
-            ...match,
-            scheduledTime: match.scheduledTime || '',
-            location: match.location || '',
-            notes: match.notes || ''
-          };
-        });
+        }
+      }
+      
+      // Log the updated bracket format
+      console.log('Updated bracket structure:', {
+        isArray: Array.isArray(updatedBracket),
+        length: updatedBracket.length,
+        firstItem: updatedBracket[0] ? {
+          isArray: Array.isArray(updatedBracket[0]),
+          length: updatedBracket[0].length
+        } : null
       });
       
-      // Log the first match from the updated bracket to verify details are preserved
+      // Log a match sample after update
       if (updatedBracket[0] && updatedBracket[0][0]) {
-        console.log('First match after update:', {
-          id: updatedBracket[0][0].id,
-          scheduledTime: updatedBracket[0][0].scheduledTime,
-          location: updatedBracket[0][0].location,
-          notes: updatedBracket[0][0].notes
-        });
+        console.log('SAMPLE MATCH AFTER UPDATE:', updatedBracket[0][0]);
       }
       
       // Store the last scheduled time for next match suggestion (in the same format as input)
