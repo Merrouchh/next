@@ -2003,12 +2003,23 @@ export default function BracketManager() {
           <span className={styles.matchId}>Match #{match.id}</span>
           {scheduledTimeToShow && (
             <span className={styles.scheduledTime}>
-              <FaClock /> {new Date(scheduledTimeToShow).toLocaleString([], {
-                month: 'short', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit'
-              })}
+              <FaClock /> {(() => {
+                try {
+                  const date = new Date(scheduledTimeToShow);
+                  if (!isNaN(date.getTime())) {
+                    return date.toLocaleString([], {
+                      month: 'short', 
+                      day: 'numeric', 
+                      hour: '2-digit', 
+                      minute: '2-digit'
+                    });
+                  }
+                  return 'Invalid date';
+                } catch (e) {
+                  console.error('Error formatting date:', e, scheduledTimeToShow);
+                  return 'Invalid date';
+                }
+              })()}
             </span>
           )}
           {locationToShow && (
