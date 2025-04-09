@@ -30,6 +30,30 @@ export default function BracketManager() {
   const [participantToReplace, setParticipantToReplace] = useState(null);
   const [expandedRounds, setExpandedRounds] = useState({});
   const [matchDetailsMap, setMatchDetailsMap] = useState({});
+  const [scrollPosition, setScrollPosition] = useState(0); // Store scroll position
+  const bracketSectionRef = useRef(null); // Reference to bracket section
+
+  // Helper to save the current scroll position
+  const saveScrollPosition = () => {
+    if (bracketSectionRef.current) {
+      const position = bracketSectionRef.current.scrollTop;
+      console.log('Saving scroll position:', position);
+      setScrollPosition(position);
+    }
+  };
+
+  // Helper to restore the scroll position
+  const restoreScrollPosition = () => {
+    if (bracketSectionRef.current && scrollPosition > 0) {
+      console.log('Restoring scroll position:', scrollPosition);
+      bracketSectionRef.current.scrollTop = scrollPosition;
+    }
+  };
+
+  // Effect to restore scroll position after bracket data updates
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [bracketData]);
 
   // Format datetime string for form input
   const formatDatetimeForInput = (datetimeString) => {
@@ -417,6 +441,7 @@ export default function BracketManager() {
       return;
     }
     
+    saveScrollPosition();
     setLoading(true);
     setError(null);
     
@@ -476,6 +501,7 @@ export default function BracketManager() {
       return;
     }
     
+    saveScrollPosition();
     setLoading(true);
     setError(null);
     
@@ -1025,7 +1051,7 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Update handleSaveMatchDetails to track the last edited match
+  // Update handleSaveMatchDetails with scroll preservation
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1034,6 +1060,7 @@ export default function BracketManager() {
     
     if (!selectedMatch || !selectedEvent) return;
     
+    saveScrollPosition();
     setLoading(true);
     setError(null);
     
@@ -1127,8 +1154,9 @@ export default function BracketManager() {
     }
   };
 
-  // Update handleSwapParticipants to preserve scroll position
+  // Update handleSwapParticipants with scroll preservation
   const handleSwapParticipants = async (matchId) => {
+    saveScrollPosition();
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=swapParticipants&matchId=${matchId}`, {
         method: 'PUT',
@@ -1167,17 +1195,20 @@ export default function BracketManager() {
     }
   };
 
-  // Toggle round expansion
+  // Toggle round expansion with scroll position preservation
   const toggleRound = (roundIndex) => {
+    saveScrollPosition();
     setExpandedRounds(prev => ({
       ...prev,
       [roundIndex]: !prev[roundIndex]
     }));
   };
 
-  // Toggle all rounds
+  // Toggle all rounds with scroll position preservation
   const toggleAllRounds = (expand) => {
     if (!bracketData) return;
+    
+    saveScrollPosition();
     
     // Check if bracketData is an array (of rounds) or has a rounds property
     const rounds = Array.isArray(bracketData) ? bracketData : bracketData.rounds;
@@ -1489,10 +1520,11 @@ export default function BracketManager() {
     );
   };
 
-  // Update handleResetMatchTimes to preserve scroll position
+  // Update handleResetMatchTimes with scroll preservation
   const handleResetMatchTimes = async () => {
     if (!selectedEvent) return;
     
+    saveScrollPosition();
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=resetTimes`, {
         method: 'DELETE',
@@ -1931,7 +1963,11 @@ export default function BracketManager() {
             )}
           </div>
           
-          <div className={styles.bracketSection} id="bracketSection">
+          <div 
+            className={styles.bracketSection} 
+            id="bracketSection"
+            ref={bracketSectionRef}
+          >
             <div className={styles.bracketHeader}>
               <h2>Tournament Bracket</h2>
               {selectedEvent && !loading && (
