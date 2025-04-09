@@ -14,6 +14,7 @@ export default function BracketManager() {
   const { user, supabase } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true); // Add initial loading state
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [bracketData, setBracketData] = useState(null);
@@ -169,11 +170,14 @@ export default function BracketManager() {
         if (eventWithBracket) {
           console.log('Auto-selecting most recent event with bracket:', eventWithBracket.title);
           setSelectedEvent(eventWithBracket);
-          fetchBracketData(eventWithBracket.id);
+          await fetchBracketData(eventWithBracket.id);  // Use await to ensure data is loaded
+        } else {
+          setInitialLoading(false); // No bracket to load, we can stop initial loading
         }
       } catch (error) {
         console.error('Error fetching events:', error);
         setError('Failed to load events. Please try again.');
+        setInitialLoading(false); // Error occurred, stop initial loading
       } finally {
         setLoading(false);
       }
@@ -720,6 +724,7 @@ export default function BracketManager() {
         setBracketData(null);
         setParticipants([]);
         setLoading(false);
+        setInitialLoading(false); // Finished loading (even with 404)
         return;
       }
       
@@ -736,6 +741,7 @@ export default function BracketManager() {
         setBracketData(null);
         setParticipants([]);
         setLoading(false);
+        setInitialLoading(false); // Finished loading (even without data)
         return;
       }
       
@@ -807,6 +813,7 @@ export default function BracketManager() {
       setError(error.message || 'Failed to load bracket data');
     } finally {
       setLoading(false);
+      setInitialLoading(false); // Always set initialLoading to false when done
     }
   };
 
@@ -1894,215 +1901,222 @@ export default function BracketManager() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       
-      <div className={styles.bracketManagerContainer}>
-        <div className={styles.eventsSection}>
-          <h2>Events</h2>
-          {loading && !selectedEvent ? (
-            <div className={styles.loading}>Loading events...</div>
-          ) : error ? (
-            <div className={styles.error}>{error}</div>
-          ) : (
-            <div className={styles.eventsList}>
-              {events.length === 0 ? (
-                <div className={styles.noEvents}>No events found</div>
-              ) : (
-                events.map(event => (
-                  <div 
-                    key={event.id} 
-                    className={`${styles.eventCard} ${selectedEvent?.id === event.id ? styles.selected : ''} ${event.hasBracket ? styles.hasBracket : styles.noBracket}`}
-                    onClick={() => handleEventSelect(event)}
-                  >
-                    <div className={styles.eventImageContainer}>
-                      <div className={styles.eventImage}>
-                        {event.image ? (
-                          <img 
-                            src={event.image} 
-                            alt={event.title}
-                            onError={(e) => {
-                              // If image fails to load, replace with placeholder
-                              console.log(`Image failed to load for event: ${event.title}`);
-                              e.target.onerror = null;
-                              e.target.parentNode.innerHTML = `<div class="${styles.noImage}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M152 64h144V24c0-13.25 10.7-24 24-24s24 10.75 24 24v40h40c35.3 0 64 28.65 64 64v320c0 35.3-28.7 64-64 64H64c-35.35 0-64-28.7-64-64V128c0-35.35 28.65-64 64-64h40V24c0-13.25 10.7-24 24-24s24 10.75 24 24v40zM48 448c0 8.8 7.16 16 16 16h320c8.8 0 16-7.2 16-16V240H48v208zm32-272H368V128c0-8.8-7.2-16-16-16H96c-8.84 0-16 7.2-16 16v48z"></path></svg></div>`;
-                            }}
-                          />
-                        ) : (
-                          <div className={styles.noImage}>
-                            <FaCalendarAlt />
-                          </div>
-                        )}
-                      </div>
-                      <div className={styles.eventTitleOverlay}>
-                        <h3 title={event.title}>
-                          {event.title}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className={styles.eventInfo}>
-                      <div className={styles.eventMetaInfo}>
-                        <div className={styles.eventMeta}>
-                          <span className={styles.eventDate}>
-                            {new Date(event.date).toLocaleDateString()}
-                          </span>
-                          <span className={styles.eventType}>
-                            {event.team_type.charAt(0).toUpperCase() + event.team_type.slice(1)}
-                          </span>
-                        </div>
-                        <div className={styles.bracketStatus}>
-                          {event.hasBracket ? (
-                            <>
-                              <FaTrophy className={styles.bracketIcon} />
-                              <span>Bracket Available</span>
-                            </>
+      {initialLoading ? (
+        <div className={styles.fullPageLoading}>
+          <div className={styles.loadingSpinner}></div>
+          <div>Loading bracket manager...</div>
+        </div>
+      ) : (
+        <div className={styles.bracketManagerContainer}>
+          <div className={styles.eventsSection}>
+            <h2>Events</h2>
+            {loading && !selectedEvent ? (
+              <div className={styles.loading}>Loading events...</div>
+            ) : error ? (
+              <div className={styles.error}>{error}</div>
+            ) : (
+              <div className={styles.eventsList}>
+                {events.length === 0 ? (
+                  <div className={styles.noEvents}>No events found</div>
+                ) : (
+                  events.map(event => (
+                    <div 
+                      key={event.id} 
+                      className={`${styles.eventCard} ${selectedEvent?.id === event.id ? styles.selected : ''} ${event.hasBracket ? styles.hasBracket : styles.noBracket}`}
+                      onClick={() => handleEventSelect(event)}
+                    >
+                      <div className={styles.eventImageContainer}>
+                        <div className={styles.eventImage}>
+                          {event.image ? (
+                            <img 
+                              src={event.image} 
+                              alt={event.title}
+                              onError={(e) => {
+                                // If image fails to load, replace with placeholder
+                                console.log(`Image failed to load for event: ${event.title}`);
+                                e.target.onerror = null;
+                                e.target.parentNode.innerHTML = `<div class="${styles.noImage}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M152 64h144V24c0-13.25 10.7-24 24-24s24 10.75 24 24v40h40c35.3 0 64 28.65 64 64v320c0 35.3-28.7 64-64 64H64c-35.35 0-64-28.7-64-64V128c0-35.35 28.65-64 64-64h40V24c0-13.25 10.7-24 24-24s24 10.75 24 24v40zM48 448c0 8.8 7.16 16 16 16h320c8.8 0 16-7.2 16-16V240H48v208zm32-272H368V128c0-8.8-7.2-16-16-16H96c-8.84 0-16 7.2-16 16v48z"></path></svg></div>`;
+                              }}
+                            />
                           ) : (
-                            <>
-                              <span>No Bracket</span>
-                            </>
+                            <div className={styles.noImage}>
+                              <FaCalendarAlt />
+                            </div>
                           )}
                         </div>
+                        <div className={styles.eventTitleOverlay}>
+                          <h3 title={event.title}>
+                            {event.title}
+                          </h3>
+                        </div>
+                      </div>
+                      <div className={styles.eventInfo}>
+                        <div className={styles.eventMetaInfo}>
+                          <div className={styles.eventMeta}>
+                            <span className={styles.eventDate}>
+                              {new Date(event.date).toLocaleDateString()}
+                            </span>
+                            <span className={styles.eventType}>
+                              {event.team_type.charAt(0).toUpperCase() + event.team_type.slice(1)}
+                            </span>
+                          </div>
+                          <div className={styles.bracketStatus}>
+                            {event.hasBracket ? (
+                              <>
+                                <FaTrophy className={styles.bracketIcon} />
+                                <span>Bracket Available</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>No Bracket</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-        
-        <div className={styles.bracketSection} id="bracketSection">
-          <div className={styles.bracketHeader}>
-            <h2>Tournament Bracket</h2>
-            {selectedEvent && !loading && (
-              <div className={styles.bracketActions}>
-                {bracketData && (
-                  <>
-                    <button 
-                      className={styles.viewBracketButton}
-                      onClick={handleViewPublicBracket}
-                    >
-                      <FaTrophy /> View Public Bracket
-                    </button>
-                    <button 
-                      className={styles.resetTimesButton}
-                      onClick={handleResetMatchTimes}
-                      disabled={loading}
-                      title="Clear all scheduled match times while preserving the bracket and match winners"
-                    >
-                      <FaClock /> Reset Times
-                    </button>
-                  </>
+                  ))
                 )}
-                <button 
-                  className={styles.generateBracketButton}
-                  onClick={handleGenerateBracket}
-                  disabled={loading}
-                  title={bracketData ? "Create a new bracket with randomly seeded participants (will reset all matches)" : "Create a new tournament bracket with the registered participants"}
-                >
-                  <FaTrophy /> {bracketData ? 'Regenerate Bracket' : 'Generate Bracket'}
-                </button>
-                {bracketData && (
-                  <button 
-                    className={styles.deleteBracketButton}
-                    onClick={handleDeleteBracket}
-                    disabled={loading}
-                    title="WARNING: This will permanently delete the entire bracket"
-                  >
-                    <FaExclamationTriangle /> Delete Bracket
-                  </button>
-                )}
-              </div>
-            )}
-            {selectedEvent && loading && (
-              <div className={styles.loadingActions}>
-                <span>Loading bracket actions...</span>
               </div>
             )}
           </div>
           
-          {!selectedEvent ? (
-            <div className={styles.noBracketSelected}>
-              <p>Select an event to view or manage its bracket</p>
-            </div>
-          ) : loading ? (
-            <div className={styles.loading}>Loading bracket data...</div>
-          ) : error ? (
-            <div className={styles.error}>{error}</div>
-          ) : !bracketData ? (
-            <div className={styles.noBracket}>
-              <p>No bracket available for this event.</p>
-              <Link 
-                href={`/events/${selectedEvent.id}/bracket`}
-                className={sharedStyles.primaryButton}
-              >
-                Generate Bracket
-              </Link>
-            </div>
-          ) : (
-            <div className={styles.bracketMatchesList} id="bracketMatchesList">
-              <div className={styles.roundControls}>
-                <button 
-                  className={styles.expandButton} 
-                  onClick={() => toggleAllRounds(true)}
-                  title="Expand all rounds"
-                >
-                  Expand All
-                </button>
-                <button 
-                  className={styles.collapseButton} 
-                  onClick={() => toggleAllRounds(false)}
-                  title="Collapse all rounds"
-                >
-                  Collapse All
-                </button>
-              </div>
-              
-              {bracketData.map((round, roundIndex) => (
-                <div key={`round-${roundIndex}`} className={styles.roundSection}>
-                  <h3 
-                    className={`${styles.roundTitle} ${styles.collapsible}`} 
-                    onClick={() => toggleRound(roundIndex)}
+          <div className={styles.bracketSection} id="bracketSection">
+            <div className={styles.bracketHeader}>
+              <h2>Tournament Bracket</h2>
+              {selectedEvent && !loading && (
+                <div className={styles.bracketActions}>
+                  {bracketData && (
+                    <>
+                      <button 
+                        className={styles.viewBracketButton}
+                        onClick={handleViewPublicBracket}
+                      >
+                        <FaTrophy /> View Public Bracket
+                      </button>
+                      <button 
+                        className={styles.resetTimesButton}
+                        onClick={handleResetMatchTimes}
+                        disabled={loading}
+                        title="Clear all scheduled match times while preserving the bracket and match winners"
+                      >
+                        <FaClock /> Reset Times
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    className={styles.generateBracketButton}
+                    onClick={handleGenerateBracket}
+                    disabled={loading}
+                    title={bracketData ? "Create a new bracket with randomly seeded participants (will reset all matches)" : "Create a new tournament bracket with the registered participants"}
                   >
-                    <div className={styles.roundTitleContent}>
-                      {roundIndex === 0 ? 'Round 1' : 
-                       roundIndex === bracketData.length - 1 ? 'Final' : 
-                       `Round ${roundIndex + 1}`}
-                      
-                      <div className={styles.roundSummary}>
-                        {!expandedRounds[roundIndex] && (
-                          <>
-                            <span className={styles.matchCount}>
-                              {round.length} matches
-                            </span>
-                            <span className={styles.completedCount}>
-                              {round.filter(m => m.winnerId).length} completed
-                            </span>
-                            <span className={styles.readyCount}>
-                              {round.filter(m => isMatchReadyToPlay(m)).length} ready
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <span className={styles.collapseIcon}>
-                      {expandedRounds[roundIndex] ? '▼' : '►'}
-                    </span>
-                  </h3>
-                  
-                  {expandedRounds[roundIndex] && (
-                    <div className={styles.matchesList}>
-                      {round.map((match) => {
-                        // Determine if match is ready to be played
-                        const isMatchReady = isMatchReadyToPlay(match);
-                        
-                        return renderMatchItem(match, isMatchReady);
-                      })}
-                    </div>
+                    <FaTrophy /> {bracketData ? 'Regenerate Bracket' : 'Generate Bracket'}
+                  </button>
+                  {bracketData && (
+                    <button 
+                      className={styles.deleteBracketButton}
+                      onClick={handleDeleteBracket}
+                      disabled={loading}
+                      title="WARNING: This will permanently delete the entire bracket"
+                    >
+                      <FaExclamationTriangle /> Delete Bracket
+                    </button>
                   )}
                 </div>
-              ))}
+              )}
+              {selectedEvent && loading && (
+                <div className={styles.loadingActions}>
+                  <span>Loading bracket actions...</span>
+                </div>
+              )}
             </div>
-          )}
+            
+            {!selectedEvent ? (
+              <div className={styles.noBracketSelected}>
+                <p>Select an event to view or manage its bracket</p>
+              </div>
+            ) : loading ? (
+              <div className={styles.loading}>Loading bracket data...</div>
+            ) : error ? (
+              <div className={styles.error}>{error}</div>
+            ) : !bracketData ? (
+              <div className={styles.noBracket}>
+                <p>No bracket available for this event.</p>
+                <Link 
+                  href={`/events/${selectedEvent.id}/bracket`}
+                  className={sharedStyles.primaryButton}
+                >
+                  Generate Bracket
+                </Link>
+              </div>
+            ) : (
+              <div className={styles.bracketMatchesList} id="bracketMatchesList">
+                <div className={styles.roundControls}>
+                  <button 
+                    className={styles.expandButton} 
+                    onClick={() => toggleAllRounds(true)}
+                    title="Expand all rounds"
+                  >
+                    Expand All
+                  </button>
+                  <button 
+                    className={styles.collapseButton} 
+                    onClick={() => toggleAllRounds(false)}
+                    title="Collapse all rounds"
+                  >
+                    Collapse All
+                  </button>
+                </div>
+                
+                {bracketData.map((round, roundIndex) => (
+                  <div key={`round-${roundIndex}`} className={styles.roundSection}>
+                    <h3 
+                      className={`${styles.roundTitle} ${styles.collapsible}`} 
+                      onClick={() => toggleRound(roundIndex)}
+                    >
+                      <div className={styles.roundTitleContent}>
+                        {roundIndex === 0 ? 'Round 1' : 
+                         roundIndex === bracketData.length - 1 ? 'Final' : 
+                         `Round ${roundIndex + 1}`}
+                        
+                        <div className={styles.roundSummary}>
+                          {!expandedRounds[roundIndex] && (
+                            <>
+                              <span className={styles.matchCount}>
+                                {round.length} matches
+                              </span>
+                              <span className={styles.completedCount}>
+                                {round.filter(m => m.winnerId).length} completed
+                              </span>
+                              <span className={styles.readyCount}>
+                                {round.filter(m => isMatchReadyToPlay(m)).length} ready
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <span className={styles.collapseIcon}>
+                        {expandedRounds[roundIndex] ? '▼' : '►'}
+                      </span>
+                    </h3>
+                    
+                    {expandedRounds[roundIndex] && (
+                      <div className={styles.matchesList}>
+                        {round.map((match) => {
+                          // Determine if match is ready to be played
+                          const isMatchReady = isMatchReadyToPlay(match);
+                          
+                          return renderMatchItem(match, isMatchReady);
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       
       {renderMatchDetailsModal()}
       {renderParticipantSelectionModal()}
