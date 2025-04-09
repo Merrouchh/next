@@ -510,6 +510,13 @@
 .inProgressButton {
   background-color: #ffc107;
   color: black;
+  cursor: default;
+  pointer-events: none;
+}
+
+.inProgressButton:disabled {
+  opacity: 1;
+  cursor: default;
 }
 
 .fullButton {

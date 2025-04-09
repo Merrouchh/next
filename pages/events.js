@@ -636,8 +636,7 @@ function EventCard({ event }) {
             handleRegisterClick();
           }}
           disabled={
-            // Don't disable for completed events
-            event.status === 'In Progress' || 
+            // Don't disable for completed or in progress events
             (!isPublicView && checkingRegistration) ||
             (!isPublicView && isRegistered)
           }
