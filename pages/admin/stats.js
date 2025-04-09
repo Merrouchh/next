@@ -28,7 +28,7 @@ export default function AdminStats() {
     dateFrom: getTodayAt7AM(),
     dateTo: getTomorrowAt7AM()
   });
-  const [reportType, setReportType] = useState(2); // Default to detailed report
+  const reportType = 2;
   const [shiftReports, setShiftReports] = useState(null);
 
   // Helper function to get today at 7am
@@ -297,7 +297,7 @@ export default function AdminStats() {
   const summary = shiftReports ? calculateSummary() : null;
 
   // Add toggleable row function
-  function ShiftRow({ shift, formatDate, formatCurrency, styles, reportType }) {
+  function ShiftRow({ shift, formatDate, formatCurrency, styles }) {
     return (
       <tr key={shift.shiftId} className={shift.isActive ? styles.activeShift : ''}>
         <td>{shift.shiftId}</td>
@@ -337,9 +337,7 @@ export default function AdminStats() {
           ) : '-'}
         </td>
         <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
-        {reportType === 2 && (
-          <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
-        )}
+        <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
         <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
           {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
         </td>
@@ -398,19 +396,6 @@ export default function AdminStats() {
                   onChange={handleDateChange}
                 />
               </div>
-            </div>
-            
-            <div className={styles.reportTypeControl}>
-              <label htmlFor="reportType">Report Type</label>
-              <select
-                id="reportType"
-                className={styles.reportTypeSelect}
-                value={reportType}
-                onChange={(e) => setReportType(Number(e.target.value))}
-              >
-                <option value={1}>Simple</option>
-                <option value={2}>Detailed</option>
-              </select>
             </div>
 
             <button 
@@ -486,15 +471,8 @@ export default function AdminStats() {
                     <FaWallet />
                   </div>
                   <div>
-                    <h3 title={reportType === 2 ? "Total cash payouts (from Cash payment method only)" : "Total cash taken out between shifts (operator payments)"}>
-                      Total Payout
-                    </h3>
-                    <p className={styles.amount}>
-                      {reportType === 2 
-                        ? formatCurrency(summary?.totalCashPayouts || 0)
-                        : formatCurrency(summary?.totalCashOut || 0)
-                      }
-                    </p>
+                    <h3 title="Total cash payouts (from Cash payment method only)">Total Payout</h3>
+                    <p className={styles.amount}>{formatCurrency(summary?.totalCashPayouts || 0)}</p>
                   </div>
                 </div>
 
@@ -508,18 +486,15 @@ export default function AdminStats() {
                   </div>
                 </div>
 
-                {/* Only show Refunds in detailed report */}
-                {reportType === 2 && (
-                  <div className={styles.summaryCard}>
-                    <div className={styles.summaryIcon}>
-                      <FaUndo />
-                    </div>
-                    <div>
-                      <h3>Total Refunds</h3>
-                      <p className={styles.amount}>{formatCurrency(summary?.totalRefunds || 0)}</p>
-                    </div>
+                <div className={styles.summaryCard}>
+                  <div className={styles.summaryIcon}>
+                    <FaUndo />
                   </div>
-                )}
+                  <div>
+                    <h3>Total Refunds</h3>
+                    <p className={styles.amount}>{formatCurrency(summary?.totalRefunds || 0)}</p>
+                  </div>
+                </div>
 
                 <div className={styles.summaryCard}>
                   <div className={styles.summaryIcon}>
@@ -575,7 +550,7 @@ export default function AdminStats() {
                       <th>End Amount</th>
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Sales</th>
-                      {reportType === 2 && <th>Refunds</th>}
+                      <th>Refunds</th>
                       <th>Difference</th>
                       <th>Status</th>
                     </tr>
@@ -589,12 +564,11 @@ export default function AdminStats() {
                           formatDate={formatDate}
                           formatCurrency={formatCurrency}
                           styles={styles}
-                          reportType={reportType}
                         />
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={reportType === 2 ? 15 : 14} style={{ textAlign: 'center', padding: '2rem' }}>
+                        <td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>
                           No shift reports found for the selected date range
                         </td>
                       </tr>
