@@ -140,13 +140,23 @@ export default async function handler(req, res) {
         
         const nextMatch = updatedMatches[currentRoundIndex + 1][nextRoundMatchIndex];
         
-        // Only clear if this participant advanced (matches our removedWinnerId)
-        if (nextMatch[participantPosition] === removedWinnerId) {
-          // Clear the participant from next match
-          updatedMatches[currentRoundIndex + 1][nextRoundMatchIndex][participantPosition] = null;
-          updatedMatches[currentRoundIndex + 1][nextRoundMatchIndex][namePosition] = 'TBD';
+        // We need to check both positions in the next match to handle swaps
+        let foundInPosition = null;
+        if (nextMatch.participant1Id === removedWinnerId) {
+          foundInPosition = 'participant1Id';
+        } else if (nextMatch.participant2Id === removedWinnerId) {
+          foundInPosition = 'participant2Id';
+        }
+        
+        // If this participant is in the next match (might be in swapped position), remove it
+        if (foundInPosition) {
+          const namePositionForFound = foundInPosition === 'participant1Id' ? 'participant1Name' : 'participant2Name';
           
-          // If that next match had this as the winner, recursively clear
+          // Clear the participant from next match
+          updatedMatches[currentRoundIndex + 1][nextRoundMatchIndex][foundInPosition] = null;
+          updatedMatches[currentRoundIndex + 1][nextRoundMatchIndex][namePositionForFound] = 'TBD';
+          
+          // If that next match had this as the winner, recursively clear it
           if (nextMatch.winnerId === removedWinnerId) {
             // Use a recursive function to clear all subsequent advances
             clearAdvancingWinners(
@@ -265,22 +275,27 @@ function clearAdvancingWinners(matches, roundIndex, matchIndex, winnerId) {
   // Calculate the next match index
   const nextRoundMatchIndex = Math.floor(matchIndex / 2);
   
-  // Determine position in next match
-  const isParticipant1 = matchIndex % 2 === 0;
-  const participantPosition = isParticipant1 ? 'participant1Id' : 'participant2Id';
-  const namePosition = isParticipant1 ? 'participant1Name' : 'participant2Name';
-  
-  // Process next match if it exists
+  // Look for the participant in any position in the next match
   if (matches[roundIndex + 1] && matches[roundIndex + 1][nextRoundMatchIndex]) {
     const nextMatch = matches[roundIndex + 1][nextRoundMatchIndex];
     
-    // Only proceed if this participant advanced
-    if (nextMatch[participantPosition] === winnerId) {
-      // Clear the participant
-      matches[roundIndex + 1][nextRoundMatchIndex][participantPosition] = null;
-      matches[roundIndex + 1][nextRoundMatchIndex][namePosition] = 'TBD';
+    // Check both sides for the winner that needs to be removed
+    if (nextMatch.participant1Id === winnerId) {
+      // Clear from position 1
+      matches[roundIndex + 1][nextRoundMatchIndex].participant1Id = null;
+      matches[roundIndex + 1][nextRoundMatchIndex].participant1Name = 'TBD';
       
-      // If next match had this as winner, continue recursion
+      // Continue recursion if this participant won the next match
+      if (nextMatch.winnerId === winnerId) {
+        clearAdvancingWinners(matches, roundIndex + 1, nextRoundMatchIndex, winnerId);
+      }
+    } 
+    else if (nextMatch.participant2Id === winnerId) {
+      // Clear from position 2
+      matches[roundIndex + 1][nextRoundMatchIndex].participant2Id = null;
+      matches[roundIndex + 1][nextRoundMatchIndex].participant2Name = 'TBD';
+      
+      // Continue recursion if this participant won the next match
       if (nextMatch.winnerId === winnerId) {
         clearAdvancingWinners(matches, roundIndex + 1, nextRoundMatchIndex, winnerId);
       }
