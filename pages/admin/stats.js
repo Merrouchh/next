@@ -231,17 +231,24 @@ export default function AdminStats() {
           detail.paymentMethodName.toLowerCase().includes('cash')
         );
         
-        // Add payouts from cash method if found
+        // Add net payouts from cash method if found (payOuts - payIns)
         if (cashDetails) {
-          shiftCashPayouts = Number.isFinite(cashDetails.payOuts) ? cashDetails.payOuts : 0;
+          const cashPayouts = Number.isFinite(cashDetails.payOuts) ? cashDetails.payOuts : 0;
+          const cashPayIns = Number.isFinite(cashDetails.payIns) ? cashDetails.payIns : 0;
+          shiftCashPayouts = cashPayouts - cashPayIns;
         }
         
-        // Calculate total payouts across all payment methods
-        shiftTotalPayouts = shift.details.reduce((sum, detail) => 
-          sum + (Number.isFinite(detail.payOuts) ? detail.payOuts : 0), 0);
+        // Calculate total net payouts across all payment methods (payOuts - payIns)
+        shiftTotalPayouts = shift.details.reduce((sum, detail) => {
+          const detailPayouts = Number.isFinite(detail.payOuts) ? detail.payOuts : 0;
+          const detailPayIns = Number.isFinite(detail.payIns) ? detail.payIns : 0;
+          return sum + (detailPayouts - detailPayIns);
+        }, 0);
       } else if (Number.isFinite(shift.payOuts)) {
-        // If we have payOuts at the shift level
-        shiftTotalPayouts = shift.payOuts;
+        // If we have payOuts at the shift level (and possibly payIns)
+        const payOuts = shift.payOuts || 0;
+        const payIns = shift.payIns || 0;
+        shiftTotalPayouts = payOuts - payIns;
       }
       
       return {
@@ -346,11 +353,17 @@ export default function AdminStats() {
             <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
           )}
           <td>
-            {/* Payouts instead of Withdrawals */}
-            {Number.isFinite(shift.payOuts) ? formatCurrency(shift.payOuts) : 
-             (shift.details && shift.details.length > 0 && shift.details.some(d => d.payOuts > 0)) 
-             ? formatCurrency(shift.details.reduce((sum, d) => sum + (d.payOuts || 0), 0))
-             : '0 MAD'}
+            {/* Net Payouts (payOuts - payIns) */}
+            {Number.isFinite(shift.payOuts) ? 
+              formatCurrency((shift.payOuts || 0) - (shift.payIns || 0)) : 
+              (shift.details && shift.details.length > 0) 
+                ? formatCurrency(shift.details.reduce((sum, d) => {
+                    const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
+                    const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
+                    return sum + (detailPayouts - detailPayIns);
+                  }, 0))
+                : '0 MAD'
+            }
           </td>
           <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
             {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
@@ -374,8 +387,7 @@ export default function AdminStats() {
                   <thead>
                     <tr>
                       <th>Payment Method</th>
-                      <th>Pay-Outs</th>
-                      <th>Pay-Ins</th>
+                      <th>Net Payouts</th>
                       <th>Sales</th>
                       <th>Refunds</th>
                       <th>Deposits</th>
@@ -387,23 +399,27 @@ export default function AdminStats() {
                   <tbody>
                     {shift.details
                       .filter(detail => detail.paymentMethodName && detail.paymentMethodName.toLowerCase().includes('cash'))
-                      .map((detail, index) => (
-                        <tr key={index}>
-                          <td>{detail.paymentMethodName}</td>
-                          <td className={styles.highlightPayouts}>
-                            {formatCurrency(detail.payOuts || 0)}
-                          </td>
-                          <td>{formatCurrency(detail.payIns || 0)}</td>
-                          <td>{formatCurrency(detail.sales || 0)}</td>
-                          <td>{formatCurrency(detail.refunds || 0)}</td>
-                          <td>{formatCurrency(detail.deposits || 0)}</td>
-                          <td>{formatCurrency(detail.expected || 0)}</td>
-                          <td>{formatCurrency(detail.actual || 0)}</td>
-                          <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
-                            {formatCurrency(detail.difference || 0)}
-                          </td>
-                        </tr>
-                      ))}
+                      .map((detail, index) => {
+                        // Calculate net payout (payOuts - payIns)
+                        const netPayout = (detail.payOuts || 0) - (detail.payIns || 0);
+                        
+                        return (
+                          <tr key={index}>
+                            <td>{detail.paymentMethodName}</td>
+                            <td className={styles.highlightPayouts}>
+                              {formatCurrency(netPayout)}
+                            </td>
+                            <td>{formatCurrency(detail.sales || 0)}</td>
+                            <td>{formatCurrency(detail.refunds || 0)}</td>
+                            <td>{formatCurrency(detail.deposits || 0)}</td>
+                            <td>{formatCurrency(detail.expected || 0)}</td>
+                            <td>{formatCurrency(detail.actual || 0)}</td>
+                            <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
+                              {formatCurrency(detail.difference || 0)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -565,7 +581,7 @@ export default function AdminStats() {
                     <FaHandHoldingUsd />
                   </div>
                   <div>
-                    <h3>Total Payouts</h3>
+                    <h3 title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</h3>
                     <p className={styles.amount}>{formatCurrency(summary?.totalPayouts || 0)}</p>
                   </div>
                 </div>
@@ -637,7 +653,7 @@ export default function AdminStats() {
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Sales</th>
                       {reportType === 2 && <th>Refunds</th>}
-                      <th>Payouts</th>
+                      <th title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</th>
                       <th>Difference</th>
                       <th>Status</th>
                     </tr>
