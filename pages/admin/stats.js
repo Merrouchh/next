@@ -17,9 +17,6 @@ import {
   FaArrowDown,
   FaCalculator,
   FaWallet,
-  FaChevronDown,
-  FaChevronRight,
-  FaCreditCard,
   FaHandHoldingUsd
 } from 'react-icons/fa';
 
@@ -301,132 +298,57 @@ export default function AdminStats() {
 
   // Add toggleable row function
   function ShiftRow({ shift, formatDate, formatCurrency, styles, reportType }) {
-    const [expanded, setExpanded] = useState(false);
-    
-    // Only show details if there are cash payment methods
-    const hasCashDetails = shift.details && 
-                           Array.isArray(shift.details) && 
-                           shift.details.some(detail => 
-                              detail.paymentMethodName && 
-                              detail.paymentMethodName.toLowerCase().includes('cash')
-                           );
-    
     return (
-      <>
-        <tr key={shift.shiftId} className={`${shift.isActive ? styles.activeShift : ''} ${hasCashDetails ? styles.expandableRow : ''}`}>
-          <td>
-            {hasCashDetails && (
-              <button 
-                onClick={() => setExpanded(!expanded)} 
-                className={styles.expandButton}
-                aria-label={expanded ? "Collapse payment details" : "Expand payment details"}
-              >
-                {expanded ? <FaChevronDown /> : <FaChevronRight />}
-              </button>
-            )}
-            {shift.shiftId}
-          </td>
-          <td>{formatDate(shift.startTime)}</td>
-          <td>
-            {shift.endTime ? formatDate(shift.endTime) : 
-              shift.calculatedEndTime ? (
-                <span title="Estimated end time">
-                  {formatDate(shift.calculatedEndTime)} <em>(est.)</em>
-                </span>
-              ) : 'In Progress'}
-          </td>
-          <td>{shift.duration || '0h 0m'}</td>
-          <td>{shift.operatorName || 'Unknown'}</td>
-          <td>{shift.registerName || 'Unknown'}</td>
-          <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
-          <td>{Number.isFinite(shift.expected) ? formatCurrency(shift.expected) : '0 MAD'}</td>
-          <td>
-            {/* Net Payouts (payOuts - payIns) */}
-            {Number.isFinite(shift.payOuts) ? 
-              formatCurrency((shift.payOuts || 0) - (shift.payIns || 0)) : 
-              (shift.details && shift.details.length > 0) 
-                ? formatCurrency(shift.details.reduce((sum, d) => {
-                    const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
-                    const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
-                    return sum + (detailPayouts - detailPayIns);
-                  }, 0))
-                : '0 MAD'
-            }
-          </td>
-          <td>{shift.actual !== null && Number.isFinite(shift.actual) ? formatCurrency(shift.actual) : '-'}</td>
-          <td className={`${styles.cashOut} ${shift.cashOutAmount ? styles.hasCashOut : ''}`}>
-            {shift.cashOutAmount ? (
-              <span title={`End cash from previous shift: ${formatCurrency(shift.prevShiftEndCash)}`}>
-                {formatCurrency(shift.cashOutAmount)}
+      <tr key={shift.shiftId} className={shift.isActive ? styles.activeShift : ''}>
+        <td>{shift.shiftId}</td>
+        <td>{formatDate(shift.startTime)}</td>
+        <td>
+          {shift.endTime ? formatDate(shift.endTime) : 
+            shift.calculatedEndTime ? (
+              <span title="Estimated end time">
+                {formatDate(shift.calculatedEndTime)} <em>(est.)</em>
               </span>
-            ) : '-'}
-          </td>
-          <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
-          {reportType === 2 && (
-            <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
-          )}
-          <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
-            {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
-          </td>
-          <td>
-            <span className={`${styles.status} ${!shift.isActive ? styles.statusClosed : styles.statusActive}`}>
-              {!shift.isActive ? 'Closed' : 'Active'}
+            ) : 'In Progress'}
+        </td>
+        <td>{shift.duration || '0h 0m'}</td>
+        <td>{shift.operatorName || 'Unknown'}</td>
+        <td>{shift.registerName || 'Unknown'}</td>
+        <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
+        <td>{Number.isFinite(shift.expected) ? formatCurrency(shift.expected) : '0 MAD'}</td>
+        <td>
+          {/* Net Payouts (payOuts - payIns) */}
+          {Number.isFinite(shift.payOuts) ? 
+            formatCurrency((shift.payOuts || 0) - (shift.payIns || 0)) : 
+            (shift.details && shift.details.length > 0) 
+              ? formatCurrency(shift.details.reduce((sum, d) => {
+                  const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
+                  const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
+                  return sum + (detailPayouts - detailPayIns);
+                }, 0))
+              : '0 MAD'
+          }
+        </td>
+        <td>{shift.actual !== null && Number.isFinite(shift.actual) ? formatCurrency(shift.actual) : '-'}</td>
+        <td className={`${styles.cashOut} ${shift.cashOutAmount ? styles.hasCashOut : ''}`}>
+          {shift.cashOutAmount ? (
+            <span title={`End cash from previous shift: ${formatCurrency(shift.prevShiftEndCash)}`}>
+              {formatCurrency(shift.cashOutAmount)}
             </span>
-          </td>
-        </tr>
-        
-        {/* Payment method details when expanded */}
-        {expanded && hasCashDetails && (
-          <tr className={styles.detailsRow}>
-            <td colSpan={reportType === 2 ? 15 : 14}>
-              <div className={styles.paymentDetails}>
-                <h4 className={styles.paymentDetailsTitle}>
-                  <FaHandHoldingUsd /> Cash Payment Method Details
-                </h4>
-                <table className={styles.paymentMethodsTable}>
-                  <thead>
-                    <tr>
-                      <th>Payment Method</th>
-                      <th>Net Payouts</th>
-                      <th>Sales</th>
-                      <th>Refunds</th>
-                      <th>Deposits</th>
-                      <th>Expected</th>
-                      <th>Actual</th>
-                      <th>Difference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shift.details
-                      .filter(detail => detail.paymentMethodName && detail.paymentMethodName.toLowerCase().includes('cash'))
-                      .map((detail, index) => {
-                        // Calculate net payout (payOuts - payIns)
-                        const netPayout = (detail.payOuts || 0) - (detail.payIns || 0);
-                        
-                        return (
-                          <tr key={index}>
-                            <td>{detail.paymentMethodName}</td>
-                            <td className={styles.highlightPayouts}>
-                              {formatCurrency(netPayout)}
-                            </td>
-                            <td>{formatCurrency(detail.sales || 0)}</td>
-                            <td>{formatCurrency(detail.refunds || 0)}</td>
-                            <td>{formatCurrency(detail.deposits || 0)}</td>
-                            <td>{formatCurrency(detail.expected || 0)}</td>
-                            <td>{formatCurrency(detail.actual || 0)}</td>
-                            <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
-                              {formatCurrency(detail.difference || 0)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            </td>
-          </tr>
+          ) : '-'}
+        </td>
+        <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
+        {reportType === 2 && (
+          <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
         )}
-      </>
+        <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
+          {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
+        </td>
+        <td>
+          <span className={`${styles.status} ${!shift.isActive ? styles.statusClosed : styles.statusActive}`}>
+            {!shift.isActive ? 'Closed' : 'Active'}
+          </span>
+        </td>
+      </tr>
     );
   }
 
