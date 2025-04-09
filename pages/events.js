@@ -644,15 +644,6 @@ function EventCard({ event }) {
         >
           {getRegistrationButtonText()}
         </button>
-        <button 
-          className={`${styles.readMoreButton} ${isRegistered ? styles.primaryAction : ''}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            viewEventDetails();
-          }}
-        >
-          Read More
-        </button>
       </div>
     </div>
   );
