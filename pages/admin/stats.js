@@ -286,13 +286,20 @@ export default function AdminStats() {
   // Add toggleable row function
   function ShiftRow({ shift, formatDate, formatCurrency, styles, reportType }) {
     const [expanded, setExpanded] = useState(false);
-    const hasDetails = shift.details && shift.details.length > 0;
+    
+    // Only show details if there are cash payment methods
+    const hasCashDetails = shift.details && 
+                           Array.isArray(shift.details) && 
+                           shift.details.some(detail => 
+                              detail.paymentMethodName && 
+                              detail.paymentMethodName.toLowerCase().includes('cash')
+                           );
     
     return (
       <>
-        <tr key={shift.shiftId} className={`${shift.isActive ? styles.activeShift : ''} ${hasDetails ? styles.expandableRow : ''}`}>
+        <tr key={shift.shiftId} className={`${shift.isActive ? styles.activeShift : ''} ${hasCashDetails ? styles.expandableRow : ''}`}>
           <td>
-            {hasDetails && (
+            {hasCashDetails && (
               <button 
                 onClick={() => setExpanded(!expanded)} 
                 className={styles.expandButton}
@@ -341,12 +348,12 @@ export default function AdminStats() {
         </tr>
         
         {/* Payment method details when expanded */}
-        {expanded && hasDetails && (
+        {expanded && hasCashDetails && (
           <tr className={styles.detailsRow}>
             <td colSpan={reportType === 2 ? 15 : 14}>
               <div className={styles.paymentDetails}>
                 <h4 className={styles.paymentDetailsTitle}>
-                  <FaCreditCard /> Payment Method Breakdown
+                  <FaCreditCard /> Cash Payment Method Details
                 </h4>
                 <table className={styles.paymentMethodsTable}>
                   <thead>
@@ -364,22 +371,24 @@ export default function AdminStats() {
                     </tr>
                   </thead>
                   <tbody>
-                    {shift.details.map((detail, index) => (
-                      <tr key={index}>
-                        <td>{detail.paymentMethodName}</td>
-                        <td>{formatCurrency(detail.sales || 0)}</td>
-                        <td>{formatCurrency(detail.refunds || 0)}</td>
-                        <td>{formatCurrency(detail.deposits || 0)}</td>
-                        <td>{formatCurrency(detail.withdrawals || 0)}</td>
-                        <td>{formatCurrency(detail.payIns || 0)}</td>
-                        <td>{formatCurrency(detail.payOuts || 0)}</td>
-                        <td>{formatCurrency(detail.expected || 0)}</td>
-                        <td>{formatCurrency(detail.actual || 0)}</td>
-                        <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
-                          {formatCurrency(detail.difference || 0)}
-                        </td>
-                      </tr>
-                    ))}
+                    {shift.details
+                      .filter(detail => detail.paymentMethodName && detail.paymentMethodName.toLowerCase().includes('cash'))
+                      .map((detail, index) => (
+                        <tr key={index}>
+                          <td>{detail.paymentMethodName}</td>
+                          <td>{formatCurrency(detail.sales || 0)}</td>
+                          <td>{formatCurrency(detail.refunds || 0)}</td>
+                          <td>{formatCurrency(detail.deposits || 0)}</td>
+                          <td>{formatCurrency(detail.withdrawals || 0)}</td>
+                          <td>{formatCurrency(detail.payIns || 0)}</td>
+                          <td>{formatCurrency(detail.payOuts || 0)}</td>
+                          <td>{formatCurrency(detail.expected || 0)}</td>
+                          <td>{formatCurrency(detail.actual || 0)}</td>
+                          <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
+                            {formatCurrency(detail.difference || 0)}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
