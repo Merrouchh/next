@@ -1971,7 +1971,7 @@ export default function BracketManager() {
         <div className={styles.bracketSection} id="bracketSection">
           <div className={styles.bracketHeader}>
             <h2>Tournament Bracket</h2>
-            {selectedEvent && (
+            {selectedEvent && !loading && (
               <div className={styles.bracketActions}>
                 {bracketData && (
                   <>
@@ -2009,6 +2009,11 @@ export default function BracketManager() {
                     <FaExclamationTriangle /> Delete Bracket
                   </button>
                 )}
+              </div>
+            )}
+            {selectedEvent && loading && (
+              <div className={styles.loadingActions}>
+                <span>Loading bracket actions...</span>
               </div>
             )}
           </div>

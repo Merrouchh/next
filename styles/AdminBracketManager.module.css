@@ -213,6 +213,19 @@
   flex-wrap: wrap;
 }
 
+.loadingActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  font-size: 0.9rem;
+  color: #aaa;
+  font-style: italic;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0 15px;
+  border-radius: 4px;
+}
+
 .resetTimesButton, .generateBracketButton, .deleteBracketButton {
   display: flex;
   align-items: center;
