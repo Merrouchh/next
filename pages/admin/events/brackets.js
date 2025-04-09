@@ -477,13 +477,27 @@ export default function BracketManager() {
       if (data && data.bracket) {
         // Update our local state
         setBracketData(data.bracket);
-        toast.success('Winner set successfully!');
         
-        // Immediately fetch fresh data to ensure match details are preserved
-        await fetchBracketData(selectedEvent.id);
+        // Find the updated match in the bracket data
+        const updatedMatch = findMatchInBracket(data.bracket, matchId);
+        
+        if (updatedMatch) {
+          // Important: Create a complete copy of the match to ensure React detects the change
+          const updatedMatchCopy = JSON.parse(JSON.stringify(updatedMatch));
+          console.log('Updated match after setting winner:', updatedMatchCopy);
+          
+          // Update the selected match with the updated data
+          setSelectedMatch(updatedMatchCopy);
+        } else {
+          // If we can't find the match, close the modal
+          console.error('Could not find the updated match in bracket data');
+          setSelectedMatch(null);
+        }
+        
+        toast.success('Winner set successfully!');
+      } else {
+        throw new Error('Invalid response data');
       }
-      
-      setSelectedMatch(null);
     } catch (error) {
       console.error('Error setting winner:', error);
       setError(error.message || 'Failed to set winner');
@@ -735,7 +749,8 @@ export default function BracketManager() {
         return;
       }
       
-      // Fetch additional match details
+      // Fetch ALL match details for this event from the database
+      console.log('Fetching match details from database for event:', eventId);
       const { data: matchDetailsData, error: matchDetailsError } = await supabase
         .from('event_match_details')
         .select('*')
@@ -743,6 +758,8 @@ export default function BracketManager() {
       
       if (matchDetailsError) {
         console.error('Error fetching match details:', matchDetailsError);
+      } else {
+        console.log(`Retrieved ${matchDetailsData?.length || 0} match details records from database`);
       }
       
       // Create a map of match details for faster lookup
@@ -750,10 +767,16 @@ export default function BracketManager() {
       if (matchDetailsData && matchDetailsData.length > 0) {
         matchDetailsData.forEach(detail => {
           if (detail && detail.match_id) {
-            detailsMap[detail.match_id] = detail;
+            detailsMap[detail.match_id] = {
+              scheduled_time: detail.scheduled_time,
+              location: detail.location,
+              notes: detail.notes
+            };
           }
         });
       }
+      
+      console.log('Match details map created with keys:', Object.keys(detailsMap));
       
       // Create a deep copy of the bracket data to avoid reference issues
       let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
@@ -763,6 +786,10 @@ export default function BracketManager() {
         for (let m = 0; m < enrichedBracket[r].length; m++) {
           const match = enrichedBracket[r][m];
           const details = detailsMap[match.id];
+          
+          if (details) {
+            console.log(`Applying details to match ${match.id}:`, details);
+          }
           
           // Apply details if they exist, otherwise ensure empty strings
           enrichedBracket[r][m] = {
@@ -785,6 +812,19 @@ export default function BracketManager() {
           };
         });
       });
+      
+      console.log('Completed matchDetailsMap with entries:', Object.keys(matchDetailsMapData).length);
+      
+      // Sample of first match after enrichment for debugging
+      if (enrichedBracket.length > 0 && enrichedBracket[0].length > 0) {
+        const sampleMatch = enrichedBracket[0][0];
+        console.log('Sample match after enrichment:', {
+          id: sampleMatch.id,
+          scheduledTime: sampleMatch.scheduledTime,
+          location: sampleMatch.location,
+          notes: sampleMatch.notes
+        });
+      }
       
       // Set state with the enriched data
       setBracketData(enrichedBracket);
@@ -1136,14 +1176,32 @@ export default function BracketManager() {
         }
       }
       
+      // Immediately update matchDetailsMap to reflect changes without needing a full refresh
+      setMatchDetailsMap(prevMap => ({
+        ...prevMap,
+        [selectedMatch.id]: {
+          scheduledTime: scheduledTime || '',
+          location: location || '',
+          notes: notes || ''
+        }
+      }));
+      
+      // Update local bracket data with these changes
+      const updatedBracket = updateMatchInBracketData(selectedMatch.id, {
+        scheduledTime: scheduledTime || '',
+        location: location || '',
+        notes: notes || ''
+      });
+      
+      if (updatedBracket) {
+        setBracketData(updatedBracket);
+      }
+      
       // Success message
       toast.success('Match details saved successfully!');
       
       // Clear the selected match
       setSelectedMatch(null);
-      
-      // Fetch fresh data from the database to ensure all states are in sync
-      await fetchBracketData(selectedEvent.id);
       
       setLoading(false);
     } catch (error) {
