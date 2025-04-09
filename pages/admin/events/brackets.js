@@ -32,6 +32,8 @@ export default function BracketManager() {
   const [matchDetailsMap, setMatchDetailsMap] = useState({});
   const [scrollPosition, setScrollPosition] = useState(0); // Store scroll position
   const bracketSectionRef = useRef(null); // Reference to bracket section
+  // Add state for tracking if all rounds are expanded
+  const [allRoundsExpanded, setAllRoundsExpanded] = useState(false);
 
   // Helper to save the current scroll position
   const saveScrollPosition = () => {
@@ -1283,6 +1285,7 @@ export default function BracketManager() {
     
     console.log(`Setting all rounds to ${expand ? 'expanded' : 'collapsed'}:`, newState);
     setExpandedRounds(newState);
+    setAllRoundsExpanded(expand);
   };
 
   // Add a helper function to check if a match is ready to play
@@ -2097,18 +2100,11 @@ export default function BracketManager() {
               <div className={styles.bracketMatchesList} id="bracketMatchesList">
                 <div className={styles.roundControls}>
                   <button 
-                    className={styles.expandButton} 
-                    onClick={() => toggleAllRounds(true)}
-                    title="Expand all rounds"
+                    className={styles.toggleRoundsButton} 
+                    onClick={() => toggleAllRounds(!allRoundsExpanded)}
+                    title={allRoundsExpanded ? "Collapse all rounds" : "Expand all rounds"}
                   >
-                    Expand All
-                  </button>
-                  <button 
-                    className={styles.collapseButton} 
-                    onClick={() => toggleAllRounds(false)}
-                    title="Collapse all rounds"
-                  >
-                    Collapse All
+                    {allRoundsExpanded ? "Collapse All" : "Expand All"}
                   </button>
                 </div>
                 
