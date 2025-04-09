@@ -43,6 +43,13 @@
 .clickableCard {
   cursor: pointer;
   position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickableCard:hover {
+  cursor: pointer;
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .clickableCard:focus {
@@ -65,11 +72,6 @@
   opacity: 1;
 }
 
-.eventCard:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
 .eventImageContainer {
   position: relative;
   width: 100%;
@@ -90,8 +92,8 @@
   transition: transform 0.3s ease;
 }
 
-.eventCard:hover .eventImage {
-  transform: scale(1.05);
+.clickableCard:hover .eventImage {
+  transform: scale(1.1);
 }
 
 /* Badge container with black background */
