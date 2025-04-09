@@ -714,25 +714,46 @@ function updateMatchResult(rounds, matchId, winnerId) {
     // Calculate next match index - this is key to determining the correct position
     const nextRoundMatchIndex = Math.floor(matchIndex / 2);
     
-    // Determine the correct position based on the match index (not ID)
-    // This ensures consistency even after swaps
-    const isParticipant1Position = matchIndex % 2 === 0;
-    
     // Get the next match
     if (updatedRounds[currentRoundIndex + 1] && 
         updatedRounds[currentRoundIndex + 1][nextRoundMatchIndex]) {
       
       const nextMatch = updatedRounds[currentRoundIndex + 1][nextRoundMatchIndex];
       
-      console.log(`Advancing ${winnerName} to ${isParticipant1Position ? 'first' : 'second'} position in match ${nextMatch.id}`);
+      // Check if this participant is already in the next match due to a previous swap
+      // This prevents the same participant from being placed in both positions
+      const alreadyInNextMatch = 
+        nextMatch.participant1Id === winnerId || 
+        nextMatch.participant2Id === winnerId;
       
-      // Place the winner in the correct position
-      if (isParticipant1Position) {
-        nextMatch.participant1Id = winnerId;
-        nextMatch.participant1Name = winnerName;
+      // If already in the match, we need to find which position it's in and make sure 
+      // we don't duplicate it
+      if (alreadyInNextMatch) {
+        console.log(`Participant ${winnerName} is already in next match ${nextMatch.id}`);
+        
+        // If participant is already in position 1, we don't need to do anything
+        // as the bracket is already correctly set up
+        if (nextMatch.participant1Id === winnerId) {
+          console.log(`${winnerName} is already in position 1, no change needed`);
+        }
+        // If participant is already in position 2, we don't need to do anything
+        else if (nextMatch.participant2Id === winnerId) {
+          console.log(`${winnerName} is already in position 2, no change needed`);
+        }
       } else {
-        nextMatch.participant2Id = winnerId;
-        nextMatch.participant2Name = winnerName;
+        // Normal case - determine the correct position based on the match index
+        const isParticipant1Position = matchIndex % 2 === 0;
+        
+        console.log(`Advancing ${winnerName} to ${isParticipant1Position ? 'first' : 'second'} position in match ${nextMatch.id}`);
+        
+        // Place the winner in the correct position
+        if (isParticipant1Position) {
+          nextMatch.participant1Id = winnerId;
+          nextMatch.participant1Name = winnerName;
+        } else {
+          nextMatch.participant2Id = winnerId;
+          nextMatch.participant2Name = winnerName;
+        }
       }
       
       // Check if both participants are set and one is a bye
