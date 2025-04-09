@@ -1244,12 +1244,8 @@ export default function BracketManager() {
 
   // Helper function to view the public bracket in a new tab
   const handleViewPublicBracket = () => {
-    // Set timestamp to force client-side cache bust
-    // The timestamp is added as a query parameter to ensure the browser loads the
-    // latest version of the bracket page, bypassing any cached version
-    const timestamp = Date.now();
-    // Open the public bracket view in a new tab
-    window.open(`/events/${selectedEvent?.id}/bracket?t=${timestamp}`, '_blank');
+    // Open the public bracket view in a new tab without timestamp
+    window.open(`/events/${selectedEvent?.id}/bracket`, '_blank');
   };
 
   // Render match details modal
