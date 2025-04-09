@@ -731,7 +731,7 @@ export default function BracketManager() {
         setParticipants([]);
         setLoading(false);
         setInitialLoading(false); // Finished loading (even with 404)
-        return;
+        return null;
       }
       
       if (!response.ok) {
@@ -748,7 +748,7 @@ export default function BracketManager() {
         setParticipants([]);
         setLoading(false);
         setInitialLoading(false); // Finished loading (even without data)
-        return;
+        return null;
       }
       
       // Fetch ALL match details for this event from the database
@@ -840,12 +840,16 @@ export default function BracketManager() {
       });
       setExpandedRounds(initialExpandedState);
       
+      setLoading(false);
+      setInitialLoading(false);
+      
+      return enrichedBracket;
     } catch (error) {
       console.error('Error fetching bracket data:', error);
       setError(error.message || 'Failed to load bracket data');
-    } finally {
       setLoading(false);
-      setInitialLoading(false); // Always set initialLoading to false when done
+      setInitialLoading(false);
+      return null;
     }
   };
 
@@ -1237,13 +1241,18 @@ export default function BracketManager() {
       });
 
       if (response.ok) {
-        // Refresh bracket data to get updated match info
-        const refreshedData = await fetchBracketData(selectedEvent.id);
+        // Refresh bracket data using fetchBracketData
+        await fetchBracketData(selectedEvent.id);
+        toast.success('Participants swapped successfully');
         
-        if (refreshedData) {
-          toast.success('Participants swapped successfully');
-        } else {
-          toast.error('Participants swapped but failed to refresh data');
+        // Close the modal if a match is currently selected
+        if (selectedMatch && selectedMatch.id === matchId) {
+          // Find the updated match in the new bracket data to update the modal
+          const updatedMatch = findMatchInBracket(bracketData, matchId);
+          if (updatedMatch) {
+            // Create a deep copy to ensure React detects the change
+            setSelectedMatch(JSON.parse(JSON.stringify(updatedMatch)));
+          }
         }
       } else {
         const errorData = await response.json();
@@ -1254,6 +1263,7 @@ export default function BracketManager() {
       toast.error(`Error swapping participants: ${error.message}`);
     } finally {
       setLoading(false);
+      restoreScrollPosition();
     }
   };
 
