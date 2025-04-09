@@ -379,7 +379,6 @@ export default function AdminStats() {
                       <th>Sales</th>
                       <th>Refunds</th>
                       <th>Deposits</th>
-                      <th>Withdrawals</th>
                       <th>Expected</th>
                       <th>Actual</th>
                       <th>Difference</th>
@@ -398,7 +397,6 @@ export default function AdminStats() {
                           <td>{formatCurrency(detail.sales || 0)}</td>
                           <td>{formatCurrency(detail.refunds || 0)}</td>
                           <td>{formatCurrency(detail.deposits || 0)}</td>
-                          <td>{formatCurrency(detail.withdrawals || 0)}</td>
                           <td>{formatCurrency(detail.expected || 0)}</td>
                           <td>{formatCurrency(detail.actual || 0)}</td>
                           <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
