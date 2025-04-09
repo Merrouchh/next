@@ -396,10 +396,24 @@ async function swapMatchParticipants(req, res, supabase, eventId) {
       return res.status(500).json({ error: 'Failed to swap participants' });
     }
     
+    // Get participant data to return with the response
+    const { data: participants, error: participantsError } = await supabase
+      .from('event_registrations')
+      .select('id, name, email, members')
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed');
+    
+    if (participantsError) {
+      console.error('Error fetching participants:', participantsError);
+      // Continue even if participants fetch fails
+    }
+    
     return res.status(200).json({
       success: true,
       message: 'Participants swapped successfully',
-      match: updatedMatches[roundIndex][matchIndex]
+      match: updatedMatches[roundIndex][matchIndex],
+      bracket: updatedMatches,
+      participants: participants || [] // Return participants if available
     });
   } catch (error) {
     console.error('Error in swapMatchParticipants:', error);

@@ -490,6 +490,11 @@ export default function BracketManager() {
           
           // Update the selected match with the updated data
           setSelectedMatch(updatedMatchCopy);
+          
+          // Also refresh the participants list to ensure names are correctly mapped
+          if (data.participants) {
+            setParticipants(data.participants);
+          }
         } else {
           // If we can't find the match, close the modal
           console.error('Could not find the updated match in bracket data');
@@ -566,6 +571,11 @@ export default function BracketManager() {
           
           // Update the selected match with the cleared winner
           setSelectedMatch(updatedMatchCopy);
+          
+          // Also refresh the participants list to ensure names are correctly mapped
+          if (data.participants) {
+            setParticipants(data.participants);
+          }
         } else {
           // If we can't find the match, close the modal
           console.error('Could not find the updated match in bracket data');
@@ -1218,7 +1228,7 @@ export default function BracketManager() {
     }
   };
 
-  // Update handleSwapParticipants with scroll preservation and authentication
+  // Update handleSwapParticipants to better handle participant names
   const handleSwapParticipants = async (matchId) => {
     saveScrollPosition();
     setLoading(true);
@@ -1241,7 +1251,23 @@ export default function BracketManager() {
       });
 
       if (response.ok) {
-        // Refresh bracket data using fetchBracketData
+        // Fetch fresh participant data first to ensure we have the latest names
+        const participantsResponse = await fetch(`/api/events/${selectedEvent.id}/participants`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (participantsResponse.ok) {
+          const participantsData = await participantsResponse.json();
+          if (participantsData && participantsData.participants) {
+            setParticipants(participantsData.participants);
+          }
+        }
+        
+        // Now refresh bracket data to get updated match info
         await fetchBracketData(selectedEvent.id);
         toast.success('Participants swapped successfully');
         

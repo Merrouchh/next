@@ -63,6 +63,31 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Bracket not found' });
     }
 
+    // First, retrieve all match details for this event to ensure they are preserved
+    const { data: matchDetailsData, error: matchDetailsError } = await supabase
+      .from('event_match_details')
+      .select('*')
+      .eq('event_id', eventId);
+
+    if (matchDetailsError) {
+      console.error('Error fetching match details:', matchDetailsError);
+      // Continue anyway as this shouldn't block the main bracket update
+    }
+
+    // Create a map of match details for faster lookup
+    const detailsMap = {};
+    if (matchDetailsData && matchDetailsData.length > 0) {
+      matchDetailsData.forEach(detail => {
+        if (detail && detail.match_id) {
+          detailsMap[detail.match_id] = {
+            scheduled_time: detail.scheduled_time,
+            location: detail.location,
+            notes: detail.notes
+          };
+        }
+      });
+    }
+
     // Parse matchId as integer
     const matchIdInt = parseInt(matchId);
     
@@ -135,6 +160,24 @@ export default async function handler(req, res) {
       }
     }
     
+    // Apply match details to the updated matches to ensure they're preserved
+    for (let r = 0; r < updatedMatches.length; r++) {
+      for (let m = 0; m < updatedMatches[r].length; m++) {
+        const match = updatedMatches[r][m];
+        const details = detailsMap[match.id];
+        
+        if (details) {
+          // Preserve details in the bracket data
+          updatedMatches[r][m] = {
+            ...match,
+            scheduledTime: details.scheduled_time || '',
+            location: details.location || '',
+            notes: details.notes || ''
+          };
+        }
+      }
+    }
+    
     // Update the bracket in the database
     const { data: updatedBracket, error: updateError } = await supabase
       .from('event_brackets')
@@ -151,6 +194,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to update bracket' });
     }
     
+    // Get the participants for this event to return along with the bracket
+    const { data: participants, error: participantsError } = await supabase
+      .from('event_registrations')
+      .select('id, name, email, members')
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed');
+
+    if (participantsError) {
+      console.error('Error fetching participants:', participantsError);
+      return res.status(500).json({ error: 'Failed to fetch participants data' });
+    }
+    
     // Disable caching of the response
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -159,7 +214,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true,
       message: 'Winner cleared successfully',
-      bracket: updatedBracket.matches
+      bracket: updatedMatches,
+      participants: participants
     });
   } catch (error) {
     console.error('Error in clear-winner API:', error);
