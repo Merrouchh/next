@@ -28,22 +28,8 @@ export default function BracketManager() {
   const [showSelectParticipantModal, setShowSelectParticipantModal] = useState(false);
   const [availableParticipants, setAvailableParticipants] = useState([]);
   const [participantToReplace, setParticipantToReplace] = useState(null);
-  const [lastScheduledTime, setLastScheduledTime] = useState('');
   const [expandedRounds, setExpandedRounds] = useState({});
   const [matchDetailsMap, setMatchDetailsMap] = useState({});
-
-  // Load last scheduled time from localStorage on component mount
-  useEffect(() => {
-    try {
-      const storedTime = localStorage.getItem('lastScheduledTime');
-      if (storedTime) {
-        console.log('Loaded last scheduled time from localStorage:', storedTime);
-        setLastScheduledTime(storedTime);
-      }
-    } catch (e) {
-      console.error('Error loading from localStorage:', e);
-    }
-  }, []);
 
   // Format datetime string for form input
   const formatDatetimeForInput = (datetimeString) => {
@@ -640,14 +626,6 @@ export default function BracketManager() {
       }
     }
     
-    // Try to get last scheduled time from localStorage
-    let storedLastTime = '';
-    try {
-      storedLastTime = localStorage.getItem('lastScheduledTime') || '';
-    } catch (e) {
-      console.error('Error accessing localStorage:', e);
-    }
-    
     // Get previous match time using our helper function
     const previousMatchTime = findPreviousMatchTime(match.id);
     
@@ -655,7 +633,7 @@ export default function BracketManager() {
     const detailsFromMap = matchDetailsMap[match.id];
     
     // Format the scheduledTime for the input element if it exists
-    // Prioritize map data, then match data, then fallback options
+    // Prioritize map data, then match data
     const scheduledTime = detailsFromMap?.scheduledTime || match.scheduledTime || '';
     const formattedTime = scheduledTime ? formatDatetimeForInput(scheduledTime) : '';
     const location = detailsFromMap?.location || match.location || '';
@@ -673,27 +651,13 @@ export default function BracketManager() {
       notes: notes
     });
     
-    // If this match doesn't have a scheduled time yet, use available template times
-    if (!formattedTime) {
-      console.log('No scheduled time, checking conditions...');
-      console.log('Stored last time:', storedLastTime);
-      console.log('Previous match time:', previousMatchTime);
-      
-      // Always apply a template time if one is available, regardless of whether
-      // the match has participants assigned or not
-      if (previousMatchTime) {
-        console.log('Using previous match time as template');
-        setMatchDetails(prev => ({
-          ...prev,
-          scheduledTime: previousMatchTime
-        }));
-      } else if (storedLastTime) {
-        console.log('Using stored last scheduled time as template');
-        setMatchDetails(prev => ({
-          ...prev,
-          scheduledTime: storedLastTime
-        }));
-      }
+    // If this match doesn't have a scheduled time yet, use previous match time as template
+    if (!formattedTime && previousMatchTime) {
+      console.log('Using previous match time as template');
+      setMatchDetails(prev => ({
+        ...prev,
+        scheduledTime: previousMatchTime
+      }));
     }
   };
 
@@ -1145,20 +1109,6 @@ export default function BracketManager() {
         }
       }
       
-      // Store the last scheduled time for next match suggestion
-      if (scheduledTime) {
-        console.log('Setting last scheduled time:', scheduledTime);
-        setLastScheduledTime(scheduledTime);
-        
-        try {
-          const formattedForInput = formatDatetimeForInput(scheduledTime);
-          console.log('Storing in localStorage:', formattedForInput);
-          localStorage.setItem('lastScheduledTime', formattedForInput);
-        } catch (e) {
-          console.error('Error storing in localStorage:', e);
-        }
-      }
-      
       // Success message
       toast.success('Match details saved successfully!');
       
@@ -1428,7 +1378,7 @@ export default function BracketManager() {
               />
             </div>
             
-            {(lastScheduledTime || previousMatchTime) && !matchDetails.scheduledTime && (
+            {previousMatchTime && !matchDetails.scheduledTime && (
               <div className={styles.templateTimeInfo}>
                 Using previous match time as template
               </div>
