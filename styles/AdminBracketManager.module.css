@@ -342,32 +342,31 @@
 
 .roundControls {
   display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
   justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.toggleRoundsButton {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+}
+
+.toggleRoundsButton:hover {
+  background-color: #e4e4e4;
+  color: #333;
 }
 
 .expandButton, .collapseButton {
-  background-color: #333;
-  color: #fff;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: background-color 0.2s;
-}
-
-.expandButton:hover, .collapseButton:hover {
-  background-color: #444;
-}
-
-.expandButton {
-  color: #4CAF50;
-}
-
-.collapseButton {
-  color: #FFD700;
+  /* Can be removed since we replaced these with toggleRoundsButton */
 }
 
 .roundSection {

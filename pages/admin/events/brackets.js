@@ -1214,44 +1214,46 @@ export default function BracketManager() {
     }
   };
 
-  // Update handleSwapParticipants with scroll preservation
+  // Update handleSwapParticipants with scroll preservation and authentication
   const handleSwapParticipants = async (matchId) => {
     saveScrollPosition();
+    setLoading(true);
+    
     try {
+      // Get the session for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
       const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=swapParticipants&matchId=${matchId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
       });
 
       if (response.ok) {
-        // Update UI without reload
-        setBracketData(prev => {
-          const updated = { ...prev };
-          // Find the match in the rounds
-          for (let r = 0; r < updated.rounds.length; r++) {
-            for (let m = 0; m < updated.rounds[r].matches.length; m++) {
-              if (updated.rounds[r].matches[m].id === matchId) {
-                // Swap the participants
-                const match = { ...updated.rounds[r].matches[m] };
-                const temp = match.participant1;
-                match.participant1 = match.participant2;
-                match.participant2 = temp;
-                updated.rounds[r].matches[m] = match;
-                break;
-              }
-            }
-          }
-          return updated;
-        });
+        // Refresh bracket data to get updated match info
+        const refreshedData = await fetchBracketData(selectedEvent.id);
         
-        toast.success('Participants swapped successfully');
+        if (refreshedData) {
+          toast.success('Participants swapped successfully');
+        } else {
+          toast.error('Participants swapped but failed to refresh data');
+        }
       } else {
-        const error = await response.text();
-        toast.error(`Failed to swap participants: ${error}`);
+        const errorData = await response.json();
+        toast.error(`Failed to swap participants: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
       console.error('Error swapping participants:', error);
       toast.error(`Error swapping participants: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 

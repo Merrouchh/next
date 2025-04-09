@@ -70,7 +70,12 @@ async function handleAuthenticatedRequest(req, res, supabase, eventId) {
     case 'POST':
       return await createMatchDetails(req, res, authenticatedSupabase, eventId);
     case 'PUT':
-      return await updateMatchDetails(req, res, authenticatedSupabase, eventId);
+      // Check for special actions in PUT requests
+      if (req.query.action === 'swapParticipants') {
+        return await swapMatchParticipants(req, res, authenticatedSupabase, eventId);
+      } else {
+        return await updateMatchDetails(req, res, authenticatedSupabase, eventId);
+      }
     case 'DELETE':
       // If a specific action is requested in the query params, route accordingly
       if (req.query.action === 'resetTimes') {
@@ -307,6 +312,97 @@ async function deleteMatchDetails(req, res, supabase, eventId) {
     });
   } catch (error) {
     console.error('Error in deleteMatchDetails:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// Swap participants in a match
+async function swapMatchParticipants(req, res, supabase, eventId) {
+  try {
+    const { matchId } = req.query;
+    
+    if (!matchId) {
+      return res.status(400).json({ error: 'Match ID is required' });
+    }
+    
+    // First, get the event's bracket data
+    const { data: bracketData, error: bracketError } = await supabase
+      .from('event_brackets')
+      .select('matches, id')
+      .eq('event_id', eventId)
+      .single();
+    
+    if (bracketError) {
+      console.error('Error fetching bracket data:', bracketError);
+      return res.status(404).json({ error: 'Bracket not found for this event' });
+    }
+    
+    if (!bracketData || !bracketData.matches) {
+      return res.status(404).json({ error: 'No match data found in bracket' });
+    }
+    
+    // Find the match in the bracket
+    let matchFound = false;
+    let roundIndex = -1;
+    let matchIndex = -1;
+    
+    for (let r = 0; r < bracketData.matches.length; r++) {
+      const round = bracketData.matches[r];
+      const mIndex = round.findIndex(m => m.id === parseInt(matchId));
+      
+      if (mIndex !== -1) {
+        matchFound = true;
+        roundIndex = r;
+        matchIndex = mIndex;
+        break;
+      }
+    }
+    
+    if (!matchFound) {
+      return res.status(404).json({ error: 'Match not found in bracket' });
+    }
+    
+    // Get the match
+    const match = bracketData.matches[roundIndex][matchIndex];
+    
+    // Don't allow swapping if match has a winner
+    if (match.winnerId) {
+      return res.status(400).json({ error: 'Cannot swap participants in a match that has a winner' });
+    }
+    
+    // Make a deep copy of the matches data
+    const updatedMatches = JSON.parse(JSON.stringify(bracketData.matches));
+    
+    // Swap participant1 and participant2
+    const tempId = match.participant1Id;
+    const tempName = match.participant1Name;
+    
+    updatedMatches[roundIndex][matchIndex].participant1Id = match.participant2Id;
+    updatedMatches[roundIndex][matchIndex].participant1Name = match.participant2Name;
+    updatedMatches[roundIndex][matchIndex].participant2Id = tempId;
+    updatedMatches[roundIndex][matchIndex].participant2Name = tempName;
+    
+    // Update the bracket in the database
+    const { data: updateResult, error: updateError } = await supabase
+      .from('event_brackets')
+      .update({
+        matches: updatedMatches,
+        updated_at: new Date()
+      })
+      .eq('id', bracketData.id);
+    
+    if (updateError) {
+      console.error('Error updating bracket:', updateError);
+      return res.status(500).json({ error: 'Failed to swap participants' });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Participants swapped successfully',
+      match: updatedMatches[roundIndex][matchIndex]
+    });
+  } catch (error) {
+    console.error('Error in swapMatchParticipants:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 } 
