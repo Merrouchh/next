@@ -399,7 +399,7 @@ async function swapMatchParticipants(req, res, supabase, eventId) {
     // Get participant data to return with the response
     const { data: participants, error: participantsError } = await supabase
       .from('event_registrations')
-      .select('id, name, email, members')
+      .select('id, username, email, user_id')
       .eq('event_id', eventId)
       .eq('status', 'confirmed');
     

@@ -197,13 +197,19 @@ export default async function handler(req, res) {
     // Get the participants for this event to return along with the bracket
     const { data: participants, error: participantsError } = await supabase
       .from('event_registrations')
-      .select('id, name, email, members')
+      .select('id, username, email, user_id')
       .eq('event_id', eventId)
       .eq('status', 'confirmed');
 
     if (participantsError) {
       console.error('Error fetching participants:', participantsError);
-      return res.status(500).json({ error: 'Failed to fetch participants data' });
+      // Continue even if participants fetch fails - don't return an error
+      return res.status(200).json({ 
+        success: true,
+        message: 'Winner cleared successfully',
+        bracket: updatedMatches,
+        participants: [] // Return empty array if participants fetch failed
+      });
     }
     
     // Disable caching of the response
