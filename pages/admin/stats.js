@@ -19,7 +19,8 @@ import {
   FaWallet,
   FaChevronDown,
   FaChevronRight,
-  FaCreditCard
+  FaCreditCard,
+  FaHandHoldingUsd
 } from 'react-icons/fa';
 
 export default function AdminStats() {
@@ -198,7 +199,7 @@ export default function AdminStats() {
         totalDifference: 0,
         totalDuration: '0h 0m',
         totalRefunds: 0,
-        totalWithdrawals: 0,
+        totalPayouts: 0,
         activeShiftExpected: 0,
         totalCashOut: 0,
         totalCashPayouts: 0
@@ -221,6 +222,7 @@ export default function AdminStats() {
     const calculatedTotals = shiftReports.shifts.reduce((acc, shift) => {
       // Calculate cash payouts from payment method details if available
       let shiftCashPayouts = 0;
+      let shiftTotalPayouts = 0;
       
       if (shift.details && Array.isArray(shift.details)) {
         // Find cash payment method details
@@ -233,19 +235,26 @@ export default function AdminStats() {
         if (cashDetails) {
           shiftCashPayouts = Number.isFinite(cashDetails.payOuts) ? cashDetails.payOuts : 0;
         }
+        
+        // Calculate total payouts across all payment methods
+        shiftTotalPayouts = shift.details.reduce((sum, detail) => 
+          sum + (Number.isFinite(detail.payOuts) ? detail.payOuts : 0), 0);
+      } else if (Number.isFinite(shift.payOuts)) {
+        // If we have payOuts at the shift level
+        shiftTotalPayouts = shift.payOuts;
       }
       
       return {
         totalSales: acc.totalSales + (Number.isFinite(shift.sales) ? shift.sales : 0),
         totalRefunds: acc.totalRefunds + (Number.isFinite(shift.refunds) ? shift.refunds : 0),
-        totalWithdrawals: acc.totalWithdrawals + (Number.isFinite(shift.withdrawals) ? shift.withdrawals : 0),
+        totalPayouts: acc.totalPayouts + shiftTotalPayouts,
         totalCashOut: acc.totalCashOut + (Number.isFinite(shift.cashOutAmount) ? shift.cashOutAmount : 0),
         totalCashPayouts: acc.totalCashPayouts + shiftCashPayouts
       };
     }, { 
       totalSales: 0,
       totalRefunds: 0, 
-      totalWithdrawals: 0,
+      totalPayouts: 0,
       totalCashOut: 0,
       totalCashPayouts: 0
     });
@@ -255,7 +264,7 @@ export default function AdminStats() {
       // Use calculated totals that include all shifts
       totalSales: calculatedTotals.totalSales,
       totalRefunds: calculatedTotals.totalRefunds,
-      totalWithdrawals: calculatedTotals.totalWithdrawals,
+      totalPayouts: calculatedTotals.totalPayouts,
       totalCashOut: calculatedTotals.totalCashOut,
       totalCashPayouts: calculatedTotals.totalCashPayouts,
       // Use API provided values for these
@@ -336,7 +345,13 @@ export default function AdminStats() {
           {reportType === 2 && (
             <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
           )}
-          <td>{Number.isFinite(shift.withdrawals) ? formatCurrency(shift.withdrawals) : '0 MAD'}</td>
+          <td>
+            {/* Payouts instead of Withdrawals */}
+            {Number.isFinite(shift.payOuts) ? formatCurrency(shift.payOuts) : 
+             (shift.details && shift.details.length > 0 && shift.details.some(d => d.payOuts > 0)) 
+             ? formatCurrency(shift.details.reduce((sum, d) => sum + (d.payOuts || 0), 0))
+             : '0 MAD'}
+          </td>
           <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
             {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
           </td>
@@ -353,18 +368,18 @@ export default function AdminStats() {
             <td colSpan={reportType === 2 ? 15 : 14}>
               <div className={styles.paymentDetails}>
                 <h4 className={styles.paymentDetailsTitle}>
-                  <FaCreditCard /> Cash Payment Method Details
+                  <FaHandHoldingUsd /> Cash Payment Method Details
                 </h4>
                 <table className={styles.paymentMethodsTable}>
                   <thead>
                     <tr>
                       <th>Payment Method</th>
+                      <th>Pay-Outs</th>
+                      <th>Pay-Ins</th>
                       <th>Sales</th>
                       <th>Refunds</th>
                       <th>Deposits</th>
                       <th>Withdrawals</th>
-                      <th>Pay-Ins</th>
-                      <th>Pay-Outs</th>
                       <th>Expected</th>
                       <th>Actual</th>
                       <th>Difference</th>
@@ -376,12 +391,14 @@ export default function AdminStats() {
                       .map((detail, index) => (
                         <tr key={index}>
                           <td>{detail.paymentMethodName}</td>
+                          <td className={styles.highlightPayouts}>
+                            {formatCurrency(detail.payOuts || 0)}
+                          </td>
+                          <td>{formatCurrency(detail.payIns || 0)}</td>
                           <td>{formatCurrency(detail.sales || 0)}</td>
                           <td>{formatCurrency(detail.refunds || 0)}</td>
                           <td>{formatCurrency(detail.deposits || 0)}</td>
                           <td>{formatCurrency(detail.withdrawals || 0)}</td>
-                          <td>{formatCurrency(detail.payIns || 0)}</td>
-                          <td>{formatCurrency(detail.payOuts || 0)}</td>
                           <td>{formatCurrency(detail.expected || 0)}</td>
                           <td>{formatCurrency(detail.actual || 0)}</td>
                           <td className={detail.difference >= 0 ? styles.positive : styles.negative}>
@@ -547,11 +564,11 @@ export default function AdminStats() {
 
                 <div className={styles.summaryCard}>
                   <div className={styles.summaryIcon}>
-                    <FaArrowDown />
+                    <FaHandHoldingUsd />
                   </div>
                   <div>
-                    <h3>Total Withdrawals</h3>
-                    <p className={styles.amount}>{formatCurrency(summary?.totalWithdrawals || 0)}</p>
+                    <h3>Total Payouts</h3>
+                    <p className={styles.amount}>{formatCurrency(summary?.totalPayouts || 0)}</p>
                   </div>
                 </div>
 
@@ -622,7 +639,7 @@ export default function AdminStats() {
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Sales</th>
                       {reportType === 2 && <th>Refunds</th>}
-                      <th>Withdrawals</th>
+                      <th>Payouts</th>
                       <th>Difference</th>
                       <th>Status</th>
                     </tr>

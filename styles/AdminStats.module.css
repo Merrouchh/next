@@ -1,0 +1,526 @@
+.statsContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 2.5rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.titleIcon {
+  font-size: 2rem;
+}
+
+.subtitle {
+  color: #e0e0e0;
+  font-size: 1.2rem;
+}
+
+.reportsSection {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  color: #FFD700;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #333;
+}
+
+.sectionIcon {
+  font-size: 1.5rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  align-items: flex-end;
+}
+
+.dateControl {
+  flex: 1;
+  min-width: 200px;
+}
+
+.dateControl label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.dateInputWrapper {
+  position: relative;
+}
+
+.dateIcon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: #FFD700;
+  font-size: 1rem;
+}
+
+.dateInput {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #e0e0e0;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.5);
+}
+
+.searchButton {
+  background-color: #FFD700;
+  color: #121212;
+  border: none;
+  border-radius: 5px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 42px;
+}
+
+.searchButton:hover {
+  background-color: #ffc107;
+  transform: translateY(-2px);
+}
+
+.searchButton:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.errorContainer {
+  background-color: rgba(220, 53, 69, 0.2);
+  border: 1px solid #dc3545;
+  border-radius: 5px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.errorMessage {
+  color: #dc3545;
+  margin: 0;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #e0e0e0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+.spinnerLarge {
+  font-size: 2rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.reportsContainer {
+  margin-top: 2rem;
+}
+
+.summaryCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summaryCard {
+  background-color: #2a2a2a;
+  border-radius: 10px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.summaryIcon {
+  background-color: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.summaryCard h3 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 1rem;
+  font-weight: 600;
+  position: relative;
+  cursor: help;
+}
+
+.summaryCard h3[title]:hover:after {
+  content: attr(title);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  white-space: nowrap;
+  z-index: 20;
+  background-color: #333;
+  color: #fff;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-top: 5px;
+}
+
+.amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #FFD700;
+  margin: 0.5rem 0 0 0;
+}
+
+.tableTitle {
+  color: #e0e0e0;
+  font-size: 1.5rem;
+  margin: 2rem 0 1rem;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.shiftsTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  color: #e0e0e0;
+}
+
+.shiftsTable th,
+.shiftsTable td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.shiftsTable th {
+  font-weight: 600;
+  background-color: #222;
+  color: #FFD700;
+}
+
+.shiftsTable tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.shiftsTable th:first-child {
+  border-top-left-radius: 5px;
+}
+
+.shiftsTable th:last-child {
+  border-top-right-radius: 5px;
+}
+
+.activeShift {
+  background-color: rgba(255, 215, 0, 0.05);
+}
+
+.positive {
+  color: #28a745;
+}
+
+.negative {
+  color: #dc3545;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.statusActive {
+  background-color: rgba(52, 168, 83, 0.2);
+  color: #34A853;
+}
+
+.statusClosed {
+  background-color: rgba(66, 133, 244, 0.2);
+  color: #4285F4;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .statsContainer {
+    padding: 1rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .reportsSection {
+    padding: 1.5rem;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .dateControl {
+    width: 100%;
+  }
+  
+  .summaryCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rawDataContainer {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.rawData {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #ddd;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.shiftsTable td em {
+  font-style: italic;
+  font-size: 0.85em;
+  color: #ffcc00;
+  margin-left: 4px;
+}
+
+.operatorInfoHeader {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.operatorBadge {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 30px;
+  padding: 0.5rem 1.5rem;
+}
+
+.operatorIcon {
+  color: #FFD700;
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.operatorName {
+  color: #FFD700;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.betweenShiftHighlight {
+  position: relative;
+}
+
+.betweenShiftHighlight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(255, 215, 0, 0.1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Column highlight in table header */
+.shiftsTable th:nth-child(10) {
+  background-color: rgba(255, 193, 7, 0.2);
+}
+
+.cashOut {
+  position: relative;
+}
+
+.hasCashOut {
+  color: #FFC107;
+  font-weight: 600;
+}
+
+.expandableRow {
+  cursor: pointer;
+}
+
+.expandButton {
+  background: none;
+  border: none;
+  color: #FFD700;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 8px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detailsRow {
+  background-color: rgba(255, 215, 0, 0.05);
+}
+
+.paymentDetails {
+  padding: 1rem;
+}
+
+.paymentDetailsTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #FFD700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.paymentMethodsTable {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.paymentMethodsTable th,
+.paymentMethodsTable td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #333;
+  font-size: 0.9rem;
+}
+
+.paymentMethodsTable th {
+  background-color: #2a2a2a;
+  color: #ddd;
+  font-weight: 600;
+  text-align: left;
+}
+
+.paymentMethodsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.paymentMethodsTable tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.reportTypeControl {
+  flex: 0 0 auto;
+  min-width: 150px;
+}
+
+.reportTypeControl label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.reportTypeSelect {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #e0e0e0;
+  font-size: 1rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.reportTypeSelect:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.5);
+}
+
+.highlightPayouts {
+  color: #FFD700;
+  font-weight: bold;
+  background-color: rgba(255, 215, 0, 0.1);
+}
+
+/* Column highlighting for Payouts column in payment methods table */
+.paymentMethodsTable th:nth-child(2) {
+  background-color: rgba(255, 215, 0, 0.2);
+} 
