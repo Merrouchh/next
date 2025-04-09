@@ -498,6 +498,13 @@
 .completedButton {
   background-color: #6c757d;
   color: white;
+  cursor: default;
+  pointer-events: none;
+}
+
+.completedButton:disabled {
+  opacity: 1;
+  cursor: default;
 }
 
 .inProgressButton {
@@ -707,24 +714,5 @@
 }
 
 .clickableCard .registerButton:disabled {
-  cursor: not-allowed !important;
-}
-
-/* Completed event card style - use default cursor */
-.completedCard,
-.completedCard:hover {
-  cursor: default !important;
-}
-
-.completedCard * {
-  cursor: default !important;
-}
-
-/* Still allow proper cursor on buttons */
-.completedCard button {
-  cursor: pointer;
-}
-
-.completedCard .registerButton:disabled {
   cursor: not-allowed !important;
 } 

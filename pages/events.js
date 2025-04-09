@@ -551,7 +551,7 @@ function EventCard({ event }) {
 
   return (
     <div 
-      className={`${styles.eventCard} ${styles.clickableCard} ${event.status === 'Completed' ? styles.completedCard : ''}`}
+      className={`${styles.eventCard} ${styles.clickableCard}`}
       onClick={viewEventDetails}
       role="button"
       tabIndex={0}
@@ -636,7 +636,7 @@ function EventCard({ event }) {
             handleRegisterClick();
           }}
           disabled={
-            event.status === 'Completed' || 
+            // Don't disable for completed events
             event.status === 'In Progress' || 
             (!isPublicView && checkingRegistration) ||
             (!isPublicView && isRegistered)
