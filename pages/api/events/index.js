@@ -82,8 +82,8 @@ async function getEvents(req, res, supabase) {
         return statusA - statusB;
       }
       
-      // Then sort by date (ascending)
-      return new Date(a.date) - new Date(b.date);
+      // Then sort by date (descending - newest first)
+      return new Date(b.date) - new Date(a.date);
     });
     
     return res.status(200).json(sortedEvents || []);
