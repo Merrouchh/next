@@ -678,17 +678,18 @@ function updateMatchResult(rounds, matchId, winnerId) {
   // Create a deep copy of the rounds
   const updatedRounds = JSON.parse(JSON.stringify(rounds));
   
-  // Find the match to update
+  // Find the match to update and its round index
   let matchToUpdate = null;
+  let currentRoundIndex = -1;
+  let matchIndex = -1;
   
   for (let i = 0; i < updatedRounds.length; i++) {
-    for (let j = 0; j < updatedRounds[i].length; j++) {
-      if (updatedRounds[i][j].id === parseInt(matchId)) {
-        matchToUpdate = updatedRounds[i][j];
-        break;
-      }
+    matchIndex = updatedRounds[i].findIndex(m => m.id === parseInt(matchId));
+    if (matchIndex !== -1) {
+      matchToUpdate = updatedRounds[i][matchIndex];
+      currentRoundIndex = i;
+      break;
     }
-    if (matchToUpdate) break;
   }
   
   if (!matchToUpdate) {
@@ -708,66 +709,48 @@ function updateMatchResult(rounds, matchId, winnerId) {
   
   console.log(`Setting winner of match ${matchId} to ${winnerName} (ID: ${winnerId})`);
   
-  // If there's a next match, update the participant in that match
-  if (matchToUpdate.nextMatchId) {
-    const nextMatchId = matchToUpdate.nextMatchId;
-    console.log(`Looking for next match with ID ${nextMatchId}`);
+  // If not the final round, propagate to the next match
+  if (currentRoundIndex < updatedRounds.length - 1) {
+    // Calculate next match index - this is key to determining the correct position
+    const nextRoundMatchIndex = Math.floor(matchIndex / 2);
     
-    // Find the next match
-    let nextMatch = null;
+    // Determine the correct position based on the match index (not ID)
+    // This ensures consistency even after swaps
+    const isParticipant1Position = matchIndex % 2 === 0;
     
-    for (let i = 0; i < updatedRounds.length; i++) {
-      for (let j = 0; j < updatedRounds[i].length; j++) {
-        if (updatedRounds[i][j].id === nextMatchId) {
-          nextMatch = updatedRounds[i][j];
-          break;
-        }
+    // Get the next match
+    if (updatedRounds[currentRoundIndex + 1] && 
+        updatedRounds[currentRoundIndex + 1][nextRoundMatchIndex]) {
+      
+      const nextMatch = updatedRounds[currentRoundIndex + 1][nextRoundMatchIndex];
+      
+      console.log(`Advancing ${winnerName} to ${isParticipant1Position ? 'first' : 'second'} position in match ${nextMatch.id}`);
+      
+      // Place the winner in the correct position
+      if (isParticipant1Position) {
+        nextMatch.participant1Id = winnerId;
+        nextMatch.participant1Name = winnerName;
+      } else {
+        nextMatch.participant2Id = winnerId;
+        nextMatch.participant2Name = winnerName;
       }
-      if (nextMatch) break;
-    }
-    
-    if (!nextMatch) {
-      console.error(`Next match with ID ${nextMatchId} not found`);
-      return updatedRounds;
-    }
-    
-    // Determine if this winner should go to participant1 or participant2 slot
-    // This is based on the match ID being odd or even
-    // Odd-numbered matches feed into participant1 slot of the next match
-    // Even-numbered matches feed into participant2 slot of the next match
-    const isOddMatch = matchToUpdate.id % 2 !== 0;
-    
-    if (isOddMatch) {
-      nextMatch.participant1Id = winnerId;
-      nextMatch.participant1Name = winnerName;
-      console.log(`${winnerName} placed in participant1 slot of match ${nextMatchId}`);
-    } else {
-      nextMatch.participant2Id = winnerId;
-      nextMatch.participant2Name = winnerName;
-      console.log(`${winnerName} placed in participant2 slot of match ${nextMatchId}`);
-    }
-    
-    // Check if both participants are set in the next match and one is a bye
-    if (nextMatch.participant1Id && nextMatch.participant2Id) {
-      if (nextMatch.participant2Name === 'Bye') {
-        // Participant 1 automatically advances
-        nextMatch.winnerId = nextMatch.participant1Id;
-        console.log(`Auto-advancing ${nextMatch.participant1Name} due to bye`);
-        
-        // Recursively update the next matches
-        if (nextMatch.nextMatchId) {
-          console.log(`Recursively updating next matches from ${nextMatchId}`);
-          updateMatchResult(updatedRounds, nextMatchId, nextMatch.participant1Id);
-        }
-      } else if (nextMatch.participant1Name === 'Bye') {
-        // Participant 2 automatically advances
-        nextMatch.winnerId = nextMatch.participant2Id;
-        console.log(`Auto-advancing ${nextMatch.participant2Name} due to bye`);
-        
-        // Recursively update the next matches
-        if (nextMatch.nextMatchId) {
-          console.log(`Recursively updating next matches from ${nextMatchId}`);
-          updateMatchResult(updatedRounds, nextMatchId, nextMatch.participant2Id);
+      
+      // Check if both participants are set and one is a bye
+      if (nextMatch.participant1Id && nextMatch.participant2Id) {
+        if (nextMatch.participant2Name === 'Bye') {
+          // Participant 1 automatically advances
+          nextMatch.winnerId = nextMatch.participant1Id;
+          console.log(`Auto-advancing ${nextMatch.participant1Name} due to bye`);
+          
+          // Recursively update next matches
+          updateMatchResult(updatedRounds, nextMatch.id, nextMatch.participant1Id);
+        } else if (nextMatch.participant1Name === 'Bye') {
+          // Participant 2 automatically advances
+          nextMatch.winnerId = nextMatch.participant2Id;
+          console.log(`Auto-advancing ${nextMatch.participant2Name} due to bye`);
+          
+          // Recursively update next matches
+          updateMatchResult(updatedRounds, nextMatch.id, nextMatch.participant2Id);
         }
       }
     }
