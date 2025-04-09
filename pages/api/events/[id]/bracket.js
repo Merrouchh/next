@@ -720,39 +720,62 @@ function updateMatchResult(rounds, matchId, winnerId) {
       
       const nextMatch = updatedRounds[currentRoundIndex + 1][nextRoundMatchIndex];
       
+      // Determine the correct position based on the match index (not ID)
+      // This ensures consistency even after swaps
+      const isParticipant1Position = matchIndex % 2 === 0;
+      const targetPosition = isParticipant1Position ? 'participant1Id' : 'participant2Id';
+      const targetNamePosition = isParticipant1Position ? 'participant1Name' : 'participant2Name';
+      
       // Check if this participant is already in the next match due to a previous swap
-      // This prevents the same participant from being placed in both positions
       const alreadyInNextMatch = 
         nextMatch.participant1Id === winnerId || 
         nextMatch.participant2Id === winnerId;
       
-      // If already in the match, we need to find which position it's in and make sure 
-      // we don't duplicate it
+      console.log(`Advancing ${winnerName} to match ${nextMatch.id}, expected position: ${isParticipant1Position ? 'first' : 'second'}`);
+      
+      // If already in the match but in the wrong position, we need to handle the swap case
       if (alreadyInNextMatch) {
-        console.log(`Participant ${winnerName} is already in next match ${nextMatch.id}`);
+        const existingPosition = nextMatch.participant1Id === winnerId ? 'participant1Id' : 'participant2Id';
+        const existingNamePosition = nextMatch.participant1Id === winnerId ? 'participant1Name' : 'participant2Name';
         
-        // If participant is already in position 1, we don't need to do anything
-        // as the bracket is already correctly set up
-        if (nextMatch.participant1Id === winnerId) {
-          console.log(`${winnerName} is already in position 1, no change needed`);
+        // If it's already in the expected position, nothing to do
+        if (existingPosition === targetPosition) {
+          console.log(`${winnerName} is already in the correct position (${targetPosition}), no change needed`);
+        } 
+        // If it's in the opposite position, we have a swap scenario - don't change it
+        else {
+          console.log(`${winnerName} is already in position ${existingPosition} (swapped from expected ${targetPosition}), preserving swap`);
         }
-        // If participant is already in position 2, we don't need to do anything
-        else if (nextMatch.participant2Id === winnerId) {
-          console.log(`${winnerName} is already in position 2, no change needed`);
-        }
-      } else {
-        // Normal case - determine the correct position based on the match index
-        const isParticipant1Position = matchIndex % 2 === 0;
+      } 
+      // Not already in the match, so place in the expected position
+      // BUT, check if another match affects the other position before placing
+      else {
+        // Determine the opposite position
+        const oppositePosition = isParticipant1Position ? 'participant2Id' : 'participant1Id';
+        const oppositeNamePosition = isParticipant1Position ? 'participant2Name' : 'participant1Name';
         
-        console.log(`Advancing ${winnerName} to ${isParticipant1Position ? 'first' : 'second'} position in match ${nextMatch.id}`);
-        
-        // Place the winner in the correct position
-        if (isParticipant1Position) {
-          nextMatch.participant1Id = winnerId;
-          nextMatch.participant1Name = winnerName;
-        } else {
-          nextMatch.participant2Id = winnerId;
-          nextMatch.participant2Name = winnerName;
+        // Check if the target position is occupied by someone else
+        if (nextMatch[targetPosition] !== null && nextMatch[targetPosition] !== winnerId) {
+          // If there's already a different participant in this spot, this means
+          // the other feeder match has set a winner, so don't change it
+          console.log(`Position ${targetPosition} already occupied by ${nextMatch[targetNamePosition]}`);
+          
+          // If the opposing position is empty, we'll use that instead
+          if (nextMatch[oppositePosition] === null) {
+            console.log(`Using opposite position ${oppositePosition} for ${winnerName}`);
+            nextMatch[oppositePosition] = winnerId;
+            nextMatch[oppositeNamePosition] = winnerName;
+          } 
+          // Both positions are occupied but neither is our winner - this is odd
+          else if (nextMatch[oppositePosition] !== winnerId) {
+            console.log(`WARNING: Both positions occupied but ${winnerName} is not in either - bracket may be inconsistent`);
+          }
+        } 
+        // Normal case - the target position is empty or is already us
+        else {
+          console.log(`Placing ${winnerName} in ${targetPosition}`);
+          nextMatch[targetPosition] = winnerId;
+          nextMatch[targetNamePosition] = winnerName;
         }
       }
       
