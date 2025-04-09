@@ -200,7 +200,8 @@ export default function AdminStats() {
         totalRefunds: 0,
         totalWithdrawals: 0,
         activeShiftExpected: 0,
-        totalCashOut: 0
+        totalCashOut: 0,
+        totalCashPayouts: 0
       };
     }
 
@@ -218,17 +219,35 @@ export default function AdminStats() {
 
     // For custom calculations from all shifts (active and closed)
     const calculatedTotals = shiftReports.shifts.reduce((acc, shift) => {
+      // Calculate cash payouts from payment method details if available
+      let shiftCashPayouts = 0;
+      
+      if (shift.details && Array.isArray(shift.details)) {
+        // Find cash payment method details
+        const cashDetails = shift.details.find(detail => 
+          detail.paymentMethodName && 
+          detail.paymentMethodName.toLowerCase().includes('cash')
+        );
+        
+        // Add payouts from cash method if found
+        if (cashDetails) {
+          shiftCashPayouts = Number.isFinite(cashDetails.payOuts) ? cashDetails.payOuts : 0;
+        }
+      }
+      
       return {
         totalSales: acc.totalSales + (Number.isFinite(shift.sales) ? shift.sales : 0),
         totalRefunds: acc.totalRefunds + (Number.isFinite(shift.refunds) ? shift.refunds : 0),
         totalWithdrawals: acc.totalWithdrawals + (Number.isFinite(shift.withdrawals) ? shift.withdrawals : 0),
-        totalCashOut: acc.totalCashOut + (Number.isFinite(shift.cashOutAmount) ? shift.cashOutAmount : 0)
+        totalCashOut: acc.totalCashOut + (Number.isFinite(shift.cashOutAmount) ? shift.cashOutAmount : 0),
+        totalCashPayouts: acc.totalCashPayouts + shiftCashPayouts
       };
     }, { 
       totalSales: 0,
       totalRefunds: 0, 
       totalWithdrawals: 0,
-      totalCashOut: 0
+      totalCashOut: 0,
+      totalCashPayouts: 0
     });
 
     // Use API-provided values for some fields, calculated values for others
@@ -238,6 +257,7 @@ export default function AdminStats() {
       totalRefunds: calculatedTotals.totalRefunds,
       totalWithdrawals: calculatedTotals.totalWithdrawals,
       totalCashOut: calculatedTotals.totalCashOut,
+      totalCashPayouts: calculatedTotals.totalCashPayouts,
       // Use API provided values for these
       totalDifference: shiftReports.totalDifference || 0,
       totalDuration: shiftReports.totalDuration || '0h 0m',
@@ -264,7 +284,7 @@ export default function AdminStats() {
   const summary = shiftReports ? calculateSummary() : null;
 
   // Add toggleable row function
-  function ShiftRow({ shift, formatDate, formatCurrency, styles }) {
+  function ShiftRow({ shift, formatDate, formatCurrency, styles, reportType }) {
     const [expanded, setExpanded] = useState(false);
     const hasDetails = shift.details && shift.details.length > 0;
     
@@ -306,7 +326,9 @@ export default function AdminStats() {
             ) : '-'}
           </td>
           <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
-          <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
+          {reportType === 2 && (
+            <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
+          )}
           <td>{Number.isFinite(shift.withdrawals) ? formatCurrency(shift.withdrawals) : '0 MAD'}</td>
           <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
             {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
@@ -321,7 +343,7 @@ export default function AdminStats() {
         {/* Payment method details when expanded */}
         {expanded && hasDetails && (
           <tr className={styles.detailsRow}>
-            <td colSpan="15">
+            <td colSpan={reportType === 2 ? 15 : 14}>
               <div className={styles.paymentDetails}>
                 <h4 className={styles.paymentDetailsTitle}>
                   <FaCreditCard /> Payment Method Breakdown
@@ -502,8 +524,15 @@ export default function AdminStats() {
                     <FaWallet />
                   </div>
                   <div>
-                    <h3 title="Total cash taken out between shifts (operator payments)">Total Payout</h3>
-                    <p className={styles.amount}>{formatCurrency(summary?.totalCashOut || 0)}</p>
+                    <h3 title={reportType === 2 ? "Total cash payouts (from Cash payment method only)" : "Total cash taken out between shifts (operator payments)"}>
+                      Total Payout
+                    </h3>
+                    <p className={styles.amount}>
+                      {reportType === 2 
+                        ? formatCurrency(summary?.totalCashPayouts || 0)
+                        : formatCurrency(summary?.totalCashOut || 0)
+                      }
+                    </p>
                   </div>
                 </div>
 
@@ -516,6 +545,19 @@ export default function AdminStats() {
                     <p className={styles.amount}>{formatCurrency(summary?.totalWithdrawals || 0)}</p>
                   </div>
                 </div>
+
+                {/* Only show Refunds in detailed report */}
+                {reportType === 2 && (
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryIcon}>
+                      <FaUndo />
+                    </div>
+                    <div>
+                      <h3>Total Refunds</h3>
+                      <p className={styles.amount}>{formatCurrency(summary?.totalRefunds || 0)}</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className={styles.summaryCard}>
                   <div className={styles.summaryIcon}>
@@ -570,7 +612,7 @@ export default function AdminStats() {
                       <th>End Amount</th>
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Sales</th>
-                      <th>Refunds</th>
+                      {reportType === 2 && <th>Refunds</th>}
                       <th>Withdrawals</th>
                       <th>Difference</th>
                       <th>Status</th>
@@ -585,11 +627,12 @@ export default function AdminStats() {
                           formatDate={formatDate}
                           formatCurrency={formatCurrency}
                           styles={styles}
+                          reportType={reportType}
                         />
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>
+                        <td colSpan={reportType === 2 ? 15 : 14} style={{ textAlign: 'center', padding: '2rem' }}>
                           No shift reports found for the selected date range
                         </td>
                       </tr>
