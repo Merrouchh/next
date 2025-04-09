@@ -616,14 +616,41 @@ export default function BracketManager() {
     
     if (!participant) {
       console.log(`Participant not found for ID: ${participantId}`);
-      return `Player ${participantId}`;  // Better than "Unknown"
+      // Use user_id from the brackets data if the name isn't available
+      // We know the bracket API returns usernames so we'll use those
+      const matchWithParticipant = findMatchWithParticipant(participantId);
+      if (matchWithParticipant) {
+        if (String(matchWithParticipant.participant1Id) === String(participantId)) {
+          return matchWithParticipant.participant1Name || `Player ${participantId}`;
+        } else if (String(matchWithParticipant.participant2Id) === String(participantId)) {
+          return matchWithParticipant.participant2Name || `Player ${participantId}`;
+        }
+      }
+      
+      return `Player ${participantId}`;  // Fallback
     }
     
     if (participant.members && participant.members.length > 0) {
-      return `${participant.name || participant.username} & ${participant.members.map(m => m.name || m.username).join(', ')}`;
+      return `${participant.username || participant.name} & ${participant.members.map(m => m.username || m.name).join(', ')}`;
     }
     
-    return participant.name || participant.username;
+    return participant.username || participant.name;
+  };
+
+  // Helper function to find a match that contains a given participant
+  const findMatchWithParticipant = (participantId) => {
+    if (!bracketData || !participantId) return null;
+    
+    for (const round of bracketData) {
+      for (const match of round) {
+        if (String(match.participant1Id) === String(participantId) || 
+            String(match.participant2Id) === String(participantId)) {
+          return match;
+        }
+      }
+    }
+    
+    return null;
   };
 
   // Handle event selection

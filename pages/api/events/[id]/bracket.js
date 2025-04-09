@@ -425,21 +425,42 @@ async function updateBracket(req, res, supabase, eventId, user) {
     }
     
     // Get participant data to return with the response
-    const { data: participants, error: participantsError } = await supabase
+    const { data: registrations, error: participantsError } = await supabase
       .from('event_registrations')
-      .select('id, username, email, user_id')
+      .select(`
+        id, 
+        user_id, 
+        username,
+        event_team_members (
+          id,
+          user_id,
+          username
+        )
+      `)
       .eq('event_id', eventId)
-      .eq('status', 'confirmed');
+      .in('status', ['confirmed', 'registered']);
     
     if (participantsError) {
       console.error('Error fetching participants:', participantsError);
       // We can continue even if the participant fetch fails
     }
 
+    // Format participants for consistent format with getBracket
+    const participants = registrations ? registrations.map(reg => ({
+      id: reg.id.toString(),
+      username: reg.username,
+      userId: reg.user_id,
+      members: (reg.event_team_members || []).map(member => ({
+        id: member.id.toString(),
+        username: member.username,
+        userId: member.user_id
+      }))
+    })) : [];
+
     return res.status(200).json({ 
       success: true,
       bracket: updatedBracket.matches,
-      participants: participants || []
+      participants: participants
     });
   } catch (error) {
     console.error('Error in updateBracket:', error);

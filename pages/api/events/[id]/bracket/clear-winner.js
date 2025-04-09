@@ -195,11 +195,21 @@ export default async function handler(req, res) {
     }
     
     // Get the participants for this event to return along with the bracket
-    const { data: participants, error: participantsError } = await supabase
+    // Use the same approach as in the bracket.js API to be consistent
+    const { data: registrations, error: participantsError } = await supabase
       .from('event_registrations')
-      .select('id, username, email, user_id')
+      .select(`
+        id, 
+        user_id, 
+        username,
+        event_team_members (
+          id,
+          user_id,
+          username
+        )
+      `)
       .eq('event_id', eventId)
-      .eq('status', 'confirmed');
+      .in('status', ['confirmed', 'registered']);
 
     if (participantsError) {
       console.error('Error fetching participants:', participantsError);
@@ -211,6 +221,18 @@ export default async function handler(req, res) {
         participants: [] // Return empty array if participants fetch failed
       });
     }
+
+    // Format participants for consistent format with bracket.js
+    const participants = registrations.map(reg => ({
+      id: reg.id.toString(),
+      username: reg.username,
+      userId: reg.user_id,
+      members: (reg.event_team_members || []).map(member => ({
+        id: member.id.toString(),
+        username: member.username,
+        userId: member.user_id
+      }))
+    }));
     
     // Disable caching of the response
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
