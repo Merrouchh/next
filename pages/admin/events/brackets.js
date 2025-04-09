@@ -610,15 +610,20 @@ export default function BracketManager() {
   // Get participant name by ID with team member names for duos
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
-    const participant = participants.find(p => p.id === participantId);
     
-    if (!participant) return 'Unknown';
+    // Try string comparison for IDs to avoid type mismatch issues
+    const participant = participants.find(p => String(p.id) === String(participantId));
     
-    if (participant.members && participant.members.length > 0) {
-      return `${participant.name} & ${participant.members.map(m => m.name).join(', ')}`;
+    if (!participant) {
+      console.log(`Participant not found for ID: ${participantId}`);
+      return `Player ${participantId}`;  // Better than "Unknown"
     }
     
-    return participant.name;
+    if (participant.members && participant.members.length > 0) {
+      return `${participant.name || participant.username} & ${participant.members.map(m => m.name || m.username).join(', ')}`;
+    }
+    
+    return participant.name || participant.username;
   };
 
   // Handle event selection
@@ -840,6 +845,16 @@ export default function BracketManager() {
       
       // Set state with the enriched data
       setBracketData(enrichedBracket);
+      
+      // Debug participants data structure
+      if (data.participants && data.participants.length > 0) {
+        console.log('Participant data sample:', {
+          firstParticipant: data.participants[0],
+          idType: typeof data.participants[0].id,
+          idValue: data.participants[0].id
+        });
+      }
+      
       setParticipants(data.participants || []);
       setMatchDetailsMap(matchDetailsMapData);
       
