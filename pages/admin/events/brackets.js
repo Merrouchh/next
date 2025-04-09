@@ -1310,16 +1310,30 @@ export default function BracketManager() {
         }
         
         // Now refresh bracket data to get updated match info
-        await fetchBracketData(selectedEvent.id);
+        const updatedBracketData = await fetchBracketData(selectedEvent.id);
         toast.success('Participants swapped successfully');
         
-        // Close the modal if a match is currently selected
-        if (selectedMatch && selectedMatch.id === matchId) {
-          // Find the updated match in the new bracket data to update the modal
-          const updatedMatch = findMatchInBracket(bracketData, matchId);
+        // If we have the updated bracket data and the modal is open with this match
+        if (updatedBracketData && selectedMatch && selectedMatch.id === matchId) {
+          // Find the updated match in the refreshed bracket data
+          const updatedMatch = findMatchInBracket(updatedBracketData, matchId);
+          
           if (updatedMatch) {
             // Create a deep copy to ensure React detects the change
-            setSelectedMatch(JSON.parse(JSON.stringify(updatedMatch)));
+            const updatedMatchCopy = JSON.parse(JSON.stringify(updatedMatch));
+            console.log('Updated match in the modal after swapping:', updatedMatchCopy);
+            
+            // Update the match in the modal with the new participant info
+            setSelectedMatch(updatedMatchCopy);
+            
+            // Also update the match details state with the current values
+            setMatchDetails(prevDetails => ({
+              ...prevDetails,
+              // We keep the existing scheduled time, location, and notes
+              // but reflect the updated participant information from the API
+            }));
+          } else {
+            console.error('Failed to find updated match in bracket data after swap');
           }
         }
       } else {
@@ -1407,6 +1421,14 @@ export default function BracketManager() {
       matchId: selectedMatch.id,
       winnerId: selectedMatch.winnerId,
       hasWinner: hasWinner,
+      participant1: {
+        id: selectedMatch.participant1Id,
+        name: participant1Name
+      },
+      participant2: {
+        id: selectedMatch.participant2Id,
+        name: participant2Name
+      },
       scheduledTime: matchDetails.scheduledTime,
       location: matchDetails.location,
       notes: matchDetails.notes
@@ -1564,9 +1586,11 @@ export default function BracketManager() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleSwapParticipants(selectedMatch.id);
+                      if (selectedMatch) {
+                        handleSwapParticipants(selectedMatch.id);
+                      }
                     }}
-                    disabled={!selectedMatch.participant1Id || !selectedMatch.participant2Id}
+                    disabled={!selectedMatch || !selectedMatch.participant1Id || !selectedMatch.participant2Id || hasWinner}
                     type="button"
                   >
                     <FaExchangeAlt /> Swap Participants
@@ -2015,6 +2039,32 @@ export default function BracketManager() {
       </div>
     );
   };
+
+  // Update match details whenever selectedMatch changes
+  useEffect(() => {
+    if (selectedMatch) {
+      const detailsFromMap = matchDetailsMap[selectedMatch.id];
+      
+      // Format the scheduledTime for the input element if it exists
+      const scheduledTime = detailsFromMap?.scheduledTime || selectedMatch.scheduledTime || '';
+      const formattedTime = scheduledTime ? formatDatetimeForInput(scheduledTime) : '';
+      const location = detailsFromMap?.location || selectedMatch.location || '';
+      const notes = detailsFromMap?.notes || selectedMatch.notes || '';
+      
+      console.log('Updating match details from selectedMatch change:', {
+        matchId: selectedMatch.id,
+        scheduledTime: formattedTime,
+        location: location,
+        notes: notes
+      });
+      
+      setMatchDetails({
+        scheduledTime: formattedTime,
+        location: location,
+        notes: notes
+      });
+    }
+  }, [selectedMatch, matchDetailsMap]);
 
   return (
     <AdminPageWrapper title="Tournament Bracket Manager">
