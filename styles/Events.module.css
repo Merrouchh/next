@@ -39,6 +39,32 @@
   border: 1px solid #2a2a2a;
 }
 
+/* Clickable card styles */
+.clickableCard {
+  cursor: pointer;
+  position: relative;
+}
+
+.clickableCard:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.5);
+}
+
+.clickableCard:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0) 70%);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.clickableCard:hover:after {
+  opacity: 1;
+}
+
 .eventCard:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);

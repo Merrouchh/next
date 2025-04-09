@@ -550,7 +550,17 @@ function EventCard({ event }) {
   };
 
   return (
-    <div className={styles.eventCard}>
+    <div 
+      className={`${styles.eventCard} ${styles.clickableCard}`}
+      onClick={viewEventDetails}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          viewEventDetails();
+        }
+      }}
+    >
       <div className={styles.eventImageContainer}>
         {event.image ? (
           <img 
@@ -615,26 +625,34 @@ function EventCard({ event }) {
         <p className={styles.eventDescription}>
           {truncateDescription(event.description)}
         </p>
-        <div className={styles.eventActions}>
-          <button 
-            className={getRegistrationButtonClass()}
-            onClick={handleRegisterClick}
-            disabled={
-              event.status === 'Completed' || 
-              event.status === 'In Progress' || 
-              (!isPublicView && checkingRegistration) ||
-              (!isPublicView && isRegistered)
-            }
-          >
-            {getRegistrationButtonText()}
-          </button>
-          <button 
-            className={`${styles.readMoreButton} ${isRegistered ? styles.primaryAction : ''}`}
-            onClick={viewEventDetails}
-          >
-            Read More
-          </button>
-        </div>
+      </div>
+
+      {/* Event actions with stopPropagation to prevent triggering the card click */}
+      <div className={styles.eventActions} onClick={(e) => e.stopPropagation()}>
+        <button 
+          className={getRegistrationButtonClass()}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRegisterClick();
+          }}
+          disabled={
+            event.status === 'Completed' || 
+            event.status === 'In Progress' || 
+            (!isPublicView && checkingRegistration) ||
+            (!isPublicView && isRegistered)
+          }
+        >
+          {getRegistrationButtonText()}
+        </button>
+        <button 
+          className={`${styles.readMoreButton} ${isRegistered ? styles.primaryAction : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            viewEventDetails();
+          }}
+        >
+          Read More
+        </button>
       </div>
     </div>
   );
