@@ -551,7 +551,7 @@ function EventCard({ event }) {
 
   return (
     <div 
-      className={`${styles.eventCard} ${styles.clickableCard}`}
+      className={`${styles.eventCard} ${styles.clickableCard} ${event.status === 'Completed' ? styles.completedCard : ''}`}
       onClick={viewEventDetails}
       role="button"
       tabIndex={0}

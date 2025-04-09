@@ -708,4 +708,23 @@
 
 .clickableCard .registerButton:disabled {
   cursor: not-allowed !important;
+}
+
+/* Completed event card style - use default cursor */
+.completedCard,
+.completedCard:hover {
+  cursor: default !important;
+}
+
+.completedCard * {
+  cursor: default !important;
+}
+
+/* Still allow proper cursor on buttons */
+.completedCard button {
+  cursor: pointer;
+}
+
+.completedCard .registerButton:disabled {
+  cursor: not-allowed !important;
 } 
