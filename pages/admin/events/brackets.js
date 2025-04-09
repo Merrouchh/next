@@ -29,14 +29,7 @@ export default function BracketManager() {
   const [participantToReplace, setParticipantToReplace] = useState(null);
   const [lastScheduledTime, setLastScheduledTime] = useState('');
   const [expandedRounds, setExpandedRounds] = useState({});
-  const scrollPositionRef = useRef({ 
-    bracketSection: { x: 0, y: 0 },
-    bracketMatchesList: { x: 0, y: 0 },
-    window: { x: 0, y: 0 }
-  });
   const [matchDetailsMap, setMatchDetailsMap] = useState({});
-  // Add state to track the last edited match for auto-scrolling
-  const [lastEditedMatch, setLastEditedMatch] = useState(null);
 
   // Load last scheduled time from localStorage on component mount
   useEffect(() => {
@@ -465,9 +458,6 @@ export default function BracketManager() {
         
         // Immediately fetch fresh data to ensure match details are preserved
         await fetchBracketData(selectedEvent.id);
-        
-        // After data refresh, set this as the last edited match to trigger scrolling
-        setLastEditedMatch(matchId);
       }
       
       setSelectedMatch(null);
@@ -1056,7 +1046,7 @@ export default function BracketManager() {
     return updatedBracket;
   };
 
-  // Replace your handleSaveMatchDetails function with this improved version
+  // Update handleSaveMatchDetails to track the last edited match
   const handleSaveMatchDetails = async (e) => {
     if (e) {
       e.preventDefault();
@@ -1064,9 +1054,6 @@ export default function BracketManager() {
     }
     
     if (!selectedMatch || !selectedEvent) return;
-    
-    // Save the match ID before clearing selectedMatch
-    const editedMatchId = selectedMatch.id;
     
     setLoading(true);
     setError(null);
@@ -1166,9 +1153,6 @@ export default function BracketManager() {
       // Fetch fresh data from the database to ensure all states are in sync
       await fetchBracketData(selectedEvent.id);
       
-      // After data refresh, set this as the last edited match to trigger scrolling
-      setLastEditedMatch(editedMatchId);
-      
       setLoading(false);
     } catch (error) {
       console.error('Error saving match details:', error);
@@ -1180,9 +1164,6 @@ export default function BracketManager() {
 
   // Update handleSwapParticipants to preserve scroll position
   const handleSwapParticipants = async (matchId) => {
-    // Save scroll position before any DOM updates
-    saveScrollPosition();
-    
     try {
       const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=swapParticipants&matchId=${matchId}`, {
         method: 'PUT',
@@ -1218,32 +1199,19 @@ export default function BracketManager() {
     } catch (error) {
       console.error('Error swapping participants:', error);
       toast.error(`Error swapping participants: ${error.message}`);
-    } finally {
-      // Restore scroll position after all DOM updates
-      restoreScrollPosition();
     }
   };
 
   // Toggle round expansion
   const toggleRound = (roundIndex) => {
-    // Save scroll position before toggling
-    saveScrollPosition();
-    
     setExpandedRounds(prev => ({
       ...prev,
       [roundIndex]: !prev[roundIndex]
     }));
-    
-    // Restore scroll position after state update
-    restoreScrollPosition();
   };
 
   // Toggle all rounds
   const toggleAllRounds = (expand) => {
-    // Save scroll position before toggling all rounds
-    saveScrollPosition();
-    
-    
     if (!bracketData) return;
     
     // Check if bracketData is an array (of rounds) or has a rounds property
@@ -1261,9 +1229,6 @@ export default function BracketManager() {
     
     console.log(`Setting all rounds to ${expand ? 'expanded' : 'collapsed'}:`, newState);
     setExpandedRounds(newState);
-    
-    // Restore scroll position after state update with a longer timeout
-    setTimeout(restoreScrollPosition, 200);
   };
 
   // Add a helper function to check if a match is ready to play
@@ -1280,6 +1245,8 @@ export default function BracketManager() {
   // Helper function to view the public bracket in a new tab
   const handleViewPublicBracket = () => {
     // Set timestamp to force client-side cache bust
+    // The timestamp is added as a query parameter to ensure the browser loads the
+    // latest version of the bracket page, bypassing any cached version
     const timestamp = Date.now();
     // Open the public bracket view in a new tab
     window.open(`/events/${selectedEvent?.id}/bracket?t=${timestamp}`, '_blank');
@@ -1563,9 +1530,6 @@ export default function BracketManager() {
 
   // Update handleResetMatchTimes to preserve scroll position
   const handleResetMatchTimes = async () => {
-    // Save scroll position before any DOM updates
-    saveScrollPosition();
-    
     if (!selectedEvent) return;
     
     try {
@@ -1597,9 +1561,6 @@ export default function BracketManager() {
     } catch (error) {
       console.error('Error resetting match times:', error);
       toast.error(`Error resetting match times: ${error.message}`);
-    } finally {
-      // Restore scroll position after all DOM updates
-      restoreScrollPosition();
     }
   };
 
@@ -1752,81 +1713,6 @@ export default function BracketManager() {
     }
   };
 
-  // Update the scroll position save/restore functions to target the correct element
-  const saveScrollPosition = () => {
-    try {
-      const bracketSection = document.getElementById('bracketSection');
-      const bracketMatchesList = document.getElementById('bracketMatchesList');
-      const windowScrollPos = { x: window.pageXOffset || window.scrollX, y: window.pageYOffset || window.scrollY };
-      
-      console.log('Saving scroll positions...');
-      
-      if (bracketSection) {
-        scrollPositionRef.current.bracketSection = { 
-          x: bracketSection.scrollLeft, 
-          y: bracketSection.scrollTop 
-        };
-        console.log('Saved bracketSection position:', scrollPositionRef.current.bracketSection);
-      }
-      
-      if (bracketMatchesList) {
-        scrollPositionRef.current.bracketMatchesList = { 
-          x: bracketMatchesList.scrollLeft, 
-          y: bracketMatchesList.scrollTop 
-        };
-        console.log('Saved bracketMatchesList position:', scrollPositionRef.current.bracketMatchesList);
-      }
-      
-      scrollPositionRef.current.window = windowScrollPos;
-      console.log('Saved window position:', windowScrollPos);
-    } catch (err) {
-      console.error('Error saving scroll positions:', err);
-    }
-  };
-
-  // Improve restore function to handle scrolling more robustly
-  const restoreScrollPosition = () => {
-    const applyScrollPositions = () => {
-      try {
-        const bracketSection = document.getElementById('bracketSection');
-        const bracketMatchesList = document.getElementById('bracketMatchesList');
-        
-        if (bracketSection && scrollPositionRef.current.bracketSection) {
-          console.log('Restoring bracketSection scroll to:', scrollPositionRef.current.bracketSection);
-          bracketSection.scrollLeft = scrollPositionRef.current.bracketSection.x;
-          bracketSection.scrollTop = scrollPositionRef.current.bracketSection.y;
-        }
-        
-        if (bracketMatchesList && scrollPositionRef.current.bracketMatchesList) {
-          console.log('Restoring bracketMatchesList scroll to:', scrollPositionRef.current.bracketMatchesList);
-          bracketMatchesList.scrollLeft = scrollPositionRef.current.bracketMatchesList.x;
-          bracketMatchesList.scrollTop = scrollPositionRef.current.bracketMatchesList.y;
-        }
-        
-        if (scrollPositionRef.current.window) {
-          console.log('Restoring window scroll to:', scrollPositionRef.current.window);
-          window.scrollTo(
-            scrollPositionRef.current.window.x,
-            scrollPositionRef.current.window.y
-          );
-        }
-        
-        console.log('Scroll positions restored');
-      } catch (err) {
-        console.error('Error restoring scroll position:', err);
-      }
-    };
-
-    // First attempt at time 0
-    applyScrollPositions();
-    
-    // Then retry a few times with increasing delays to ensure it works
-    // even after React has fully rendered the updated components
-    setTimeout(applyScrollPositions, 100);
-    setTimeout(applyScrollPositions, 300);
-    setTimeout(applyScrollPositions, 500);
-  };
-
   // Add console logging to better track match details throughout the lifecycle
   useEffect(() => {
     if (bracketData) {
@@ -1889,107 +1775,6 @@ export default function BracketManager() {
     }
   }, [bracketData]);
 
-  // Scroll to a specific match in the UI
-  const scrollToMatch = (matchId) => {
-    if (!matchId) {
-      console.log('No match ID provided for scrolling');
-      return;
-    }
-    
-    console.log(`Attempting to scroll to match ${matchId}`);
-    
-    // Give time for the DOM to update
-    setTimeout(() => {
-      const matchElement = document.getElementById(`match-${matchId}`);
-      console.log(`Looking for element with ID: match-${matchId}`);
-      
-      if (matchElement) {
-        console.log(`Found match element for match ${matchId}, preparing to scroll`);
-        
-        // First ensure the round this match belongs to is expanded
-        if (bracketData) {
-          const roundIndex = bracketData.findIndex(round => 
-            round.some(m => m.id === matchId)
-          );
-          
-          console.log(`Match ${matchId} found in round ${roundIndex}, expanded status:`, expandedRounds[roundIndex]);
-          
-          if (roundIndex !== -1 && !expandedRounds[roundIndex]) {
-            console.log(`Expanding round ${roundIndex} to show match ${matchId}`);
-            setExpandedRounds(prev => ({
-              ...prev,
-              [roundIndex]: true
-            }));
-            
-            // Need an additional delay to let the round expand
-            setTimeout(() => {
-              const matchElement = document.getElementById(`match-${matchId}`);
-              console.log(`Re-checking for match element after round expansion:`, !!matchElement);
-              
-              if (matchElement) {
-                // Scroll more gently to avoid major page shifts
-                const rect = matchElement.getBoundingClientRect();
-                const offset = window.pageYOffset;
-                const top = rect.top + offset - 200; // Position with some space above
-                
-                console.log(`Scrolling to position:`, top);
-                window.scrollTo({
-                  top: top,
-                  behavior: 'smooth'
-                });
-                
-                // Highlight the match temporarily
-                matchElement.classList.add(styles.highlighted);
-                console.log(`Added highlight class to match ${matchId}`);
-                
-                setTimeout(() => {
-                  matchElement.classList.remove(styles.highlighted);
-                }, 2000);
-              } else {
-                console.log(`Could not find match element after round expansion`);
-              }
-            }, 300);
-            return;
-          }
-          
-          // If round is already expanded, scroll immediately
-          const rect = matchElement.getBoundingClientRect();
-          const offset = window.pageYOffset;
-          const top = rect.top + offset - 200; // Position with some space above
-          
-          console.log(`Round already expanded, scrolling to position:`, top);
-          window.scrollTo({
-            top: top,
-            behavior: 'smooth'
-          });
-          
-          // Highlight the match temporarily
-          matchElement.classList.add(styles.highlighted);
-          console.log(`Added highlight class to match ${matchId}`);
-          
-          setTimeout(() => {
-            matchElement.classList.remove(styles.highlighted);
-          }, 2000);
-        } else {
-          console.log(`No bracket data available for finding rounds`);
-        }
-      } else {
-        console.log(`Could not find element for match ${matchId}, available IDs:`, 
-          Array.from(document.querySelectorAll('[id^="match-"]'))
-            .map(el => el.id)
-            .join(', ')
-        );
-      }
-    }, 100);
-  };
-
-  // Use effect to scroll to last edited match when it changes
-  useEffect(() => {
-    if (lastEditedMatch) {
-      scrollToMatch(lastEditedMatch);
-    }
-  }, [lastEditedMatch, expandedRounds]);
-
   // Update the renderMatchItem function to add an id to each match div
   const renderMatchItem = (match, isMatchReady) => {
     // Get participant names (including team members for duos)
@@ -2043,12 +1828,9 @@ export default function BracketManager() {
       }
     }
     
-    const matchItemId = `match-${match.id}`;
-    
     return (
       <div 
-        id={matchItemId}
-        key={matchItemId}
+        key={`match-${match.id}`} 
         className={`${styles.matchItem} ${match.winnerId ? styles.completed : ''} ${isMatchReady ? styles.ready : ''} ${selectedMatch?.id === match.id ? styles.selected : ''}`}
         onClick={() => handleMatchClick(match)}
       >
