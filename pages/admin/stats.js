@@ -340,18 +340,6 @@ export default function AdminStats() {
           <td>{shift.registerName || 'Unknown'}</td>
           <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
           <td>{Number.isFinite(shift.expected) ? formatCurrency(shift.expected) : '0 MAD'}</td>
-          <td>{shift.actual !== null && Number.isFinite(shift.actual) ? formatCurrency(shift.actual) : '-'}</td>
-          <td className={`${styles.cashOut} ${shift.cashOutAmount ? styles.hasCashOut : ''}`}>
-            {shift.cashOutAmount ? (
-              <span title={`End cash from previous shift: ${formatCurrency(shift.prevShiftEndCash)}`}>
-                {formatCurrency(shift.cashOutAmount)}
-              </span>
-            ) : '-'}
-          </td>
-          <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
-          {reportType === 2 && (
-            <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
-          )}
           <td>
             {/* Net Payouts (payOuts - payIns) */}
             {Number.isFinite(shift.payOuts) ? 
@@ -365,6 +353,18 @@ export default function AdminStats() {
                 : '0 MAD'
             }
           </td>
+          <td>{shift.actual !== null && Number.isFinite(shift.actual) ? formatCurrency(shift.actual) : '-'}</td>
+          <td className={`${styles.cashOut} ${shift.cashOutAmount ? styles.hasCashOut : ''}`}>
+            {shift.cashOutAmount ? (
+              <span title={`End cash from previous shift: ${formatCurrency(shift.prevShiftEndCash)}`}>
+                {formatCurrency(shift.cashOutAmount)}
+              </span>
+            ) : '-'}
+          </td>
+          <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
+          {reportType === 2 && (
+            <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
+          )}
           <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
             {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
           </td>
@@ -649,11 +649,11 @@ export default function AdminStats() {
                       <th>Register</th>
                       <th>Start Amount</th>
                       <th>Expected</th>
+                      <th title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</th>
                       <th>End Amount</th>
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Sales</th>
                       {reportType === 2 && <th>Refunds</th>}
-                      <th title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</th>
                       <th>Difference</th>
                       <th>Status</th>
                     </tr>
