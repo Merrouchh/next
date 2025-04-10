@@ -643,23 +643,6 @@ export default function EventRegistrations() {
                                   </div>
                                 </div>
                               </div>
-                              <div className={styles.tableCell} data-label="Registration Info">
-                                <div className={styles.registrationInfo}>
-                                  <span className={styles.registrationDateLabel}>Registered:</span>
-                                  <span className={styles.registrationDate}>
-                                    {formatTimestamp(main.registration_date, isMobile)}
-                                  </span>
-                                </div>
-                                <div className={styles.teamActions}>
-                                  <button 
-                                    className={styles.removeButton}
-                                    onClick={() => removeRegistration(main.id, main.username)}
-                                    aria-label={`Remove ${main.username}'s registration`}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
                             </div>
                             
                             {mainPartners.length > 0 && mainPartners.map(partner => (
@@ -690,25 +673,24 @@ export default function EventRegistrations() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className={styles.tableCell} data-label="Registration Info">
-                                  <div className={styles.registrationInfo}>
-                                    <span className={styles.registrationDateLabel}>Registered:</span>
-                                    <span className={styles.registrationDate}>
-                                      {formatTimestamp(partner.registration_date, isMobile)}
-                                    </span>
-                                  </div>
-                                  <div className={styles.teamActions}>
-                                    <button 
-                                      className={styles.removeButton}
-                                      onClick={() => removeRegistration(partner.id, partner.username)}
-                                      aria-label={`Remove ${partner.username}'s registration`}
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </div>
                               </div>
                             ))}
+                            
+                            <div className={styles.teamActions}>
+                              <div className={styles.registrationInfo}>
+                                <span className={styles.registrationDateLabel}>Registered:</span>
+                                <span className={styles.registrationDate}>
+                                  {formatTimestamp(main.registration_date, isMobile)}
+                                </span>
+                              </div>
+                              <button 
+                                className={styles.removeButton}
+                                onClick={() => removeRegistration(main.id, main.username)}
+                                aria-label={`Remove ${main.username}'s team registration`}
+                              >
+                                Remove Team
+                              </button>
+                            </div>
                           </div>
                         );
                       });
@@ -758,23 +740,6 @@ export default function EventRegistrations() {
                                   </div>
                                 </div>
                               </div>
-                              <div className={styles.tableCell} data-label="Registration Info">
-                                <div className={styles.registrationInfo}>
-                                  <span className={styles.registrationDateLabel}>Registered:</span>
-                                  <span className={styles.registrationDate}>
-                                    {formatTimestamp(leader.registration_date, isMobile)}
-                                  </span>
-                                </div>
-                                <div className={styles.teamActions}>
-                                  <button 
-                                    className={styles.removeButton}
-                                    onClick={() => removeRegistration(leader.id, leader.username)}
-                                    aria-label={`Remove ${leader.username}'s registration`}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
                             </div>
                             
                             {members.map(member => (
@@ -805,25 +770,24 @@ export default function EventRegistrations() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className={styles.tableCell} data-label="Registration Info">
-                                  <div className={styles.registrationInfo}>
-                                    <span className={styles.registrationDateLabel}>Registered:</span>
-                                    <span className={styles.registrationDate}>
-                                      {formatTimestamp(member.registration_date, isMobile)}
-                                    </span>
-                                  </div>
-                                  <div className={styles.teamActions}>
-                                    <button 
-                                      className={styles.removeButton}
-                                      onClick={() => removeRegistration(member.id, member.username)}
-                                      aria-label={`Remove ${member.username}'s registration`}
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
-                                </div>
                               </div>
                             ))}
+                            
+                            <div className={styles.teamActions}>
+                              <div className={styles.registrationInfo}>
+                                <span className={styles.registrationDateLabel}>Registered:</span>
+                                <span className={styles.registrationDate}>
+                                  {formatTimestamp(leader.registration_date, isMobile)}
+                                </span>
+                              </div>
+                              <button 
+                                className={styles.removeButton}
+                                onClick={() => removeRegistration(leader.id, leader.username)}
+                                aria-label={`Remove ${leader.username}'s team registration`}
+                              >
+                                Remove Team
+                              </button>
+                            </div>
                           </div>
                         );
                       });
