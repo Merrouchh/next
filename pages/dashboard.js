@@ -208,43 +208,8 @@ const DebtCard = ({ debtAmount, hasTime }) => {
         amount: amount,
         percent: 100
       };
-    } else if (amount <= 50) {
-      const payment = Math.ceil(amount * 0.5); // 50%
-      return { 
-        text: 'At least 50% payment required',
-        amount: payment,
-        percent: 50
-      };
-    } else if (amount <= 100) {
-      const payment = Math.ceil(amount * 0.4); // 40%
-      return { 
-        text: 'At least 40% payment required',
-        amount: payment,
-        percent: 40
-      };
-    } else if (amount <= 200) {
-      const payment = Math.ceil(amount * 0.35); // 35%
-      return { 
-        text: 'At least 35% payment required',
-        amount: payment,
-        percent: 35
-      };
-    } else if (amount <= 300) {
-      const payment = Math.ceil(amount * 0.3); // 30%
-      return { 
-        text: 'At least 30% payment required',
-        amount: payment,
-        percent: 30
-      };
-    } else if (amount <= 500) {
-      const payment = Math.ceil(amount * 0.25); // 25%
-      return { 
-        text: 'At least 25% payment required',
-        amount: payment,
-        percent: 25
-      };
     } else {
-      // For very large debts (over 500 DH), only require 20%
+      // For all other debts, only require 20%
       const payment = Math.ceil(amount * 0.2); // 20%
       return { 
         text: 'At least 20% payment required',
