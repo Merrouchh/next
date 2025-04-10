@@ -209,46 +209,19 @@ const DebtCard = ({ debtAmount, hasTime }) => {
         percent: 100
       };
     } else if (amount <= 50) {
-      const payment = Math.ceil(amount / 2);
+      const payment = Math.ceil(amount * 0.5); // 50%
       return { 
         text: 'At least 50% payment required',
         amount: payment,
         percent: 50
       };
-    } else if (amount <= 100) {
-      const payment = Math.ceil(amount * 0.4);
-      return { 
-        text: 'At least 40% payment required',
-        amount: payment,
-        percent: 40
-      };
-    } else if (amount <= 150) {
-      const payment = Math.ceil(amount * 0.35);
-      return { 
-        text: 'At least 35% payment required',
-        amount: payment,
-        percent: 35
-      };
-    } else if (amount <= 300) {
-      const payment = Math.ceil(amount * 0.30);
-      return { 
-        text: 'At least 30% payment required',
-        amount: payment,
-        percent: 30
-      };
-    } else if (amount <= 600) {
-      const payment = Math.ceil(amount * 0.25);
-      return { 
-        text: 'At least 25% payment required',
-        amount: payment,
-        percent: 25
-      };
     } else {
-      const payment = Math.ceil(amount * 0.20);
+      // Cap at 50% maximum for all higher debt amounts
+      const payment = Math.ceil(amount * 0.5);
       return { 
-        text: 'At least 20% payment required',
+        text: 'Maximum 50% payment required',
         amount: payment,
-        percent: 20
+        percent: 50
       };
     }
   };
