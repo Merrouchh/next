@@ -605,7 +605,7 @@ export default function EventRegistrations() {
                       const mainRegistrants = registrations.filter(reg => !reg.isPartner);
                       const partners = registrations.filter(reg => reg.isPartner);
                       
-                      return mainRegistrants.map(main => {
+                      return mainRegistrants.map((main, index) => {
                         // Find partners registered by this main registrant
                         const mainPartners = partners.filter(p => p.registeredBy === main.username);
                         const teamColor = generateTeamColor(main.id);
@@ -616,7 +616,7 @@ export default function EventRegistrations() {
                               <div className={styles.teamIndicator}>
                                 <div className={styles.teamColorDot} style={{ backgroundColor: teamColor }}></div>
                               </div>
-                              <span className={styles.duoTeamHeaderLabel}>Duo Team</span>
+                              <span className={styles.duoTeamHeaderLabel}>Duo Team {index + 1}</span>
                             </div>
                             
                             <div className={styles.tableRow}>
@@ -702,7 +702,7 @@ export default function EventRegistrations() {
                       const teamLeaders = registrations.filter(reg => reg.isTeamLeader || (!reg.teamId && !reg.isTeamMember));
                       const teamMembers = registrations.filter(reg => reg.isTeamMember || reg.teamId);
                       
-                      return teamLeaders.map(leader => {
+                      return teamLeaders.map((leader, index) => {
                         // Find team members for this leader
                         const members = teamMembers.filter(m => m.teamId === leader.id || m.registeredBy === leader.username);
                         const teamColor = generateTeamColor(leader.id);
@@ -713,7 +713,7 @@ export default function EventRegistrations() {
                               <div className={styles.teamIndicator}>
                                 <div className={styles.teamColorDot} style={{ backgroundColor: teamColor }}></div>
                               </div>
-                              <span className={styles.teamHeaderLabel}>Team {leader.teamName || leader.username}</span>
+                              <span className={styles.teamHeaderLabel}>Team {index + 1}: {leader.teamName || leader.username}</span>
                             </div>
                             
                             <div className={styles.tableRow}>
