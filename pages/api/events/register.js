@@ -437,7 +437,7 @@ async function registerForEvent(req, res, supabase, user) {
       }
     }
     
-    // Get the current count of registrations for this event
+    // Get the current count of registrations for this event in registerForEvent
     const { count, error: countError } = await supabase
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
@@ -450,6 +450,7 @@ async function registerForEvent(req, res, supabase, user) {
       // For duo events, we need to count pairs as a single registration
       // so we count only the main registrants (those without isPartner flag)
       if (eventData.team_type === 'duo') {
+        // For the main registration that just happened, we need to count it explicitly
         const { count: mainRegistrantsCount, error: mainRegCountError } = await supabase
           .from('event_registrations')
           .select('id', { count: 'exact', head: true })
@@ -457,8 +458,16 @@ async function registerForEvent(req, res, supabase, user) {
           .not('notes', 'like', 'Auto-registered as partner of%');
         
         if (!mainRegCountError) {
-          registrationCount = mainRegistrantsCount;
-          console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+          // For a new registration, we know it's a main registrant (not a partner)
+          // So we should at least have 1 in the count
+          if (mainRegistrantsCount === 0) {
+            // This happens when the database query hasn't caught up with our new insertion
+            registrationCount = 1;
+            console.log(`Duo event: New registration not yet visible in query - setting count to 1`);
+          } else {
+            registrationCount = mainRegistrantsCount;
+            console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+          }
         } else {
           console.error('Error counting main registrants:', mainRegCountError);
         }
@@ -625,6 +634,12 @@ async function cancelRegistration(req, res, supabase, user) {
         if (!mainRegCountError) {
           registrationCount = mainRegistrantsCount;
           console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+          
+          // If we've deleted all registrations but the count is still showing as zero,
+          // make sure we explicitly set it to zero
+          if (registrationCount === 0 && eventData.registered_count > 0) {
+            console.log(`All registrations deleted, resetting count to 0`);
+          }
         } else {
           console.error('Error counting main registrants:', mainRegCountError);
         }
