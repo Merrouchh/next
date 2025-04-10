@@ -218,6 +218,28 @@ async function registerForEvent(req, res, supabase, user) {
       // Get all team member IDs for easier checking
       const teamMemberIds = teamMembers.map(member => member.userId);
       
+      // Check that all team members have verified phone numbers too
+      const { data: teamMemberProfiles, error: teamPhoneError } = await supabase
+        .from('users')
+        .select('id, username, phone')
+        .in('id', teamMemberIds);
+        
+      if (teamPhoneError) {
+        console.error('Error checking team member phone numbers:', teamPhoneError);
+        throw teamPhoneError;
+      }
+      
+      // Check for any team members without phone numbers
+      const invalidTeamMembers = teamMemberProfiles
+        .filter(member => !member.phone || member.phone.trim() === '')
+        .map(member => member.username);
+        
+      if (invalidTeamMembers.length > 0) {
+        return res.status(400).json({
+          message: `The following team members don't have verified phone numbers: ${invalidTeamMembers.join(', ')}. All participants must have a verified phone number.`
+        });
+      }
+      
       // Start a transaction for concurrent registration check
       // This will ensure that no race condition can occur
       let hasTransactionSupport = true;
