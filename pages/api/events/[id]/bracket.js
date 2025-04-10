@@ -154,10 +154,14 @@ async function getBracket(req, res, supabase, eventId) {
       }
     });
 
+    // Log the team type for debugging
+    console.log('Event team type:', event.team_type, 'Is a duo event:', event.team_type === 'duo');
+
     return res.status(200).json({
       bracket: bracketData.matches,
       participants,
-      eventType: event.team_type
+      eventType: event.team_type,
+      isDuo: event.team_type === 'duo'  // Explicitly add an isDuo flag
     });
   } catch (error) {
     console.error('Error in getBracket:', error);

@@ -228,6 +228,7 @@ export default function EventBracket({ metaData }) {
   const [hasBracket, setHasBracket] = useState(true);
   const [tournamentChampion, setTournamentChampion] = useState(null);
   const [matchDetails, setMatchDetails] = useState([]);
+  const [isDuoEvent, setIsDuoEvent] = useState(false);
 
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
@@ -612,7 +613,12 @@ export default function EventBracket({ metaData }) {
         if (data && data.bracket) {
           console.log('Setting bracket data with participants:', data.participants);
           // Check if this is a duo event
-          const isDuo = eventData.team_type === 'duo';
+          const isDuo = data.isDuo === true;
+          console.log('Using isDuo flag from API:', isDuo);
+          
+          // Update the isDuoEvent state
+          setIsDuoEvent(isDuo);
+          
           if (isDuo) {
             console.log('This is a duo event, participants should have partner info');
             // Inspect first few participants for debugging
@@ -914,9 +920,6 @@ export default function EventBracket({ metaData }) {
       winner = participants.find(p => p.id === finalRound[0].winnerId);
     }
 
-    // Check if this is a duo event
-    const isDuoEvent = event?.team_type === 'duo';
-
     // Calculate spacing based on number of rounds
     const totalRounds = bracketData.length;
 
@@ -1054,8 +1057,7 @@ export default function EventBracket({ metaData }) {
                       const participant1 = getParticipantInfo(match.participant1Id);
                       const participant2 = getParticipantInfo(match.participant2Id);
                       
-                      // Check if this is a duo event
-                      const isDuoEvent = event?.team_type === 'duo';
+                      // Use component-level isDuoEvent state
                       
                       return (
                         <div 
