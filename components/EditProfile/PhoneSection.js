@@ -162,47 +162,6 @@ const PhoneSection = ({
       
       console.log('Phone to verify:', formattedPhone);
       
-      // Validate current password is provided
-      if (!websiteAccount.phonePassword) {
-        setMessage(prev => ({
-          ...prev,
-          phone: { type: 'error', text: 'Current password is required' }
-        }));
-        setIsLoading(prev => ({ ...prev, phone: false }));
-        return;
-      }
-      
-      // Verify current password
-      let loginSuccessful = false;
-      
-      try {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: websiteAccount.phonePassword
-        });
-        
-        if (signInError) {
-          console.debug('SignIn verification failed:', signInError.message);
-          throw signInError;
-        }
-        
-        loginSuccessful = true;
-      } catch (loginError) {
-        console.debug('Login verification error caught:', loginError.message);
-        setMessage(prev => ({
-          ...prev,
-          phone: { type: 'error', text: 'Current password is incorrect' }
-        }));
-        setIsLoading(prev => ({ ...prev, phone: false }));
-        return;
-      }
-      
-      if (!loginSuccessful) {
-        return;
-      }
-      
-      console.log('Sending verification request for', formattedPhone, 'user ID:', user.id);
-      
       // Create a verification record via the API instead of direct database access
       let recordResponse;
       try {
@@ -287,12 +246,6 @@ const PhoneSection = ({
           pendingPhone: formattedPhone,
           otpCode: ''
         });
-        
-        // Clear password field after successful OTP request
-        setWebsiteAccount(prev => ({
-          ...prev,
-          phonePassword: ''
-        }));
         
         // Exit change mode
         setIsChangingPhone(false);
@@ -731,21 +684,6 @@ const PhoneSection = ({
                 
                 // Set tabIndex globally for all dropdowns
                 dropdownClass="phone-dropdown-container"
-                
-                // Override the onKeyDown to handle tab properly
-                onKeyDown={(e) => {
-                  if (e.key === 'Tab' && !e.shiftKey) {
-                    // If it's the Tab key and not Shift+Tab
-                    if (isChangingPhone) {
-                      // Find the password input and focus it
-                      const passwordInput = document.querySelector('input[name="phonePassword"]');
-                      if (passwordInput) {
-                        e.preventDefault();
-                        passwordInput.focus();
-                      }
-                    }
-                  }
-                }}
               />
             </div>
             {!phoneVerification.isPending && (
@@ -758,14 +696,12 @@ const PhoneSection = ({
                     // When cancelling, reset everything and collapse
                     setWebsiteAccount(prev => ({ 
                       ...prev, 
-                      phone: '',
-                      phonePassword: '' 
+                      phone: ''
                     }));
                     setIsChangingPhone(false);
                     setMessage(prev => ({ ...prev, phone: { type: '', text: '' } }));
                   } else {
-                    // When starting to change, just reset password
-                    setWebsiteAccount(prev => ({ ...prev, phonePassword: '' }));
+                    // When starting to change, just open the form
                     setIsChangingPhone(true);
                   }
                 }}
@@ -781,40 +717,10 @@ const PhoneSection = ({
           </small>
         </div>
         {isChangingPhone && !phoneVerification.isPending && (
-          <div className={styles.inputGroup}>
-            <label>Password Verification</label>
-            <div className={styles.inputWrapper}>
-              <AiOutlineLock className={styles.icon} />
-              <input
-                name="phonePassword"
-                type={showPasswords.phonePassword ? "text" : "password"}
-                value={websiteAccount.phonePassword}
-                onChange={(e) => setWebsiteAccount(prev => ({ 
-                  ...prev, 
-                  phonePassword: e.target.value 
-                }))}
-                placeholder="Enter your current password"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className={styles.eyeIcon}
-                tabIndex="0"
-                onClick={() => togglePasswordVisibility('phonePassword')}
-              >
-                {showPasswords.phonePassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
-              </button>
-            </div>
-            <small className={styles.inputHint}>
-              Enter your current password to verify this change
-            </small>
-          </div>
-        )}
-        {isChangingPhone && !phoneVerification.isPending && (
           <button 
             type="submit" 
             className={styles.submitButton}
-            disabled={isLoading.phone || !websiteAccount.phone || !websiteAccount.phonePassword}
+            disabled={isLoading.phone || !websiteAccount.phone}
           >
             {isLoading.phone ? 'Sending Code...' : 'Send Verification Code'}
           </button>
