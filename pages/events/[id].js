@@ -471,13 +471,42 @@ export default function EventDetail({ metaData }) {
           toast('Someone cancelled their registration', { duration: 3000 });
         }
       )
+      // Add a more reliable way to detect unregistrations through UPDATE events
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${event.id}`
+        },
+        async (payload) => {
+          console.log('Event data updated:', payload);
+          // This will update the count if it changed
+          fetchLatestCount();
+          
+          // Also refresh registration status for the user
+          if (user) {
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData?.session?.access_token;
+              
+              if (accessToken) {
+                await fetchRegistrationStatus(accessToken);
+              }
+            } catch (error) {
+              console.error('Error refreshing registration status after event update:', error);
+            }
+          }
+        }
+      )
       .subscribe();
     
     // Fetch the latest count when the component mounts
     fetchLatestCount();
     
-    // Set up a periodic sync every 30 seconds
-    const intervalId = setInterval(fetchLatestCount, 30000);
+    // Set up a periodic sync every 10 seconds instead of 30 to catch missed events
+    const intervalId = setInterval(fetchLatestCount, 10000);
     
     // Clean up subscription when component unmounts
     return () => {
@@ -818,6 +847,19 @@ export default function EventDetail({ metaData }) {
         
         // Refresh the data to ensure consistency
         fetchLatestCount();
+        
+        // Force a complete refresh of the event data including registration status
+        if (accessToken) {
+          setTimeout(async () => {
+            try {
+              // This delayed refresh ensures we get the latest state from the server
+              await fetchRegistrationStatus(accessToken);
+              console.log("Forced refresh after unregistration completed");
+            } catch (error) {
+              console.error("Error in forced refresh:", error);
+            }
+          }, 1000); // Small delay to ensure server has time to process
+        }
         
         setSelectedTeamMembers([]);
       } else {
