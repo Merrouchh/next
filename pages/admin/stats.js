@@ -330,6 +330,8 @@ export default function AdminStats() {
         <td>{shift.operatorName || 'Unknown'}</td>
         <td>{shift.registerName || 'Unknown'}</td>
         <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
+        <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
+        <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
         <td>{Number.isFinite(shift.expected) ? formatCurrency(shift.expected) : '0 MAD'}</td>
         <td>
           {/* Net Payouts (payOuts - payIns) */}
@@ -352,8 +354,6 @@ export default function AdminStats() {
             </span>
           ) : '-'}
         </td>
-        <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
-        <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
         <td className={Number.isFinite(shift.difference) && shift.difference >= 0 ? styles.positive : styles.negative}>
           {Number.isFinite(shift.difference) ? formatCurrency(shift.difference) : '0 MAD'}
         </td>
@@ -561,12 +561,12 @@ export default function AdminStats() {
                       <th>Operator</th>
                       <th>Register</th>
                       <th>Start Amount</th>
+                      <th>Sales</th>
+                      <th>Refunds</th>
                       <th>Expected</th>
                       <th title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</th>
                       <th>End Amount</th>
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
-                      <th>Sales</th>
-                      <th>Refunds</th>
                       <th>Difference</th>
                       <th>Status</th>
                     </tr>
