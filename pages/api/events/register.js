@@ -139,7 +139,7 @@ async function registerForEvent(req, res, supabase, user) {
     // Get user profile to get username from users table
     const { data: userProfile, error: userProfileError } = await supabase
       .from('users')
-      .select('username')
+      .select('username, phone')
       .eq('id', userId)
       .single();
     
@@ -149,6 +149,13 @@ async function registerForEvent(req, res, supabase, user) {
     
     const username = userProfile?.username || user.email;
     console.log(`Username: ${username}`);
+    
+    // Check if user has a phone number before allowing registration
+    if (!userProfile?.phone || userProfile.phone.trim() === '') {
+      return res.status(400).json({ 
+        message: 'Phone number verification is required to register for events. Please add a phone number to your profile first.' 
+      });
+    }
     
     // Check if event exists and is open for registration
     const { data: eventData, error: eventError } = await supabase
