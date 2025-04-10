@@ -1311,16 +1311,22 @@ export default function EventDetail({ metaData }) {
                     )}
                     
                     <div className={styles.progressBarContainer}>
-                      <div 
-                        className={styles.progressBar}
-                        style={{ 
-                          width: registrationStatus.registrationLimit !== null ? 
-                            `${Math.min(100, (registrationStatus.registeredCount / registrationStatus.registrationLimit) * 100)}%` : 
-                            '100%',
-                          backgroundColor: registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
-                            '#dc3545' : '#28a745'
-                        }}
-                      ></div>
+                      {registrationStatus.isLoading ? (
+                        <div className={styles.loadingProgressBar}>
+                          <div className={styles.loadingAnimation}></div>
+                        </div>
+                      ) : (
+                        <div 
+                          className={styles.progressBar}
+                          style={{ 
+                            width: registrationStatus.registrationLimit !== null ? 
+                              `${Math.min(100, (registrationStatus.registeredCount / registrationStatus.registrationLimit) * 100)}%` : 
+                              '100%',
+                            backgroundColor: registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
+                              '#dc3545' : '#28a745'
+                          }}
+                        ></div>
+                      )}
                     </div>
                   </div>
                 )}
