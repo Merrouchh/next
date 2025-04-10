@@ -30,23 +30,38 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to remove phone from user record' });
     }
 
-    // Try to update the auth user to remove the phone number
+    // Call our custom SQL function to clear the phone in auth.users
     try {
-      console.log('Attempting to update auth user to remove phone number');
+      console.log('Calling clear_user_phone function to remove phone from auth.users');
       
-      // Using the updateUser method instead of admin API
-      const { data: authData, error: updateAuthError } = await supabase.auth.updateUser({
-        phone: null
-      }, {
-        authFlow: 'admin',
-        userId
+      // Call the SQL function
+      const { data, error } = await supabase.rpc('clear_user_phone', { 
+        user_id: userId 
       });
       
-      if (updateAuthError) {
-        console.error('Error removing phone from auth user:', updateAuthError);
-        // We'll continue even if this fails
+      if (error) {
+        console.error('Error calling clear_user_phone function:', error);
+        
+        // Try the updateUser method as a fallback
+        try {
+          console.log('Falling back to updateUser method');
+          const { error: updateError } = await supabase.auth.updateUser({
+            phone: null
+          }, {
+            authFlow: 'admin',
+            userId
+          });
+          
+          if (updateError) {
+            console.error('Error with fallback updateUser method:', updateError);
+            // Continue anyway, we've already updated the users table
+          }
+        } catch (fallbackError) {
+          console.error('Error with fallback method:', fallbackError);
+          // Continue anyway
+        }
       } else {
-        console.log('Successfully removed phone from auth user:', authData);
+        console.log('Successfully removed phone from auth user using SQL function');
       }
     } catch (authError) {
       console.error('Auth update error (non-fatal):', authError);
