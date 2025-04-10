@@ -593,8 +593,14 @@ export default function EventRegistrations() {
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>Registrations:</span>
                   <span className={styles.metaValue}>
-                    {typeof event.registered_count === 'number' ? event.registered_count : registrations.length}
-                    {event.registration_limit ? ` / ${event.registration_limit}` : ''}
+                    {loading ? (
+                      <span className={styles.loadingRegistrations}>Loading...</span>
+                    ) : (
+                      <>
+                        {typeof event.registered_count === 'number' ? event.registered_count : registrations.length}
+                        {event.registration_limit ? ` / ${event.registration_limit}` : ''}
+                      </>
+                    )}
                   </span>
                 </div>
               </div>

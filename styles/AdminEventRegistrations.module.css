@@ -211,7 +211,7 @@
 
 .tableHeader {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 2fr 2fr;
   background-color: var(--card-background-darker);
   padding: 0.75rem 1rem;
   font-weight: 600;
@@ -222,11 +222,10 @@
 
 .tableRow {
   display: grid;
-  grid-template-columns: 1fr;
-  padding: 0.8rem 1rem;
+  grid-template-columns: 2fr 2fr;
+  padding: 0.6rem 0.8rem;
   transition: background-color 0.2s;
   background-color: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tableRow:hover {
@@ -245,60 +244,76 @@
   padding: 0.15rem;
 }
 
+.tableCell[data-label="Email"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* User Info */
 .userInfo {
   display: flex;
   align-items: center;
-  width: 100%;
+  gap: 0.5rem;
 }
 
 .userDetails {
-  margin-left: 0.75rem;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .userAvatar {
-  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--card-background-darker);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatarPlaceholder {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--primary-yellow);
+  color: var(--background-color);
   font-weight: 600;
-  font-size: 1rem;
-  color: white;
-  text-transform: uppercase;
 }
 
 .userName {
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
+  color: white;
+  margin: 0;
 }
 
 .userEmail {
-  color: var(--text-color-light);
-  text-decoration: none;
   font-size: 0.9rem;
-  display: block;
-  margin-bottom: 0.25rem;
+  color: rgba(255, 255, 255, 0.7);
   word-break: break-all;
 }
 
 .userPhone {
-  color: var(--text-color-light);
   font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  word-break: break-all;
 }
 
 .userEmail:hover {
+  color: var(--primary-yellow);
   text-decoration: underline;
+}
+
+.registrationDate {
+  color: var(--text-color-light);
+  font-size: 0.9rem;
 }
 
 /* Action Buttons */
@@ -421,23 +436,15 @@
   font-style: italic;
 }
 
-/* Team, User, and Duo containers with borders */
+/* Duo Registration Group Styles */
 .duoRegistrationGroup {
-  margin-bottom: 1.5rem;
-  border: 2px solid rgba(255, 215, 0, 0.3);
-  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  background-color: rgba(26, 26, 26, 0.4);
-}
-
-.teamRegistrationGroup {
-  margin-bottom: 1.5rem;
-  border: 2px solid rgba(255, 215, 0, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  background-color: rgba(26, 26, 26, 0.4);
+  background: rgba(20, 20, 20, 0.4);
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .duoTeamConnection {
@@ -527,63 +534,6 @@
 .teamActions .removeButton:hover {
   background-color: #dc3545;
   color: white;
-}
-
-/* Individual registration (not part of team/duo) */
-.individualRegistration {
-  margin-bottom: 1.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  background-color: rgba(26, 26, 26, 0.4);
-}
-
-.teamHeader, .duoTeamHeader {
-  background-color: rgba(26, 26, 26, 0.8);
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.teamHeaderLabel, .duoTeamHeaderLabel {
-  font-weight: 600;
-  color: var(--primary-yellow);
-  margin-left: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.teamActions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0.75rem 1rem;
-  background-color: rgba(0, 0, 0, 0.15);
-}
-
-/* For better visual separation between team/duo groups */
-.registrationsContainer > *:not(:last-child) {
-  margin-bottom: 2rem;
-}
-
-@media (max-width: 768px) {
-  .duoRegistrationGroup, .teamRegistrationGroup, .individualRegistration {
-    margin-bottom: 1.25rem;
-  }
-  
-  .duoTeamHeader, .teamHeader {
-    padding: 0.6rem 0.8rem;
-  }
-  
-  .duoTeamHeaderLabel, .teamHeaderLabel {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .duoRegistrationGroup, .teamRegistrationGroup, .individualRegistration {
-    margin-bottom: 1rem;
-  }
 }
 
 /* Mobile Improvements for Duo Teams */
@@ -771,6 +721,16 @@
   .metaLabel, .metaValue {
     font-size: 0.85rem;
   }
+}
+
+.duoTeamHeader {
+  display: none;
+}
+
+.duoTeamHeaderLabel {
+  font-size: 0.8rem;
+  color: #ffc107;
+  margin-bottom: 2px;
 }
 
 .teamIndicator {
@@ -999,4 +959,24 @@
     max-width: 100%;
     overflow: hidden;
   }
+}
+
+.loadingRegistrations {
+  display: inline-block;
+  opacity: 0.7;
+  position: relative;
+  min-width: 60px;
+}
+
+.loadingRegistrations::after {
+  content: '⋯';
+  position: absolute;
+  animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+  100% { content: '.'; }
 } 
