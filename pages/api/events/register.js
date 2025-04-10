@@ -150,17 +150,10 @@ async function registerForEvent(req, res, supabase, user) {
     const username = userProfile?.username || user.email;
     console.log(`Username: ${username}`);
     
-    // Check if user has a phone number before allowing registration
-    if (!userProfile?.phone || userProfile.phone.trim() === '') {
-      return res.status(400).json({ 
-        message: 'Phone number verification is required to register for events. Please add a phone number to your profile first.' 
-      });
-    }
-    
-    // Check if event exists and is open for registration
+    // Get event data including phone verification requirement
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('id, title, status, registration_limit, registered_count, team_type')
+      .select('id, title, status, registration_limit, registered_count, team_type, phone_verification_required')
       .eq('id', eventId)
       .single();
     
@@ -173,6 +166,16 @@ async function registerForEvent(req, res, supabase, user) {
     }
     
     console.log(`Event data:`, eventData);
+    
+    // Check if phone verification is required for this event
+    const isPhoneVerificationRequired = eventData.phone_verification_required !== false; // Default to true if not set
+    
+    // Check if user has a phone number before allowing registration (if required)
+    if (isPhoneVerificationRequired && (!userProfile?.phone || userProfile.phone.trim() === '')) {
+      return res.status(400).json({ 
+        message: 'Phone number verification is required to register for this event. Please add a phone number to your profile first.' 
+      });
+    }
     
     // Check if event is open for registration
     if (eventData.status !== 'Upcoming') {
@@ -218,26 +221,28 @@ async function registerForEvent(req, res, supabase, user) {
       // Get all team member IDs for easier checking
       const teamMemberIds = teamMembers.map(member => member.userId);
       
-      // Check that all team members have verified phone numbers too
-      const { data: teamMemberProfiles, error: teamPhoneError } = await supabase
-        .from('users')
-        .select('id, username, phone')
-        .in('id', teamMemberIds);
+      // Check that all team members have verified phone numbers too (if required)
+      if (isPhoneVerificationRequired) {
+        const { data: teamMemberProfiles, error: teamPhoneError } = await supabase
+          .from('users')
+          .select('id, username, phone')
+          .in('id', teamMemberIds);
+          
+        if (teamPhoneError) {
+          console.error('Error checking team member phone numbers:', teamPhoneError);
+          throw teamPhoneError;
+        }
         
-      if (teamPhoneError) {
-        console.error('Error checking team member phone numbers:', teamPhoneError);
-        throw teamPhoneError;
-      }
-      
-      // Check for any team members without phone numbers
-      const invalidTeamMembers = teamMemberProfiles
-        .filter(member => !member.phone || member.phone.trim() === '')
-        .map(member => member.username);
-        
-      if (invalidTeamMembers.length > 0) {
-        return res.status(400).json({
-          message: `The following team members don't have verified phone numbers: ${invalidTeamMembers.join(', ')}. All participants must have a verified phone number.`
-        });
+        // Check for any team members without phone numbers
+        const invalidTeamMembers = teamMemberProfiles
+          .filter(member => !member.phone || member.phone.trim() === '')
+          .map(member => member.username);
+          
+        if (invalidTeamMembers.length > 0) {
+          return res.status(400).json({
+            message: `The following team members don't have verified phone numbers: ${invalidTeamMembers.join(', ')}. All participants must have a verified phone number for this event.`
+          });
+        }
       }
       
       // Start a transaction for concurrent registration check

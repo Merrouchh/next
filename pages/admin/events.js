@@ -23,7 +23,8 @@ export default function AdminEvents() {
     status: 'Upcoming',
     image: null,
     registration_limit: '',
-    team_type: 'solo'
+    team_type: 'solo',
+    phone_verification_required: true
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -215,7 +216,8 @@ export default function AdminEvents() {
       status: 'Upcoming',
       image: null,
       registration_limit: '',
-      team_type: 'solo'
+      team_type: 'solo',
+      phone_verification_required: true
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -234,7 +236,8 @@ export default function AdminEvents() {
       status: event.status || 'Upcoming',
       image: null,
       registration_limit: event.registration_limit || '',
-      team_type: event.team_type || 'solo'
+      team_type: event.team_type || 'solo',
+      phone_verification_required: event.phone_verification_required !== false // Default to true if not set
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -342,7 +345,8 @@ export default function AdminEvents() {
         game: formData.game,
         status: formData.status,
         registration_limit: formData.registration_limit,
-        team_type: formData.team_type
+        team_type: formData.team_type,
+        phone_verification_required: formData.phone_verification_required
       };
       
       let response;
@@ -426,7 +430,8 @@ export default function AdminEvents() {
         status: 'Upcoming',
         image: null,
         registration_limit: '',
-        team_type: 'solo'
+        team_type: 'solo',
+        phone_verification_required: true
       });
       setCurrentEvent(null);
     } catch (error) {
@@ -783,6 +788,31 @@ export default function AdminEvents() {
                   <strong>Important:</strong> For optimal tournament brackets, registration limits must be powers of 2 (minimum 8 participants)
                 </div>
                 {formErrors.registration_limit && <div className={styles.errorMessage}>{formErrors.registration_limit}</div>}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="phone_verification_required">Phone Verification</label>
+                <div className={styles.toggleContainer}>
+                  <select
+                    id="phone_verification_required"
+                    name="phone_verification_required"
+                    value={formData.phone_verification_required}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      phone_verification_required: e.target.value === 'true'
+                    }))}
+                    className={formErrors.phone_verification_required ? styles.inputError : ''}
+                  >
+                    <option value="true">Required</option>
+                    <option value="false">Optional</option>
+                  </select>
+                </div>
+                <div className={styles.fieldNote}>
+                  <strong>Note:</strong> When phone verification is required, users must have a verified phone number to register for this event.
+                </div>
+                {formErrors.phone_verification_required && 
+                  <div className={styles.errorMessage}>{formErrors.phone_verification_required}</div>
+                }
               </div>
 
               <div className={styles.formGroup}>
