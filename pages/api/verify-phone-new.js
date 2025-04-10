@@ -279,21 +279,10 @@ export default async function handler(req, res) {
           });
         }
 
-        // Code is valid, update user's phone number in the main users table
-        const { error: updateUserError } = await supabase
-          .from('users')
-          .update({ phone })
-          .eq('id', userId);
-
-        if (updateUserError) {
-          console.error('Error updating user phone:', updateUserError);
-          return res.status(500).json({ error: 'Failed to update user phone' });
-        }
-
-        // Attempt to update the Auth user with the proper updateUser method
-        // This requires the service role key (which we're using)
+        // Update the auth user first - the users table will be updated automatically via triggers
+        let authUpdateSuccess = false;
         try {
-          console.log('Attempting to update auth user phone number');
+          console.log('Updating auth user phone number');
           
           // First try admin.updateUserById
           const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
@@ -316,20 +305,43 @@ export default async function handler(req, res) {
               
               if (altUpdateError) {
                 console.error('Error with alternative update method:', altUpdateError);
-                // We'll continue anyway since the users table update succeeded
+                // Auth update completely failed
+                return res.status(500).json({ 
+                  success: false, 
+                  error: 'Failed to update phone number in auth system',
+                  message: 'Unable to update your phone number. Please try again later.'
+                });
               } else {
                 console.log('Successfully updated auth user phone with alternative method');
+                authUpdateSuccess = true;
               }
             } catch (altError) {
               console.error('Exception with alternative update:', altError);
+              return res.status(500).json({ 
+                success: false, 
+                error: 'Exception updating phone number',
+                message: 'An error occurred while updating your phone number. Please try again later.'
+              });
             }
           } else {
             console.log('Successfully updated auth user phone with admin API');
+            authUpdateSuccess = true;
           }
         } catch (authUpdateError) {
           console.error('Auth update error:', authUpdateError);
-          // Continue with the process even if this fails
-          // since we've updated the application's users table
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Auth update failed',
+            message: 'Failed to update your phone number. Please try again later.'
+          });
+        }
+        
+        if (!authUpdateSuccess) {
+          return res.status(500).json({ 
+            success: false, 
+            error: 'Phone update failed',
+            message: 'Unable to update your phone number in our system. Please contact support.'
+          });
         }
         
         // Track that this phone has been verified for this user
@@ -357,7 +369,7 @@ export default async function handler(req, res) {
           console.error('Error deleting verification code:', deleteError);      
         }
 
-        console.log('Phone number updated successfully in users table and attempt made for auth user');
+        console.log('Phone number updated successfully in auth.users table');
 
         return res.status(200).json({
           success: true,

@@ -19,20 +19,8 @@ export default async function handler(req, res) {
 
     console.log('Phone removal request for user:', userId);
 
-    // Update the user record in the users table to remove the phone number
-    const { error: updateUserError } = await supabase
-      .from('users')
-      .update({ phone: null })
-      .eq('id', userId);
-
-    if (updateUserError) {
-      console.error('Error removing phone from user record:', updateUserError);
-      // Continue anyway - we'll still try to remove from Auth too
-    } else {
-      console.log('Successfully removed phone from users table');
-    }
-
     // Try multiple approaches to update the auth user
+    // Once auth.users is updated, the users table will be updated automatically via triggers
     let authUpdateSuccess = false;
 
     // Approach 1: Try admin.updateUserById with empty string first
@@ -124,6 +112,14 @@ export default async function handler(req, res) {
       }
     }
 
+    if (!authUpdateSuccess) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to remove phone number after multiple attempts',
+        details: 'All Auth API methods failed'
+      });
+    }
+
     // Try to clean up verification records - handle possible errors gracefully
     try {
       // Check if phone_verifications table exists before trying to delete
@@ -170,16 +166,12 @@ export default async function handler(req, res) {
       console.error('Error checking/deleting phone_verification_codes (non-fatal):', codesError);
     }
 
-    // Return success even if some steps failed
-    console.log('Phone number removal process completed for user:', userId);
+    // Return success since auth update was successful
+    console.log('Phone number removal process completed successfully for user:', userId);
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Phone number removed from your profile',
-      details: {
-        userTableUpdated: !updateUserError,
-        authUpdated: authUpdateSuccess
-      }
+      message: 'Phone number removed from your profile'
     });
   } catch (error) {
     console.error('Error in remove-phone API:', error);
