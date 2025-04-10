@@ -587,6 +587,7 @@ export default function EventBracket({ metaData }) {
         }
         
         const eventData = await eventResponse.json();
+        console.log('Loaded event data:', eventData);
         setEvent(eventData);
         
         // Fetch bracket data
@@ -606,8 +607,20 @@ export default function EventBracket({ metaData }) {
         }
         
         const data = await bracketResponse.json();
+        console.log('Loaded bracket data:', JSON.stringify(data, null, 2));
         
         if (data && data.bracket) {
+          console.log('Setting bracket data with participants:', data.participants);
+          // Check if this is a duo event
+          const isDuo = eventData.team_type === 'duo';
+          if (isDuo) {
+            console.log('This is a duo event, participants should have partner info');
+            // Inspect first few participants for debugging
+            if (data.participants && data.participants.length > 0) {
+              console.log('First participant structure:', JSON.stringify(data.participants[0], null, 2));
+            }
+          }
+          
           setBracketData(data.bracket);
           setParticipants(data.participants || []);
           setHasBracket(true);
@@ -794,18 +807,38 @@ export default function EventBracket({ metaData }) {
 
   // Format participant display name based on team type
   const formatParticipantName = (participant, isDuo = false) => {
+    // Add debug logging
+    console.log('Formatting participant:', participant, 'isDuo:', isDuo);
+    
     if (!participant) return 'TBD';
     
-    if (isDuo && participant.members && participant.members.length > 0) {
-      return (
-        <div className={styles.duoParticipant}>
-          <span className={styles.primaryName}>{participant.name}</span>
-          <span className={styles.duoSeparator}>&</span>
-          <span className={styles.partnerName}>{participant.members[0]?.name || ''}</span>
-        </div>
-      );
+    // Handle case where participant might have a different structure
+    if (isDuo) {
+      // Check for members array
+      if (participant.members && participant.members.length > 0) {
+        console.log('Duo with members array:', participant.members);
+        return (
+          <div className={styles.duoParticipant}>
+            <span className={styles.primaryName}>{participant.name}</span>
+            <span className={styles.duoSeparator}>&</span>
+            <span className={styles.partnerName}>{participant.members[0]?.name || ''}</span>
+          </div>
+        );
+      } 
+      // Check for partner property (might be used in some bracket data)
+      else if (participant.partner) {
+        console.log('Duo with partner property:', participant.partner);
+        return (
+          <div className={styles.duoParticipant}>
+            <span className={styles.primaryName}>{participant.name}</span>
+            <span className={styles.duoSeparator}>&</span>
+            <span className={styles.partnerName}>{participant.partner}</span>
+          </div>
+        );
+      }
     }
     
+    // Default to just showing the name
     return <span>{participant.name}</span>;
   };
 

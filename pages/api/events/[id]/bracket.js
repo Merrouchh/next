@@ -126,8 +126,10 @@ async function getBracket(req, res, supabase, eventId) {
       return res.status(500).json({ error: 'Failed to fetch participants' });
     }
 
-    // Format participants based on team type
+    // Format participants for response
     const participants = registrations.map(reg => {
+      console.log(`Processing registration for ${reg.username}, team_type: ${event.team_type}`);
+      
       if (event.team_type === 'solo') {
         return {
           id: reg.id.toString(),
@@ -137,10 +139,7 @@ async function getBracket(req, res, supabase, eventId) {
       } else {
         // For duo or team, include team members
         const teamMembers = reg.event_team_members || [];
-        
-        // Log team members for debugging
-        console.log(`Team ${reg.id}: ${reg.username} has ${teamMembers.length} members: `, 
-          teamMembers.map(m => m.username).join(', '));
+        console.log(`Found ${teamMembers.length} team members for ${reg.username}:`, teamMembers);
         
         return {
           id: reg.id.toString(),
@@ -154,12 +153,6 @@ async function getBracket(req, res, supabase, eventId) {
         };
       }
     });
-
-    // Log entire participant structure for debugging
-    if (event.team_type === 'duo') {
-      console.log('Returning participants with team members:', 
-        participants.map(p => `${p.name} with members: ${p.members?.map(m => m.name).join(', ') || 'none'}`));
-    }
 
     return res.status(200).json({
       bracket: bracketData.matches,
@@ -303,6 +296,8 @@ async function generateBracket(req, res, supabase, eventId, user) {
 
     // Format participants for response
     const participants = registrations.map(reg => {
+      console.log(`Processing registration for ${reg.username}, team_type: ${event.team_type}`);
+      
       if (event.team_type === 'solo') {
         return {
           id: reg.id.toString(),
@@ -312,6 +307,8 @@ async function generateBracket(req, res, supabase, eventId, user) {
       } else {
         // For duo or team, include team members
         const teamMembers = reg.event_team_members || [];
+        console.log(`Found ${teamMembers.length} team members for ${reg.username}:`, teamMembers);
+        
         return {
           id: reg.id.toString(),
           name: reg.username, // Team captain/name
