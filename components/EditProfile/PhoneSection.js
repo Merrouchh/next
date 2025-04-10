@@ -229,9 +229,23 @@ const PhoneSection = ({
           return;
         }
         
-        if (!response.ok) {
+        if (!response.ok || responseData.success === false) {
           // Get the error message from the response
           const errorMessage = responseData.message || responseData.error || 'Failed to send verification code';
+          
+          // Special handling for phone already in use
+          if (responseData.error === 'phone_already_used') {
+            setMessage(prev => ({
+              ...prev,
+              phone: { 
+                type: 'error', 
+                text: 'This phone number is already associated with another account. Please use a different phone number.'
+              }
+            }));
+            setIsLoading(prev => ({ ...prev, phone: false }));
+            return;
+          }
+          
           setMessage(prev => ({
             ...prev,
             phone: { type: 'error', text: errorMessage }

@@ -28,6 +28,27 @@ export default async function handler(req, res) {
       }
 
       if (action === 'send') {
+        // First check if this phone is already used by another account
+        const { data: existingUserWithPhone, error: checkPhoneError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('phone', phone)
+          .neq('id', userId)
+          .maybeSingle();
+
+        if (checkPhoneError) {
+          console.error('Error checking for existing phone:', checkPhoneError);
+        }
+
+        if (existingUserWithPhone) {
+          console.warn('Phone number already in use by another account:', existingUserWithPhone.id);
+          return res.status(200).json({
+            success: false,
+            error: 'phone_already_used',
+            message: 'This phone number is already associated with another account.'
+          });
+        }
+        
         // Generate a 6-digit verification code
         const verificationCode = generateRandomCode(6);
         console.log('Generated verification code:', verificationCode, 'for phone:', phone);
@@ -269,10 +290,35 @@ export default async function handler(req, res) {
           throw updateUserError;
         }
 
-        // We'll skip updating the auth.users table directly since it's causing issues
-        // Instead, we'll mark this phone as verified in our database
-        // This approach lets users verify their phone for the application features
-        // without requiring the Supabase Auth phone update to succeed
+        // Attempt to update the Auth user with the proper updateUser method
+        // This requires the user's session or service role key
+        try {
+          console.log('Attempting to update auth user phone number using updateUser method');
+          
+          // Using the service role key with admin methods
+          const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(userId);
+          
+          if (getUserError) {
+            console.error('Error getting user data:', getUserError);
+            // Continue with the process even if this fails
+          } else if (userData) {
+            // We have the user data, now update their phone
+            const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
+              userId,
+              { phone }
+            );
+            
+            if (updateAuthError) {
+              console.error('Error updating auth user phone with admin API:', updateAuthError);
+              // Continue with the process even if this fails
+            } else {
+              console.log('Successfully updated auth user phone with admin API');
+            }
+          }
+        } catch (authUpdateError) {
+          console.error('Auth update error (non-fatal):', authUpdateError);
+          // Continue with the process even if this fails
+        }
         
         // Track that this phone has been verified for this user
         const { error: trackVerificationError } = await supabase
@@ -299,7 +345,7 @@ export default async function handler(req, res) {
           console.error('Error deleting verification code:', deleteError);      
         }
 
-        console.log('Phone number updated successfully in users table');
+        console.log('Phone number updated successfully in users table and attempt made for auth user');
 
         return res.status(200).json({
           success: true,
