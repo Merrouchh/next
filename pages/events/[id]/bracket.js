@@ -1032,8 +1032,8 @@ export default function EventBracket({ metaData }) {
                             {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant1Name || 'TBD'}</span>
-                                <span className={styles.duoSeparator}>-</span>
-                                <span className={styles.partnerName}>{participant1.members[0]?.name || ''}</span>
+                                <span className={styles.duoSeparator}>&</span>
+                                <span className={styles.partnerName}>{participant1.members[0]?.name || 'Partner'}</span>
                               </div>
                             ) : (
                               <span>{match.participant1Name || 'TBD'}</span>
@@ -1043,8 +1043,8 @@ export default function EventBracket({ metaData }) {
                             {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant2Name || 'TBD'}</span>
-                                <span className={styles.duoSeparator}>-</span>
-                                <span className={styles.partnerName}>{participant2.members[0]?.name || ''}</span>
+                                <span className={styles.duoSeparator}>&</span>
+                                <span className={styles.partnerName}>{participant2.members[0]?.name || 'Partner'}</span>
                               </div>
                             ) : (
                               <span>{match.participant2Name || 'TBD'}</span>
@@ -1114,6 +1114,11 @@ export default function EventBracket({ metaData }) {
   const renderWinnerModal = () => {
     if (!showWinnerModal || !selectedMatch) return null;
 
+    // Find full participant details for duo display in the modal
+    const participant1 = participants.find(p => p.id === selectedMatch.participant1Id);
+    const participant2 = participants.find(p => p.id === selectedMatch.participant2Id);
+    const isDuoEvent = event?.team_type === 'duo';
+
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
@@ -1133,13 +1138,25 @@ export default function EventBracket({ metaData }) {
                 className={styles.winnerOption}
                 onClick={() => handleSetWinner(selectedMatch.participant1Id)}
               >
-                {selectedMatch.participant1Name}
+                {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
+                  <span className={styles.duoTeamName}>
+                    {selectedMatch.participant1Name} & {participant1.members[0]?.name || 'Partner'}
+                  </span>
+                ) : (
+                  selectedMatch.participant1Name
+                )}
               </button>
               <button 
                 className={styles.winnerOption}
                 onClick={() => handleSetWinner(selectedMatch.participant2Id)}
               >
-                {selectedMatch.participant2Name}
+                {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
+                  <span className={styles.duoTeamName}>
+                    {selectedMatch.participant2Name} & {participant2.members[0]?.name || 'Partner'}
+                  </span>
+                ) : (
+                  selectedMatch.participant2Name
+                )}
               </button>
             </div>
           </div>

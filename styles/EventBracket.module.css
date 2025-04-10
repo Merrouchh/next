@@ -708,4 +708,113 @@
   color: #111;
   margin-right: 0.75rem;
   font-size: 1.5rem;
+}
+
+/* Add or update these styles to improve the display of duo participants */
+
+.duoParticipant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.primaryName {
+  font-weight: 600;
+  color: #fff;
+}
+
+.partnerName {
+  color: #f0f0f0;
+  font-weight: 500;
+}
+
+.duoSeparator {
+  margin: 0 2px;
+  color: #999;
+}
+
+.duoTeamName {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+}
+
+/* Improve match participant styles for better visibility */
+.match .participant {
+  display: flex;
+  padding: 8px 10px;
+  align-items: center;
+  min-height: 2.5em;
+  line-height: 1.3;
+  overflow: hidden;
+  background-color: #2a2a2a;
+}
+
+/* Add a subtle border between duo names */
+.match .duoParticipant {
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  padding-left: 5px;
+}
+
+/* Make winner modal clearer for duo teams */
+.winnerOptions .duoTeamName {
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Make the participants list clearer */
+.participantsSection .teamMembers {
+  margin-top: 4px;
+  padding-left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.participantsSection .teamMember {
+  font-size: 0.9em;
+  color: #ccc;
+  padding-left: 10px;
+  position: relative;
+}
+
+.participantsSection .teamMember:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #888;
+}
+
+.participantInfo .participantName {
+  font-weight: 600;
+}
+
+/* For smaller screens, adjust the duo display to be more compact */
+@media screen and (max-width: 768px) {
+  .duoParticipant {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    line-height: 1.1;
+  }
+  
+  .duoSeparator {
+    display: none;
+  }
+  
+  .partnerName {
+    padding-left: 10px;
+    font-size: 0.9em;
+    position: relative;
+  }
+  
+  .partnerName:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #888;
+  }
 } 
