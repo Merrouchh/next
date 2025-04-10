@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import { fetchShiftReports } from '../../utils/api';
-import cssStyles from '../../styles/AdminStats.module.css';
+import styles from '../../styles/AdminStats.module.css';
 import { 
   FaChartLine, 
   FaCalendarAlt, 
@@ -19,36 +19,6 @@ import {
   FaWallet,
   FaHandHoldingUsd
 } from 'react-icons/fa';
-
-const styles = {
-  container: 'p-6 bg-gray-50 min-h-screen',
-  header: 'text-2xl font-bold mb-6 text-gray-800',
-  controlsContainer: 'flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-lg shadow',
-  dateControlsContainer: 'flex flex-col md:flex-row gap-4 flex-grow',
-  datePicker: 'p-2 border rounded w-full',
-  searchButton: 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors',
-  shiftsTable: 'w-full bg-white shadow-md rounded-lg overflow-hidden',
-  loadingContainer: 'flex justify-center items-center p-8',
-  summaryContainer: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6',
-  summaryCard: 'bg-white p-4 rounded-lg shadow',
-  summaryLabel: 'text-gray-600 text-sm',
-  summaryValue: 'text-xl font-semibold mt-1',
-  positive: 'text-green-600',
-  negative: 'text-red-600',
-  activeShift: 'bg-blue-50',
-  cashOut: 'font-normal text-gray-600',
-  hasCashOut: 'font-semibold text-blue-600',
-  status: 'inline-block px-2 py-1 rounded-full text-xs font-semibold',
-  statusActive: 'bg-green-100 text-green-800',
-  statusClosed: 'bg-gray-100 text-gray-800',
-  
-  // Add styles for day separator
-  daySeparator: 'bg-gray-100 border-t-2 border-b-2 border-gray-300',
-  daySeparatorCell: 'py-2 px-4 font-medium text-gray-700 text-left',
-  
-  // Add emptyState style
-  emptyState: 'text-center p-8 text-gray-500',
-};
 
 export default function AdminStats() {
   const { user } = useAuth();
@@ -343,7 +313,7 @@ export default function AdminStats() {
   const summary = shiftReports ? calculateSummary() : null;
 
   // Add toggleable row function
-  function ShiftRow({ shift, formatDate, formatCurrency, styles }) {
+  function ShiftRow({ shift, formatDate, formatCurrency }) {
     return (
       <tr key={shift.shiftId} className={shift.isActive ? styles.activeShift : ''}>
         <td>{shift.shiftId}</td>
@@ -398,7 +368,7 @@ export default function AdminStats() {
 
   return (
     <AdminPageWrapper title="Admin Statistics">
-      <div className={styles.container}>
+      <div className={styles.statsContainer}>
         <header className={styles.header}>
           <h1 className={styles.title}>
             <FaChartLine className={styles.titleIcon} />
@@ -652,7 +622,6 @@ export default function AdminStats() {
                                 shift={shift}
                                 formatDate={formatDate}
                                 formatCurrency={formatCurrency}
-                                styles={styles}
                               />
                             );
                           });
@@ -674,7 +643,7 @@ export default function AdminStats() {
           )}
 
           {!loading && !shiftReports && !error && (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#e0e0e0' }}>
+            <div className={styles.emptyState}>
               Select a date range and click Search to view shift reports
             </div>
           )}

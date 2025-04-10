@@ -523,4 +523,27 @@
 /* Column highlighting for Payouts column in payment methods table */
 .paymentMethodsTable th:nth-child(2) {
   background-color: rgba(255, 215, 0, 0.2);
+}
+
+/* Day separator styles */
+.daySeparator {
+  background-color: #333;
+  border-top: 2px solid #FFD700;
+  border-bottom: 2px solid #FFD700;
+}
+
+.daySeparatorCell {
+  padding: 10px 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #FFD700;
+  text-align: left;
+}
+
+/* Empty state message */
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: #e0e0e0;
+  font-style: italic;
 } 
