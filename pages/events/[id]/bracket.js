@@ -1013,6 +1013,9 @@ export default function EventBracket({ metaData }) {
                       const participant1 = participants.find(p => p.id === match.participant1Id);
                       const participant2 = participants.find(p => p.id === match.participant2Id);
                       
+                      // Check if this is a duo event
+                      const isDuoEvent = event?.team_type === 'duo';
+                      
                       // Debug logs for this specific match
                       if (isDuoEvent && (match.participant1Id || match.participant2Id)) {
                         console.log(`Debug - Match ${match.id} duo data:`);
@@ -1027,9 +1030,6 @@ export default function EventBracket({ metaData }) {
                           console.log(`  Participant2 members:`, participant2.members);
                         }
                       }
-                      
-                      // Check if this is a duo event
-                      const isDuoEvent = event?.team_type === 'duo';
                       
                       return (
                         <div 
