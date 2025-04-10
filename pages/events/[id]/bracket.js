@@ -587,7 +587,6 @@ export default function EventBracket({ metaData }) {
         }
         
         const eventData = await eventResponse.json();
-        console.log('Debug - Event data team type:', eventData.team_type);
         setEvent(eventData);
         
         // Fetch bracket data
@@ -609,20 +608,6 @@ export default function EventBracket({ metaData }) {
         const data = await bracketResponse.json();
         
         if (data && data.bracket) {
-          console.log('Debug - Bracket data received:', data.bracket);
-          console.log('Debug - Participants data:', data.participants);
-          
-          // Check for duo members
-          if (data.participants) {
-            console.log('Debug - Checking for duo team members:');
-            data.participants.forEach(participant => {
-              console.log(`Participant: ${participant.name}, Has members:`, !!participant.members);
-              if (participant.members && participant.members.length > 0) {
-                console.log('  Members:', JSON.stringify(participant.members));
-              }
-            });
-          }
-          
           setBracketData(data.bracket);
           setParticipants(data.participants || []);
           setHasBracket(true);
@@ -794,11 +779,34 @@ export default function EventBracket({ metaData }) {
     }
   };
 
-  // Get participant name by ID
+  // Get participant name by ID with duo partner support
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
     const participant = participants.find(p => p.id === participantId);
     return participant ? participant.name : 'Unknown';
+  };
+
+  // Get full participant information including duo partner
+  const getParticipantInfo = (participantId) => {
+    if (!participantId) return null;
+    return participants.find(p => p.id === participantId);
+  };
+
+  // Format participant display name based on team type
+  const formatParticipantName = (participant, isDuo = false) => {
+    if (!participant) return 'TBD';
+    
+    if (isDuo && participant.members && participant.members.length > 0) {
+      return (
+        <div className={styles.duoParticipant}>
+          <span className={styles.primaryName}>{participant.name}</span>
+          <span className={styles.duoSeparator}>&</span>
+          <span className={styles.partnerName}>{participant.members[0]?.name || ''}</span>
+        </div>
+      );
+    }
+    
+    return <span>{participant.name}</span>;
   };
 
   // Add a function to delete the bracket
@@ -1009,47 +1017,12 @@ export default function EventBracket({ metaData }) {
                         ? { marginBottom: `${roundStyle.extraPairSpacing}px` } 
                         : {};
                       
-                      // Find participant details for duo display
-                      const participant1 = participants.find(p => p.id === match.participant1Id);
-                      const participant2 = participants.find(p => p.id === match.participant2Id);
+                      // Get full participant info
+                      const participant1 = getParticipantInfo(match.participant1Id);
+                      const participant2 = getParticipantInfo(match.participant2Id);
                       
                       // Check if this is a duo event
                       const isDuoEvent = event?.team_type === 'duo';
-                      
-                      // Debug logs for this specific match
-                      if (isDuoEvent && (match.participant1Id || match.participant2Id)) {
-                        console.log(`Debug - Match ${match.id} duo data:`);
-                        console.log(`  Participant1: ${match.participant1Name}, ID: ${match.participant1Id}`);
-                        console.log(`  Participant1 details:`, participant1);
-                        if (participant1 && participant1.members) {
-                          console.log(`  Participant1 members:`, participant1.members);
-                          console.log(`  Participant1 partner name:`, participant1.members[0]?.name);
-                        }
-                        console.log(`  Participant2: ${match.participant2Name}, ID: ${match.participant2Id}`);
-                        console.log(`  Participant2 details:`, participant2);
-                        if (participant2 && participant2.members) {
-                          console.log(`  Participant2 members:`, participant2.members);
-                          console.log(`  Participant2 partner name:`, participant2.members[0]?.name);
-                        }
-                      }
-                      
-                      // Create variables for partner names with fallbacks
-                      const participant1PartnerName = participant1 && participant1.members && participant1.members.length > 0
-                        ? participant1.members[0].name
-                        : '';
-                        
-                      const participant2PartnerName = participant2 && participant2.members && participant2.members.length > 0
-                        ? participant2.members[0].name
-                        : '';
-                        
-                      if (isDuoEvent) {
-                        console.log(`Match ${match.id} partner names:`, {
-                          participant1: match.participant1Name,
-                          participant1Partner: participant1PartnerName,
-                          participant2: match.participant2Name,
-                          participant2Partner: participant2PartnerName
-                        });
-                      }
                       
                       return (
                         <div 
@@ -1079,24 +1052,16 @@ export default function EventBracket({ metaData }) {
                             )}
                           </div>
                           <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
-                            {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
-                              <div className={styles.duoParticipant}>
-                                <span className={styles.primaryName}>{match.participant1Name || 'TBD'}</span>
-                                <span className={styles.partnerName}>{participant1PartnerName}</span>
-                              </div>
-                            ) : (
+                            {match.participant1Id ? 
+                              formatParticipantName(participant1, isDuoEvent) : 
                               <span>{match.participant1Name || 'TBD'}</span>
-                            )}
+                            }
                           </div>
                           <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
-                            {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
-                              <div className={styles.duoParticipant}>
-                                <span className={styles.primaryName}>{match.participant2Name || 'TBD'}</span>
-                                <span className={styles.partnerName}>{participant2PartnerName}</span>
-                              </div>
-                            ) : (
+                            {match.participant2Id ? 
+                              formatParticipantName(participant2, isDuoEvent) : 
                               <span>{match.participant2Name || 'TBD'}</span>
-                            )}
+                            }
                           </div>
                           {!match.winnerId && match.nextMatchId && (
                             <div className={styles.matchFooter}>
@@ -1108,27 +1073,7 @@ export default function EventBracket({ metaData }) {
                           {match.winnerId && match.nextMatchId && (
                             <div className={styles.matchFooter}>
                               <span className={styles.advanceInfo}>
-                                {isDuoEvent ? (
-                                  <>
-                                    {(() => {
-                                      const winner = participants.find(p => p.id === match.winnerId);
-                                      const winnerPartnerName = winner && winner.members && winner.members.length > 0
-                                        ? winner.members[0].name
-                                        : '';
-                                        
-                                      if (winner && winnerPartnerName) {
-                                        return (
-                                          <>
-                                            {winner.name} & {winnerPartnerName}
-                                          </>
-                                        );
-                                      }
-                                      return winner?.name || 'Winner';
-                                    })()}
-                                  </>
-                                ) : (
-                                  participants.find(p => p.id === match.winnerId)?.name || 'Winner'
-                                )} advanced to Match {match.nextMatchId}
+                                {participants.find(p => p.id === match.winnerId)?.name || 'Winner'} advanced to Match {match.nextMatchId}
                               </span>
                             </div>
                           )}
@@ -1182,11 +1127,6 @@ export default function EventBracket({ metaData }) {
   const renderWinnerModal = () => {
     if (!showWinnerModal || !selectedMatch) return null;
 
-    // Find participants with detailed info
-    const participant1 = participants.find(p => p.id === selectedMatch.participant1Id);
-    const participant2 = participants.find(p => p.id === selectedMatch.participant2Id);
-    const isDuoEvent = event?.team_type === 'duo';
-
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
@@ -1206,27 +1146,13 @@ export default function EventBracket({ metaData }) {
                 className={styles.winnerOption}
                 onClick={() => handleSetWinner(selectedMatch.participant1Id)}
               >
-                {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
-                  <>
-                    <div>{selectedMatch.participant1Name}</div>
-                    <small>with {participant1.members[0].name}</small>
-                  </>
-                ) : (
-                  selectedMatch.participant1Name
-                )}
+                {selectedMatch.participant1Name}
               </button>
               <button 
                 className={styles.winnerOption}
                 onClick={() => handleSetWinner(selectedMatch.participant2Id)}
               >
-                {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
-                  <>
-                    <div>{selectedMatch.participant2Name}</div>
-                    <small>with {participant2.members[0].name}</small>
-                  </>
-                ) : (
-                  selectedMatch.participant2Name
-                )}
+                {selectedMatch.participant2Name}
               </button>
             </div>
           </div>
