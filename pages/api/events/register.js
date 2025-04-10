@@ -535,6 +535,11 @@ async function getRegistrationStatus(req, res, supabase, user) {
             registeredBy = registration.notes.replace('Auto-registered as partner of ', '');
             console.log(`User ${userId} was registered by ${registeredBy} for event ${eventId}`);
           }
+          // Check for the new format of duo partner notes
+          else if (registration.notes.includes('Duo partner:')) {
+            // This user is the main registrant, so no registeredBy needed
+            console.log(`User ${userId} is the main registrant with duo partner note`);
+          }
         }
       } else {
         // Check if user is a team member for someone else's registration
