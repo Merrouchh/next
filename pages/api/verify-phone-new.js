@@ -295,25 +295,19 @@ export default async function handler(req, res) {
         try {
           console.log('Attempting to update auth user phone number using updateUser method');
           
-          // Using the service role key with admin methods
-          const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(userId);
+          // Using the updateUser method with the admin context
+          const { data: updateData, error: updateAuthError } = await supabase.auth.updateUser({
+            phone
+          }, {
+            authFlow: 'admin',
+            userId
+          });
           
-          if (getUserError) {
-            console.error('Error getting user data:', getUserError);
+          if (updateAuthError) {
+            console.error('Error updating auth user phone:', updateAuthError);
             // Continue with the process even if this fails
-          } else if (userData) {
-            // We have the user data, now update their phone
-            const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
-              userId,
-              { phone }
-            );
-            
-            if (updateAuthError) {
-              console.error('Error updating auth user phone with admin API:', updateAuthError);
-              // Continue with the process even if this fails
-            } else {
-              console.log('Successfully updated auth user phone with admin API');
-            }
+          } else {
+            console.log('Successfully updated auth user phone:', updateData);
           }
         } catch (authUpdateError) {
           console.error('Auth update error (non-fatal):', authUpdateError);

@@ -34,17 +34,19 @@ export default async function handler(req, res) {
     try {
       console.log('Attempting to update auth user to remove phone number');
       
-      // Using the admin API to update the user
-      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(
-        userId,
-        { phone: null }
-      );
+      // Using the updateUser method instead of admin API
+      const { data: authData, error: updateAuthError } = await supabase.auth.updateUser({
+        phone: null
+      }, {
+        authFlow: 'admin',
+        userId
+      });
       
       if (updateAuthError) {
         console.error('Error removing phone from auth user:', updateAuthError);
         // We'll continue even if this fails
       } else {
-        console.log('Successfully removed phone from auth user');
+        console.log('Successfully removed phone from auth user:', authData);
       }
     } catch (authError) {
       console.error('Auth update error (non-fatal):', authError);
