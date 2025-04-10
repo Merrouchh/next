@@ -153,7 +153,7 @@ async function registerForEvent(req, res, supabase, user) {
     // Get event data including phone verification requirement
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('id, title, status, registration_limit, registered_count, team_type, phone_verification_required')
+      .select('id, title, status, registration_limit, registered_count, team_type')
       .eq('id', eventId)
       .single();
     
@@ -168,7 +168,24 @@ async function registerForEvent(req, res, supabase, user) {
     console.log(`Event data:`, eventData);
     
     // Check if phone verification is required for this event
-    const isPhoneVerificationRequired = eventData.phone_verification_required !== false; // Default to true if not set
+    // Since the column might not exist yet, default to false to avoid blocking registrations
+    let isPhoneVerificationRequired = false;
+    
+    try {
+      // Try to check if there's a phone_verification_required column in the events table
+      const { data: eventWithPhoneVerification, error: phoneVerificationError } = await supabase
+        .from('events')
+        .select('phone_verification_required')
+        .eq('id', eventId)
+        .single();
+        
+      if (!phoneVerificationError && eventWithPhoneVerification) {
+        isPhoneVerificationRequired = eventWithPhoneVerification.phone_verification_required !== false;
+        console.log(`Phone verification requirement found: ${isPhoneVerificationRequired}`);
+      }
+    } catch (error) {
+      console.log('Phone verification requirement not available, defaulting to false:', error.message);
+    }
     
     // Check if user has a phone number before allowing registration (if required)
     if (isPhoneVerificationRequired && (!userProfile?.phone || userProfile.phone.trim() === '')) {
