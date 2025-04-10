@@ -317,9 +317,11 @@ export default function EventDetail({ metaData }) {
   // Fetch event details
   useEffect(() => {
     const fetchEventDetails = async () => {
-      if (!id) return;
-      
       setLoading(true);
+      // Ensure registration shows a loading state during initial page load for all users
+      setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
+      
+      if (!id) return;
       
       try {
         // Check if user is authenticated to include auth token
@@ -376,46 +378,59 @@ export default function EventDetail({ metaData }) {
           
           if (accessToken) {
             // Fetch registration status in parallel
-        fetchRegistrationStatus(accessToken).catch(error => {
-          console.error('Error fetching registration status:', error);
-        });
-        
+            fetchRegistrationStatus(accessToken).catch(error => {
+              console.error('Error fetching registration status:', error);
+            });
+            
             // Try to fetch bracket data in parallel
             fetchBracketData(accessToken).catch(error => {
-          console.error('Error fetching bracket data:', error);
-          setBracketData(null);
-        });
+              console.error('Error fetching bracket data:', error);
+              setBracketData(null);
+            });
           }
-        
-        // Fetch latest count
-        fetchLatestCount();
         } else {
           // For unauthenticated users, try to fetch public bracket data
           fetchPublicBracketData().catch(error => {
             console.error('Error fetching public bracket data:', error);
             setBracketData(null);
           });
+          
+          // Also fetch the latest count for unauthenticated users to show the registration bar
+          fetchLatestCount();
+          
+          // Set a timeout to show the loading animation for a moment before hiding
+          setTimeout(() => {
+            setRegistrationStatus(prev => ({
+              ...prev,
+              isLoading: false
+            }));
+          }, 1500);
         }
-        
       } catch (error) {
         console.error('Error fetching event details:', error);
         setLoading(false);
       }
     };
     
-      fetchEventDetails();
+    fetchEventDetails();
   }, [id, user, supabase]);
   
   // When the user state changes, update registration loading state
   useEffect(() => {
-    // If user is not logged in, we don't need to show loading state for registration
+    // Keep loading state active initially for all users, whether authenticated or not
+    // It will be updated after the event data loads and registeredCount is available
     if (!user) {
-      setRegistrationStatus(prev => ({
-        ...prev,
-        isLoading: false
-      }));
+      // Only reset loading state if event data is already loaded (avoid race condition)
+      if (event) {
+        setTimeout(() => {
+          setRegistrationStatus(prev => ({
+            ...prev,
+            isLoading: false
+          }));
+        }, 1000); // Add a small delay to make the animation visible
+      }
     }
-  }, [user]);
+  }, [user, event]);
   
   // Set up real-time subscription for registration updates
   useEffect(() => {
