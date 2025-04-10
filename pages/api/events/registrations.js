@@ -89,69 +89,31 @@ async function getEventRegistrations(req, res, supabase, user) {
     
     // Get the actual count of registrations
     console.log('Counting registrations for event ID:', eventId);
+    const { count: actualRegistrationCount, error: countError } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
     
-    if (eventData.team_type === 'duo' || eventData.team_type === 'team') {
-      // For duo/team events, count only main registrants (not partners or team members)
-      const { data: mainRegistrations, error: mainCountError } = await supabase
-        .from('event_registrations')
-        .select('id')
-        .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as %');
+    console.log('Actual registration count:', actualRegistrationCount, 'Error:', countError);
+    console.log('Current event registered_count:', eventData.registered_count);
+    
+    if (!countError && actualRegistrationCount !== null) {
+      // Update the event data with the actual count
+      console.log('Updating event data with actual count:', actualRegistrationCount);
+      eventData.registered_count = actualRegistrationCount;
       
-      if (!mainCountError && mainRegistrations) {
-        const actualRegistrationCount = mainRegistrations.length;
-        console.log(`Actual ${eventData.team_type} registrations count:`, actualRegistrationCount);
-        console.log('Current event registered_count:', eventData.registered_count);
+      // If the count in the database is wrong, update it
+      if (eventData.registered_count !== actualRegistrationCount) {
+        console.log('Updating database count from', eventData.registered_count, 'to', actualRegistrationCount);
+        const { error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: actualRegistrationCount })
+          .eq('id', eventId);
         
-        // Update the event data with the actual count
-        console.log('Updating event data with actual count:', actualRegistrationCount);
-        eventData.registered_count = actualRegistrationCount;
-        
-        // If the count in the database is wrong, update it
-        if (eventData.registered_count !== actualRegistrationCount) {
-          console.log('Updating database count from', eventData.registered_count, 'to', actualRegistrationCount);
-          const { error: updateError } = await supabase
-            .from('events')
-            .update({ registered_count: actualRegistrationCount })
-            .eq('id', eventId);
-          
-          if (updateError) {
-            console.error('Error updating event registration count:', updateError);
-          } else {
-            console.log('Successfully updated event registration count in database');
-          }
-        }
-      } else {
-        console.error('Error counting main registrations:', mainCountError);
-      }
-    } else {
-      // For solo events, count all registrations
-      const { count: actualRegistrationCount, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-      
-      console.log('Actual registration count:', actualRegistrationCount, 'Error:', countError);
-      console.log('Current event registered_count:', eventData.registered_count);
-      
-      if (!countError && actualRegistrationCount !== null) {
-        // Update the event data with the actual count
-        console.log('Updating event data with actual count:', actualRegistrationCount);
-        eventData.registered_count = actualRegistrationCount;
-        
-        // If the count in the database is wrong, update it
-        if (eventData.registered_count !== actualRegistrationCount) {
-          console.log('Updating database count from', eventData.registered_count, 'to', actualRegistrationCount);
-          const { error: updateError } = await supabase
-            .from('events')
-            .update({ registered_count: actualRegistrationCount })
-            .eq('id', eventId);
-          
-          if (updateError) {
-            console.error('Error updating event registration count:', updateError);
-          } else {
-            console.log('Successfully updated event registration count in database');
-          }
+        if (updateError) {
+          console.error('Error updating event registration count:', updateError);
+        } else {
+          console.log('Successfully updated event registration count in database');
         }
       }
     }
@@ -541,18 +503,6 @@ async function removeRegistration(req, res, supabase, user) {
     
     const isAdmin = userData?.is_admin || false;
     
-    // Get event details to check team type
-    const { data: eventData, error: eventError } = await supabase
-      .from('events')
-      .select('id, team_type')
-      .eq('id', eventId)
-      .single();
-      
-    if (eventError) {
-      console.error('Error fetching event:', eventError);
-      return res.status(404).json({ message: 'Event not found' });
-    }
-    
     // Get the registration to check if it belongs to the current user
     const { data: registrationData, error: registrationError } = await supabase
       .from('event_registrations')
@@ -582,54 +532,26 @@ async function removeRegistration(req, res, supabase, user) {
     }
     
     // Get the current count of registrations for this event
-    if (eventData.team_type === 'duo' || eventData.team_type === 'team') {
-      // For duo/team events, count only main registrants (not partners or team members)
-      const { data: mainRegistrations, error: mainCountError } = await supabase
-        .from('event_registrations')
-        .select('id')
-        .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as %');
+    const { count, error: countError } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+    
+    if (!countError) {
+      // Update the registered_count directly
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registered_count: count })
+        .eq('id', eventId);
       
-      if (!mainCountError) {
-        const count = mainRegistrations ? mainRegistrations.length : 0;
-        // Update the registered_count directly
-        const { error: updateError } = await supabase
-          .from('events')
-          .update({ registered_count: count })
-          .eq('id', eventId);
-        
-        if (updateError) {
-          console.error('Error updating event registration count:', updateError);
-          // Continue anyway, as the registration was deleted successfully
-        } else {
-          console.log(`Successfully updated event ${eventId} team count to ${count}`);
-        }
+      if (updateError) {
+        console.error('Error updating event registration count:', updateError);
+        // Continue anyway, as the registration was deleted successfully
       } else {
-        console.error('Error counting main registrations:', mainCountError);
+        console.log(`Successfully updated event ${eventId} registration count to ${count}`);
       }
     } else {
-      // For solo events, count all registrations
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-      
-      if (!countError) {
-        // Update the registered_count directly
-        const { error: updateError } = await supabase
-          .from('events')
-          .update({ registered_count: count })
-          .eq('id', eventId);
-        
-        if (updateError) {
-          console.error('Error updating event registration count:', updateError);
-          // Continue anyway, as the registration was deleted successfully
-        } else {
-          console.log(`Successfully updated event ${eventId} registration count to ${count}`);
-        }
-      } else {
-        console.error('Error counting registrations:', countError);
-      }
+      console.error('Error counting registrations:', countError);
     }
     
     return res.status(200).json({ 
