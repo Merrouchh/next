@@ -32,10 +32,10 @@ export default async function handler(req, res) {
       console.log('Successfully removed phone from users table');
     }
 
-    // Try Auth API methods to update the auth user
+    // Try multiple approaches to update the auth user
     let authUpdateSuccess = false;
 
-    // Approach 1: Try admin.updateUserById with empty string
+    // Approach 1: Try admin.updateUserById with empty string first
     try {
       console.log('Trying admin.updateUserById with empty string');
       
@@ -72,6 +72,55 @@ export default async function handler(req, res) {
         }
       } catch (error2) {
         console.error('Exception with admin.updateUserById (null) approach:', error2);
+      }
+    }
+
+    // Approach 3: Direct SQL approach via pg_admin as last resort
+    if (!authUpdateSuccess) {
+      try {
+        console.log('Trying direct SQL approach via pg_admin');
+        
+        // The SQL command to directly update auth.users table
+        const sql = `
+          UPDATE auth.users 
+          SET 
+            phone = NULL,
+            phone_confirmed_at = NULL,
+            phone_change = '',
+            phone_change_token = '',
+            phone_change_sent_at = NULL
+          WHERE id = '${userId}';
+        `;
+        
+        // Execute the SQL command
+        const { error } = await supabase.rpc('pg_admin', {
+          sql
+        });
+        
+        if (error) {
+          console.error('Error with direct SQL approach:', error);
+          
+          // Try another RPC method name if pg_admin doesn't exist
+          try {
+            const { error: error2 } = await supabase.rpc('pg_execute', {
+              query: sql
+            });
+            
+            if (error2) {
+              console.error('Error with pg_execute approach:', error2);
+            } else {
+              console.log('Successfully removed phone using direct SQL via pg_execute');
+              authUpdateSuccess = true;
+            }
+          } catch (error3) {
+            console.error('Exception with pg_execute approach:', error3);
+          }
+        } else {
+          console.log('Successfully removed phone using direct SQL via pg_admin');
+          authUpdateSuccess = true;
+        }
+      } catch (sqlError) {
+        console.error('Exception with direct SQL approach:', sqlError);
       }
     }
 
