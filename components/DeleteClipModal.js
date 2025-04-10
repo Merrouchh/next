@@ -1,8 +1,24 @@
 import { MdDelete, MdClose } from 'react-icons/md';
 import styles from '../styles/DeleteClipModal.module.css';
 import cardStyles from '../styles/ClipCard.module.css';
+import { useEffect } from 'react';
 
 const DeleteClipModal = ({ isOpen, onClose, onConfirm }) => {
+  // Close modal on scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleScroll = () => {
+      onClose();
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

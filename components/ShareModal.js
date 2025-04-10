@@ -1,9 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MdClose, MdContentCopy, MdShare } from 'react-icons/md';
 import styles from '../styles/ShareModal.module.css';
 
 const ShareModal = ({ isOpen, onClose, clipId }) => {
   const [copySuccess, setCopySuccess] = useState(false);
+  
+  // Close modal on scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleScroll = () => {
+      onClose();
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isOpen, onClose]);
   
   if (!isOpen) return null;
 

@@ -10,10 +10,22 @@
   padding: 0;
 }
 
+.likesModalOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100; /* Reduced z-index to not overlap headers */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+}
+
 .likesModal {
   background: var(--background-secondary, #1a1a1a);
   border-radius: 12px;
-  width: 300px;
+  width: 90%;
+  max-width: 300px;
   position: relative;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   display: flex;
@@ -22,6 +34,7 @@
   max-height: 320px;
   min-height: 200px;
   animation: modalFadeIn 0.2s ease-out;
+  z-index: 101; /* Reduced z-index to not overlap headers */
 }
 
 /* Modal header */

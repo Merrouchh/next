@@ -254,7 +254,7 @@ const DebtCard = ({ debtAmount, hasTime }) => {
               <strong>Debt Rules:</strong>
             </div>
             <div className={styles.debtRuleItem}>
-              - Only 50 DH packs are eligible for debt
+              - Only one 50 DH pack OR one single hour can be taken as debt at a time.
             </div>
             <div className={styles.debtRuleItem}>
               - Snacks and drinks cannot be purchased on debt

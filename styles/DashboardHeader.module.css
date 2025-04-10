@@ -2,7 +2,7 @@
 .dashboardHeader {
   position: relative;
   width: 100%;
-  z-index: 99;
+  z-index: 999;
   background: #0f0f0f;
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 }

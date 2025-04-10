@@ -1,7 +1,23 @@
 import { MdClose, MdPublic, MdLock } from 'react-icons/md';
 import styles from '../styles/VisibilityModal.module.css';
+import { useEffect } from 'react';
 
 const VisibilityModal = ({ isOpen, onClose, isPublic, onConfirm, isUpdating }) => {
+  // Close modal on scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleScroll = () => {
+      onClose();
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isOpen, onClose]);
+  
   if (!isOpen) return null;
 
   return (

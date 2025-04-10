@@ -32,7 +32,6 @@ const ClipCard = ({
   const [isClosing, setIsClosing] = useState(false);
   const [showTitleModal, setShowTitleModal] = useState(false);
   const cardRef = useRef(null);
-  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
 
   const {
     liked,
@@ -55,16 +54,21 @@ const ClipCard = ({
       if (showFullTitle) {
         setShowFullTitle(false);
       }
+      
+      // Also close likes modal when scrolling
+      if (showLikesModal) {
+        setShowLikesModal(false);
+      }
     };
 
-    if (showFullTitle) {
+    if (showFullTitle || showLikesModal) {
       window.addEventListener('scroll', handleScroll, { passive: true });
     }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [showFullTitle]);
+  }, [showFullTitle, showLikesModal]);
 
   // Handle click outside
   useEffect(() => {
@@ -97,33 +101,6 @@ const ClipCard = ({
     window.addEventListener('resize', checkTruncation);
     return () => window.removeEventListener('resize', checkTruncation);
   }, [clipData.title]);
-
-  // Calculate modal position relative to card
-  const updateModalPosition = useCallback(() => {
-    if (cardRef.current) {
-      const cardRect = cardRef.current.getBoundingClientRect();
-      const isDesktop = window.innerWidth >= 768;
-      
-      setModalPosition({
-        top: cardRect.top + window.scrollY + (cardRect.height / 2),
-        left: cardRect.left + (isDesktop ? cardRect.width : cardRect.width / 2)
-      });
-    }
-  }, []);
-
-  // Update position when showing modal or on scroll/resize
-  useEffect(() => {
-    if (showLikesModal) {
-      updateModalPosition();
-      window.addEventListener('scroll', updateModalPosition);
-      window.addEventListener('resize', updateModalPosition);
-    }
-
-    return () => {
-      window.removeEventListener('scroll', updateModalPosition);
-      window.removeEventListener('resize', updateModalPosition);
-    };
-  }, [showLikesModal, updateModalPosition]);
 
   const handleVisibilityToggle = async (newVisibility) => {
     if (isUpdating) return;
@@ -314,8 +291,10 @@ const ClipCard = ({
           />
         </div>
       </div>
+      
       {showLikesModal && (
         <div className={styles.likesModalWrapper}>
+          <div className={styles.likesModalOverlay} onClick={() => setShowLikesModal(false)}></div>
           <LikesModal
             isOpen={showLikesModal}
             onClose={() => setShowLikesModal(false)}

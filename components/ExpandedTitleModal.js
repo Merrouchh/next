@@ -1,7 +1,23 @@
 import { MdClose } from 'react-icons/md';
 import styles from '../styles/ExpandedTitleModal.module.css';
+import { useEffect } from 'react';
 
 const ExpandedTitleModal = ({ isOpen, onClose, title }) => {
+  // Close modal on scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleScroll = () => {
+      onClose();
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

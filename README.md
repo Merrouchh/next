@@ -49,3 +49,63 @@ This table stores additional information for each match in a tournament bracket,
 3. Select an event with a bracket to manage matches
 4. Click on any match to add or edit details
 5. Save changes for each match 
+
+# View Tracking Implementation
+
+## How to Apply the View Tracking Function
+
+To enable view tracking in your application, you need to add the `increment_view_count` stored procedure to your Supabase database. 
+
+### Option 1: Using Supabase Studio
+
+1. Go to your Supabase project dashboard
+2. Navigate to the SQL Editor
+3. Create a new query
+4. Copy and paste the contents of `supabase/migrations/20240517_add_view_tracking.sql`
+5. Run the query
+
+### Option 2: Using Supabase CLI
+
+If you have the Supabase CLI installed:
+
+```bash
+# Navigate to your project directory
+cd your-project-directory
+
+# Apply the migration
+supabase db push
+```
+
+## How View Tracking Works
+
+1. When a user watches a video for at least 5 seconds, the system calls the tracking function
+2. The system checks if this view is a duplicate (same user viewed in the last 6 hours)
+3. If not a duplicate, it records the view in the `clip_views` table and increments the counter
+4. The view count is displayed in the UI
+
+## Debugging View Tracking
+
+If views are not being counted, check:
+
+1. Open your browser console (F12) and look for errors
+2. Check the server logs for any errors in the API endpoint
+3. Verify that the stored procedure exists in your database
+4. Make sure your Supabase credentials are correct
+
+## Tables Used
+
+View tracking uses two database tables:
+
+1. `clips` - Stores the video information and the total view count
+2. `clip_views` - Stores detailed information about each view
+
+## Database Indexes
+
+Make sure your database has these indexes for optimal performance:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_clip_views_visitor_id ON public.clip_views USING btree (visitor_id);
+CREATE INDEX IF NOT EXISTS idx_clip_views_fingerprint ON public.clip_views USING btree (device_fingerprint);
+CREATE INDEX IF NOT EXISTS idx_clip_views_composite ON public.clip_views USING btree (clip_id, visitor_id, device_fingerprint, created_at);
+CREATE INDEX IF NOT EXISTS idx_clip_views_clip_id ON public.clip_views USING btree (clip_id);
+``` 

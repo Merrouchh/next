@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import LoginModal from './LoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineArrowLeft, AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera } from 'react-icons/ai';
+import { AiOutlineArrowLeft, AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineDashboard } from 'react-icons/ai';
 import styles from '../styles/Header.module.css';
 import Image from 'next/image';
 import LoadingScreen from './LoadingScreen';
@@ -155,6 +155,15 @@ const Header = () => {
 
               {user ? (
                 <>
+                  {user?.isAdmin && (
+                    <button 
+                      className={styles.adminButton}
+                      onClick={() => router.push('/admin')}
+                    >
+                      <AiOutlineDashboard className={styles.buttonIcon} />
+                      Admin
+                    </button>
+                  )}
                   <span className={styles.usernameBox}>
                     {user?.username}
                     {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
@@ -244,6 +253,19 @@ const Header = () => {
                   <span className={styles.icon}><AiOutlineVideoCamera size={20} /></span>
                   <span className={styles.label}>Profile</span>
                 </button>
+
+                {user?.isAdmin && (
+                  <button
+                    onClick={() => {
+                      router.push('/admin');
+                      closeMenu();
+                    }}
+                    className={`${styles.navButton} ${router.pathname === '/admin' ? styles.active : ''}`}
+                  >
+                    <span className={styles.icon}><AiOutlineDashboard size={20} /></span>
+                    <span className={styles.label}>Admin</span>
+                  </button>
+                )}
               </div>
             )}
 

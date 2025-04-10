@@ -1003,55 +1003,68 @@
   transform: scale(1.1);
 }
 
-.likesModal {
-  position: relative;
-  background: var(--background-secondary);
-  border-radius: 12px;
-  padding: 1.5rem;
-  width: 300px;
-  max-height: 350px;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+.likesModalWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
 }
 
 .likesModalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 9; /* Lower than the modal wrapper */
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
 }
 
-/* Desktop styles */
-@media (min-width: 768px) {
-  .likesModalWrapper {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 300px;
-    z-index: 10; /* Ensure it's above the overlay */
-  }
+/* Keeping only one definition for likesModal */
+.likesModal {
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 90%;
+  max-width: 300px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  /* Yellow scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary, #FFD700) transparent;
+  margin: 0 auto;
+  z-index: 10000;
+}
+
+/* Custom scrollbar for Webkit browsers */
+.likesModal::-webkit-scrollbar {
+  width: 4px; /* Thinner scrollbar */
+}
+
+.likesModal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.likesModal::-webkit-scrollbar-thumb {
+  background-color: var(--accent-primary, #FFD700);
+  border-radius: 2px;
 }
 
 /* Mobile styles */
 @media (max-width: 767px) {
-  .likesModalWrapper {
-    position: fixed; /* Change to fixed for mobile */
-    top: 0;         /* Add back for mobile */
-    left: 0;        /* Add back for mobile */
-    right: 0;       /* Full width on mobile */
-    bottom: 0;      /* Full height on mobile */
-    width: 100vw;   /* Full viewport width */
-    height: 100vh;  /* Full viewport height */
-  }
-
   .likesModal {
-    width: 90%;
-    max-width: 300px;
+    max-height: 300px; /* Taller on mobile */
+  }
+}
+
+/* Desktop styles - specific for profile grid */
+@media (min-width: 768px) {
+  /* When inside profile grid */
+  [class^="Profile_clipsGrid__"] .likesModal {
+    max-height: 180px; /* Even smaller for grid view */
   }
 }
 
@@ -1123,30 +1136,39 @@
   width: 100%;
 }
 
+.likesModalWrapper > * {
+  pointer-events: auto; /* But enable pointer events for modal children */
+}
+
+/* Modal styles */
 .likesModalWrapper {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  align-items: center;
+  z-index: 100;
 }
 
+/* Remove duplicate styles */
+
+/* Keeping only one definition for likesModal */
 .likesModal {
   background: var(--background-secondary);
   border-radius: 12px;
   padding: 1rem;
   width: 90%;
   max-width: 300px;
-  max-height: 180px; /* Fixed height to match your screenshot */
+  max-height: 320px;
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   /* Yellow scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: var(--accent-primary, #FFD700) transparent;
+  margin: 0 auto;
 }
 
 /* Custom scrollbar for Webkit browsers */
