@@ -595,551 +595,288 @@ export default function EventRegistrations() {
                 <div className={styles.tableHeader}>
                   <div className={styles.tableCell}>User</div>
                   <div className={styles.tableCell}>Email</div>
-                  <div className={styles.tableCell}>Phone</div>
                 </div>
                 
-                {/* Group registrations by team for duo/team events */}
-                {event && event.team_type && typeof event.team_type === 'string' && 
-                 event.team_type.trim().toLowerCase() === 'duo' ? (
-                  // For duo events, group partners together
-                  registrations
-                    // Filter to only show main registrants (not partners)
-                    .filter(reg => !reg.isPartner)
-                    .map((registration, index) => {
-                      // Find the partner for this registration
-                      const partner = registrations.find(
-                        reg => reg.isPartner && reg.registeredBy === registration.username
-                      );
+                <div className={styles.registrationsContainer}>
+                  {event.team_type === 'duo' ? (
+                    // Group partners with their registrants for duo events
+                    (() => {
+                      // Find main registrants and their partners
+                      const mainRegistrants = registrations.filter(reg => !reg.isPartner);
+                      const partners = registrations.filter(reg => reg.isPartner);
                       
-                      // Generate a unique color for this team
-                      const teamColor = generateTeamColor(registration.id);
-                      
-                      return (
-                        <div 
-                          key={registration.id} 
-                          className={styles.duoRegistrationGroup}
-                          style={{ 
-                            borderLeft: `4px solid ${teamColor}`,
-                          }}
-                        >
-                          <div className={styles.teamIndicator}>
-                            <span style={{ backgroundColor: teamColor }} className={styles.teamColorDot}></span>
-                            Team {index + 1}
-                          </div>
-                          {/* Main Registrant Row */}
-                          <div 
-                            className={styles.tableRow}
-                          >
-                            <div className={styles.tableCell} data-label="User">
-                              <div className={styles.userInfo}>
-                                <div 
-                                  className={styles.avatarPlaceholder} 
-                                  style={{ 
-                                    backgroundColor: generateColorFromString(registration.username || 'Unknown'),
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    fontWeight: 'bold',
-                                    fontSize: '14px',
-                                    textTransform: 'uppercase',
-                                    marginRight: '0',
-                                    border: `2px solid ${teamColor}`
-                                  }}
-                                >
-                                  {getInitials(registration.username || 'Unknown')}
-                                </div>
-                                <div className={styles.userDetails}>
-                                  <span className={styles.userName}>
-                                    {registration.username || 'Unknown User'}
-                                  </span>
-                                  <span className={styles.mainRegistrantBadge}>
-                                    MAIN REGISTRANT
-                                  </span>
-                                </div>
+                      return mainRegistrants.map(main => {
+                        // Find partners registered by this main registrant
+                        const mainPartners = partners.filter(p => p.registeredBy === main.username);
+                        const teamColor = generateTeamColor(main.id);
+                        
+                        return (
+                          <div key={main.id} className={styles.duoRegistrationGroup}>
+                            <div className={styles.duoTeamHeader}>
+                              <div className={styles.teamIndicator}>
+                                <div className={styles.teamColorDot} style={{ backgroundColor: teamColor }}></div>
                               </div>
+                              <span className={styles.duoTeamHeaderLabel}>Duo Team</span>
                             </div>
-                            <div className={styles.tableCell} data-label="Email">
-                              {registration.user?.email ? (
-                                <span className={styles.userEmail}>
-                                  {registration.user.email}
-                                </span>
-                              ) : (
-                                <span className={styles.userEmail}>
-                                  No email available
-                                </span>
-                              )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Phone">
-                              {registration.user?.phone ? (
-                                <span className={styles.userPhone}>
-                                  {registration.user.phone}
-                                </span>
-                              ) : (
-                                <span className={styles.userPhone}>
-                                  No phone available
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Partner Row - if partner exists */}
-                          {partner ? (
-                            <div 
-                              className={`${styles.tableRow} ${styles.partnerRow}`}
-                            >
+                            
+                            <div className={styles.tableRow}>
                               <div className={styles.tableCell} data-label="User">
                                 <div className={styles.userInfo}>
-                                  {/* Partner avatar with consistent styling */}
-                                  <div 
-                                    className={styles.avatarPlaceholder} 
-                                    style={{ 
-                                      backgroundColor: generateColorFromString(partner.username || 'Unknown'),
-                                      color: '#ffffff',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: '32px',
-                                      height: '32px',
-                                      borderRadius: '50%',
-                                      fontWeight: 'bold',
-                                      fontSize: '14px',
-                                      textTransform: 'uppercase',
-                                      marginRight: '0',
-                                      border: `2px solid ${teamColor}`
-                                    }}
-                                  >
-                                    {getInitials(partner.username || 'Unknown')}
+                                  <div className={styles.userAvatar}>
+                                    <div className={styles.avatarPlaceholder} style={{ backgroundColor: generateColorFromString(main.username) }}>
+                                      {getInitials(main.username)}
+                                    </div>
                                   </div>
                                   <div className={styles.userDetails}>
-                                    <span className={styles.userName}>
-                                      {partner.username || 'Unknown User'}
-                                    </span>
-                                    <span className={styles.partnerBadge}>
-                                      DUO PARTNER
-                                    </span>
+                                    <div className={styles.userName}>
+                                      {main.username}
+                                      <span className={styles.mainRegistrantBadge}>Main</span>
+                                    </div>
+                                    <a href={`mailto:${main.user.email}`} className={styles.userEmail}>
+                                      {truncateEmail(main.user.email, isMobile)}
+                                    </a>
+                                    {main.user.phone && (
+                                      <div className={styles.userPhone}>
+                                        {main.user.phone}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
-                              <div className={styles.tableCell} data-label="Email">
-                                {partner.user?.email ? (
-                                  <span className={styles.userEmail}>
-                                    {partner.user.email}
+                              <div className={styles.tableCell} data-label="Registration Info">
+                                <div className={styles.registrationInfo}>
+                                  <span className={styles.registrationDateLabel}>Registered:</span>
+                                  <span className={styles.registrationDate}>
+                                    {formatTimestamp(main.registration_date, isMobile)}
                                   </span>
-                                ) : (
-                                  <span className={styles.userEmail}>
-                                    No email available
-                                  </span>
-                                )}
-                              </div>
-                              <div className={styles.tableCell} data-label="Phone">
-                                {partner.user?.phone ? (
-                                  <span className={styles.userPhone}>
-                                    {partner.user.phone}
-                                  </span>
-                                ) : (
-                                  <span className={styles.userPhone}>
-                                    No phone available
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ) : null}
-                          
-                          {/* Add team actions for duo events */}
-                          <div className={styles.teamActions}>
-                            <div className={styles.registrationInfo}>
-                              <span className={styles.registrationDateLabel}>Registration Date:</span>
-                              <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
-                              </span>
-                            </div>
-                            <button 
-                              className={styles.removeButton}
-                              onClick={() => removeRegistration(
-                                registration.id, 
-                                registration.username || registration.user?.username || 'this user'
-                              )}
-                              disabled={loading}
-                            >
-                              {partner ? 'REMOVE TEAM' : 'REMOVE'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                ) : event && event.team_type && typeof event.team_type === 'string' && 
-                    event.team_type.trim().toLowerCase() === 'team' ? (
-                  // For team events, show main registrant with all team members
-                  registrations
-                    // Filter to only show main registrants (not team members)
-                    .filter(reg => !reg.isPartner)
-                    .map((registration, index) => {
-                      // Generate a unique color for this team
-                      const teamColor = generateTeamColor(registration.id);
-                      
-                      return (
-                        <div 
-                          key={registration.id} 
-                          className={styles.teamRegistrationGroup}
-                          style={{ 
-                            borderLeft: `4px solid ${teamColor}`,
-                          }}
-                        >
-                          <div className={styles.teamIndicator} style={{ backgroundColor: teamColor }}>
-                            Team {index + 1}
-                          </div>
-                          
-                          {/* Main Registrant Row */}
-                          <div className={styles.tableRow}>
-                            <div className={styles.tableCell} data-label="User">
-                              <div className={styles.userInfo}>
-                                <div 
-                                  className={styles.avatarPlaceholder} 
-                                  style={{ 
-                                    backgroundColor: generateColorFromString(registration.username || 'Unknown'),
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    fontWeight: 'bold',
-                                    fontSize: '14px',
-                                    textTransform: 'uppercase',
-                                    marginRight: '0'
-                                  }}
-                                >
-                                  {getInitials(registration.username || 'Unknown')}
                                 </div>
-                                <div className={styles.userDetails}>
-                                  <span className={styles.userName}>
-                                    {registration.username || 'Unknown User'}
-                                  </span>
-                                  <span className={styles.teamLeaderBadge}>
-                                    TEAM LEADER
-                                  </span>
+                                <div className={styles.teamActions}>
+                                  <button 
+                                    className={styles.removeButton}
+                                    onClick={() => removeRegistration(main.id, main.username)}
+                                    aria-label={`Remove ${main.username}'s registration`}
+                                  >
+                                    Remove
+                                  </button>
                                 </div>
                               </div>
                             </div>
-                            <div className={styles.tableCell} data-label="Email">
-                              {registration.user?.email && registration.user.email !== 'Unknown' ? (
-                                <span className={styles.userEmail}>
-                                  {registration.user.email}
-                                </span>
-                              ) : (
-                                <span className={styles.userEmail}>
-                                  No email available
-                                </span>
-                              )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Phone">
-                              {registration.user?.phone ? (
-                                <span className={styles.userPhone}>
-                                  {registration.user.phone}
-                                </span>
-                              ) : (
-                                <span className={styles.userPhone}>
-                                  No phone available
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Team Members Rows */}
-                          {registration.teamMembers && registration.teamMembers.length > 0 && (
-                            <div className={styles.teamMembersContainer}>
-                              {registration.teamMembers.map((member, memberIndex) => (
-                                <div 
-                                  key={`${registration.id}-member-${memberIndex}`}
-                                  className={`${styles.tableRow} ${styles.teamMemberRow}`}
-                                >
-                                  <div className={styles.tableCell} data-label="User">
-                                    <div className={styles.userInfo}>
-                                      <div 
-                                        className={styles.avatarPlaceholder} 
-                                        style={{ 
-                                          backgroundColor: generateColorFromString(member.username || 'Unknown'),
-                                          color: '#ffffff',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          width: '32px',
-                                          height: '32px',
-                                          borderRadius: '50%',
-                                          fontWeight: 'bold',
-                                          fontSize: '14px',
-                                          textTransform: 'uppercase',
-                                          marginRight: '0'
-                                        }}
-                                      >
-                                        {getInitials(member.username || 'Unknown')}
+                            
+                            {mainPartners.length > 0 && mainPartners.map(partner => (
+                              <div key={partner.id} className={`${styles.tableRow} ${styles.partnerRow}`}>
+                                <div className={styles.tableCell} data-label="User">
+                                  <div className={styles.userInfo}>
+                                    <div className={styles.userAvatar}>
+                                      <div className={styles.avatarPlaceholder} style={{ backgroundColor: generateColorFromString(partner.username) }}>
+                                        {getInitials(partner.username)}
                                       </div>
-                                      <div className={styles.userDetails}>
-                                        <span className={styles.userName}>
-                                          {member.username || 'Unknown User'}
-                                        </span>
-                                        <span className={styles.teamMemberBadge}>
-                                          TEAM MEMBER
-                                        </span>
+                                    </div>
+                                    <div className={styles.userDetails}>
+                                      <div className={styles.userName}>
+                                        {partner.username}
+                                        <span className={styles.partnerBadge}>Partner</span>
+                                      </div>
+                                      <a href={`mailto:${partner.user.email}`} className={styles.userEmail}>
+                                        {truncateEmail(partner.user.email, isMobile)}
+                                      </a>
+                                      {partner.user.phone && (
+                                        <div className={styles.userPhone}>
+                                          {partner.user.phone}
+                                        </div>
+                                      )}
+                                      <div className={styles.registeredByText}>
+                                        Registered by {partner.registeredBy}
                                       </div>
                                     </div>
                                   </div>
-                                  <div className={styles.tableCell} data-label="Email">
-                                    {member.email ? (
-                                      <span className={styles.userEmail}>
-                                        {member.email}
-                                      </span>
-                                    ) : (
-                                      <span className={styles.userEmail}>
-                                        No email available
-                                      </span>
-                                    )}
+                                </div>
+                                <div className={styles.tableCell} data-label="Registration Info">
+                                  <div className={styles.registrationInfo}>
+                                    <span className={styles.registrationDateLabel}>Registered:</span>
+                                    <span className={styles.registrationDate}>
+                                      {formatTimestamp(partner.registration_date, isMobile)}
+                                    </span>
                                   </div>
-                                  <div className={styles.tableCell} data-label="Phone">
-                                    {member.phone ? (
-                                      <span className={styles.userPhone}>
-                                        {member.phone}
-                                      </span>
-                                    ) : (
-                                      <span className={styles.userPhone}>
-                                        No phone available
-                                      </span>
+                                  <div className={styles.teamActions}>
+                                    <button 
+                                      className={styles.removeButton}
+                                      onClick={() => removeRegistration(partner.id, partner.username)}
+                                      aria-label={`Remove ${partner.username}'s registration`}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      });
+                    })()
+                  ) : event.team_type === 'team' ? (
+                    // Group team members with their team leader
+                    (() => {
+                      // Find team leaders and members
+                      const teamLeaders = registrations.filter(reg => reg.isTeamLeader || (!reg.teamId && !reg.isTeamMember));
+                      const teamMembers = registrations.filter(reg => reg.isTeamMember || reg.teamId);
+                      
+                      return teamLeaders.map(leader => {
+                        // Find team members for this leader
+                        const members = teamMembers.filter(m => m.teamId === leader.id || m.registeredBy === leader.username);
+                        const teamColor = generateTeamColor(leader.id);
+                        
+                        return (
+                          <div key={leader.id} className={styles.teamRegistrationGroup}>
+                            <div className={styles.teamHeader}>
+                              <div className={styles.teamIndicator}>
+                                <div className={styles.teamColorDot} style={{ backgroundColor: teamColor }}></div>
+                              </div>
+                              <span className={styles.teamHeaderLabel}>Team {leader.teamName || leader.username}</span>
+                            </div>
+                            
+                            <div className={styles.tableRow}>
+                              <div className={styles.tableCell} data-label="User">
+                                <div className={styles.userInfo}>
+                                  <div className={styles.userAvatar}>
+                                    <div className={styles.avatarPlaceholder} style={{ backgroundColor: generateColorFromString(leader.username) }}>
+                                      {getInitials(leader.username)}
+                                    </div>
+                                  </div>
+                                  <div className={styles.userDetails}>
+                                    <div className={styles.userName}>
+                                      {leader.username}
+                                      <span className={styles.teamLeaderBadge}>Team Leader</span>
+                                    </div>
+                                    <a href={`mailto:${leader.user.email}`} className={styles.userEmail}>
+                                      {truncateEmail(leader.user.email, isMobile)}
+                                    </a>
+                                    {leader.user.phone && (
+                                      <div className={styles.userPhone}>
+                                        {leader.user.phone}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
-                              ))}
+                              </div>
+                              <div className={styles.tableCell} data-label="Registration Info">
+                                <div className={styles.registrationInfo}>
+                                  <span className={styles.registrationDateLabel}>Registered:</span>
+                                  <span className={styles.registrationDate}>
+                                    {formatTimestamp(leader.registration_date, isMobile)}
+                                  </span>
+                                </div>
+                                <div className={styles.teamActions}>
+                                  <button 
+                                    className={styles.removeButton}
+                                    onClick={() => removeRegistration(leader.id, leader.username)}
+                                    aria-label={`Remove ${leader.username}'s registration`}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          
-                          {/* Add team actions for team events */}
-                          <div className={styles.teamActions}>
+                            
+                            {members.map(member => (
+                              <div key={member.id} className={styles.tableRow}>
+                                <div className={styles.tableCell} data-label="User">
+                                  <div className={styles.userInfo}>
+                                    <div className={styles.userAvatar}>
+                                      <div className={styles.avatarPlaceholder} style={{ backgroundColor: generateColorFromString(member.username) }}>
+                                        {getInitials(member.username)}
+                                      </div>
+                                    </div>
+                                    <div className={styles.userDetails}>
+                                      <div className={styles.userName}>
+                                        {member.username}
+                                        <span className={styles.teamMemberBadge}>Team Member</span>
+                                      </div>
+                                      <a href={`mailto:${member.user.email}`} className={styles.userEmail}>
+                                        {truncateEmail(member.user.email, isMobile)}
+                                      </a>
+                                      {member.user.phone && (
+                                        <div className={styles.userPhone}>
+                                          {member.user.phone}
+                                        </div>
+                                      )}
+                                      <div className={styles.registeredByText}>
+                                        Added by {member.registeredBy || leader.username}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className={styles.tableCell} data-label="Registration Info">
+                                  <div className={styles.registrationInfo}>
+                                    <span className={styles.registrationDateLabel}>Registered:</span>
+                                    <span className={styles.registrationDate}>
+                                      {formatTimestamp(member.registration_date, isMobile)}
+                                    </span>
+                                  </div>
+                                  <div className={styles.teamActions}>
+                                    <button 
+                                      className={styles.removeButton}
+                                      onClick={() => removeRegistration(member.id, member.username)}
+                                      aria-label={`Remove ${member.username}'s registration`}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      });
+                    })()
+                  ) : (
+                    // Individual registrations for solo events
+                    registrations.map(reg => (
+                      <div key={reg.id} className={styles.individualRegistration}>
+                        <div className={styles.tableRow}>
+                          <div className={styles.tableCell} data-label="User">
+                            <div className={styles.userInfo}>
+                              <div className={styles.userAvatar}>
+                                <div className={styles.avatarPlaceholder} style={{ backgroundColor: generateColorFromString(reg.username) }}>
+                                  {getInitials(reg.username)}
+                                </div>
+                              </div>
+                              <div className={styles.userDetails}>
+                                <div className={styles.userName}>
+                                  {reg.username}
+                                </div>
+                                <a href={`mailto:${reg.user.email}`} className={styles.userEmail}>
+                                  {truncateEmail(reg.user.email, isMobile)}
+                                </a>
+                                {reg.user.phone && (
+                                  <div className={styles.userPhone}>
+                                    {reg.user.phone}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className={styles.tableCell} data-label="Registration Info">
                             <div className={styles.registrationInfo}>
-                              <span className={styles.registrationDateLabel}>Registration Date:</span>
+                              <span className={styles.registrationDateLabel}>Registered:</span>
                               <span className={styles.registrationDate}>
-                                {registration.registration_date_formatted || 
-                                 (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
+                                {formatTimestamp(reg.registration_date, isMobile)}
                               </span>
                             </div>
-                            <button 
-                              className={styles.removeButton}
-                              onClick={() => removeRegistration(
-                                registration.id, 
-                                registration.username || registration.user?.username || 'this user'
-                              )}
-                              disabled={loading}
-                            >
-                              REMOVE TEAM
-                            </button>
+                            <div className={styles.teamActions}>
+                              <button 
+                                className={styles.removeButton}
+                                onClick={() => removeRegistration(reg.id, reg.username)}
+                                aria-label={`Remove ${reg.username}'s registration`}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      );
-                    })
-                ) : (
-                  // For solo events, show registrations normally
-                  registrations.map((registration, index) => {
-                    // Find the partner for this registration if it's a duo event
-                    const partner = event.team_type === 'duo' && !registration.isPartner
-                      ? registrations.find(reg => 
-                          reg.isPartner && 
-                          reg.registeredBy === registration.username
-                        )
-                      : null;
-                    
-                    console.log(`Registration ${index}: ${registration.username}, isPartner: ${registration.isPartner}, partner: ${partner?.username || 'none'}`);
-                    
-                    return (
-                      <React.Fragment key={registration.id}>
-                        {/* Main Registration Row */}
-                        {!registration.isPartner && (
-                          <div 
-                            className={`${styles.tableRow} ${styles.mainRow}`}
-                            style={{
-                              borderLeft: event.team_type === 'duo' ? `4px solid ${generateColorFromString(registration.username)}` : 'none'
-                            }}
-                          >
-                            {event.team_type === 'duo' && (
-                              <div className={styles.teamIndicator}>
-                                Team {index + 1}
-                              </div>
-                            )}
-                            <div className={styles.tableCell} data-label="User">
-                              <div className={styles.userInfo}>
-                                <div 
-                                  className={styles.avatarPlaceholder} 
-                                  style={{ 
-                                    backgroundColor: generateColorFromString(registration.username),
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    fontWeight: 'bold',
-                                    fontSize: '14px',
-                                    textTransform: 'uppercase',
-                                    marginRight: '0'
-                                  }}
-                                >
-                                  {getInitials(registration.username)}
-                                </div>
-                                <div className={styles.userDetails}>
-                                  <span className={styles.userName}>
-                                    {registration.username}
-                                  </span>
-                                  {event && event.team_type === 'duo' && (
-                                    <span className={styles.duoTeamRole}>
-                                      MAIN REGISTRANT
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className={styles.tableCell} data-label="Email">
-                              {registration.user?.email ? (
-                                <span className={styles.userEmail}>
-                                  {registration.user.email}
-                                </span>
-                              ) : (
-                                <span className={styles.userEmail}>
-                                  No email available
-                                </span>
-                              )}
-                            </div>
-                            <div className={styles.tableCell} data-label="Phone">
-                              {registration.user?.phone ? (
-                                <span className={styles.userPhone}>
-                                  {registration.user.phone}
-                                </span>
-                              ) : (
-                                <span className={styles.userPhone}>
-                                  No phone available
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Partner Row - if partner exists */}
-                        {partner ? (
-                          <div 
-                            className={`${styles.tableRow} ${styles.partnerRow}`}
-                          >
-                            <div className={styles.tableCell} data-label="User">
-                              <div className={styles.userInfo}>
-                                {/* Partner avatar with consistent styling */}
-                                <div 
-                                  className={styles.avatarPlaceholder} 
-                                  style={{ 
-                                    backgroundColor: generateColorFromString(partner.username || 'Unknown'),
-                                    color: '#ffffff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    fontWeight: 'bold',
-                                    fontSize: '14px',
-                                    textTransform: 'uppercase',
-                                    marginRight: '0',
-                                    border: `2px solid ${teamColor}`
-                                  }}
-                                >
-                                  {getInitials(partner.username || 'Unknown')}
-                                </div>
-                                <div className={styles.userDetails}>
-                                  <span className={styles.userName}>
-                                    {partner.username || 'Unknown User'}
-                                  </span>
-                                  <span className={styles.partnerBadge}>
-                                    DUO PARTNER
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className={styles.tableCell} data-label="Email">
-                              {console.log('Partner data:', partner)}
-                              {console.log('Partner email:', partner.user?.email)}
-                              {/* Check if we can find the partner's email in the team members of the main registrant */}
-                              {(() => {
-                                // Try to find the partner's email in the main registrant's team members
-                                const partnerTeamMember = registration.teamMembers?.find(
-                                  member => member.user_id === partner.user_id || member.username === partner.username
-                                );
-                                
-                                console.log('Partner team member:', partnerTeamMember);
-                                
-                                // First try to use the email from the team member
-                                if (partnerTeamMember?.email && partnerTeamMember.email !== 'Unknown') {
-                                  console.log('Using email from team member:', partnerTeamMember.email);
-                                  return (
-                                    <span className={styles.userEmail}>
-                                      {partnerTeamMember.email}
-                                    </span>
-                                  );
-                                } 
-                                // Then try to use the email from the partner's user object
-                                else if (partner.user?.email && partner.user.email !== 'Unknown' && partner.user.email !== 'No email found') {
-                                  console.log('Using email from partner user object:', partner.user.email);
-                                  return (
-                                    <span className={styles.userEmail}>
-                                      {partner.user.email}
-                                    </span>
-                                  );
-                                } 
-                                // Finally, check if the partner has an email property directly
-                                else if (partner.email && partner.email !== 'Unknown') {
-                                  console.log('Using email directly from partner:', partner.email);
-                                  return (
-                                    <span className={styles.userEmail}>
-                                      {partner.email}
-                                    </span>
-                                  );
-                                }
-                                // If no email is found, show a message
-                                else {
-                                  return (
-                                    <span className={styles.userEmail}>
-                                      No email available
-                                    </span>
-                                  );
-                                }
-                              })()}
-                            </div>
-                          </div>
-                        ) : null}
-                        
-                        {/* Add team actions for solo events */}
-                        <div className={styles.teamActions}>
-                          <div className={styles.registrationInfo}>
-                            <span className={styles.registrationDateLabel}>Registration Date:</span>
-                            <span className={styles.registrationDate}>
-                              {registration.registration_date_formatted || 
-                               (registration.registration_date ? formatTimestamp(registration.registration_date, isMobile) : 'Unknown date')}
-                            </span>
-                          </div>
-                          <button 
-                            className={styles.removeButton}
-                            onClick={() => removeRegistration(
-                              registration.id, 
-                              registration.username || registration.user?.username || 'this user'
-                            )}
-                            disabled={loading}
-                          >
-                            {partner ? 'REMOVE TEAM' : 'REMOVE'}
-                          </button>
-                        </div>
-                      </React.Fragment>
-                    );
-                  })
-                )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
