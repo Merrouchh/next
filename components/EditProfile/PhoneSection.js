@@ -693,11 +693,7 @@ const PhoneSection = ({
                 tabIndex="2"
                 onClick={() => {
                   if (isChangingPhone) {
-                    // When cancelling, reset everything and collapse
-                    setWebsiteAccount(prev => ({ 
-                      ...prev, 
-                      phone: ''
-                    }));
+                    // When cancelling, don't reset the phone field - just exit edit mode
                     setIsChangingPhone(false);
                     setMessage(prev => ({ ...prev, phone: { type: '', text: '' } }));
                   } else {
