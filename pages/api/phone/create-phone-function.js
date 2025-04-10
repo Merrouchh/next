@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Create the phone_verifications table first if it doesn't exist
+    // Create the phone_verifications table if it doesn't exist
     const createTableSql = `
       CREATE TABLE IF NOT EXISTS phone_verifications (
         id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -31,88 +31,44 @@ export default async function handler(req, res) {
       );
     `;
 
-    // Execute the table creation
-    await supabase.rpc('pg_execute', { 
-      query: createTableSql 
-    }).catch(err => {
-      console.log('Table creation attempt failed, continuing:', err);
-      // Continue even if this fails
-    });
-
-    // Alternative direct SQL (if pg_execute isn't available)
+    // Attempt to create the phone_verifications table
     try {
-      // First use the SQL editor
-      await supabase
-        .from('_sqlEditorTempResult')
-        .select('*')
-        .limit(1)
-        .then(({ error }) => {
-          if (error) {
-            console.log('SQL editor access failed:', error);
-          }
-        });
-
       await supabase.rpc('pg_execute', { 
         query: createTableSql 
+      }).catch(err => {
+        console.log('Table creation attempt failed, continuing:', err);
       });
     } catch (err) {
-      console.log('Alternative table creation also failed:', err);
-      // Continue even if this fails
+      console.log('Table creation error:', err);
+      // Continue even if table creation fails
     }
 
-    // For the SQL function, we'll use a direct approach with the Supabase SQL editor
-    // First, let's try creating it in the public schema
-    const sql = `
-      create or replace function public.clear_user_phone(user_id uuid)
-      returns boolean
-      language plpgsql
-      security definer
-      as $$
-      begin
-        update auth.users 
-        set phone = NULL,
-            phone_confirmed_at = NULL, 
-            phone_change = '' 
-        where id = user_id;
-        return true;
-      end;
-      $$;
-    `;
-
-    console.log("Attempting to create the clear_user_phone function");
-
-    // Try to use pg_execute function if available
-    try {
-      const { error } = await supabase.rpc('pg_execute', { 
-        query: sql 
-      });
-
-      if (error) {
-        console.error('Error creating function with pg_execute:', error);
-      } else {
-        console.log('Function created successfully using pg_execute');
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Phone clear function created successfully with pg_execute'
-        });
-      }
-    } catch (err) {
-      console.log('pg_execute method failed:', err);
-      // Continue to try other methods
-    }
-
-    // If we're here, the first attempt failed. Let's try a SQL editor approach
-    // In actual implementation, we'd suggest manually running this SQL in the Supabase SQL editor
-    console.log("Please run the following SQL in your Supabase SQL editor:");
-    console.log(sql);
-
-    return res.status(202).json({
+    // Return instructions for phone number management
+    console.log("Returning phone number management instructions");
+    
+    return res.status(200).json({
       success: true,
-      message: "Function creation initiated. For best results, please run the SQL in your Supabase SQL editor.",
-      sql: sql
+      message: "Phone management system initialized. Auth users table can only be modified through Auth API methods.",
+      phoneManagement: {
+        notice: "The auth.users table is the source of truth for phone numbers. Updates to it will cascade to the users table.",
+        instructions: "To modify phone numbers, use these approaches:",
+        methods: [
+          {
+            method: "Admin API for Adding Phones",
+            description: "Use admin.updateUserById to set the phone number",
+            example: "await supabase.auth.admin.updateUserById(userId, { phone: '+1234567890' })"
+          },
+          {
+            method: "Admin API for Removing Phones",
+            description: "Use admin.updateUserById with empty string to remove a phone number",
+            example: "await supabase.auth.admin.updateUserById(userId, { phone: '' })"
+          }
+        ],
+        note: "Our phone verification and removal APIs have been updated to use these approaches automatically."
+      }
     });
   } catch (error) {
-    console.error('Unexpected error creating phone function:', error);
+    console.error('Unexpected error:', error);
     return res.status(500).json({ 
       error: 'An unexpected error occurred',
       message: error.message
