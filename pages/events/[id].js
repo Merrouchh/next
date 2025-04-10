@@ -793,14 +793,21 @@ export default function EventDetail({ metaData }) {
         
         toast.success(data.message || 'Registration cancelled successfully');
         
+        // Immediately update UI to reflect cancellation
         setRegistrationStatus(prev => ({
           ...prev,
           isRegistered: false,
+          isLoading: false,
           registeredCount: Math.max(0, prev.registeredCount - 1),
           teamMembers: []
         }));
         
         setSelectedTeamMembers([]);
+        
+        // Fetch the latest registration count
+        fetchLatestCount();
+        
+        return; // Exit early as we've already updated the state
       } else {
         // Check if registration is full before registering
         if (registrationStatus.registrationLimit !== null && 
@@ -853,7 +860,6 @@ export default function EventDetail({ metaData }) {
     } catch (error) {
       console.error('Error handling registration:', error);
       toast.error(error.message || 'An error occurred');
-    } finally {
       setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
     }
   };
