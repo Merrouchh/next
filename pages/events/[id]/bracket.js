@@ -587,6 +587,7 @@ export default function EventBracket({ metaData }) {
         }
         
         const eventData = await eventResponse.json();
+        console.log('Debug - Event data team type:', eventData.team_type);
         setEvent(eventData);
         
         // Fetch bracket data
@@ -608,6 +609,20 @@ export default function EventBracket({ metaData }) {
         const data = await bracketResponse.json();
         
         if (data && data.bracket) {
+          console.log('Debug - Bracket data received:', data.bracket);
+          console.log('Debug - Participants data:', data.participants);
+          
+          // Check for duo members
+          if (data.participants) {
+            console.log('Debug - Checking for duo team members:');
+            data.participants.forEach(participant => {
+              console.log(`Participant: ${participant.name}, Has members:`, !!participant.members);
+              if (participant.members && participant.members.length > 0) {
+                console.log('  Members:', JSON.stringify(participant.members));
+              }
+            });
+          }
+          
           setBracketData(data.bracket);
           setParticipants(data.participants || []);
           setHasBracket(true);
@@ -997,6 +1012,21 @@ export default function EventBracket({ metaData }) {
                       // Find participant details for duo display
                       const participant1 = participants.find(p => p.id === match.participant1Id);
                       const participant2 = participants.find(p => p.id === match.participant2Id);
+                      
+                      // Debug logs for this specific match
+                      if (isDuoEvent && (match.participant1Id || match.participant2Id)) {
+                        console.log(`Debug - Match ${match.id} duo data:`);
+                        console.log(`  Participant1: ${match.participant1Name}, ID: ${match.participant1Id}`);
+                        console.log(`  Participant1 details:`, participant1);
+                        if (participant1 && participant1.members) {
+                          console.log(`  Participant1 members:`, participant1.members);
+                        }
+                        console.log(`  Participant2: ${match.participant2Name}, ID: ${match.participant2Id}`);
+                        console.log(`  Participant2 details:`, participant2);
+                        if (participant2 && participant2.members) {
+                          console.log(`  Participant2 members:`, participant2.members);
+                        }
+                      }
                       
                       // Check if this is a duo event
                       const isDuoEvent = event?.team_type === 'duo';
