@@ -290,35 +290,8 @@ export default async function handler(req, res) {
           throw updateUserError;
         }
 
-        // Attempt to update the Auth user with the proper updateUser method
-        // This requires the user's session or service role key
-        try {
-          console.log('Attempting to update auth user phone number using updateUser method');
-          
-          // Using the service role key with admin methods
-          const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(userId);
-          
-          if (getUserError) {
-            console.error('Error getting user data:', getUserError);
-            // Continue with the process even if this fails
-          } else if (userData) {
-            // We have the user data, now update their phone
-            const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
-              userId,
-              { phone }
-            );
-            
-            if (updateAuthError) {
-              console.error('Error updating auth user phone with admin API:', updateAuthError);
-              // Continue with the process even if this fails
-            } else {
-              console.log('Successfully updated auth user phone with admin API');
-            }
-          }
-        } catch (authUpdateError) {
-          console.error('Auth update error (non-fatal):', authUpdateError);
-          // Continue with the process even if this fails
-        }
+        // We'll skip trying to update the auth.users table - it requires special permissions
+        // and isn't necessary for our application features
         
         // Track that this phone has been verified for this user
         const { error: trackVerificationError } = await supabase
@@ -345,7 +318,7 @@ export default async function handler(req, res) {
           console.error('Error deleting verification code:', deleteError);      
         }
 
-        console.log('Phone number updated successfully in users table and attempt made for auth user');
+        console.log('Phone number updated successfully in application database');
 
         return res.status(200).json({
           success: true,
