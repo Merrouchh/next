@@ -192,101 +192,6 @@ async function registerForEvent(req, res, supabase, user) {
       return res.status(400).json({ message: 'You are already registered for this event' });
     }
     
-    // Additional check for duo events: check if the user is already a team member in this event
-    if (eventData.team_type === 'duo') {
-      // First, check if the user is registering with someone who has already registered with someone else
-      if (teamMembers && teamMembers.length === 1) {
-        const partner = teamMembers[0];
-        
-        // 1. Check if this partner is already a main registrant
-        const { data: partnerAsMainReg, error: partnerMainRegError } = await supabase
-          .from('event_registrations')
-          .select('id, notes')
-          .eq('event_id', eventId)
-          .eq('user_id', partner.userId)
-          .not('notes', 'like', 'Auto-registered as partner of%')
-          .single();
-          
-        if (!partnerMainRegError && partnerAsMainReg) {
-          return res.status(400).json({ 
-            message: `${partner.username} is already registered for this event as a main registrant. They cannot be your partner.` 
-          });
-        }
-        
-        // 2. Check if this partner has already registered the current user as their partner
-        // Get all main registrations for this event
-        const { data: mainRegistrations, error: mainRegError } = await supabase
-          .from('event_registrations')
-          .select('id, user_id, username')
-          .eq('event_id', eventId)
-          .not('notes', 'like', 'Auto-registered as partner of%');
-        
-        if (!mainRegError && mainRegistrations && mainRegistrations.length > 0) {
-          // For each main registration, check if the partner selected the current user
-          for (const mainReg of mainRegistrations) {
-            if (mainReg.user_id === partner.userId) {
-              // This partner is a main registrant, now check if their partner is the current user
-              const { data: partnerTeamMembers, error: partnerTeamError } = await supabase
-                .from('event_team_members')
-                .select('user_id, username')
-                .eq('registration_id', mainReg.id);
-              
-              if (!partnerTeamError && partnerTeamMembers && partnerTeamMembers.length > 0) {
-                // Check if any of the partner's team members is the current user
-                const isUserAlreadyTeamMember = partnerTeamMembers.some(member => member.user_id === userId);
-                
-                if (isUserAlreadyTeamMember) {
-                  return res.status(400).json({ 
-                    message: `${partner.username} has already registered with you as their partner. You don't need to register again.` 
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // Get all registrations for this event for additional checks
-      const { data: eventRegistrations, error: eventRegError } = await supabase
-        .from('event_registrations')
-        .select('id')
-        .eq('event_id', eventId);
-        
-      if (!eventRegError && eventRegistrations && eventRegistrations.length > 0) {
-        const registrationIds = eventRegistrations.map(reg => reg.id);
-        
-        // Check if the user is already a team member in any of these registrations
-        const { data: userAsTeamMember, error: teamMemberError } = await supabase
-          .from('event_team_members')
-          .select('registration_id')
-          .in('registration_id', registrationIds)
-          .eq('user_id', userId);
-          
-        if (!teamMemberError && userAsTeamMember && userAsTeamMember.length > 0) {
-          return res.status(400).json({ 
-            message: 'You are already participating in this event as a team member' 
-          });
-        }
-        
-        // Also check if any of the user's selected team members are already registered or team members
-        if (teamMembers && teamMembers.length > 0) {
-          // Check if any team members are already participating
-          const { data: teamMembersParticipating, error: teamParticipatingError } = await supabase
-            .from('event_team_members')
-            .select('user_id, username')
-            .in('registration_id', registrationIds)
-            .in('user_id', teamMembers.map(member => member.userId));
-            
-          if (!teamParticipatingError && teamMembersParticipating && teamMembersParticipating.length > 0) {
-            const alreadyParticipating = teamMembersParticipating.map(member => member.username).join(', ');
-            return res.status(400).json({ 
-              message: `The following team members are already participating in this event: ${alreadyParticipating}` 
-            });
-          }
-        }
-      }
-    }
-    
     // Validate team members if this is a team event
     if (eventData.team_type !== 'solo') {
       // Check if team members are provided for duo/team events
@@ -437,46 +342,39 @@ async function registerForEvent(req, res, supabase, user) {
       }
     }
     
-    // Get the current count of registrations for this event in registerForEvent
+    // Get the current count of registrations for this event
     const { count, error: countError } = await supabase
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', eventId);
     
     if (!countError) {
-      // Calculate the actual count based on the event type
-      let registrationCount = count;
+      // For duo events, calculate the actual count differently
+      // as one duo = 1 spot, not 2 spots
+      let finalCount = count;
       
-      // For duo events, we need to count pairs as a single registration
-      // so we count only the main registrants (those without isPartner flag)
       if (eventData.team_type === 'duo') {
-        // For the main registration that just happened, we need to count it explicitly
-        const { count: mainRegistrantsCount, error: mainRegCountError } = await supabase
+        // Count the number of unique duos (each pair counts as 1)
+        const { data: registrations, error: regError } = await supabase
           .from('event_registrations')
-          .select('id', { count: 'exact', head: true })
-          .eq('event_id', eventId)
-          .not('notes', 'like', 'Auto-registered as partner of%');
-        
-        if (!mainRegCountError) {
-          // For a new registration, we know it's a main registrant (not a partner)
-          // So we should at least have 1 in the count
-          if (mainRegistrantsCount === 0) {
-            // This happens when the database query hasn't caught up with our new insertion
-            registrationCount = 1;
-            console.log(`Duo event: New registration not yet visible in query - setting count to 1`);
-          } else {
-            registrationCount = mainRegistrantsCount;
-            console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
-          }
-        } else {
-          console.error('Error counting main registrants:', mainRegCountError);
+          .select('id, notes')
+          .eq('event_id', eventId);
+          
+        if (!regError && registrations) {
+          // Count all registrations that aren't auto-registered partners
+          const mainRegistrationsCount = registrations.filter(
+            reg => !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
+          ).length;
+          
+          finalCount = mainRegistrationsCount;
+          console.log(`Duo event: Total registrations = ${count}, Main registrations = ${mainRegistrationsCount}`);
         }
       }
       
-      // Update the registered_count directly with the calculated count
+      // Update the registered_count with the corrected count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: registrationCount })
+        .update({ registered_count: finalCount })
         .eq('id', eventId)
         .select();
       
@@ -484,7 +382,7 @@ async function registerForEvent(req, res, supabase, user) {
         console.error('Error updating event registered count:', updateError);
         // Continue anyway, as the registration was successful
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${finalCount}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
@@ -619,36 +517,32 @@ async function cancelRegistration(req, res, supabase, user) {
       .eq('event_id', eventId);
     
     if (!countError) {
-      // Calculate the actual count based on the event type
-      let registrationCount = count;
+      // For duo events, calculate the actual count differently
+      // as one duo = 1 spot, not 2 spots
+      let finalCount = count;
       
-      // For duo events, we need to count pairs as a single registration
-      // so we count only the main registrants (those without isPartner flag)
       if (eventData.team_type === 'duo') {
-        const { count: mainRegistrantsCount, error: mainRegCountError } = await supabase
+        // Count the number of unique duos (each pair counts as 1)
+        const { data: registrations, error: regError } = await supabase
           .from('event_registrations')
-          .select('id', { count: 'exact', head: true })
-          .eq('event_id', eventId)
-          .not('notes', 'like', 'Auto-registered as partner of%');
-        
-        if (!mainRegCountError) {
-          registrationCount = mainRegistrantsCount;
-          console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+          .select('id, notes')
+          .eq('event_id', eventId);
           
-          // If we've deleted all registrations but the count is still showing as zero,
-          // make sure we explicitly set it to zero
-          if (registrationCount === 0 && eventData.registered_count > 0) {
-            console.log(`All registrations deleted, resetting count to 0`);
-          }
-        } else {
-          console.error('Error counting main registrants:', mainRegCountError);
+        if (!regError && registrations) {
+          // Count all registrations that aren't auto-registered partners
+          const mainRegistrationsCount = registrations.filter(
+            reg => !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
+          ).length;
+          
+          finalCount = mainRegistrationsCount;
+          console.log(`Duo event: Total registrations = ${count}, Main registrations = ${mainRegistrationsCount}`);
         }
       }
       
-      // Update the registered_count directly with the calculated count
+      // Update the registered_count with the corrected count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: registrationCount })
+        .update({ registered_count: finalCount })
         .eq('id', eventId)
         .select();
       
@@ -656,7 +550,7 @@ async function cancelRegistration(req, res, supabase, user) {
         console.error('Error updating event registered count:', updateError);
         // Continue anyway, as the registration was cancelled successfully
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${finalCount}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
