@@ -539,7 +539,7 @@
   background-color: rgba(26, 26, 26, 0.4);
 }
 
-.duoTeamHeader, .teamHeader {
+.teamHeader, .duoTeamHeader {
   background-color: rgba(26, 26, 26, 0.8);
   padding: 0.75rem 1rem;
   display: flex;
@@ -547,7 +547,7 @@
   border-bottom: 1px solid rgba(255, 215, 0, 0.3);
 }
 
-.duoTeamHeaderLabel, .teamHeaderLabel {
+.teamHeaderLabel, .duoTeamHeaderLabel {
   font-weight: 600;
   color: var(--primary-yellow);
   margin-left: 0.5rem;
@@ -771,16 +771,6 @@
   .metaLabel, .metaValue {
     font-size: 0.85rem;
   }
-}
-
-.duoTeamHeader {
-  display: none;
-}
-
-.duoTeamHeaderLabel {
-  font-size: 0.8rem;
-  color: #ffc107;
-  margin-bottom: 2px;
 }
 
 .teamIndicator {
