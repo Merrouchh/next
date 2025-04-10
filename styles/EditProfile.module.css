@@ -670,4 +670,15 @@
   color: #666;
   cursor: not-allowed;
   text-decoration: none;
+}
+
+.removeButton {
+  background-color: #3a2828 !important;
+  border-color: #3b2222 !important;
+  color: #ff5555 !important;
+}
+
+.removeButton:hover {
+  background-color: #4a3030 !important;
+  border-color: #ff5555 !important;
 } 

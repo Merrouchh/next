@@ -577,6 +577,69 @@ const PhoneSection = ({
     }
   };
 
+  const handleRemovePhone = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, phone: true }));
+      setMessage(prev => ({ ...prev, phone: { type: '', text: '' } }));
+      
+      // Call the server-side API to handle removal
+      const response = await fetch('/api/phone/remove-phone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          phone: phoneVerification.pendingPhone
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Remove phone API error:', errorData);
+        throw new Error(errorData.error || 'Failed to remove phone');
+      }
+      
+      // Update local user state and remove from websiteAccount
+      if (user) {
+        user.phone = null;
+        setWebsiteAccount(prev => ({
+          ...prev,
+          phone: null
+        }));
+      }
+      
+      // Reset phone verification state
+      setPhoneVerification({
+        isPending: false,
+        pendingPhone: '',
+        otpCode: ''
+      });
+      
+      setMessage(prev => ({
+        ...prev,
+        phone: { type: 'success', text: 'Phone number removed successfully!' }
+      }));
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setMessage(prev => ({
+          ...prev,
+          phone: { type: '', text: '' }
+        }));
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Error removing phone:', error);
+      setMessage(prev => ({
+        ...prev,
+        phone: { type: 'error', text: 'Failed to remove phone. Please try again.' }
+      }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, phone: false }));
+    }
+  };
+
   return (
     <div className={styles.subsection}>
       <h3>Mobile Phone</h3>
@@ -724,23 +787,37 @@ const PhoneSection = ({
               />
             </div>
             {!phoneVerification.isPending && (
-              <button
-                type="button"
-                className={styles.changeButton}
-                tabIndex="2"
-                onClick={() => {
-                  if (isChangingPhone) {
-                    // When cancelling, don't reset the phone field - just exit edit mode
-                    setIsChangingPhone(false);
-                    setMessage(prev => ({ ...prev, phone: { type: '', text: '' } }));
-                  } else {
-                    // When starting to change, just open the form
-                    setIsChangingPhone(true);
-                  }
-                }}
-              >
-                {isChangingPhone ? 'Cancel' : (user?.phone ? 'Change' : 'Add')}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={styles.changeButton}
+                  tabIndex="2"
+                  onClick={() => {
+                    if (isChangingPhone) {
+                      // When cancelling, don't reset the phone field - just exit edit mode
+                      setIsChangingPhone(false);
+                      setMessage(prev => ({ ...prev, phone: { type: '', text: '' } }));
+                    } else {
+                      // When starting to change, just open the form
+                      setIsChangingPhone(true);
+                    }
+                  }}
+                >
+                  {isChangingPhone ? 'Cancel' : (user?.phone ? 'Change' : 'Add')}
+                </button>
+                
+                {/* Add a remove button if the user has a phone number */}
+                {user?.phone && !isChangingPhone && (
+                  <button
+                    type="button"
+                    className={`${styles.changeButton} ${styles.removeButton}`}
+                    tabIndex="3"
+                    onClick={handleRemovePhone}
+                  >
+                    Remove
+                  </button>
+                )}
+              </>
             )}
           </div>
           <small className={styles.inputHint}>
