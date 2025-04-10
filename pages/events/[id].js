@@ -750,7 +750,7 @@ export default function EventDetail({ metaData }) {
     handleRegistration();
   };
   
-  // Modify the handleRegistration function to be consistent with button visibility
+  // Handle registration
   const handleRegistration = async () => {
     if (registrationStatus.isLoading) return;
     
@@ -784,12 +784,13 @@ export default function EventDetail({ metaData }) {
           body: JSON.stringify({ eventId: id })
         });
         
+        const data = await response.json();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to cancel registration');
+          // Display specific error message from API if available
+          throw new Error(data.message || 'Failed to cancel registration');
         }
         
-        const data = await response.json();
         toast.success(data.message || 'Registration cancelled successfully');
         
         setRegistrationStatus(prev => ({
@@ -822,12 +823,28 @@ export default function EventDetail({ metaData }) {
           })
         });
         
+        // Parse response data first to get any error messages
+        const data = await response.json();
+        
+        // Check if response was successful
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to register for event');
+          // Extract the specific error message, especially for team member errors
+          if (data.message && data.message.includes('team members are already registered')) {
+            // Make the error message more user-friendly
+            toast.error(data.message, { duration: 5000 });
+          } else if (data.message && data.message.includes('currently involved in another registration process')) {
+            // Show a more helpful message for concurrency issues
+            toast.error('This user is currently being registered by someone else. Please try again in a few moments.', 
+              { duration: 5000 });
+          } else {
+            // Generic error
+            toast.error(data.message || 'Failed to register for event');
+          }
+          setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+          return;
         }
         
-        const data = await response.json();
+        // Success!
         toast.success(data.message || 'Registered for event successfully');
         
         // Refresh registration status to get team members
