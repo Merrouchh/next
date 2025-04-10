@@ -266,8 +266,8 @@
   position: relative;
   z-index: 2;
   margin: 0;
-  height: auto;
-  min-height: 110px;
+  height: auto; /* Changed from fixed height to auto */
+  min-height: 120px; /* Increased from 110px to 120px to accommodate duo names */
   user-select: text; /* Allow text selection inside matches */
 }
 
@@ -361,9 +361,9 @@
   display: flex;
   align-items: center;
   color: #e0e0e0;
-  min-height: 40px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 30px;
+  height: auto;
+  overflow: visible;
   white-space: normal;
 }
 
@@ -852,42 +852,36 @@
 .duoParticipant {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   width: 100%;
-  padding: 3px 0;
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.primaryName, .partnerName {
+  font-size: 0.9rem;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .primaryName {
-  font-weight: 700;
-  color: #FFD700;
-  font-size: 1rem;
-  line-height: 1.1;
-  display: block;
+  font-weight: 600;
+  color: #e0e0e0;
 }
 
 .partnerName {
   font-size: 0.85rem;
-  color: #e0e0e0;
-  padding-left: 10px;
-  position: relative;
-  line-height: 1.1;
-  display: block;
+  font-style: italic;
+  opacity: 0.9;
+  color: #aaa;
 }
 
-.partnerName:before {
-  content: "•";
-  position: absolute;
-  left: 3px;
-  color: #FFD700;
-}
-
-/* Make winner highlighting work for both players in a duo */
-.participant.winner .primaryName,
-.participant.winner .partnerName {
-  color: #FFD700;
-}
-
-.participant.winner .partnerName:before {
-  color: #FFD700;
+.duoSeparator {
+  margin: 0 4px;
+  opacity: 0.7;
+  display: none;
 }
 
 /* Class to position the bracket at the top-left */

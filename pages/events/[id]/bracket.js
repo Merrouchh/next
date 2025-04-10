@@ -1082,7 +1082,6 @@ export default function EventBracket({ metaData }) {
                             {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant1Name || 'TBD'}</span>
-                                <span className={styles.duoSeparator}>with</span>
                                 <span className={styles.partnerName}>{participant1PartnerName}</span>
                               </div>
                             ) : (
@@ -1093,7 +1092,6 @@ export default function EventBracket({ metaData }) {
                             {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant2Name || 'TBD'}</span>
-                                <span className={styles.duoSeparator}>with</span>
                                 <span className={styles.partnerName}>{participant2PartnerName}</span>
                               </div>
                             ) : (
