@@ -192,6 +192,49 @@ async function registerForEvent(req, res, supabase, user) {
       return res.status(400).json({ message: 'You are already registered for this event' });
     }
     
+    // Additional check for duo events: check if the user is already a team member in this event
+    if (eventData.team_type === 'duo') {
+      // Get all registrations for this event
+      const { data: eventRegistrations, error: eventRegError } = await supabase
+        .from('event_registrations')
+        .select('id')
+        .eq('event_id', eventId);
+        
+      if (!eventRegError && eventRegistrations && eventRegistrations.length > 0) {
+        const registrationIds = eventRegistrations.map(reg => reg.id);
+        
+        // Check if the user is already a team member in any of these registrations
+        const { data: userAsTeamMember, error: teamMemberError } = await supabase
+          .from('event_team_members')
+          .select('registration_id')
+          .in('registration_id', registrationIds)
+          .eq('user_id', userId);
+          
+        if (!teamMemberError && userAsTeamMember && userAsTeamMember.length > 0) {
+          return res.status(400).json({ 
+            message: 'You are already participating in this event as a team member' 
+          });
+        }
+        
+        // Also check if any of the user's selected team members are already registered or team members
+        if (teamMembers && teamMembers.length > 0) {
+          // Check if any team members are already participating
+          const { data: teamMembersParticipating, error: teamParticipatingError } = await supabase
+            .from('event_team_members')
+            .select('user_id, username')
+            .in('registration_id', registrationIds)
+            .in('user_id', teamMembers.map(member => member.userId));
+            
+          if (!teamParticipatingError && teamMembersParticipating && teamMembersParticipating.length > 0) {
+            const alreadyParticipating = teamMembersParticipating.map(member => member.username).join(', ');
+            return res.status(400).json({ 
+              message: `The following team members are already participating in this event: ${alreadyParticipating}` 
+            });
+          }
+        }
+      }
+    }
+    
     // Validate team members if this is a team event
     if (eventData.team_type !== 'solo') {
       // Check if team members are provided for duo/team events
