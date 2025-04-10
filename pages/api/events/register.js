@@ -349,31 +349,30 @@ async function registerForEvent(req, res, supabase, user) {
       .eq('event_id', eventId);
     
     if (!countError) {
-      // For duo events, calculate the correct count (where each duo counts as 1 slot)
-      let adjustedCount = count;
+      // Calculate the actual count based on the event type
+      let registrationCount = count;
       
+      // For duo events, we need to count pairs as a single registration
+      // so we count only the main registrants (those without isPartner flag)
       if (eventData.team_type === 'duo') {
-        // Query all registrations for this event
-        const { data: registrations, error: regQueryError } = await supabase
+        const { count: mainRegistrantsCount, error: mainRegCountError } = await supabase
           .from('event_registrations')
-          .select('id, notes')
-          .eq('event_id', eventId);
-          
-        if (!regQueryError && registrations) {
-          // Count only main registrants (not auto-registered partners)
-          const mainRegistrantCount = registrations.filter(reg => 
-            !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
-          ).length;
-          
-          adjustedCount = mainRegistrantCount;
-          console.log(`Adjusted count for duo event: ${adjustedCount} (original count: ${count})`);
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', eventId)
+          .not('notes', 'like', 'Auto-registered as partner of%');
+        
+        if (!mainRegCountError) {
+          registrationCount = mainRegistrantsCount;
+          console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+        } else {
+          console.error('Error counting main registrants:', mainRegCountError);
         }
       }
       
-      // Update the registered_count with the adjusted count
+      // Update the registered_count directly with the calculated count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: adjustedCount })
+        .update({ registered_count: registrationCount })
         .eq('id', eventId)
         .select();
       
@@ -381,7 +380,7 @@ async function registerForEvent(req, res, supabase, user) {
         console.error('Error updating event registered count:', updateError);
         // Continue anyway, as the registration was successful
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${adjustedCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
@@ -516,39 +515,38 @@ async function cancelRegistration(req, res, supabase, user) {
       .eq('event_id', eventId);
     
     if (!countError) {
-      // For duo events, calculate the correct count (where each duo counts as 1 slot)
-      let adjustedCount = count;
+      // Calculate the actual count based on the event type
+      let registrationCount = count;
       
+      // For duo events, we need to count pairs as a single registration
+      // so we count only the main registrants (those without isPartner flag)
       if (eventData.team_type === 'duo') {
-        // Query all registrations for this event
-        const { data: registrations, error: regQueryError } = await supabase
+        const { count: mainRegistrantsCount, error: mainRegCountError } = await supabase
           .from('event_registrations')
-          .select('id, notes')
-          .eq('event_id', eventId);
-          
-        if (!regQueryError && registrations) {
-          // Count only main registrants (not auto-registered partners)
-          const mainRegistrantCount = registrations.filter(reg => 
-            !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
-          ).length;
-          
-          adjustedCount = mainRegistrantCount;
-          console.log(`Adjusted count for duo event: ${adjustedCount} (original count: ${count})`);
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', eventId)
+          .not('notes', 'like', 'Auto-registered as partner of%');
+        
+        if (!mainRegCountError) {
+          registrationCount = mainRegistrantsCount;
+          console.log(`Duo event: Using main registrants count ${mainRegistrantsCount} instead of total count ${count}`);
+        } else {
+          console.error('Error counting main registrants:', mainRegCountError);
         }
       }
       
-      // Update the registered_count with the adjusted count
+      // Update the registered_count directly with the calculated count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: adjustedCount })
+        .update({ registered_count: registrationCount })
         .eq('id', eventId)
         .select();
       
       if (updateError) {
         console.error('Error updating event registered count:', updateError);
-        // Continue anyway, as the registration was successful
+        // Continue anyway, as the registration was cancelled successfully
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${adjustedCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
