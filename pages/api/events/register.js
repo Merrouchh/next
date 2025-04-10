@@ -318,11 +318,11 @@ async function registerForEvent(req, res, supabase, user) {
           } else {
             console.log(`Successfully registered partner ${partner.username} for event ${eventId}`);
             
-            // Add the main registrant as a team member for the partner
+            // Add the original user as the partner's team member
             const { error: partnerTeamMemberError } = await supabase
               .from('event_team_members')
               .insert([
-                { 
+                {
                   registration_id: partnerRegistration.id,
                   user_id: userId,
                   username: username
@@ -330,8 +330,8 @@ async function registerForEvent(req, res, supabase, user) {
               ]);
             
             if (partnerTeamMemberError) {
-              console.error('Error adding team member to partner registration:', partnerTeamMemberError);
-              // Continue anyway, registration is still successful
+              console.error('Error adding team member for partner:', partnerTeamMemberError);
+              // Continue anyway
             } else {
               console.log(`Successfully added ${username} as team member for partner ${partner.username}`);
             }
@@ -342,68 +342,65 @@ async function registerForEvent(req, res, supabase, user) {
       }
     }
     
+    // After registering, update the registration count for the event
     // Get the current count of registrations for this event
-    // For duo/team events, we need to count teams not individual registrations
-    let registrationCount;
-
-    if (eventData.team_type === 'solo') {
+    if (eventData.team_type === 'duo') {
+      // For duo events, count only main registrants
+      const { data: mainRegistrations, error: mainCountError } = await supabase
+        .from('event_registrations')
+        .select('id')
+        .eq('event_id', eventId)
+        .not('notes', 'ilike', 'Auto-registered as partner of%');
+      
+      if (!mainCountError && mainRegistrations) {
+        const mainRegistrantCount = mainRegistrations.length;
+        console.log(`For duo event ${eventId}, found ${mainRegistrantCount} main registrants`);
+        
+        // Update the registered_count directly with the count of teams (main registrants)
+        const { data: updatedEvent, error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: mainRegistrantCount })
+          .eq('id', eventId)
+          .select();
+        
+        if (updateError) {
+          console.error('Error updating event registered count:', updateError);
+          // Continue anyway, as the registration was successful
+        } else {
+          console.log(`Successfully updated duo event ${eventId} registration count to ${mainRegistrantCount}`);
+        }
+      } else {
+        console.error('Error counting main registrations:', mainCountError);
+      }
+    } else {
       // For solo events, count all registrations
       const { count, error: countError } = await supabase
         .from('event_registrations')
         .select('id', { count: 'exact', head: true })
         .eq('event_id', eventId);
+      
+      if (!countError) {
+        // Update the registered_count directly with the actual count
+        const { data: updatedEvent, error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: count })
+          .eq('id', eventId)
+          .select();
         
-      if (countError) {
+        if (updateError) {
+          console.error('Error updating event registered count:', updateError);
+          // Continue anyway, as the registration was successful
+        } else {
+          console.log(`Successfully updated event ${eventId} registration count to ${count}`);
+        }
+      } else {
         console.error('Error counting registrations:', countError);
-        registrationCount = count;
-      } else {
-        registrationCount = count;
-      }
-    } else if (eventData.team_type === 'duo') {
-      // For duo events, count main registrants only (exclude partners)
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as partner of%');
-        
-      if (countError) {
-        console.error('Error counting team registrations:', countError);
-        registrationCount = count;
-      } else {
-        registrationCount = count;
-      }
-    } else {
-      // For team events, count team leaders only
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-        
-      if (countError) {
-        console.error('Error counting team registrations:', countError);
-        registrationCount = count;
-      } else {
-        registrationCount = count;
       }
     }
-
-    // Update the registered_count directly with the count of teams
-    const { data: updatedEvent, error: updateError } = await supabase
-      .from('events')
-      .update({ registered_count: registrationCount })
-      .eq('id', eventId)
-      .select();
-
-    if (updateError) {
-      console.error('Error updating event registered count:', updateError);
-      // Continue anyway, registration is still successful
-    } else {
-      console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
-    }
-
-    return res.status(201).json({ 
-      message: `Successfully registered for ${eventData.title}${teamMembers ? ' with your team' : ''}` 
+    
+    return res.status(201).json({
+      message: `Successfully registered for ${eventData.title}`,
+      registration: registration
     });
   } catch (error) {
     console.error('Error registering for event:', error);
@@ -524,63 +521,58 @@ async function cancelRegistration(req, res, supabase, user) {
     }
     
     // Get the current count of registrations for this event
-    // For duo/team events, we need to count teams not individual registrations
-    let registrationCount;
-
-    if (eventData.team_type === 'solo') {
+    if (eventData.team_type === 'duo') {
+      // For duo events, count only main registrants
+      const { data: mainRegistrations, error: mainCountError } = await supabase
+        .from('event_registrations')
+        .select('id')
+        .eq('event_id', eventId)
+        .not('notes', 'ilike', 'Auto-registered as partner of%');
+      
+      if (!mainCountError && mainRegistrations) {
+        const mainRegistrantCount = mainRegistrations.length;
+        console.log(`For duo event ${eventId}, found ${mainRegistrantCount} main registrants after cancellation`);
+        
+        // Update the registered_count directly with the count of teams (main registrants)
+        const { data: updatedEvent, error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: mainRegistrantCount })
+          .eq('id', eventId)
+          .select();
+        
+        if (updateError) {
+          console.error('Error updating event registered count:', updateError);
+          // Continue anyway, as the registration was cancelled successfully
+        } else {
+          console.log(`Successfully updated duo event ${eventId} registration count to ${mainRegistrantCount}`);
+        }
+      } else {
+        console.error('Error counting main registrations:', mainCountError);
+      }
+    } else {
       // For solo events, count all registrations
       const { count, error: countError } = await supabase
         .from('event_registrations')
         .select('id', { count: 'exact', head: true })
         .eq('event_id', eventId);
+      
+      if (!countError) {
+        // Update the registered_count directly with the actual count
+        const { data: updatedEvent, error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: count })
+          .eq('id', eventId)
+          .select();
         
-      if (countError) {
+        if (updateError) {
+          console.error('Error updating event registered count:', updateError);
+          // Continue anyway, as the registration was cancelled successfully
+        } else {
+          console.log(`Successfully updated event ${eventId} registration count to ${count}`);
+        }
+      } else {
         console.error('Error counting registrations:', countError);
-        registrationCount = Math.max(0, (eventData.registered_count || 0) - 1);
-      } else {
-        registrationCount = count;
       }
-    } else if (eventData.team_type === 'duo') {
-      // For duo events, count main registrants only (exclude partners)
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as partner of%');
-        
-      if (countError) {
-        console.error('Error counting team registrations:', countError);
-        registrationCount = Math.max(0, (eventData.registered_count || 0) - 1);
-      } else {
-        registrationCount = count;
-      }
-    } else {
-      // For team events, count team leaders only
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-        
-      if (countError) {
-        console.error('Error counting team registrations:', countError);
-        registrationCount = Math.max(0, (eventData.registered_count || 0) - 1);
-      } else {
-        registrationCount = count;
-      }
-    }
-
-    // Update the registered_count directly with the count of teams
-    const { data: updatedEvent, error: updateError } = await supabase
-      .from('events')
-      .update({ registered_count: registrationCount })
-      .eq('id', eventId)
-      .select();
-
-    if (updateError) {
-      console.error('Error updating event registered count:', updateError);
-      // Continue anyway, as the registration was cancelled successfully
-    } else {
-      console.log(`Successfully updated event ${eventId} registration count to ${registrationCount}`);
     }
     
     return res.status(200).json({
