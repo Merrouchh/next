@@ -213,10 +213,17 @@ async function registerForEvent(req, res, supabase, user) {
       
       // Start a transaction for concurrent registration check
       // This will ensure that no race condition can occur
+      let hasTransactionSupport = true;
       const { error: transactionError } = await supabase.rpc('begin_transaction');
       if (transactionError) {
-        console.error('Error starting transaction:', transactionError);
-        // If transaction doesn't work, we'll still use our regular checks
+        // Check if this is just because the function doesn't exist yet
+        if (transactionError.code === 'PGRST202') {
+          // Silently continue without transaction support
+          hasTransactionSupport = false;
+        } else {
+          // Log other unexpected errors
+          console.error('Error starting transaction:', transactionError);
+        }
       }
       
       try {
@@ -228,7 +235,11 @@ async function registerForEvent(req, res, supabase, user) {
           .in('user_id', teamMemberIds);
         
         if (existingTeamMembers && existingTeamMembers.length > 0) {
-          await supabase.rpc('rollback_transaction');
+          if (hasTransactionSupport) {
+            await supabase.rpc('rollback_transaction').catch(() => {
+              // Silently handle rollback errors
+            });
+          }
           const alreadyRegistered = existingTeamMembers.map(member => member.username).join(', ');
           return res.status(400).json({ 
             message: `The following team members are already registered for this event: ${alreadyRegistered}` 
@@ -241,31 +252,42 @@ async function registerForEvent(req, res, supabase, user) {
           const partnerId = teamMembers[0].userId;
           
           // Check for pending registrations involving this partner
-          const { data: pendingRegistrations, error: pendingError } = await supabase
-            .from('event_registration_locks')
-            .select('*')
-            .or(`user_id.eq.${partnerId},partner_id.eq.${userId}`);
-          
-          if (!pendingError && pendingRegistrations && pendingRegistrations.length > 0) {
-            await supabase.rpc('rollback_transaction');
-            return res.status(409).json({ 
-              message: 'This user is currently involved in another registration process. Please try again in a few moments.' 
-            });
+          // Only do this if we have the event_registration_locks table
+          try {
+            const { data: pendingRegistrations, error: pendingError } = await supabase
+              .from('event_registration_locks')
+              .select('*')
+              .or(`user_id.eq.${partnerId},partner_id.eq.${userId}`);
+            
+            if (!pendingError && pendingRegistrations && pendingRegistrations.length > 0) {
+              if (hasTransactionSupport) {
+                await supabase.rpc('rollback_transaction').catch(() => {
+                  // Silently handle rollback errors
+                });
+              }
+              return res.status(409).json({ 
+                message: 'This user is currently involved in another registration process. Please try again in a few moments.' 
+              });
+            }
+          } catch (lockError) {
+            // If the locks table doesn't exist yet, silently continue
+            console.log('Registration locks not supported yet, continuing without lock check');
           }
           
           // Create a registration lock to prevent concurrent registrations
-          const { error: lockError } = await supabase
-            .from('event_registration_locks')
-            .insert([{
-              user_id: userId,
-              partner_id: partnerId,
-              event_id: eventId,
-              expires_at: new Date(Date.now() + 30000) // Lock for 30 seconds
-            }]);
-          
-          if (lockError) {
-            console.error('Error creating registration lock:', lockError);
-            // If we can't create a lock, we'll continue but there's a small risk of race condition
+          // Only do this if we have the event_registration_locks table
+          try {
+            await supabase
+              .from('event_registration_locks')
+              .insert([{
+                user_id: userId,
+                partner_id: partnerId,
+                event_id: eventId,
+                expires_at: new Date(Date.now() + 30000) // Lock for 30 seconds
+              }]);
+          } catch (lockError) {
+            // If the locks table doesn't exist yet, silently continue
+            console.log('Registration locks not supported yet, continuing without lock creation');
           }
         }
         
@@ -284,7 +306,11 @@ async function registerForEvent(req, res, supabase, user) {
           .single();
         
         if (regError) {
-          await supabase.rpc('rollback_transaction');
+          if (hasTransactionSupport) {
+            await supabase.rpc('rollback_transaction').catch(() => {
+              // Silently handle rollback errors
+            });
+          }
           throw regError;
         }
         
@@ -312,7 +338,11 @@ async function registerForEvent(req, res, supabase, user) {
               .delete()
               .eq('id', registration.id);
             
-            await supabase.rpc('rollback_transaction');
+            if (hasTransactionSupport) {
+              await supabase.rpc('rollback_transaction').catch(() => {
+                // Silently handle rollback errors
+              });
+            }
             throw new Error(`Failed to add team members: ${teamMemberError.message}`);
           } else {
             console.log(`Successfully added team members for event ${eventId}`);
@@ -345,14 +375,22 @@ async function registerForEvent(req, res, supabase, user) {
               
               if (updateRegError) {
                 console.error('Error updating registration with partner info:', updateRegError);
-                await supabase.rpc('rollback_transaction');
+                if (hasTransactionSupport) {
+                  await supabase.rpc('rollback_transaction').catch(() => {
+                    // Silently handle rollback errors
+                  });
+                }
                 throw updateRegError;
               } else {
                 console.log(`Successfully added partner info to registration for event ${eventId}`);
               }
             } else {
               console.log(`Partner ${partner.username} is already registered for event ${eventId}`);
-              await supabase.rpc('rollback_transaction');
+              if (hasTransactionSupport) {
+                await supabase.rpc('rollback_transaction').catch(() => {
+                  // Silently handle rollback errors
+                });
+              }
               return res.status(400).json({ 
                 message: `Partner ${partner.username} is already registered for this event` 
               });
@@ -361,14 +399,22 @@ async function registerForEvent(req, res, supabase, user) {
         }
         
         // Commit the transaction if successful
-        await supabase.rpc('commit_transaction');
+        if (hasTransactionSupport) {
+          await supabase.rpc('commit_transaction').catch(() => {
+            // Silently handle commit errors
+          });
+        }
         
         // Clean up any registration locks
         if (eventData.team_type === 'duo') {
-          await supabase
-            .from('event_registration_locks')
-            .delete()
-            .eq('user_id', userId);
+          try {
+            await supabase
+              .from('event_registration_locks')
+              .delete()
+              .eq('user_id', userId);
+          } catch (error) {
+            // If the locks table doesn't exist yet, silently continue
+          }
         }
         
         // Get the current count of registrations for this event
@@ -403,7 +449,11 @@ async function registerForEvent(req, res, supabase, user) {
         });
       } catch (txError) {
         // If anything fails, ensure the transaction is rolled back
-        await supabase.rpc('rollback_transaction');
+        if (hasTransactionSupport) {
+          await supabase.rpc('rollback_transaction').catch(() => {
+            // Silently handle rollback errors
+          });
+        }
         console.error('Transaction error during registration:', txError);
         throw txError;
       }
@@ -560,6 +610,12 @@ async function cancelRegistration(req, res, supabase, user) {
     } else {
       console.error('Error counting registrations:', countError);
     }
+    
+    // Force the supabase realtime system to broadcast this delete to all clients
+    // This ensures all connected clients get a notification even if they didn't trigger the delete
+    await supabase.from('event_registrations').update({ 
+      event_id: eventId  // We're just setting the same value to force a change notification
+    }).eq('event_id', eventId).is('user_id', null);
     
     return res.status(200).json({
       message: `Successfully cancelled registration for ${eventData.title}`
