@@ -346,6 +346,29 @@ const PhoneSection = ({
         const errorMessage = responseData.message || responseData.error || 'Failed to verify code';
         console.debug('Verification API error:', errorMessage);
         
+        // Special handling for phone already in use
+        if (responseData.error === 'phone_already_used') {
+          setMessage(prev => ({
+            ...prev,
+            phone: { 
+              type: 'error', 
+              text: 'This phone number is already associated with another account. Please use a different phone number.'
+            }
+          }));
+          
+          // Close modal and reset verification state
+          setShowOtpModal(false);
+          setPhoneVerification({
+            isPending: false,
+            pendingPhone: '',
+            otpCode: ''
+          });
+          setVerificationDetails(null);
+          
+          setIsLoading(prev => ({ ...prev, phone: false }));
+          return;
+        }
+        
         // Handle the error directly without throwing
         setMessage(prev => ({
           ...prev,
