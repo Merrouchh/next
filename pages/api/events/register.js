@@ -283,7 +283,7 @@ async function registerForEvent(req, res, supabase, user) {
           .single();
         
         if (!partnerReg) {
-          console.log(`Registering partner ${partner.username} (${partner.userId}) for event ${eventId}`);
+          console.log(`Adding partner ${partner.username} (${partner.userId}) as team member for event ${eventId}`);
           
           // Get the partner's user data to ensure we have their email
           const { data: partnerUserData, error: partnerUserError } = await supabase
@@ -298,43 +298,20 @@ async function registerForEvent(req, res, supabase, user) {
             console.log(`Partner ${partner.username} email: ${partnerUserData?.email || 'Not found'}`);
           }
           
-          // Register the partner
-          const { data: partnerRegistration, error: partnerRegError } = await supabase
+          // Instead of creating a separate registration for the partner, 
+          // we'll just note in the main registration that this is a duo
+          const { data: updatedReg, error: updateRegError } = await supabase
             .from('event_registrations')
-            .insert([
-              { 
-                event_id: eventId,
-                user_id: partner.userId,
-                username: partner.username,
-                notes: `Auto-registered as partner of ${username}`
-              }
-            ])
-            .select()
-            .single();
+            .update({ 
+              notes: notes ? `${notes} | Duo partner: ${partner.username}` : `Duo partner: ${partner.username}`
+            })
+            .eq('id', registration.id)
+            .select();
           
-          if (partnerRegError) {
-            console.error('Error registering partner:', partnerRegError);
-            // Continue anyway, as the main registration was successful
+          if (updateRegError) {
+            console.error('Error updating registration with partner info:', updateRegError);
           } else {
-            console.log(`Successfully registered partner ${partner.username} for event ${eventId}`);
-            
-            // Add the original user as the partner's team member
-            const { error: partnerTeamMemberError } = await supabase
-              .from('event_team_members')
-              .insert([
-                {
-                  registration_id: partnerRegistration.id,
-                  user_id: userId,
-                  username: username
-                }
-              ]);
-            
-            if (partnerTeamMemberError) {
-              console.error('Error adding team member for partner:', partnerTeamMemberError);
-              // Continue anyway
-            } else {
-              console.log(`Successfully added ${username} as team member for partner ${partner.username}`);
-            }
+            console.log(`Successfully added partner info to registration for event ${eventId}`);
           }
         } else {
           console.log(`Partner ${partner.username} is already registered for event ${eventId}`);
@@ -343,38 +320,18 @@ async function registerForEvent(req, res, supabase, user) {
     }
     
     // Get the current count of registrations for this event
+    // Since we no longer create separate records for duo partners,
+    // we can use the direct count without special handling
     const { count, error: countError } = await supabase
       .from('event_registrations')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', eventId);
     
     if (!countError) {
-      // For duo events, calculate the actual count differently
-      // as one duo = 1 spot, not 2 spots
-      let finalCount = count;
-      
-      if (eventData.team_type === 'duo') {
-        // Count the number of unique duos (each pair counts as 1)
-        const { data: registrations, error: regError } = await supabase
-          .from('event_registrations')
-          .select('id, notes')
-          .eq('event_id', eventId);
-          
-        if (!regError && registrations) {
-          // Count all registrations that aren't auto-registered partners
-          const mainRegistrationsCount = registrations.filter(
-            reg => !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
-          ).length;
-          
-          finalCount = mainRegistrationsCount;
-          console.log(`Duo event: Total registrations = ${count}, Main registrations = ${mainRegistrationsCount}`);
-        }
-      }
-      
-      // Update the registered_count with the corrected count
+      // Update the registered_count with the actual count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: finalCount })
+        .update({ registered_count: count })
         .eq('id', eventId)
         .select();
       
@@ -382,7 +339,7 @@ async function registerForEvent(req, res, supabase, user) {
         console.error('Error updating event registered count:', updateError);
         // Continue anyway, as the registration was successful
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${finalCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${count}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
@@ -439,51 +396,13 @@ async function cancelRegistration(req, res, supabase, user) {
       return res.status(400).json({ message: 'You are not registered for this event' });
     }
     
-    // For duo events, check if we need to cancel partner's registration too
+    // For duo events, we no longer need special handling for cancellation
+    // since partners are stored as team members, not separate registrations
     if (eventData.team_type === 'duo') {
-      // Get the user's team member (partner)
-      const { data: teamMembers, error: teamMembersError } = await supabase
-        .from('event_team_members')
-        .select('user_id')
-        .eq('registration_id', registration.id);
+      console.log('Cancelling duo registration, team members will be deleted automatically');
       
-      if (!teamMembersError && teamMembers && teamMembers.length > 0) {
-        const partnerId = teamMembers[0].user_id;
-        
-        // Find the partner's registration
-        const { data: partnerRegistration, error: partnerRegError } = await supabase
-          .from('event_registrations')
-          .select('id')
-          .eq('event_id', eventId)
-          .eq('user_id', partnerId)
-          .single();
-        
-        if (!partnerRegError && partnerRegistration) {
-          // Delete the partner's team members first
-          const { error: partnerTeamDeleteError } = await supabase
-            .from('event_team_members')
-            .delete()
-            .eq('registration_id', partnerRegistration.id);
-          
-          if (partnerTeamDeleteError) {
-            console.error('Error deleting partner team members:', partnerTeamDeleteError);
-            // Continue anyway
-          }
-          
-          // Delete the partner's registration
-          const { error: partnerDeleteError } = await supabase
-            .from('event_registrations')
-            .delete()
-            .eq('id', partnerRegistration.id);
-          
-          if (partnerDeleteError) {
-            console.error('Error deleting partner registration:', partnerDeleteError);
-            // Continue anyway
-          } else {
-            console.log(`Successfully cancelled partner registration for event ${eventId}`);
-          }
-        }
-      }
+      // Note: We don't need to look for partner registrations anymore
+      // since we're not creating them in the first place
     }
     
     // If this is a team event, delete team members first
@@ -517,32 +436,10 @@ async function cancelRegistration(req, res, supabase, user) {
       .eq('event_id', eventId);
     
     if (!countError) {
-      // For duo events, calculate the actual count differently
-      // as one duo = 1 spot, not 2 spots
-      let finalCount = count;
-      
-      if (eventData.team_type === 'duo') {
-        // Count the number of unique duos (each pair counts as 1)
-        const { data: registrations, error: regError } = await supabase
-          .from('event_registrations')
-          .select('id, notes')
-          .eq('event_id', eventId);
-          
-        if (!regError && registrations) {
-          // Count all registrations that aren't auto-registered partners
-          const mainRegistrationsCount = registrations.filter(
-            reg => !reg.notes || !reg.notes.startsWith('Auto-registered as partner of ')
-          ).length;
-          
-          finalCount = mainRegistrationsCount;
-          console.log(`Duo event: Total registrations = ${count}, Main registrations = ${mainRegistrationsCount}`);
-        }
-      }
-      
-      // Update the registered_count with the corrected count
+      // Update the registered_count with the actual count
       const { data: updatedEvent, error: updateError } = await supabase
         .from('events')
-        .update({ registered_count: finalCount })
+        .update({ registered_count: count })
         .eq('id', eventId)
         .select();
       
@@ -550,7 +447,7 @@ async function cancelRegistration(req, res, supabase, user) {
         console.error('Error updating event registered count:', updateError);
         // Continue anyway, as the registration was cancelled successfully
       } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${finalCount}`);
+        console.log(`Successfully updated event ${eventId} registration count to ${count}`);
       }
     } else {
       console.error('Error counting registrations:', countError);
