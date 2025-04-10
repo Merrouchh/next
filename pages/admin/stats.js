@@ -96,8 +96,17 @@ export default function AdminStats() {
   const processShifts = (shifts) => {
     if (!shifts || shifts.length < 2) return shifts;
     
+    // Filter out shifts where both startCash and expected are 0
+    const validShifts = shifts.filter(shift => {
+      const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
+      const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
+      return !(startCash === 0 && expected === 0);
+    });
+    
+    if (validShifts.length < 2) return validShifts;
+    
     // Sort shifts by start time
-    const sortedShifts = [...shifts].sort((a, b) => 
+    const sortedShifts = [...validShifts].sort((a, b) => 
       new Date(a.startTime) - new Date(b.startTime)
     );
     
@@ -209,14 +218,21 @@ export default function AdminStats() {
       totalDuration: shiftReports.totalDuration
     });
 
+    // Filter out shifts where both startCash and expected are 0
+    const validShifts = shiftReports.shifts.filter(shift => {
+      const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
+      const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
+      return !(startCash === 0 && expected === 0);
+    });
+
     // Find active shift (or the last shift if none are active)
-    const activeShift = shiftReports.shifts.find(shift => shift.isActive) || 
-                        shiftReports.shifts[shiftReports.shifts.length - 1];
+    const activeShift = validShifts.find(shift => shift.isActive) || 
+                        (validShifts.length > 0 ? validShifts[validShifts.length - 1] : null);
     
     const activeShiftExpected = activeShift ? activeShift.expected || 0 : 0;
 
     // For custom calculations from all shifts (active and closed)
-    const calculatedTotals = shiftReports.shifts.reduce((acc, shift) => {
+    const calculatedTotals = validShifts.reduce((acc, shift) => {
       // Calculate cash payouts from payment method details if available
       let shiftCashPayouts = 0;
       let shiftTotalPayouts = 0;
@@ -557,15 +573,22 @@ export default function AdminStats() {
                   </thead>
                   <tbody>
                     {shiftReports.shifts && shiftReports.shifts.length > 0 ? (
-                      shiftReports.shifts.map((shift) => (
-                        <ShiftRow 
-                          key={shift.shiftId}
-                          shift={shift}
-                          formatDate={formatDate}
-                          formatCurrency={formatCurrency}
-                          styles={styles}
-                        />
-                      ))
+                      shiftReports.shifts
+                        // Filter out rows where both startCash and expected are 0 or undefined/null
+                        .filter(shift => {
+                          const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
+                          const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
+                          return !(startCash === 0 && expected === 0);
+                        })
+                        .map((shift) => (
+                          <ShiftRow 
+                            key={shift.shiftId}
+                            shift={shift}
+                            formatDate={formatDate}
+                            formatCurrency={formatCurrency}
+                            styles={styles}
+                          />
+                        ))
                     ) : (
                       <tr>
                         <td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>
