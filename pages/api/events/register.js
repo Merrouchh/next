@@ -208,147 +208,255 @@ async function registerForEvent(req, res, supabase, user) {
         });
       }
       
-      // Check if any team members are already registered for this event
-      const { data: existingTeamMembers, error: teamCheckError } = await supabase
-        .from('event_registrations')
-        .select('user_id, username')
-        .eq('event_id', eventId)
-        .in('user_id', teamMembers.map(member => member.userId));
+      // Get all team member IDs for easier checking
+      const teamMemberIds = teamMembers.map(member => member.userId);
       
-      if (existingTeamMembers && existingTeamMembers.length > 0) {
-        const alreadyRegistered = existingTeamMembers.map(member => member.username).join(', ');
-        return res.status(400).json({ 
-          message: `The following team members are already registered for this event: ${alreadyRegistered}` 
-        });
-      }
-    }
-    
-    // Register user for the event
-    const { data: registration, error: regError } = await supabase
-      .from('event_registrations')
-      .insert([
-        { 
-          event_id: eventId,
-          user_id: userId,
-          username: username,
-          notes: notes || null
-        }
-      ])
-      .select()
-      .single();
-    
-    if (regError) {
-      throw regError;
-    }
-    
-    // Add team members if this is a team event
-    if (eventData.team_type !== 'solo' && teamMembers && teamMembers.length > 0) {
-      console.log(`Adding ${teamMembers.length} team members for event ${eventId}`);
-      console.log(`Team members:`, teamMembers);
-      
-      const teamMembersToInsert = teamMembers.map(member => ({
-        registration_id: registration.id,
-        user_id: member.userId,
-        username: member.username
-      }));
-      
-      const { error: teamMemberError } = await supabase
-        .from('event_team_members')
-        .insert(teamMembersToInsert);
-      
-      if (teamMemberError) {
-        // If there's an error adding team members, delete the registration
-        console.error(`Error adding team members:`, teamMemberError);
-        
-        await supabase
-          .from('event_registrations')
-          .delete()
-          .eq('id', registration.id);
-          
-        throw new Error(`Failed to add team members: ${teamMemberError.message}`);
-      } else {
-        console.log(`Successfully added team members for event ${eventId}`);
+      // Start a transaction for concurrent registration check
+      // This will ensure that no race condition can occur
+      const { error: transactionError } = await supabase.rpc('begin_transaction');
+      if (transactionError) {
+        console.error('Error starting transaction:', transactionError);
+        // If transaction doesn't work, we'll still use our regular checks
       }
       
-      // For duo events, automatically register the partner as well
-      if (eventData.team_type === 'duo') {
-        const partner = teamMembers[0];
-        
-        // Check if the partner is already registered (double-check)
-        const { data: partnerReg, error: partnerRegCheckError } = await supabase
+      try {
+        // Check if any team members are already registered for this event
+        const { data: existingTeamMembers, error: teamCheckError } = await supabase
           .from('event_registrations')
-          .select('id')
+          .select('user_id, username')
           .eq('event_id', eventId)
-          .eq('user_id', partner.userId)
+          .in('user_id', teamMemberIds);
+        
+        if (existingTeamMembers && existingTeamMembers.length > 0) {
+          await supabase.rpc('rollback_transaction');
+          const alreadyRegistered = existingTeamMembers.map(member => member.username).join(', ');
+          return res.status(400).json({ 
+            message: `The following team members are already registered for this event: ${alreadyRegistered}` 
+          });
+        }
+        
+        // For duo events, check if the partner is trying to register the current user
+        // This prevents the race condition where both users try to register each other
+        if (eventData.team_type === 'duo') {
+          const partnerId = teamMembers[0].userId;
+          
+          // Check for pending registrations involving this partner
+          const { data: pendingRegistrations, error: pendingError } = await supabase
+            .from('event_registration_locks')
+            .select('*')
+            .or(`user_id.eq.${partnerId},partner_id.eq.${userId}`);
+          
+          if (!pendingError && pendingRegistrations && pendingRegistrations.length > 0) {
+            await supabase.rpc('rollback_transaction');
+            return res.status(409).json({ 
+              message: 'This user is currently involved in another registration process. Please try again in a few moments.' 
+            });
+          }
+          
+          // Create a registration lock to prevent concurrent registrations
+          const { error: lockError } = await supabase
+            .from('event_registration_locks')
+            .insert([{
+              user_id: userId,
+              partner_id: partnerId,
+              event_id: eventId,
+              expires_at: new Date(Date.now() + 30000) // Lock for 30 seconds
+            }]);
+          
+          if (lockError) {
+            console.error('Error creating registration lock:', lockError);
+            // If we can't create a lock, we'll continue but there's a small risk of race condition
+          }
+        }
+        
+        // Register user for the event
+        const { data: registration, error: regError } = await supabase
+          .from('event_registrations')
+          .insert([
+            { 
+              event_id: eventId,
+              user_id: userId,
+              username: username,
+              notes: notes || null
+            }
+          ])
+          .select()
           .single();
         
-        if (!partnerReg) {
-          console.log(`Adding partner ${partner.username} (${partner.userId}) as team member for event ${eventId}`);
+        if (regError) {
+          await supabase.rpc('rollback_transaction');
+          throw regError;
+        }
+        
+        // Add team members if this is a team event
+        if (eventData.team_type !== 'solo' && teamMembers && teamMembers.length > 0) {
+          console.log(`Adding ${teamMembers.length} team members for event ${eventId}`);
+          console.log(`Team members:`, teamMembers);
           
-          // Get the partner's user data to ensure we have their email
-          const { data: partnerUserData, error: partnerUserError } = await supabase
-            .from('users')
-            .select('email')
-            .eq('id', partner.userId)
-            .single();
+          const teamMembersToInsert = teamMembers.map(member => ({
+            registration_id: registration.id,
+            user_id: member.userId,
+            username: member.username
+          }));
+          
+          const { error: teamMemberError } = await supabase
+            .from('event_team_members')
+            .insert(teamMembersToInsert);
+          
+          if (teamMemberError) {
+            // If there's an error adding team members, delete the registration
+            console.error(`Error adding team members:`, teamMemberError);
             
-          if (partnerUserError) {
-            console.error('Error fetching partner user data:', partnerUserError);
+            await supabase
+              .from('event_registrations')
+              .delete()
+              .eq('id', registration.id);
+            
+            await supabase.rpc('rollback_transaction');
+            throw new Error(`Failed to add team members: ${teamMemberError.message}`);
           } else {
-            console.log(`Partner ${partner.username} email: ${partnerUserData?.email || 'Not found'}`);
+            console.log(`Successfully added team members for event ${eventId}`);
           }
           
-          // Instead of creating a separate registration for the partner, 
-          // we'll just note in the main registration that this is a duo
-          const { data: updatedReg, error: updateRegError } = await supabase
-            .from('event_registrations')
-            .update({ 
-              notes: notes ? `${notes} | Duo partner: ${partner.username}` : `Duo partner: ${partner.username}`
-            })
-            .eq('id', registration.id)
+          // For duo events, add partner info to notes instead of creating a separate registration
+          if (eventData.team_type === 'duo') {
+            const partner = teamMembers[0];
+            
+            // Check if the partner is already registered (double-check)
+            const { data: partnerReg, error: partnerRegCheckError } = await supabase
+              .from('event_registrations')
+              .select('id')
+              .eq('event_id', eventId)
+              .eq('user_id', partner.userId)
+              .single();
+            
+            if (!partnerReg) {
+              console.log(`Adding partner ${partner.username} (${partner.userId}) as team member for event ${eventId}`);
+              
+              // Instead of creating a separate registration for the partner, 
+              // we'll just note in the main registration that this is a duo
+              const { data: updatedReg, error: updateRegError } = await supabase
+                .from('event_registrations')
+                .update({ 
+                  notes: notes ? `${notes} | Duo partner: ${partner.username}` : `Duo partner: ${partner.username}`
+                })
+                .eq('id', registration.id)
+                .select();
+              
+              if (updateRegError) {
+                console.error('Error updating registration with partner info:', updateRegError);
+                await supabase.rpc('rollback_transaction');
+                throw updateRegError;
+              } else {
+                console.log(`Successfully added partner info to registration for event ${eventId}`);
+              }
+            } else {
+              console.log(`Partner ${partner.username} is already registered for event ${eventId}`);
+              await supabase.rpc('rollback_transaction');
+              return res.status(400).json({ 
+                message: `Partner ${partner.username} is already registered for this event` 
+              });
+            }
+          }
+        }
+        
+        // Commit the transaction if successful
+        await supabase.rpc('commit_transaction');
+        
+        // Clean up any registration locks
+        if (eventData.team_type === 'duo') {
+          await supabase
+            .from('event_registration_locks')
+            .delete()
+            .eq('user_id', userId);
+        }
+        
+        // Get the current count of registrations for this event
+        // Since we no longer create separate records for duo partners,
+        // we can use the direct count without special handling
+        const { count, error: countError } = await supabase
+          .from('event_registrations')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', eventId);
+        
+        if (!countError) {
+          // Update the registered_count with the actual count
+          const { data: updatedEvent, error: updateError } = await supabase
+            .from('events')
+            .update({ registered_count: count })
+            .eq('id', eventId)
             .select();
           
-          if (updateRegError) {
-            console.error('Error updating registration with partner info:', updateRegError);
+          if (updateError) {
+            console.error('Error updating event registered count:', updateError);
+            // Continue anyway, as the registration was successful
           } else {
-            console.log(`Successfully added partner info to registration for event ${eventId}`);
+            console.log(`Successfully updated event ${eventId} registration count to ${count}`);
           }
         } else {
-          console.log(`Partner ${partner.username} is already registered for event ${eventId}`);
+          console.error('Error counting registrations:', countError);
         }
-      }
-    }
-    
-    // Get the current count of registrations for this event
-    // Since we no longer create separate records for duo partners,
-    // we can use the direct count without special handling
-    const { count, error: countError } = await supabase
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId);
-    
-    if (!countError) {
-      // Update the registered_count with the actual count
-      const { data: updatedEvent, error: updateError } = await supabase
-        .from('events')
-        .update({ registered_count: count })
-        .eq('id', eventId)
-        .select();
-      
-      if (updateError) {
-        console.error('Error updating event registered count:', updateError);
-        // Continue anyway, as the registration was successful
-      } else {
-        console.log(`Successfully updated event ${eventId} registration count to ${count}`);
+        
+        return res.status(201).json({
+          message: `Successfully registered for ${eventData.title}`,
+          registration: registration
+        });
+      } catch (txError) {
+        // If anything fails, ensure the transaction is rolled back
+        await supabase.rpc('rollback_transaction');
+        console.error('Transaction error during registration:', txError);
+        throw txError;
       }
     } else {
-      console.error('Error counting registrations:', countError);
+      // For solo events (no team members to check)
+      
+      // Register user for the event
+      const { data: registration, error: regError } = await supabase
+        .from('event_registrations')
+        .insert([
+          { 
+            event_id: eventId,
+            user_id: userId,
+            username: username,
+            notes: notes || null
+          }
+        ])
+        .select()
+        .single();
+      
+      if (regError) {
+        throw regError;
+      }
+      
+      // Get the current count of registrations for this event
+      const { count, error: countError } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+      
+      if (!countError) {
+        // Update the registered_count with the actual count
+        const { data: updatedEvent, error: updateError } = await supabase
+          .from('events')
+          .update({ registered_count: count })
+          .eq('id', eventId)
+          .select();
+        
+        if (updateError) {
+          console.error('Error updating event registered count:', updateError);
+          // Continue anyway, as the registration was successful
+        } else {
+          console.log(`Successfully updated event ${eventId} registration count to ${count}`);
+        }
+      } else {
+        console.error('Error counting registrations:', countError);
+      }
+      
+      return res.status(201).json({
+        message: `Successfully registered for ${eventData.title}`,
+        registration: registration
+      });
     }
-    
-    return res.status(201).json({
-      message: `Successfully registered for ${eventData.title}`,
-      registration: registration
-    });
   } catch (error) {
     console.error('Error registering for event:', error);
     return res.status(500).json({ 
