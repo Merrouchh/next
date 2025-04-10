@@ -90,17 +90,17 @@ async function getEventRegistrations(req, res, supabase, user) {
     // Get the actual count of registrations
     console.log('Counting registrations for event ID:', eventId);
     
-    if (eventData.team_type === 'duo') {
-      // For duo events, count only main registrants (not partners)
+    if (eventData.team_type === 'duo' || eventData.team_type === 'team') {
+      // For duo/team events, count only main registrants (not partners or team members)
       const { data: mainRegistrations, error: mainCountError } = await supabase
         .from('event_registrations')
         .select('id')
         .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as partner of%');
+        .not('notes', 'ilike', 'Auto-registered as %');
       
       if (!mainCountError && mainRegistrations) {
         const actualRegistrationCount = mainRegistrations.length;
-        console.log('Actual duo team count:', actualRegistrationCount);
+        console.log(`Actual ${eventData.team_type} registrations count:`, actualRegistrationCount);
         console.log('Current event registered_count:', eventData.registered_count);
         
         // Update the event data with the actual count
@@ -541,6 +541,18 @@ async function removeRegistration(req, res, supabase, user) {
     
     const isAdmin = userData?.is_admin || false;
     
+    // Get event details to check team type
+    const { data: eventData, error: eventError } = await supabase
+      .from('events')
+      .select('id, team_type')
+      .eq('id', eventId)
+      .single();
+      
+    if (eventError) {
+      console.error('Error fetching event:', eventError);
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    
     // Get the registration to check if it belongs to the current user
     const { data: registrationData, error: registrationError } = await supabase
       .from('event_registrations')
@@ -570,13 +582,13 @@ async function removeRegistration(req, res, supabase, user) {
     }
     
     // Get the current count of registrations for this event
-    if (eventData.team_type === 'duo') {
-      // For duo events, count only main registrants (not partners)
+    if (eventData.team_type === 'duo' || eventData.team_type === 'team') {
+      // For duo/team events, count only main registrants (not partners or team members)
       const { data: mainRegistrations, error: mainCountError } = await supabase
         .from('event_registrations')
         .select('id')
         .eq('event_id', eventId)
-        .not('notes', 'ilike', 'Auto-registered as partner of%');
+        .not('notes', 'ilike', 'Auto-registered as %');
       
       if (!mainCountError) {
         const count = mainRegistrations ? mainRegistrations.length : 0;

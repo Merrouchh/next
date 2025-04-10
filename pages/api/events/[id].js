@@ -108,17 +108,17 @@ async function getEvent(req, res, supabase, id) {
     console.log("Checking actual registration count for event:", id);
     
     // For duo events, we need to count teams not individual registrations
-    if (data.team_type === 'duo') {
-      // Method 1: Count only registrations that aren't partners
+    if (data.team_type === 'duo' || data.team_type === 'team') {
+      // Method 1: Count only registrations that aren't partners or team members
       const { data: registrations, error: regError } = await supabase
         .from('event_registrations')
         .select('id, notes, user_id')
         .eq('event_id', id);
       
       if (!regError && registrations) {
-        // Count only main registrants (those without "Auto-registered as partner of" in notes)
+        // Count only main registrants (those without "Auto-registered as partner/team member of" in notes)
         const mainRegistrants = registrations.filter(reg => 
-          !reg.notes || !reg.notes.startsWith('Auto-registered as partner of')
+          !reg.notes || !reg.notes.startsWith('Auto-registered as ')
         );
         
         console.log("Actual team count (main registrants):", mainRegistrants.length);
