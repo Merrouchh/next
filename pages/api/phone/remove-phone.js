@@ -32,75 +32,46 @@ export default async function handler(req, res) {
       console.log('Successfully removed phone from users table');
     }
 
-    // Try multiple approaches to update the auth.users table
+    // Try Auth API methods to update the auth user
     let authUpdateSuccess = false;
 
-    // Approach 1: Try the SQL function if it exists
+    // Approach 1: Try admin.updateUserById with empty string
     try {
-      console.log('Trying SQL function approach to remove phone from auth.users');
+      console.log('Trying admin.updateUserById with empty string');
       
-      const { data, error } = await supabase.rpc('public.clear_user_phone', { 
-        user_id: userId 
-      });
+      const { data, error } = await supabase.auth.admin.updateUserById(
+        userId,
+        { phone: '' }
+      );
       
       if (error) {
-        // If public schema doesn't work, try without schema prefix
-        const { data: data2, error: error2 } = await supabase.rpc('clear_user_phone', { 
-          user_id: userId 
-        });
-        
-        if (error2) {
-          console.error('SQL function not available:', error2);
-        } else {
-          console.log('Successfully removed phone from auth user using SQL function without schema');
-          authUpdateSuccess = true;
-        }
+        console.error('Error with admin.updateUserById (empty string):', error);
       } else {
-        console.log('Successfully removed phone from auth user using SQL function with schema');
+        console.log('Successfully removed phone using admin.updateUserById with empty string');
         authUpdateSuccess = true;
       }
-    } catch (functionError) {
-      console.error('Error with SQL function approach:', functionError);
+    } catch (error1) {
+      console.error('Exception with admin.updateUserById approach:', error1);
     }
 
-    // Approach 2: Try direct update via API if function approach failed
+    // Approach 2: Try admin.updateUserById with null if first approach failed
     if (!authUpdateSuccess) {
       try {
-        console.log('Trying updateUser API approach to remove phone');
-        // Get the admin token for the current user
-        const { data: authData, error: adminError } = await supabase.auth.admin.getUserById(userId);
+        console.log('Trying admin.updateUserById with null');
         
-        if (adminError) {
-          console.error('Error getting admin user data:', adminError);
+        const { data, error } = await supabase.auth.admin.updateUserById(
+          userId,
+          { phone: null }
+        );
+        
+        if (error) {
+          console.error('Error with admin.updateUserById (null):', error);
         } else {
-          // Try to update the user via admin API
-          const { error: updateError } = await supabase.auth.admin.updateUserById(
-            userId,
-            { phone: null }
-          );
-          
-          if (updateError) {
-            console.error('Error with admin updateUser method:', updateError);
-            
-            // Try one more approach - sometimes an empty string works better than null
-            const { error: emptyStringError } = await supabase.auth.admin.updateUserById(
-              userId,
-              { phone: '' }
-            );
-            
-            if (emptyStringError) {
-              console.error('Error with empty string approach:', emptyStringError);
-            } else {
-              console.log('Successfully removed phone from auth user using empty string');
-              authUpdateSuccess = true;
-            }
-          } else {
-            console.log('Successfully removed phone from auth user with admin API');
-            authUpdateSuccess = true;
-          }
+          console.log('Successfully removed phone using admin.updateUserById with null');
+          authUpdateSuccess = true;
         }
-      } catch (apiError) {
-        console.error('Auth API error (non-fatal):', apiError);
+      } catch (error2) {
+        console.error('Exception with admin.updateUserById (null) approach:', error2);
       }
     }
 
