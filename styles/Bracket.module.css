@@ -847,26 +847,84 @@
   100% { opacity: 0.1; }
 }
 
-/* Duo participant styles */
+/* Enhance duo participant display */
 .duoParticipant {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
-.primaryName, .partnerName {
+.primaryName {
+  font-weight: 600;
+  color: #FFD700;
+  font-size: 1rem;
+}
+
+.partnerName {
   font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #f0f0f0;
+  padding-left: 8px;
+  position: relative;
+}
+
+.partnerName:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #999;
 }
 
 .duoSeparator {
-  margin: 0 4px;
-  opacity: 0.7;
+  display: none;
+}
+
+/* Improve match participant styling */
+.match .participant {
+  display: flex;
+  padding: 8px 12px;
+  line-height: 1.2;
+  min-height: 2.5em;
+}
+
+/* Style the winner selection modal for duo teams */
+.winnerOption .duoTeamName {
+  font-weight: 600;
+}
+
+/* Make sure the partner name is visible even when the match is highlighted */
+.match.winner .partnerName, 
+.match.selected .partnerName {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Ensure participant item display includes duo info */
+.participantItem {
+  margin-bottom: 8px;
+}
+
+.participantItem .participantName {
+  font-weight: 600;
+}
+
+.participantItem .teamMember {
+  display: block;
+  font-size: 0.9rem;
+  padding-left: 12px;
+  position: relative;
+  color: #e0e0e0;
+}
+
+.participantItem .teamMember:before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  color: #999;
+}
+
+/* Add a subtle highlight for better visibility */
+.match.ready .participant .duoParticipant {
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 3px;
 }
 
 /* Class to position the bracket at the top-left */
