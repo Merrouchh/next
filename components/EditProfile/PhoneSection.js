@@ -807,7 +807,8 @@ const PhoneSection = ({
                 </button>
                 
                 {/* Add a remove button if the user has a phone number */}
-                {user?.phone && !isChangingPhone && (
+                {/* Remove button removed as requested */}
+                {/* {user?.phone && !isChangingPhone && (
                   <button
                     type="button"
                     className={`${styles.changeButton} ${styles.removeButton}`}
@@ -816,7 +817,7 @@ const PhoneSection = ({
                   >
                     Remove
                   </button>
-                )}
+                )} */}
               </>
             )}
           </div>
