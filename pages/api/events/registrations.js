@@ -89,15 +89,55 @@ async function getEventRegistrations(req, res, supabase, user) {
     
     // Get the actual count of registrations
     console.log('Counting registrations for event ID:', eventId);
-    const { count: actualRegistrationCount, error: countError } = await supabase
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId);
     
-    console.log('Actual registration count:', actualRegistrationCount, 'Error:', countError);
+    let actualRegistrationCount;
+    
+    if (eventData.team_type === 'solo') {
+      // For solo events, count all registrations
+      const { count, error: countError } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+        
+      if (countError) {
+        console.error('Error counting solo registrations:', countError);
+        actualRegistrationCount = eventData.registered_count || 0;
+      } else {
+        actualRegistrationCount = count;
+      }
+    } else if (eventData.team_type === 'duo') {
+      // For duo events, count main registrants only (exclude partners)
+      const { count, error: countError } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .not('notes', 'ilike', 'Auto-registered as partner of%');
+        
+      if (countError) {
+        console.error('Error counting duo registrations:', countError);
+        actualRegistrationCount = eventData.registered_count || 0;
+      } else {
+        actualRegistrationCount = count;
+      }
+    } else {
+      // For team events, count team leaders only (a better query would be needed here)
+      const { count, error: countError } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+        
+      if (countError) {
+        console.error('Error counting team registrations:', countError);
+        actualRegistrationCount = eventData.registered_count || 0;
+      } else {
+        actualRegistrationCount = count;
+      }
+    }
+    
+    console.log('Actual registration count:', actualRegistrationCount);
     console.log('Current event registered_count:', eventData.registered_count);
     
-    if (!countError && actualRegistrationCount !== null) {
+    if (actualRegistrationCount !== null) {
       // Update the event data with the actual count
       console.log('Updating event data with actual count:', actualRegistrationCount);
       eventData.registered_count = actualRegistrationCount;
@@ -116,6 +156,8 @@ async function getEventRegistrations(req, res, supabase, user) {
           console.log('Successfully updated event registration count in database');
         }
       }
+    } else {
+      console.error('Unable to determine actual registration count');
     }
     
     // If user is not admin, only return their registration status
