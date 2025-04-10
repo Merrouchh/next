@@ -69,7 +69,7 @@ export default function AdminStats() {
     }).format(amount);
   }
 
-  // Format duration (convert minutes to hours and minutes)
+  // Updated formatDuration to handle duration in minutes or directly calculate from time difference
   function formatDuration(minutes) {
     if (!minutes || isNaN(minutes)) return '0h 0m';
     
@@ -79,6 +79,20 @@ export default function AdminStats() {
     if (hours === 0) return `${mins}m`;
     if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
+  }
+
+  // Calculate duration between two dates in minutes
+  function calculateDurationInMinutes(startTime, endTime) {
+    if (!startTime) return 0;
+    
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : new Date(); // Use current time if no end time
+    
+    // Calculate the difference in milliseconds
+    const diffMs = Math.max(0, end - start); // Ensure it's not negative
+    
+    // Convert to minutes
+    return Math.floor(diffMs / (1000 * 60));
   }
 
   // Format date for display
@@ -231,6 +245,34 @@ export default function AdminStats() {
     
     const activeShiftExpected = activeShift ? activeShift.expected || 0 : 0;
 
+    // Calculate real-time total duration including active shifts
+    let totalMinutes = 0;
+    validShifts.forEach(shift => {
+      if (shift.isActive) {
+        // For active shifts, calculate current duration
+        totalMinutes += calculateDurationInMinutes(shift.startTime);
+      } else if (shift.duration) {
+        // Parse duration string like "2h 15m" into minutes
+        const durationParts = shift.duration.match(/(\d+)h\s*(?:(\d+)m)?/) || 
+                              shift.duration.match(/(\d+)m/);
+        
+        if (durationParts) {
+          if (durationParts[0].includes('h')) {
+            // Format: "2h 15m" or "2h"
+            const hours = parseInt(durationParts[1] || 0);
+            const minutes = parseInt(durationParts[2] || 0);
+            totalMinutes += (hours * 60) + minutes;
+          } else {
+            // Format: "45m"
+            totalMinutes += parseInt(durationParts[1] || 0);
+          }
+        }
+      }
+    });
+    
+    // Format the calculated total duration
+    const totalDuration = formatDuration(totalMinutes);
+
     // For custom calculations from all shifts (active and closed)
     const calculatedTotals = validShifts.reduce((acc, shift) => {
       // Calculate cash payouts from payment method details if available
@@ -287,9 +329,9 @@ export default function AdminStats() {
       totalPayouts: calculatedTotals.totalPayouts,
       totalCashOut: calculatedTotals.totalCashOut,
       totalCashPayouts: calculatedTotals.totalCashPayouts,
-      // Use API provided values for these
+      // Use API provided values for these except for duration
       totalDifference: shiftReports.totalDifference || 0,
-      totalDuration: shiftReports.totalDuration || '0h 0m',
+      totalDuration, // Use our real-time calculated duration
       // Active shift expected amount
       activeShiftExpected
     };
@@ -314,19 +356,27 @@ export default function AdminStats() {
 
   // Add toggleable row function
   function ShiftRow({ shift, formatDate, formatCurrency }) {
+    // For active shifts, calculate duration from start time to now
+    const displayDuration = shift.isActive ? 
+      formatDuration(calculateDurationInMinutes(shift.startTime)) : 
+      shift.duration || '0h 0m';
+
     return (
       <tr key={shift.shiftId} className={shift.isActive ? styles.activeShift : ''}>
         <td>{shift.shiftId}</td>
         <td>{formatDate(shift.startTime)}</td>
         <td>
           {shift.endTime ? formatDate(shift.endTime) : 
-            shift.calculatedEndTime ? (
+            shift.isActive ? (
+              <span title="Currently active">In Progress</span>
+            ) : shift.calculatedEndTime ? (
               <span title="Estimated end time">
                 {formatDate(shift.calculatedEndTime)} <em>(est.)</em>
               </span>
-            ) : 'In Progress'}
+            ) : 'Unknown'
+          }
         </td>
-        <td>{shift.duration || '0h 0m'}</td>
+        <td>{displayDuration}</td>
         <td>{shift.operatorName || 'Unknown'}</td>
         <td>{shift.registerName || 'Unknown'}</td>
         <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
