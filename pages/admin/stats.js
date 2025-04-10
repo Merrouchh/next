@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import { fetchShiftReports } from '../../utils/api';
-import styles from '../../styles/AdminStats.module.css';
+import cssStyles from '../../styles/AdminStats.module.css';
 import { 
   FaChartLine, 
   FaCalendarAlt, 
