@@ -1023,12 +1023,32 @@ export default function EventBracket({ metaData }) {
                         console.log(`  Participant1 details:`, participant1);
                         if (participant1 && participant1.members) {
                           console.log(`  Participant1 members:`, participant1.members);
+                          console.log(`  Participant1 partner name:`, participant1.members[0]?.name);
                         }
                         console.log(`  Participant2: ${match.participant2Name}, ID: ${match.participant2Id}`);
                         console.log(`  Participant2 details:`, participant2);
                         if (participant2 && participant2.members) {
                           console.log(`  Participant2 members:`, participant2.members);
+                          console.log(`  Participant2 partner name:`, participant2.members[0]?.name);
                         }
+                      }
+                      
+                      // Create variables for partner names with fallbacks
+                      const participant1PartnerName = participant1 && participant1.members && participant1.members.length > 0
+                        ? participant1.members[0].name
+                        : '';
+                        
+                      const participant2PartnerName = participant2 && participant2.members && participant2.members.length > 0
+                        ? participant2.members[0].name
+                        : '';
+                        
+                      if (isDuoEvent) {
+                        console.log(`Match ${match.id} partner names:`, {
+                          participant1: match.participant1Name,
+                          participant1Partner: participant1PartnerName,
+                          participant2: match.participant2Name,
+                          participant2Partner: participant2PartnerName
+                        });
                       }
                       
                       return (
@@ -1063,7 +1083,7 @@ export default function EventBracket({ metaData }) {
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant1Name || 'TBD'}</span>
                                 <span className={styles.duoSeparator}>with</span>
-                                <span className={styles.partnerName}>{participant1.members[0]?.name || ''}</span>
+                                <span className={styles.partnerName}>{participant1PartnerName}</span>
                               </div>
                             ) : (
                               <span>{match.participant1Name || 'TBD'}</span>
@@ -1074,7 +1094,7 @@ export default function EventBracket({ metaData }) {
                               <div className={styles.duoParticipant}>
                                 <span className={styles.primaryName}>{match.participant2Name || 'TBD'}</span>
                                 <span className={styles.duoSeparator}>with</span>
-                                <span className={styles.partnerName}>{participant2.members[0]?.name || ''}</span>
+                                <span className={styles.partnerName}>{participant2PartnerName}</span>
                               </div>
                             ) : (
                               <span>{match.participant2Name || 'TBD'}</span>
@@ -1094,10 +1114,14 @@ export default function EventBracket({ metaData }) {
                                   <>
                                     {(() => {
                                       const winner = participants.find(p => p.id === match.winnerId);
-                                      if (winner && winner.members && winner.members.length > 0) {
+                                      const winnerPartnerName = winner && winner.members && winner.members.length > 0
+                                        ? winner.members[0].name
+                                        : '';
+                                        
+                                      if (winner && winnerPartnerName) {
                                         return (
                                           <>
-                                            {winner.name} & {winner.members[0]?.name || ''}
+                                            {winner.name} & {winnerPartnerName}
                                           </>
                                         );
                                       }
@@ -1187,7 +1211,7 @@ export default function EventBracket({ metaData }) {
                 {isDuoEvent && participant1 && participant1.members && participant1.members.length > 0 ? (
                   <>
                     <div>{selectedMatch.participant1Name}</div>
-                    <small>with {participant1.members[0]?.name || ''}</small>
+                    <small>with {participant1.members[0].name}</small>
                   </>
                 ) : (
                   selectedMatch.participant1Name
@@ -1200,7 +1224,7 @@ export default function EventBracket({ metaData }) {
                 {isDuoEvent && participant2 && participant2.members && participant2.members.length > 0 ? (
                   <>
                     <div>{selectedMatch.participant2Name}</div>
-                    <small>with {participant2.members[0]?.name || ''}</small>
+                    <small>with {participant2.members[0].name}</small>
                   </>
                 ) : (
                   selectedMatch.participant2Name
