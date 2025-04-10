@@ -286,32 +286,50 @@ export default async function handler(req, res) {
           .eq('id', userId);
 
         if (updateUserError) {
-          console.error('Error updating user record:', updateUserError);        
-          throw updateUserError;
+          console.error('Error updating user phone:', updateUserError);
+          return res.status(500).json({ error: 'Failed to update user phone' });
         }
 
         // Attempt to update the Auth user with the proper updateUser method
-        // This requires the user's session or service role key
+        // This requires the service role key (which we're using)
         try {
-          console.log('Attempting to update auth user phone number using updateUser method');
+          console.log('Attempting to update auth user phone number');
           
-          // Using the updateUser method with the admin context
-          const { data: updateData, error: updateAuthError } = await supabase.auth.updateUser({
-            phone
-          }, {
-            authFlow: 'admin',
-            userId
-          });
+          // First try admin.updateUserById
+          const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
+            userId,
+            { phone }
+          );
           
           if (updateAuthError) {
-            console.error('Error updating auth user phone:', updateAuthError);
-            // Continue with the process even if this fails
+            console.error('Error updating auth user phone with admin API:', updateAuthError);
+            // Try a different method if admin API fails
+            try {
+              // Alternative approach using updateUser with admin flow
+              const { error: altUpdateError } = await supabase.auth.updateUser(
+                { phone },
+                { 
+                  authFlow: 'admin',
+                  userId 
+                }
+              );
+              
+              if (altUpdateError) {
+                console.error('Error with alternative update method:', altUpdateError);
+                // We'll continue anyway since the users table update succeeded
+              } else {
+                console.log('Successfully updated auth user phone with alternative method');
+              }
+            } catch (altError) {
+              console.error('Exception with alternative update:', altError);
+            }
           } else {
-            console.log('Successfully updated auth user phone:', updateData);
+            console.log('Successfully updated auth user phone with admin API');
           }
         } catch (authUpdateError) {
-          console.error('Auth update error (non-fatal):', authUpdateError);
+          console.error('Auth update error:', authUpdateError);
           // Continue with the process even if this fails
+          // since we've updated the application's users table
         }
         
         // Track that this phone has been verified for this user
