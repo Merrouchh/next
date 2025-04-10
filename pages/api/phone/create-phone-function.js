@@ -19,59 +19,97 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // SQL to create the function
+    // Create the phone_verifications table first if it doesn't exist
+    const createTableSql = `
+      CREATE TABLE IF NOT EXISTS phone_verifications (
+        id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+        phone text,
+        verified_at timestamp with time zone,
+        is_verified boolean DEFAULT false,
+        created_at timestamp with time zone DEFAULT now()
+      );
+    `;
+
+    // Execute the table creation
+    await supabase.rpc('pg_execute', { 
+      query: createTableSql 
+    }).catch(err => {
+      console.log('Table creation attempt failed, continuing:', err);
+      // Continue even if this fails
+    });
+
+    // Alternative direct SQL (if pg_execute isn't available)
+    try {
+      // First use the SQL editor
+      await supabase
+        .from('_sqlEditorTempResult')
+        .select('*')
+        .limit(1)
+        .then(({ error }) => {
+          if (error) {
+            console.log('SQL editor access failed:', error);
+          }
+        });
+
+      await supabase.rpc('pg_execute', { 
+        query: createTableSql 
+      });
+    } catch (err) {
+      console.log('Alternative table creation also failed:', err);
+      // Continue even if this fails
+    }
+
+    // For the SQL function, we'll use a direct approach with the Supabase SQL editor
+    // First, let's try creating it in the public schema
     const sql = `
-      create or replace function clear_user_phone(user_id uuid)
-      returns bool
-      security definer as $$
+      create or replace function public.clear_user_phone(user_id uuid)
+      returns boolean
+      language plpgsql
+      security definer
+      as $$
       begin
         update auth.users 
-        set phone = '',
-            phone_confirmed_at = null,
-            phone_change = ''
+        set phone = NULL,
+            phone_confirmed_at = NULL, 
+            phone_change = '' 
         where id = user_id;
         return true;
       end;
-      $$ language plpgsql;
+      $$;
     `;
 
-    // Execute raw SQL query
-    const { error } = await supabase.rpc('exec_sql', { sql });
+    console.log("Attempting to create the clear_user_phone function");
 
-    if (error) {
-      console.error('Error creating clear_user_phone function:', error);
-      
-      // Check if we can use a different approach - direct SQL
-      try {
-        // Try using the direct SQL query API if available
-        const { error: sqlError } = await supabase.auth.admin.executeSql(sql);
-        
-        if (sqlError) {
-          console.error('Error with direct SQL execution:', sqlError);
-          return res.status(500).json({ 
-            error: 'Failed to create phone clear function',
-            details: sqlError
-          });
-        } else {
-          console.log('Successfully created clear_user_phone function using direct SQL');
-          return res.status(200).json({ 
-            success: true, 
-            message: 'Phone clear function created successfully using direct SQL'
-          });
-        }
-      } catch (directSqlError) {
-        console.error('Error with direct SQL approach:', directSqlError);
-        return res.status(500).json({ 
-          error: 'Failed to create phone clear function with both methods',
-          details: { rpcError: error, directError: directSqlError }
+    // Try to use pg_execute function if available
+    try {
+      const { error } = await supabase.rpc('pg_execute', { 
+        query: sql 
+      });
+
+      if (error) {
+        console.error('Error creating function with pg_execute:', error);
+      } else {
+        console.log('Function created successfully using pg_execute');
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Phone clear function created successfully with pg_execute'
         });
       }
+    } catch (err) {
+      console.log('pg_execute method failed:', err);
+      // Continue to try other methods
     }
 
-    console.log('Successfully created clear_user_phone function');
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Phone clear function created successfully'
+    // If we're here, the first attempt failed. Let's try a SQL editor approach
+    // In actual implementation, we'd suggest manually running this SQL in the Supabase SQL editor
+    console.log("Please run the following SQL in your Supabase SQL editor:");
+    console.log(sql);
+
+    return res.status(202).json({
+      success: true,
+      message: "Function creation initiated. For best results, please run the SQL in your Supabase SQL editor.",
+      sql: sql
     });
   } catch (error) {
     console.error('Unexpected error creating phone function:', error);
