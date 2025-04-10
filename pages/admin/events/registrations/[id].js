@@ -594,7 +594,6 @@ export default function EventRegistrations() {
               <div className={styles.registrationsTable}>
                 <div className={styles.tableHeader}>
                   <div className={styles.tableCell}>User</div>
-                  <div className={styles.tableCell}>Email</div>
                 </div>
                 
                 <div className={styles.registrationsContainer}>
@@ -632,14 +631,16 @@ export default function EventRegistrations() {
                                       {main.username}
                                       <span className={styles.mainRegistrantBadge}>Main</span>
                                     </div>
-                                    <a href={`mailto:${main.user.email}`} className={styles.userEmail}>
-                                      {truncateEmail(main.user.email, isMobile)}
-                                    </a>
-                                    {main.user.phone && (
+                                    {main.user && main.user.email ? (
+                                      <a href={`mailto:${main.user.email}`} className={styles.userEmail}>
+                                        {truncateEmail(main.user.email, isMobile)}
+                                      </a>
+                                    ) : null}
+                                    {main.user && main.user.phone ? (
                                       <div className={styles.userPhone}>
                                         {main.user.phone}
                                       </div>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </div>
@@ -659,14 +660,16 @@ export default function EventRegistrations() {
                                         {partner.username}
                                         <span className={styles.partnerBadge}>Partner</span>
                                       </div>
-                                      <a href={`mailto:${partner.user.email}`} className={styles.userEmail}>
-                                        {truncateEmail(partner.user.email, isMobile)}
-                                      </a>
-                                      {partner.user.phone && (
+                                      {partner.user && partner.user.email ? (
+                                        <a href={`mailto:${partner.user.email}`} className={styles.userEmail}>
+                                          {truncateEmail(partner.user.email, isMobile)}
+                                        </a>
+                                      ) : null}
+                                      {partner.user && partner.user.phone ? (
                                         <div className={styles.userPhone}>
                                           {partner.user.phone}
                                         </div>
-                                      )}
+                                      ) : null}
                                       <div className={styles.registeredByText}>
                                         Registered by {partner.registeredBy}
                                       </div>
@@ -729,14 +732,16 @@ export default function EventRegistrations() {
                                       {leader.username}
                                       <span className={styles.teamLeaderBadge}>Team Leader</span>
                                     </div>
-                                    <a href={`mailto:${leader.user.email}`} className={styles.userEmail}>
-                                      {truncateEmail(leader.user.email, isMobile)}
-                                    </a>
-                                    {leader.user.phone && (
+                                    {leader.user && leader.user.email ? (
+                                      <a href={`mailto:${leader.user.email}`} className={styles.userEmail}>
+                                        {truncateEmail(leader.user.email, isMobile)}
+                                      </a>
+                                    ) : null}
+                                    {leader.user && leader.user.phone ? (
                                       <div className={styles.userPhone}>
                                         {leader.user.phone}
                                       </div>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </div>
@@ -756,14 +761,16 @@ export default function EventRegistrations() {
                                         {member.username}
                                         <span className={styles.teamMemberBadge}>Team Member</span>
                                       </div>
-                                      <a href={`mailto:${member.user.email}`} className={styles.userEmail}>
-                                        {truncateEmail(member.user.email, isMobile)}
-                                      </a>
-                                      {member.user.phone && (
+                                      {member.user && member.user.email ? (
+                                        <a href={`mailto:${member.user.email}`} className={styles.userEmail}>
+                                          {truncateEmail(member.user.email, isMobile)}
+                                        </a>
+                                      ) : null}
+                                      {member.user && member.user.phone ? (
                                         <div className={styles.userPhone}>
                                           {member.user.phone}
                                         </div>
-                                      )}
+                                      ) : null}
                                       <div className={styles.registeredByText}>
                                         Added by {member.registeredBy || leader.username}
                                       </div>
@@ -808,14 +815,16 @@ export default function EventRegistrations() {
                                 <div className={styles.userName}>
                                   {reg.username}
                                 </div>
-                                <a href={`mailto:${reg.user.email}`} className={styles.userEmail}>
-                                  {truncateEmail(reg.user.email, isMobile)}
-                                </a>
-                                {reg.user.phone && (
+                                {reg.user && reg.user.email ? (
+                                  <a href={`mailto:${reg.user.email}`} className={styles.userEmail}>
+                                    {truncateEmail(reg.user.email, isMobile)}
+                                  </a>
+                                ) : null}
+                                {reg.user && reg.user.phone ? (
                                   <div className={styles.userPhone}>
                                     {reg.user.phone}
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </div>

@@ -211,7 +211,7 @@
 
 .tableHeader {
   display: grid;
-  grid-template-columns: 2fr 2fr;
+  grid-template-columns: 1fr;
   background-color: var(--card-background-darker);
   padding: 0.75rem 1rem;
   font-weight: 600;
@@ -222,7 +222,7 @@
 
 .tableRow {
   display: grid;
-  grid-template-columns: 2fr 2fr;
+  grid-template-columns: 1fr;
   padding: 0.8rem 1rem;
   transition: background-color 0.2s;
   background-color: transparent;
@@ -245,76 +245,60 @@
   padding: 0.15rem;
 }
 
-.tableCell[data-label="Email"] {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* User Info */
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  width: 100%;
 }
 
 .userDetails {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  margin-left: 0.75rem;
+  overflow: hidden;
 }
 
 .userAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  overflow: hidden;
-  background-color: var(--card-background-darker);
-}
-
-.avatarImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .avatarPlaceholder {
-  width: 100%;
-  height: 100%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary-yellow);
-  color: var(--background-color);
   font-weight: 600;
+  font-size: 1rem;
+  color: white;
+  text-transform: uppercase;
 }
 
 .userName {
-  font-size: 0.95rem;
   font-weight: 600;
-  color: white;
-  margin: 0;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .userEmail {
+  color: var(--text-color-light);
+  text-decoration: none;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  display: block;
+  margin-bottom: 0.25rem;
   word-break: break-all;
 }
 
 .userPhone {
+  color: var(--text-color-light);
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
-  word-break: break-all;
 }
 
 .userEmail:hover {
-  color: var(--primary-yellow);
   text-decoration: underline;
-}
-
-.registrationDate {
-  color: var(--text-color-light);
-  font-size: 0.9rem;
 }
 
 /* Action Buttons */
