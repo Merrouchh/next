@@ -484,16 +484,6 @@ export default function AdminStats() {
 
                 <div className={styles.summaryCard}>
                   <div className={styles.summaryIcon}>
-                    <FaWallet />
-                  </div>
-                  <div>
-                    <h3 title="Total cash payouts (from Cash payment method only)">Total Payout</h3>
-                    <p className={styles.amount}>{formatCurrency(summary?.totalCashPayouts || 0)}</p>
-                  </div>
-                </div>
-
-                <div className={styles.summaryCard}>
-                  <div className={styles.summaryIcon}>
                     <FaHandHoldingUsd />
                   </div>
                   <div>
