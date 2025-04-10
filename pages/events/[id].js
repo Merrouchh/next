@@ -1297,7 +1297,7 @@ export default function EventDetail({ metaData }) {
                 </div>
                 
                 {/* Registration information - for all users */}
-                {event.status === 'Upcoming' && (
+                {event.status === 'Upcoming' && !registrationStatus.isLoading && (
                   <div className={styles.registrationInfo}>
                     <h3>Registration Information</h3>
                     {registrationStatus.registrationLimit !== null ? (
@@ -1311,23 +1311,24 @@ export default function EventDetail({ metaData }) {
                     )}
                     
                     <div className={styles.progressBarContainer}>
-                      {registrationStatus.isLoading ? (
-                        <div className={styles.loadingProgressBar}>
-                          <div className={styles.loadingAnimation}></div>
-                        </div>
-                      ) : (
-                        <div 
-                          className={styles.progressBar}
-                          style={{ 
-                            width: registrationStatus.registrationLimit !== null ? 
-                              `${Math.min(100, (registrationStatus.registeredCount / registrationStatus.registrationLimit) * 100)}%` : 
-                              '100%',
-                            backgroundColor: registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
-                              '#dc3545' : '#28a745'
-                          }}
-                        ></div>
-                      )}
+                      <div 
+                        className={styles.progressBar}
+                        style={{ 
+                          width: registrationStatus.registrationLimit !== null ? 
+                            `${Math.min(100, (registrationStatus.registeredCount / registrationStatus.registrationLimit) * 100)}%` : 
+                            '100%',
+                          backgroundColor: registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
+                            '#dc3545' : '#28a745'
+                        }}
+                      ></div>
                     </div>
+                  </div>
+                )}
+                
+                {/* Loading indicator for registration info - show only during loading */}
+                {event.status === 'Upcoming' && registrationStatus.isLoading && (
+                  <div className={styles.registrationInfoLoading}>
+                    <div className={styles.loadingPulse}></div>
                   </div>
                 )}
                 
