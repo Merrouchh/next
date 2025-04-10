@@ -194,7 +194,59 @@ async function registerForEvent(req, res, supabase, user) {
     
     // Additional check for duo events: check if the user is already a team member in this event
     if (eventData.team_type === 'duo') {
-      // Get all registrations for this event
+      // First, check if the user is registering with someone who has already registered with someone else
+      if (teamMembers && teamMembers.length === 1) {
+        const partner = teamMembers[0];
+        
+        // 1. Check if this partner is already a main registrant
+        const { data: partnerAsMainReg, error: partnerMainRegError } = await supabase
+          .from('event_registrations')
+          .select('id, notes')
+          .eq('event_id', eventId)
+          .eq('user_id', partner.userId)
+          .not('notes', 'like', 'Auto-registered as partner of%')
+          .single();
+          
+        if (!partnerMainRegError && partnerAsMainReg) {
+          return res.status(400).json({ 
+            message: `${partner.username} is already registered for this event as a main registrant. They cannot be your partner.` 
+          });
+        }
+        
+        // 2. Check if this partner has already registered the current user as their partner
+        // Get all main registrations for this event
+        const { data: mainRegistrations, error: mainRegError } = await supabase
+          .from('event_registrations')
+          .select('id, user_id, username')
+          .eq('event_id', eventId)
+          .not('notes', 'like', 'Auto-registered as partner of%');
+        
+        if (!mainRegError && mainRegistrations && mainRegistrations.length > 0) {
+          // For each main registration, check if the partner selected the current user
+          for (const mainReg of mainRegistrations) {
+            if (mainReg.user_id === partner.userId) {
+              // This partner is a main registrant, now check if their partner is the current user
+              const { data: partnerTeamMembers, error: partnerTeamError } = await supabase
+                .from('event_team_members')
+                .select('user_id, username')
+                .eq('registration_id', mainReg.id);
+              
+              if (!partnerTeamError && partnerTeamMembers && partnerTeamMembers.length > 0) {
+                // Check if any of the partner's team members is the current user
+                const isUserAlreadyTeamMember = partnerTeamMembers.some(member => member.user_id === userId);
+                
+                if (isUserAlreadyTeamMember) {
+                  return res.status(400).json({ 
+                    message: `${partner.username} has already registered with you as their partner. You don't need to register again.` 
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Get all registrations for this event for additional checks
       const { data: eventRegistrations, error: eventRegError } = await supabase
         .from('event_registrations')
         .select('id')
