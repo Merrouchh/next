@@ -554,3 +554,35 @@ export async function fetchUserUpcomingMatches(userId) {
     return [];
   }
 }
+
+// Fetch shift reports from Gizmo API
+export const fetchShiftReports = async (dateFrom, dateTo, reportType = 2) => {
+  try {
+    // Format dates correctly for the API
+    const formattedDateFrom = encodeURIComponent(dateFrom.toISOString());
+    const formattedDateTo = encodeURIComponent(dateTo.toISOString());
+    
+    // Make request to our API endpoint that will handle authentication
+    const response = await fetch(
+      `/api/reports/shiftslog?dateFrom=${formattedDateFrom}&dateTo=${formattedDateTo}&reportType=${reportType}`,
+      fetchConfig
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Shift reports fetch failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to fetch shift reports: ${response.status}`);
+    }
+
+    // Return the complete response data
+    const data = await response.json();
+    return data; // This includes version, result, httpStatusCode, message, isError
+  } catch (error) {
+    console.error('Error fetching shift reports:', error);
+    throw error;
+  }
+};

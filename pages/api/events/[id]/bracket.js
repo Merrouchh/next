@@ -212,7 +212,7 @@ async function generateBracket(req, res, supabase, eventId, user) {
       .select(`
         id, 
         username, 
-        user_id,
+        user_id, 
         event_team_members (
           id,
           username,
@@ -236,7 +236,7 @@ async function generateBracket(req, res, supabase, eventId, user) {
         .limit(16);
         
       if (usersError || !testUsers || testUsers.length === 0) {
-        return res.status(400).json({ error: 'No participants registered for this event' });
+      return res.status(400).json({ error: 'No participants registered for this event' });
       }
       
       // Use test users if available (for development and testing)
@@ -688,7 +688,7 @@ function updateMatchResult(rounds, matchId, winnerId) {
     if (matchIndex !== -1) {
       matchToUpdate = updatedRounds[i][matchIndex];
       currentRoundIndex = i;
-      break;
+        break;
     }
   }
   
@@ -780,19 +780,19 @@ function updateMatchResult(rounds, matchId, winnerId) {
       }
       
       // Check if both participants are set and one is a bye
-      if (nextMatch.participant1Id && nextMatch.participant2Id) {
-        if (nextMatch.participant2Name === 'Bye') {
-          // Participant 1 automatically advances
-          nextMatch.winnerId = nextMatch.participant1Id;
-          console.log(`Auto-advancing ${nextMatch.participant1Name} due to bye`);
-          
+    if (nextMatch.participant1Id && nextMatch.participant2Id) {
+      if (nextMatch.participant2Name === 'Bye') {
+        // Participant 1 automatically advances
+        nextMatch.winnerId = nextMatch.participant1Id;
+        console.log(`Auto-advancing ${nextMatch.participant1Name} due to bye`);
+        
           // Recursively update next matches
           updateMatchResult(updatedRounds, nextMatch.id, nextMatch.participant1Id);
-        } else if (nextMatch.participant1Name === 'Bye') {
-          // Participant 2 automatically advances
-          nextMatch.winnerId = nextMatch.participant2Id;
-          console.log(`Auto-advancing ${nextMatch.participant2Name} due to bye`);
-          
+      } else if (nextMatch.participant1Name === 'Bye') {
+        // Participant 2 automatically advances
+        nextMatch.winnerId = nextMatch.participant2Id;
+        console.log(`Auto-advancing ${nextMatch.participant2Name} due to bye`);
+        
           // Recursively update next matches
           updateMatchResult(updatedRounds, nextMatch.id, nextMatch.participant2Id);
         }
