@@ -20,6 +20,36 @@ import {
   FaHandHoldingUsd
 } from 'react-icons/fa';
 
+const styles = {
+  container: 'p-6 bg-gray-50 min-h-screen',
+  header: 'text-2xl font-bold mb-6 text-gray-800',
+  controlsContainer: 'flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-lg shadow',
+  dateControlsContainer: 'flex flex-col md:flex-row gap-4 flex-grow',
+  datePicker: 'p-2 border rounded w-full',
+  searchButton: 'bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors',
+  shiftsTable: 'w-full bg-white shadow-md rounded-lg overflow-hidden',
+  loadingContainer: 'flex justify-center items-center p-8',
+  summaryContainer: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6',
+  summaryCard: 'bg-white p-4 rounded-lg shadow',
+  summaryLabel: 'text-gray-600 text-sm',
+  summaryValue: 'text-xl font-semibold mt-1',
+  positive: 'text-green-600',
+  negative: 'text-red-600',
+  activeShift: 'bg-blue-50',
+  cashOut: 'font-normal text-gray-600',
+  hasCashOut: 'font-semibold text-blue-600',
+  status: 'inline-block px-2 py-1 rounded-full text-xs font-semibold',
+  statusActive: 'bg-green-100 text-green-800',
+  statusClosed: 'bg-gray-100 text-gray-800',
+  
+  // Add styles for day separator
+  daySeparator: 'bg-gray-100 border-t-2 border-b-2 border-gray-300',
+  daySeparatorCell: 'py-2 px-4 font-medium text-gray-700 text-left',
+  
+  // Add emptyState style
+  emptyState: 'text-center p-8 text-gray-500',
+};
+
 export default function AdminStats() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -573,26 +603,67 @@ export default function AdminStats() {
                   </thead>
                   <tbody>
                     {shiftReports.shifts && shiftReports.shifts.length > 0 ? (
-                      shiftReports.shifts
+                      (() => {
                         // Filter out rows where both startCash and expected are 0 or undefined/null
-                        .filter(shift => {
+                        const filteredShifts = shiftReports.shifts.filter(shift => {
                           const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
                           const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
                           return !(startCash === 0 && expected === 0);
-                        })
-                        .map((shift) => (
-                          <ShiftRow 
-                            key={shift.shiftId}
-                            shift={shift}
-                            formatDate={formatDate}
-                            formatCurrency={formatCurrency}
-                            styles={styles}
-                          />
-                        ))
+                        });
+                        
+                        // Group shifts by date
+                        const shiftsByDate = filteredShifts.reduce((groups, shift) => {
+                          // Create date string from shift.startTime (yyyy-MM-dd)
+                          const dateStr = new Date(shift.startTime).toISOString().split('T')[0];
+                          if (!groups[dateStr]) {
+                            groups[dateStr] = [];
+                          }
+                          groups[dateStr].push(shift);
+                          return groups;
+                        }, {});
+                        
+                        // Create array of elements to render
+                        const elements = [];
+                        
+                        // For each date group, add a date header row and then the shifts
+                        Object.entries(shiftsByDate).forEach(([dateStr, shifts], index) => {
+                          // Format the date nicely for display
+                          const displayDate = new Date(dateStr).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          });
+                          
+                          // Add a separator row for the date
+                          elements.push(
+                            <tr key={`date-${dateStr}`} className={styles.daySeparator}>
+                              <td colSpan={15} className={styles.daySeparatorCell}>
+                                {displayDate}
+                              </td>
+                            </tr>
+                          );
+                          
+                          // Add all shifts for this date
+                          shifts.forEach(shift => {
+                            elements.push(
+                              <ShiftRow 
+                                key={shift.shiftId}
+                                shift={shift}
+                                formatDate={formatDate}
+                                formatCurrency={formatCurrency}
+                                styles={styles}
+                              />
+                            );
+                          });
+                        });
+                        
+                        return elements;
+                      })()
                     ) : (
                       <tr>
-                        <td colSpan="15" style={{ textAlign: 'center', padding: '2rem' }}>
-                          No shift reports found for the selected date range
+                        <td colSpan={15} className={styles.emptyState}>
+                          No shift reports found for the selected date range.
                         </td>
                       </tr>
                     )}
