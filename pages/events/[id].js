@@ -449,10 +449,25 @@ export default function EventDetail({ metaData }) {
           table: 'event_registrations',
           filter: `event_id=eq.${event.id}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('Registration cancellation detected:', payload);
-          // Fetch the latest count instead of decrementing
+          // Fetch the latest count and updated registration status
           fetchLatestCount();
+          
+          // Also force refresh registration status for the user
+          if (user) {
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData?.session?.access_token;
+              
+              if (accessToken) {
+                await fetchRegistrationStatus(accessToken);
+              }
+            } catch (error) {
+              console.error('Error refreshing registration status after cancellation:', error);
+            }
+          }
+          
           toast('Someone cancelled their registration', { duration: 3000 });
         }
       )
@@ -793,21 +808,18 @@ export default function EventDetail({ metaData }) {
         
         toast.success(data.message || 'Registration cancelled successfully');
         
-        // Immediately update UI to reflect cancellation
+        // Immediately update local state
         setRegistrationStatus(prev => ({
           ...prev,
           isRegistered: false,
-          isLoading: false,
           registeredCount: Math.max(0, prev.registeredCount - 1),
           teamMembers: []
         }));
         
-        setSelectedTeamMembers([]);
-        
-        // Fetch the latest registration count
+        // Refresh the data to ensure consistency
         fetchLatestCount();
         
-        return; // Exit early as we've already updated the state
+        setSelectedTeamMembers([]);
       } else {
         // Check if registration is full before registering
         if (registrationStatus.registrationLimit !== null && 
@@ -860,6 +872,7 @@ export default function EventDetail({ metaData }) {
     } catch (error) {
       console.error('Error handling registration:', error);
       toast.error(error.message || 'An error occurred');
+    } finally {
       setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
     }
   };
