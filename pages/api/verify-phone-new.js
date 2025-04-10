@@ -292,6 +292,27 @@ export default async function handler(req, res) {
           
           if (updateAuthError) {
             console.error('Error updating auth user phone with admin API:', updateAuthError);
+            
+            // Check if this is a duplicate phone number error (phone already registered)
+            // Supabase doesn't give specific error codes for this, so we need to make an educated guess
+            const errorObj = updateAuthError?.error || updateAuthError;
+            const errorMessage = errorObj?.message || updateAuthError.toString();
+            const errorStatus = updateAuthError?.status || 500;
+            
+            // Error message or status that might indicate a duplicate phone
+            if (
+              errorStatus === 500 && 
+              (errorMessage.includes('Error updating user') || 
+               errorMessage.includes('unexpected_failure'))
+            ) {
+              console.log('Detected likely phone number conflict - this phone may already be in use');
+              return res.status(200).json({
+                success: false,
+                error: 'phone_already_used',
+                message: 'This phone number is already registered with another account. Please use a different phone number.'
+              });
+            }
+            
             // Try a different method if admin API fails
             try {
               // Alternative approach using updateUser with admin flow
@@ -305,6 +326,24 @@ export default async function handler(req, res) {
               
               if (altUpdateError) {
                 console.error('Error with alternative update method:', altUpdateError);
+                
+                // Check for duplicate phone number in this error too
+                const altErrorObj = altUpdateError?.error || altUpdateError;
+                const altErrorMessage = altErrorObj?.message || altUpdateError.toString();
+                
+                if (
+                  altUpdateError?.status === 400 || 
+                  altErrorMessage.includes('Auth session missing') ||
+                  altErrorMessage.includes('already exists')
+                ) {
+                  console.log('Alternate method also suggests phone number conflict');
+                  return res.status(200).json({
+                    success: false,
+                    error: 'phone_already_used',
+                    message: 'This phone number is already registered with another account. Please use a different phone number.'
+                  });
+                }
+                
                 // Auth update completely failed
                 return res.status(500).json({ 
                   success: false, 
@@ -317,6 +356,20 @@ export default async function handler(req, res) {
               }
             } catch (altError) {
               console.error('Exception with alternative update:', altError);
+              
+              // Check for duplicate phone indication in the exception
+              if (altError.message && (
+                altError.message.includes('already exists') || 
+                altError.message.includes('duplicate') ||
+                altError.message.includes('Auth session missing')
+              )) {
+                return res.status(200).json({
+                  success: false,
+                  error: 'phone_already_used',
+                  message: 'This phone number is already registered with another account. Please use a different phone number.'
+                });
+              }
+              
               return res.status(500).json({ 
                 success: false, 
                 error: 'Exception updating phone number',
