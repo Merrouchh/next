@@ -3,6 +3,7 @@ import styles from '../../styles/EditProfile.module.css';
 import { AiOutlineLock, AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import OtpVerificationModal from './OtpVerificationModal';
 
 const PhoneSection = ({
   user,
@@ -27,6 +28,9 @@ const PhoneSection = ({
 
   // Reference to main phone input container
   const phoneContainerRef = useRef(null);
+
+  // Add state for controlling the modal
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   // Fix tab order for the phone input after component mounts
   useEffect(() => {
@@ -325,12 +329,15 @@ const PhoneSection = ({
     }
   };
 
-  const handleVerifyPhoneOtp = async (e) => {
-    e.preventDefault();
+  // Update to handle phone verification code entry in modal
+  const handleVerifyPhoneOtp = async (code) => {
+    // Use provided code or state value
+    const otpToVerify = code || phoneVerification.otpCode;
+    
     setIsLoading(prev => ({ ...prev, phone: true }));
     
     try {
-      if (!phoneVerification.otpCode || phoneVerification.otpCode.length !== 6) {
+      if (!otpToVerify || otpToVerify.length !== 6) {
         setMessage(prev => ({
           ...prev,
           phone: { type: 'error', text: 'Please enter a valid 6-digit verification code' }
@@ -339,7 +346,7 @@ const PhoneSection = ({
         return;
       }
       
-      console.log('Verifying code:', phoneVerification.otpCode, 'for phone:', phoneVerification.pendingPhone);
+      console.log('Verifying code:', otpToVerify, 'for phone:', phoneVerification.pendingPhone);
       
       // Verify the OTP through our custom API
       let response;
@@ -352,7 +359,7 @@ const PhoneSection = ({
           body: JSON.stringify({
             action: 'verify',
             phone: phoneVerification.pendingPhone,
-            code: phoneVerification.otpCode,
+            code: otpToVerify,
             userId: user.id,
             verificationId: verificationDetails?.id
           }),
@@ -447,6 +454,9 @@ const PhoneSection = ({
         otpCode: ''
       });
       
+      // Close the modal
+      setShowOtpModal(false);
+      
       // Update local user state with new phone number
       if (user) {
         user.phone = phoneVerification.pendingPhone;
@@ -493,6 +503,15 @@ const PhoneSection = ({
       setIsLoading(prev => ({ ...prev, phone: false }));
     }
   };
+
+  // Check if verification is pending and open modal automatically
+  useEffect(() => {
+    if (phoneVerification.isPending && !showOtpModal) {
+      setShowOtpModal(true);
+    } else if (!phoneVerification.isPending && showOtpModal) {
+      setShowOtpModal(false);
+    }
+  }, [phoneVerification.isPending]);
 
   const cancelPhoneVerification = async () => {
     try {
@@ -587,11 +606,21 @@ const PhoneSection = ({
         >
           <p><strong>Phone verification pending!</strong></p>
           <p>We've sent a verification code to <strong>{phoneVerification.pendingPhone}</strong></p>
-          <p>Please check your phone and enter the 6-digit code.</p>
+          <p>Please enter the 6-digit code to verify your phone number.</p>
           
-          {verificationDetails?.created_at && (
-            <p><small>Requested: {new Date(verificationDetails.created_at).toLocaleString()}</small></p>
-          )}
+          <button 
+            onClick={() => setShowOtpModal(true)} 
+            className={styles.verifyButton}
+            style={{ 
+              marginTop: '10px', 
+              marginBottom: '10px',
+              width: 'auto',
+              backgroundColor: '#0366d6',
+              color: 'white'
+            }}
+          >
+            Enter Verification Code
+          </button>
           
           <button 
             onClick={cancelPhoneVerification} 
@@ -602,6 +631,21 @@ const PhoneSection = ({
           </button>
         </div>
       )}
+
+      {/* Modal for OTP verification */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        onVerify={handleVerifyPhoneOtp}
+        phoneNumber={phoneVerification.pendingPhone}
+        loadingState={isLoading.phone}
+        otpValue={phoneVerification.otpCode}
+        setOtpValue={value => 
+          setPhoneVerification(prev => ({ ...prev, otpCode: value }))
+        }
+        errorMessage={message.phone.type === 'error' ? message.phone.text : ''}
+      />
+
       <form onSubmit={handlePhoneUpdate} className={styles.form}>
         <div className={styles.inputGroup}>
           <label>Phone Number</label>
@@ -749,105 +793,38 @@ const PhoneSection = ({
                   ...prev, 
                   phonePassword: e.target.value 
                 }))}
-                tabIndex="1"
-                placeholder="Enter your current password to verify"
+                placeholder="Enter your current password"
+                autoComplete="current-password"
               />
               <button
                 type="button"
                 className={styles.eyeIcon}
-                tabIndex="-1"
+                tabIndex="0"
                 onClick={() => togglePasswordVisibility('phonePassword')}
-                aria-label={showPasswords.phonePassword ? "Hide password" : "Show password"}
               >
                 {showPasswords.phonePassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
               </button>
             </div>
             <small className={styles.inputHint}>
-              We need your current password to verify your identity
+              Enter your current password to verify this change
             </small>
           </div>
         )}
-        {message.phone?.text && (
+        {isChangingPhone && !phoneVerification.isPending && (
+          <button 
+            type="submit" 
+            className={styles.submitButton}
+            disabled={isLoading.phone || !websiteAccount.phone || !websiteAccount.phonePassword}
+          >
+            {isLoading.phone ? 'Sending Code...' : 'Send Verification Code'}
+          </button>
+        )}
+        {message.phone.type && !phoneVerification.isPending && (
           <div className={`${styles.message} ${styles[message.phone.type]}`}>
             {message.phone.text}
           </div>
         )}
-        {isChangingPhone && !phoneVerification.isPending && (
-          <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={isLoading.phone}
-          >
-            {isLoading.phone ? 'Sending Verification Code...' : 'Send Verification Code'}
-          </button>
-        )}
       </form>
-      
-      {/* OTP Verification Form - Show only when verification is pending */}
-      {phoneVerification.isPending && (
-        <form 
-          onSubmit={(e) => {
-            // Prevent the default form submission
-            e.preventDefault();
-            
-            // Use setTimeout to break the error propagation chain
-            setTimeout(() => {
-              try {
-                // Call the handler in a fully isolated way
-                handleVerifyPhoneOtp(e);
-              } catch (error) {
-                // Ensure errors are fully contained
-                console.error('Error in verification form submission:', error);
-                setMessage(prev => ({
-                  ...prev,
-                  phone: { type: 'error', text: 'An unexpected error occurred. Please try again.' }
-                }));
-                setIsLoading(prev => ({ ...prev, phone: false }));
-                
-                // Clear OTP for retry
-                setPhoneVerification(prev => ({
-                  ...prev,
-                  otpCode: ''
-                }));
-              }
-            }, 0);
-            
-            // Return false to ensure the form doesn't submit normally
-            return false;
-          }} 
-          className={`${styles.form} ${styles.otpForm}`}
-        >
-          <div className={styles.inputGroup}>
-            <label>Verification Code</label>
-            <div className={styles.inputWrapper}>
-              <AiOutlineLock className={styles.icon} />
-              <input
-                type="text"
-                value={phoneVerification.otpCode}
-                onChange={(e) => setPhoneVerification(prev => ({
-                  ...prev,
-                  otpCode: e.target.value.replace(/\D/g, '').substring(0, 6)
-                }))}
-                placeholder="Enter 6-digit code"
-                maxLength={6}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-            </div>
-            <small className={styles.inputHint}>
-              Enter the 6-digit verification code sent to your phone
-            </small>
-          </div>
-          <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={isLoading.phone || phoneVerification.otpCode.length !== 6}
-          >
-            {isLoading.phone ? 'Verifying...' : 'Verify Code'}
-          </button>
-        </form>
-      )}
     </div>
   );
 };

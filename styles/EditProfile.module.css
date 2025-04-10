@@ -509,4 +509,165 @@
 .passwordInfo span {
   color: #888;
   letter-spacing: 2px;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background-color: #222;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: modalFadeIn 0.3s ease;
+  border: 1px solid #333;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.modalTitle {
+  color: #FFD700;
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.modalDescription {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.modalPhone {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.otpInputContainer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 1.5rem 0;
+}
+
+.otpInput {
+  width: 3rem;
+  height: 3.5rem;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background-color: #333;
+  color: #fff;
+  font-size: 1.5rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.otpInput:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.verifyButton {
+  background-color: #FFD700;
+  color: #000;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.verifyButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+}
+
+.verifyButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modalCancelButton {
+  background-color: transparent;
+  color: #ccc;
+  border: 1px solid #444;
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modalCancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.timerText {
+  text-align: center;
+  color: #FFD700;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.resendButton {
+  background: transparent;
+  border: none;
+  color: #FFD700;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.resendButton:hover:not(:disabled) {
+  color: #fff;
+}
+
+.resendButton:disabled {
+  color: #666;
+  cursor: not-allowed;
+  text-decoration: none;
 } 
