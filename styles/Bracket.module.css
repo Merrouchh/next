@@ -266,7 +266,8 @@
   position: relative;
   z-index: 2;
   margin: 0;
-  height: 110px; /* Fixed height for consistent spacing */
+  height: auto;
+  min-height: 110px;
   user-select: text; /* Allow text selection inside matches */
 }
 
@@ -360,10 +361,10 @@
   display: flex;
   align-items: center;
   color: #e0e0e0;
-  height: 30px;
+  min-height: 40px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .participant:last-child {
@@ -847,84 +848,46 @@
   100% { opacity: 0.1; }
 }
 
-/* Enhance duo participant display */
+/* Duo participant styles */
 .duoParticipant {
   display: flex;
   flex-direction: column;
   width: 100%;
+  padding: 3px 0;
 }
 
 .primaryName {
-  font-weight: 600;
+  font-weight: 700;
   color: #FFD700;
   font-size: 1rem;
+  line-height: 1.1;
+  display: block;
 }
 
 .partnerName {
-  font-size: 0.9rem;
-  color: #f0f0f0;
-  padding-left: 8px;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  padding-left: 10px;
   position: relative;
+  line-height: 1.1;
+  display: block;
 }
 
 .partnerName:before {
   content: "•";
   position: absolute;
-  left: 0;
-  color: #999;
+  left: 3px;
+  color: #FFD700;
 }
 
-.duoSeparator {
-  display: none;
+/* Make winner highlighting work for both players in a duo */
+.participant.winner .primaryName,
+.participant.winner .partnerName {
+  color: #FFD700;
 }
 
-/* Improve match participant styling */
-.match .participant {
-  display: flex;
-  padding: 8px 12px;
-  line-height: 1.2;
-  min-height: 2.5em;
-}
-
-/* Style the winner selection modal for duo teams */
-.winnerOption .duoTeamName {
-  font-weight: 600;
-}
-
-/* Make sure the partner name is visible even when the match is highlighted */
-.match.winner .partnerName, 
-.match.selected .partnerName {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Ensure participant item display includes duo info */
-.participantItem {
-  margin-bottom: 8px;
-}
-
-.participantItem .participantName {
-  font-weight: 600;
-}
-
-.participantItem .teamMember {
-  display: block;
-  font-size: 0.9rem;
-  padding-left: 12px;
-  position: relative;
-  color: #e0e0e0;
-}
-
-.participantItem .teamMember:before {
-  content: "•";
-  position: absolute;
-  left: 4px;
-  color: #999;
-}
-
-/* Add a subtle highlight for better visibility */
-.match.ready .participant .duoParticipant {
-  background-color: rgba(255, 215, 0, 0.05);
-  border-radius: 3px;
+.participant.winner .partnerName:before {
+  color: #FFD700;
 }
 
 /* Class to position the bracket at the top-left */
