@@ -156,10 +156,10 @@ const DynamicVideoPlayer = ({ clip, onPlayerEvent, isInClipCard }) => {
   return (
     <iframe
       ref={iframeRef}
-      src={`https://iframe.cloudflarestream.com/${clip.cloudflare_uid}?autoplay=true`}
+      src={`https://iframe.cloudflarestream.com/${clip.cloudflare_uid}`}
       className={styles.iframeContainer}
       title={clip.title || 'Video Player'}
-      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+      
       allowFullScreen
     />
   );

@@ -18,7 +18,7 @@
     "start:all": "start.bat"
   },
   "dependencies": {
-    "@cloudflare/stream-react": "^1.9.2",
+    "@cloudflare/stream-react": "^1.9.3",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@ffmpeg/core": "^0.11.0",
     "@ffmpeg/ffmpeg": "^0.11.0",
@@ -57,7 +57,7 @@
     "formidable": "^3.5.2",
     "framer-motion": "^11.0.0",
     "fullpage.js": "^4.0.31",
-    "hls.js": "^1.5.20",
+    "hls.js": "^1.6.2",
     "http-proxy": "^1.18.1",
     "intersection-observer": "^0.12.2",
     "leaflet": "^1.9.4",
@@ -102,7 +102,7 @@
     "styled-components": "^6.1.16",
     "utf-8-validate": "^6.0.5",
     "uuid": "^11.0.5",
-    "video.js": "^8.21.0",
+    "video.js": "^8.22.0",
     "web-push": "^3.6.7",
     "webpack": "^5.96.1",
     "ws": "^8.18.0",
