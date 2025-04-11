@@ -243,7 +243,15 @@ export default function AdminStats() {
     const activeShift = validShifts.find(shift => shift.isActive) || 
                         (validShifts.length > 0 ? validShifts[validShifts.length - 1] : null);
     
-    const activeShiftExpected = activeShift ? activeShift.expected || 0 : 0;
+    // Calculate active shift expected as (expected - net payouts)
+    const activeShiftExpected = activeShift ? 
+      (Number.isFinite(activeShift.expected) ? activeShift.expected : 0) - 
+      (activeShift.details && activeShift.details.length > 0 ? 
+        activeShift.details.reduce((sum, d) => {
+          const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
+          const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
+          return sum + (detailPayouts - detailPayIns);
+        }, 0) : 0) : 0;
 
     // Calculate real-time total duration including active shifts
     let totalMinutes = 0;
