@@ -329,6 +329,7 @@ export async function getServerSideProps({ params, res }) {
 }
 
 export default function EventDetail({ metaData }) {
+  console.log("EventDetail component rendering with metaData:", metaData);
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registrationStatus, setRegistrationStatus] = useState({
@@ -355,13 +356,18 @@ export default function EventDetail({ metaData }) {
   const [isMobile, setIsMobile] = useState(false);
   const eventId = useRef(null);
 
+  console.log("Current router query:", router.query);
+  console.log("Event ID from query:", id);
+
   // Store event ID in ref to prevent re-renders
   if (event && event.id !== eventId.current) {
     eventId.current = event.id;
+    console.log("Updated eventId ref to:", eventId.current);
   }
 
   // Determine if this is a public view (no authenticated user)
   const isPublicView = !user;
+  console.log("Is public view:", isPublicView);
 
   // Function to fetch the latest registration count
   const fetchLatestCount = async () => {
@@ -391,12 +397,19 @@ export default function EventDetail({ metaData }) {
 
   // Fetch event details
   useEffect(() => {
+    console.log("useEffect running - fetch event details with id:", id);
+    
     const fetchEventDetails = async () => {
+      if (!id) {
+        console.log("No ID available yet, skipping fetch");
+        return;
+      }
+      
       setLoading(true);
+      console.log("Setting loading state to true");
+      
       // Ensure registration shows a loading state during initial page load for all users
       setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
-      
-      if (!id) return;
       
       try {
         // Check if user is authenticated to include auth token
@@ -410,6 +423,7 @@ export default function EventDetail({ metaData }) {
             const { data: sessionData } = await supabase.auth.getSession();
             if (sessionData?.session?.access_token) {
               headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
+              console.log("Added auth token to headers");
             }
           } catch (sessionError) {
             console.error('Session error:', sessionError);
@@ -418,11 +432,13 @@ export default function EventDetail({ metaData }) {
         }
         
         // Fetch event details
-        console.log("Fetching event details...");
+        console.log("Fetching event details for ID:", id);
         const response = await fetch(`/api/events/${id}`, {
           method: 'GET',
           headers
         });
+        
+        console.log("API response status:", response.status);
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -431,6 +447,7 @@ export default function EventDetail({ metaData }) {
         }
         
         const data = await response.json();
+        console.log("Event data received:", data);
         
         // Handle both formats: { event: {...} } or the event object directly
         const eventData = data.event || data;
@@ -440,9 +457,17 @@ export default function EventDetail({ metaData }) {
           throw new Error("Invalid event data format");
         }
         
+        console.log("Setting event data:", eventData);
         setEvent(eventData);
         
+        // Set team type based on event data
+        if (eventData.team_type) {
+          console.log("Setting team type to:", eventData.team_type);
+          setTeamType(eventData.team_type);
+        }
+        
         // Set loading to false after event data is fetched
+        console.log("Setting loading state to false");
         setLoading(false);
         
         // Only fetch additional data if user is logged in
@@ -1201,8 +1226,21 @@ export default function EventDetail({ metaData }) {
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} excludeFromAppSeo={true} />
-
+      
       <div className={styles.container}>
+        <div className={styles.debugInfo}>
+          <h3>Debug Info</h3>
+          <p>ID from router: {id || 'Not available'}</p>
+          <p>Loading state: {loading ? 'TRUE' : 'FALSE'}</p>
+          <p>Event data available: {event ? 'YES' : 'NO'}</p>
+          {event && (
+            <div>
+              <p>Event title: {event.title}</p>
+              <p>Event status: {event.status}</p>
+            </div>
+          )}
+        </div>
+
         <Link href="/events" className={styles.backLink}>
           &larr; Back to Events
         </Link>
@@ -1231,10 +1269,12 @@ export default function EventDetail({ metaData }) {
                       alt={event.title} 
                       className={styles.eventImage}
                       onError={(e) => {
+                        console.log("Image load error");
                         e.target.onerror = null;
                         e.target.style.display = 'none';
                         e.target.parentNode.classList.add(styles.fallbackImage);
                       }}
+                      onLoad={() => console.log("Image loaded successfully")}
                     />
                   ) : (
                     <div className={styles.eventImagePlaceholder}>
@@ -1247,21 +1287,6 @@ export default function EventDetail({ metaData }) {
                 </div>
                 <div className={styles.eventInfo}>
                   <h1 className={styles.eventTitle}>{event.title}</h1>
-                  
-                  {/* Registration status indicator - only for authenticated users */}
-                  {!isPublicView && registrationStatus.isRegistered && (
-                    <div className={styles.registrationStatusIndicator}>
-                      {registrationStatus.registeredBy ? (
-                        <span className={styles.registeredByIndicator}>
-                          <span className={styles.checkIcon}>✓</span> Registered by {registrationStatus.registeredBy}
-                        </span>
-                      ) : (
-                        <span className={styles.registeredIndicator}>
-                          <span className={styles.checkIcon}>✓</span> Registered for this event
-                        </span>
-                      )}
-                    </div>
-                  )}
                   
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Date:</span>
@@ -1287,414 +1312,33 @@ export default function EventDetail({ metaData }) {
                        'Team (Multiple Players)'}
                     </span>
                   </div>
-                  {/* Duo/team member info - only for authenticated users */}
-                  {!isPublicView && teamType === 'duo' && registrationStatus.isRegistered && (
-                    <div className={styles.infoItem}>
-                      <span className={styles.infoLabel}>Duo Partner:</span>
-                      <span className={styles.partnerName}>
-                        {registrationStatus.registeredBy ? (
-                          <>{registrationStatus.registeredBy}</>
-                        ) : registrationStatus.teamMembers.length > 0 ? (
-                          <>{registrationStatus.teamMembers[0].username}</>
-                        ) : (
-                          'None'
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Team members in event details - only for authenticated users */}
-                  {!isPublicView && teamType === 'team' && registrationStatus.isRegistered && (
-                    <div className={styles.infoItem}>
-                      <span className={styles.infoLabel}>Team Members:</span>
-                      <div className={styles.teamMembersInline}>
-                        {registrationStatus.registeredBy ? (
-                          <span className={styles.partnerName}>
-                            {registrationStatus.registeredBy} (Team Leader)
-                          </span>
-                        ) : (
-                          <span className={styles.teamLeaderBadge}>You (Team Leader)</span>
-                        )}
-                        
-                        {registrationStatus.teamMembers.length > 0 && (
-                          <div className={styles.teamMembersChips}>
-                            {registrationStatus.teamMembers.map(member => (
-                              <span key={member.user_id} className={styles.teamMemberChip}>
-                                {member.username}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Registrations:</span>
-                    <span>
-                      {registrationStatus.registeredCount}
-                      {registrationStatus.registrationLimit !== null && 
-                        ` / ${registrationStatus.registrationLimit}`}
-                    </span>
-                  </div>
                 </div>
               </div>
+              
               <div className={styles.eventContent}>
                 <div className={styles.eventDescription}>
                   {event.description.split('\n\n').map((paragraph, index) => (
                     <p key={index}>{paragraph}</p>
                   ))}
                 </div>
-                <div className={styles.eventActions}>
-                  {/* For completed events, don't show the gray "EVENT ENDED" button, 
-                      just show a nice tournament bracket button */}
-                  {event.status === 'Completed' ? (
-                    <div className={styles.endedEventActions}>
-                      {/* Display champions here when event is completed */}
-                      {bracketData && bracketData.bracket && (() => {
-                        // Find if there's a winner
-                        let winner = null;
-                        const matches = bracketData.bracket;
-                        const finalRound = matches[matches.length - 1];
-                        
-                        if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
-                          winner = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
-                        }
-                        
-                        return winner && (
-                          <div className={styles.championsContainer}>
-                            <div className={styles.bracketWinner}>
-                              <FaTrophy className={styles.trophyIcon} />
-                              {event.team_type === 'duo' ? (
-                                <span>
-                                  Champions: {winner.name}
-                                  {winner.members && winner.members.length > 0 && (
-                                    <span className={styles.winnerPartner}> & {winner.members[0]?.name}</span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span>Champion: {winner.name}</span>
-                              )}
-                            </div>
-                            <Link 
-                              href={`/events/${id}/bracket`} 
-                              className={styles.tournamentBracketButton}
-                            >
-                              <FaSitemap className={styles.bracketIcon} /> View Tournament Bracket
-                            </Link>
-                          </div>
-                        );
-                      })()}
-                      
-                      {/* Show regular bracket link if no champions data available */}
-                      {bracketData && bracketData.bracket && 
-                       !bracketData.bracket[bracketData.bracket.length - 1]?.[0]?.winnerId && (
-                        <Link 
-                          href={`/events/${id}/bracket`} 
-                          className={styles.tournamentBracketButton}
-                        >
-                          <FaSitemap className={styles.bracketIcon} /> View Tournament Bracket
-                        </Link>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {/* Login prompt for public users - only for upcoming events */}
-                      {isPublicView && event.status === 'Upcoming' && (
-                        <div className={styles.loginPrompt}>
-                          <p>Please log in to register for this event</p>
-                          <button onClick={openLoginModal} className={styles.loginButton}>
-                            Login
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Status message for in-progress events - for public users */}
-                      {isPublicView && event.status === 'In Progress' && (
-                        <div className={styles.eventStatusMessage}>
-                          <p>This event is currently in progress</p>
-                        </div>
-                      )}
-                      
-                      {/* Registration/Cancel buttons - only for authenticated users */}
-                      {!isPublicView && (
-                        <>
-                  {/* Only show registration button if user is NOT registered */}
-                  {!registrationStatus.isRegistered ? (
-                    <button 
-                      className={getRegistrationButtonClass()}
-                      onClick={handleRegistrationClick}
-                      disabled={isRegistrationButtonDisabled()}
-                    >
-                      {getRegistrationButtonText()}
-                    </button>
-                  ) : null}
-                  
-                          {/* Show cancel button ONLY if: 
-                            1. User is registered 
-                            2. User is the main registrant (not added by someone else)
-                            3. Event is still upcoming (not in progress or completed)
-                          */}
-                          {registrationStatus.isRegistered && 
-                           !registrationStatus.registeredBy && 
-                           event.status === 'Upcoming' && (
-                    <button 
-                              className={`${styles.registerButton} ${styles.cancelButton}`}
-                      onClick={handleCancelClick}
-                              disabled={registrationStatus.isLoading}
-                    >
-                      Cancel Registration
-                    </button>
-                          )}
-                        </>
-                      )}
-                      
-                      {/* View Tournament Bracket button - for non-completed events */}
-                      {bracketData && bracketData.bracket && (
-                        <Link 
-                          href={`/events/${id}/bracket`} 
-                          className={`${styles.bracketButton} ${
-                            (isPublicView && event.status !== 'Upcoming') ? styles.tournamentBracketButton : ''
-                          }`}
-                        >
-                          <FaSitemap className={styles.bracketIcon} /> View Tournament Bracket
-                    </Link>
-                      )}
-                    </>
-                  )}
-                </div>
-                
-                {/* Registration information - for all users */}
-                {event.status === 'Upcoming' && !registrationStatus.isLoading && (
-                  <div className={styles.registrationInfo}>
-                    <h3>Registration Information</h3>
-                    {registrationStatus.registrationLimit !== null ? (
-                      <p>
-                        {registrationStatus.registeredCount} out of {registrationStatus.registrationLimit} spots filled
-                        {registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
-                          ' (Registration is full)' : ''}
-                      </p>
-                    ) : (
-                      <p>{registrationStatus.registeredCount} {registrationStatus.registeredCount === 1 ? 'person has' : 'people have'} registered for this event</p>
-                    )}
-                    
-                    <div className={styles.progressBarContainer}>
-                      <div 
-                        className={styles.progressBar}
-                        style={{ 
-                          width: registrationStatus.registrationLimit !== null ? 
-                            `${Math.min(100, (registrationStatus.registeredCount / registrationStatus.registrationLimit) * 100)}%` : 
-                            '100%',
-                          backgroundColor: registrationStatus.registeredCount >= registrationStatus.registrationLimit ? 
-                            '#dc3545' : '#28a745'
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Loading indicator for registration info - show only during loading */}
-                {event.status === 'Upcoming' && registrationStatus.isLoading && (
-                  <div className={styles.registrationInfoLoading}>
-                    <div className={styles.loadingPulse}></div>
-                  </div>
-                )}
-                
-                {/* Admin section - only for admins */}
-                {user?.isAdmin && (
-                  <div className={styles.adminSection}>
-                    <h3>Admin Controls</h3>
-                    <div className={styles.adminButtonsContainer}>
-                      <div className={styles.adminButtonGroup}>
-                        <h4>Event Management</h4>
-                        <Link href={`/admin/events?edit=${event.id}`} className={styles.adminEditButton}>
-                          <span>✏️</span> Edit Event Details
-                        </Link>
-                      </div>
-                      
-                      <div className={styles.adminButtonGroup}>
-                        <h4>Registration Management</h4>
-                    <Link href={`/admin/events/registrations/${event.id}`} className={styles.viewRegistrationsButton}>
-                          <span>👥</span> View All Registrations
-                    </Link>
-                  </div>
-                      
-                      <div className={styles.adminButtonGroup}>
-                        <h4>Tournament Bracket</h4>
-                        {!bracketData || !bracketData.bracket ? (
-                          <button 
-                            className={styles.generateBracketButton}
-                            onClick={handleGenerateBracket}
-                            disabled={bracketLoading}
-                          >
-                            <FaSitemap className={styles.bracketIcon} />
-                            Generate Tournament Bracket
-                          </button>
-                        ) : (
-                          <button 
-                            className={styles.deleteBracketButton}
-                            onClick={handleDeleteBracket}
-                            disabled={bracketLoading}
-                          >
-                            Delete Tournament Bracket
-                          </button>
-                )}
               </div>
-            </div>
-            </div>
-        )}
-      </div>
 
-              {/* Event Gallery Section */}
-              {event && (
+              {/* Simplified EventGallery section */}
+              {event && eventId.current && (
                 <div className={styles.galleryContainer}>
-                  {/* Use memoized component to prevent re-renders */}
-                  {eventId.current && (
-                    <MemoizedEventGallery 
-                      key={`gallery-${eventId.current}`} 
-                      eventId={eventId.current} 
-                    />
-                  )}
+                  <div className={styles.galleryHeader}>
+                    <h2 className={styles.galleryTitle}>Event Gallery</h2>
+                  </div>
+                  <div className={styles.debugInfo}>
+                    <p>EventId for gallery: {eventId.current}</p>
+                  </div>
+                  <MemoizedEventGallery 
+                    key={`gallery-${eventId.current}`} 
+                    eventId={eventId.current} 
+                  />
                 </div>
               )}
             </div>
-
-            {/* Team selection and cancel modals - only for authenticated users */}
-            {!isPublicView && (
-              <>
-      {isTeamModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.teamModal} ${isMobile ? styles.mobileModal : ''}`}>
-            <div className={styles.modalHeader}>
-              <h3>{teamType === 'duo' ? 'Select Team Partner' : 'Select Team Members'}</h3>
-              <button 
-                className={styles.closeButton}
-                onClick={closeTeamModal}
-                aria-label="Close"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            
-            <div className={styles.searchContainer}>
-              <FaSearch className={styles.searchIcon} />
-              <input
-                type="text"
-                ref={searchInputRef}
-                className={styles.searchInput}
-                placeholder="Search users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            
-            <div className={styles.modalInfo}>
-              <p>
-                <strong>Note:</strong> Users who are already registered or are team members in this event are not shown in the list.
-              </p>
-            </div>
-            
-            <div className={styles.modalContent}>
-              {filteredTeamMembers.length > 0 ? (
-                <div className={styles.teamMembersList}>
-                  {filteredTeamMembers.map(member => (
-                    <div 
-                      key={member.id} 
-                      className={`${styles.teamMember} ${
-                        selectedTeamMembers.some(m => m.userId === member.id) ? styles.selected : ''
-                      }`}
-                      onClick={() => handleTeamMemberSelection(member)}
-                    >
-                      <span>{member.username}</span>
-                      {selectedTeamMembers.some(m => m.userId === member.id) ? (
-                        <span className={styles.checkmark}>✓</span>
-                      ) : (
-                        <FaUserPlus className={styles.addIcon} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className={styles.noResults}>
-                  {searchQuery ? 'No users found matching your search' : 'No available users to select as team members'}
-                </p>
-              )}
-            </div>
-            
-            <div className={styles.modalFooter}>
-              <button 
-                className={styles.cancelButton}
-                onClick={closeTeamModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className={styles.confirmButton}
-                onClick={completeRegistration}
-                disabled={
-                  (teamType === 'duo' && selectedTeamMembers.length !== 1) || 
-                  (teamType === 'team' && selectedTeamMembers.length === 0)
-                }
-              >
-                {teamType === 'duo' 
-                  ? selectedTeamMembers.length === 1 
-                    ? `Register with ${selectedTeamMembers[0].username}` 
-                    : 'Select a partner'
-                  : selectedTeamMembers.length > 0 
-                    ? `Register with ${selectedTeamMembers.length} team member${selectedTeamMembers.length !== 1 ? 's' : ''}` 
-                    : 'Select team members'
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isCancelModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.cancelModal}>
-            <div className={styles.modalHeader}>
-              <h3>Cancel Registration</h3>
-              <button 
-                className={styles.closeButton}
-                onClick={closeCancelModal}
-                aria-label="Close"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            
-            <div className={styles.modalContent}>
-              <div className={styles.cancelWarning}>
-                <p>Are you sure you want to cancel your registration for <strong>{event.title}</strong>?</p>
-                
-                {teamType !== 'solo' && registrationStatus.teamMembers.length > 0 && (
-                  <p className={styles.teamWarning}>
-                    <strong>Warning:</strong> This will also remove all your team members from the event.
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className={styles.modalFooter}>
-              <button 
-                className={styles.secondaryButton}
-                onClick={closeCancelModal}
-              >
-                No, Keep My Registration
-              </button>
-              <button 
-                className={styles.confirmCancelButton}
-                onClick={confirmCancellation}
-              >
-                Yes, Cancel Registration
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-              </>
-            )}
           </>
         )}
       </div>
