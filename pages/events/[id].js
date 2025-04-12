@@ -1196,11 +1196,26 @@ export default function EventDetail({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      {/* Always include structured data directly to ensure it's present */}
+      {/* Include all essential metadata for SEO */}
       <Head>
         <title>{metaData?.title || 'Event Details'}</title>
         <meta name="description" content={metaData?.description || 'Event details at Merrouch Gaming'} />
         {metaData?.canonical && <link rel="canonical" href={metaData.canonical} />}
+        
+        {/* OpenGraph metadata for social sharing */}
+        <meta property="og:title" content={metaData?.openGraph?.title || metaData?.title || 'Event Details'} />
+        <meta property="og:description" content={metaData?.openGraph?.description || metaData?.description || 'Event details at Merrouch Gaming'} />
+        <meta property="og:type" content={metaData?.openGraph?.type || 'website'} />
+        <meta property="og:url" content={metaData?.url || `https://merrouchgaming.com/events/${id}`} />
+        <meta property="og:image" content={metaData?.image || 'https://merrouchgaming.com/events.jpg'} />
+        <meta property="og:site_name" content="Merrouch Gaming" />
+        
+        {/* Twitter Card metadata */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@merrouchgaming" />
+        <meta name="twitter:title" content={metaData?.twitter?.title || metaData?.title || 'Event Details'} />
+        <meta name="twitter:description" content={metaData?.twitter?.description || metaData?.description || 'Event details at Merrouch Gaming'} />
+        <meta name="twitter:image" content={metaData?.twitter?.image || metaData?.image || 'https://merrouchgaming.com/events.jpg'} />
         
         {/* Always include the event structured data */}
         {metaData?.structuredData && (
