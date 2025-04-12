@@ -326,7 +326,21 @@ export async function getServerSideProps({ params, res }) {
       // Add the gallery schema as additional structured data
       metadata.structuredData = [metadata.structuredData, imageGallerySchema];
       
-      // Add gallery images to OpenGraph for better social sharing
+      // First, ensure we're using the latest primary image URL based on data we just set
+      const mainEventImage = metadata.image;
+      
+      // Additional safeguard - set main image again to ensure high priority
+      metadata.image = mainEventImage;
+      
+      // Ensure Twitter card explicitly uses the primary event image
+      if (metadata.twitter) {
+        metadata.twitter.image = mainEventImage;
+      }
+      
+      // Add flag to help metadata component prioritize main event image
+      metadata.prioritizeMainImage = true;
+      
+      // Add gallery images to OpenGraph for better social sharing - AFTER primary event image
       galleryImages.slice(0, 4).forEach(img => {
         const imgUrl = img.image_url.startsWith('http') 
           ? img.image_url 

@@ -66,21 +66,30 @@ export default function DynamicMeta({
     }
   }
 
-  // Ensure primary image is used for Twitter card
-  if (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) {
-    // Get primary image or first image
-    const primaryImage = finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0];
-    
-    // Update Twitter image to use the primary OpenGraph image
-    if (finalTwitter) {
-      finalTwitter.image = primaryImage.url;
-    }
-  } else if (finalTwitter && finalTwitter.image && !finalTwitter.image.includes('?')) {
-    finalTwitter.image = `${finalTwitter.image}?t=${currentTime}`;
+  // Get the primary image URL for consistent use across all tags
+  const primaryImageUrl = (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) 
+    ? (finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0]).url
+    : imageWithTimestamp;
+
+  // Ensure Twitter image uses the primary image
+  if (finalTwitter) {
+    finalTwitter.image = primaryImageUrl;
   }
 
   return (
     <>
+      <Head>
+        {/* Set explicit itemprop image to ensure consistency */}
+        <meta itemProp="image" content={primaryImageUrl} />
+        
+        {/* Force OG image with higher precedence */}
+        <meta property="og:image" content={primaryImageUrl} />
+        <meta property="og:image:secure_url" content={primaryImageUrl} />
+        
+        {/* Force Twitter image */}
+        <meta name="twitter:image" content={primaryImageUrl} />
+      </Head>
+      
       <NextSeo
         title={title}
         description={description}
