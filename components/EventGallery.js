@@ -42,17 +42,20 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
             src={image.image_url} 
             alt={imageAlt}
             title={imageTitle}
-          className={`${styles.slideImage} ${isImageLoaded ? styles.visible : styles.hidden}`}
+            className={`${styles.slideImage} ${isImageLoaded ? styles.visible : styles.hidden}`}
             decoding="async"
-          onLoad={handleImageLoad}
+            loading="eager" 
+            fetchpriority="high"
+            itemProp="contentUrl"
+            onLoad={handleImageLoad}
             onError={() => {
               console.log('Slideshow image failed to load:', image.image_url);
               setImageError(true);
               onError();
             }}
-          style={{
-            transform: 'translateZ(0)', // Force GPU acceleration
-            backfaceVisibility: 'hidden', // Prevent flickering
+            style={{
+              transform: 'translateZ(0)', // Force GPU acceleration
+              backfaceVisibility: 'hidden', // Prevent flickering
             }}
           />
       ) : (
@@ -241,6 +244,8 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
     <div 
       className={styles.galleryItem}
       onClick={onClick}
+      itemScope
+      itemType="http://schema.org/ImageObject"
     >
       <div className={styles.imageContainer}>
             {isLoading && !imageError && (
@@ -253,39 +258,57 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
               <img 
                 src={image.image_url} 
                 alt={imageAlt}
-                title={imageTitle}
-            className={`${styles.galleryImage} ${isVisible ? styles.visible : styles.hidden}`}
+                title={imageTitle} 
+                className={`${styles.thumbnail} ${isVisible ? styles.visible : styles.hidden}`}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
                 loading="lazy"
                 decoding="async"
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{
-              transform: 'translateZ(0)', // Force GPU acceleration
-              backfaceVisibility: 'hidden', // Enhance performance
-                }}
+                width="250"
+                height="180"
+                itemProp="thumbnailUrl"
               />
             ) : (
-              // Fallback to placeholder if image fails
-              <div className={styles.thumbnailPlaceholder}>
-                <FaImage />
+              <div className={styles.thumbnailError}>
+                <FaImage size={32} />
               </div>
-        )}
-        
-        <FaExpand className={styles.expandIcon} />
-        {isAdmin && (
-          <button 
-            className={styles.deleteButton} 
-            onClick={(e) => onDelete(e, image.id)}
-            aria-label="Delete image"
-          >
-            <FaTrashAlt />
-          </button>
-        )}
+            )}
+            
+            {isAdmin && (
+              <button
+                className={styles.deleteButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(image.id);
+                }}
+                aria-label="Delete image"
+              >
+                <FaTrashAlt />
+              </button>
+            )}
+            
+            <button
+              className={styles.expandButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+              aria-label="View full image"
+            >
+              <FaExpand />
+            </button>
       </div>
-      {/* Always render caption container to prevent layout shifts, just hide it if no caption */}
-      <div className={styles.imageCaption} style={{ opacity: image.caption ? 1 : 0 }}>
-        {image.caption || 'No caption'}
+      
+      {image.caption && (
+        <div className={styles.imageCaption} itemProp="name">
+          {image.caption}
         </div>
+      )}
+      
+      {/* Hidden metadata for SEO */}
+      <meta itemProp="description" content={image.caption || `Event gallery image ${image.id}`} />
+      <meta itemProp="contentUrl" content={image.image_url} />
+      <meta itemProp="uploadDate" content={image.created_at || new Date().toISOString()} />
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -811,38 +834,62 @@ const EventGallery = ({ eventId }) => {
   }
 
   return (
-    <div className={styles.galleryContainer}>
-      <h2 className={styles.galleryTitle}>
-        <FaImage className={styles.galleryIcon} /> EVENT GALLERY
-      </h2>
-      <hr className={styles.galleryHorizontalRule} />
+    <div 
+      className={styles.galleryContainer}
+      itemScope
+      itemType="http://schema.org/ImageGallery"
+    >
+      <meta itemProp="about" content={`Event ${eventId}`} />
+      <meta itemProp="creator" content="Merrouch Gaming Center" />
+      <meta itemProp="datePublished" content={new Date().toISOString().split('T')[0]} />
       
-      {isLoading && !hasInitialCount ? (
-        <div className={styles.loadingContainer}>
-          <FaSpinner className={styles.spinnerIcon} />
-          <p>Loading gallery...</p>
-        </div>
-      ) : (
+      {/* Hide section completely if not loaded yet */}
+      {!hasInitialCount ? null : (
         <React.Fragment>
+          <h2 className={styles.galleryTitle}>
+            <FaImage className={styles.galleryIcon} />
+            Event Gallery
+          </h2>
+          <hr className={styles.galleryHorizontalRule} />
+          
+          {/* Admin controls - only shown to admins */}
           {isAdmin && (
             <div className={styles.adminControls}>
               <button 
-                className={styles.addImageButton} 
+                className={styles.addImageButton}
                 onClick={openModal}
-                aria-label="Add image to gallery"
+                disabled={isUploading}
               >
                 <FaPlus /> Add Image
               </button>
             </div>
           )}
           
-          {imageCount === 0 && hasInitialCount ? (
+          {/* Loading state for gallery */}
+          {isLoading ? (
+            <div className={styles.loadingContainer}>
+              <FaSpinner className={styles.spinnerIcon} />
+              <p>Loading gallery...</p>
+            </div>
+          ) : images.length === 0 ? (
+            // Empty gallery state
             <div className={styles.emptyGallery}>
-              <p>No images in the gallery yet.</p>
-              {isAdmin && <p>Use the "Add Image" button to upload images to the event gallery.</p>}
+              {hasInitialCount ? (
+                <>
+                  <FaImage size={32} />
+                  <p>No images have been added to this event gallery yet.</p>
+                </>
+              ) : (
+                <p>Loading gallery...</p>
+              )}
             </div>
           ) : (
-            <div className={styles.galleryGrid} style={{ minHeight: `${Math.ceil(imageCount / 4) * 250}px` }}>
+            // Gallery grid display
+            <div 
+              className={styles.galleryGrid}
+              role="list"
+              aria-label="Event gallery images"
+            >
               {/* Show placeholder grid during the initial loading */}
               {isLoading && hasInitialCount ? (
                 renderPlaceholders()

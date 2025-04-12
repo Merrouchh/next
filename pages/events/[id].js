@@ -117,6 +117,28 @@ export async function getServerSideProps({ params, res }) {
       }
     }
     
+    // Try to fetch gallery images for SEO
+    let galleryImages = [];
+    try {
+      const galleryResult = await fetchWithErrorHandling(`${baseUrl}/api/events/gallery?eventId=${id}`);
+      
+      // If that fails, try with relative URL
+      if (!galleryResult.success) {
+        const relativeGalleryResult = await fetchWithErrorHandling(`/api/events/gallery?eventId=${id}`, {
+          headers: { 'x-forwarded-host': 'localhost:3000' }
+        });
+        
+        if (relativeGalleryResult.success) {
+          galleryImages = relativeGalleryResult.data.images || [];
+        }
+      } else {
+        galleryImages = galleryResult.data.images || [];
+      }
+    } catch (error) {
+      console.error('Error fetching gallery images for SEO:', error);
+      // Continue without gallery images if there's an error
+    }
+    
     // Format date for description
     const formattedDate = event.date ? formatDate(event.date) : 'TBD';
     
@@ -244,6 +266,78 @@ export async function getServerSideProps({ params, res }) {
           "name": champion.name
         };
       }
+    }
+    
+    // Add gallery images to structured data if available
+    if (galleryImages && galleryImages.length > 0) {
+      // Enhance the event with associated media
+      const allImageUrls = galleryImages.map(img => {
+        // Make sure image URLs are absolute
+        return img.image_url.startsWith('http') 
+          ? img.image_url 
+          : `${baseUrl}${img.image_url.startsWith('/') ? '' : '/'}${img.image_url}`;
+      });
+      
+      // Add all gallery images to the main image array in structured data
+      metadata.structuredData.image = [...metadata.structuredData.image, ...allImageUrls];
+      
+      // Add ImageGallery schema as additional structured data
+      const imageGallerySchema = {
+        "@context": "https://schema.org",
+        "@type": "ImageGallery",
+        "associatedMedia": galleryImages.map(img => {
+          const imgUrl = img.image_url.startsWith('http') 
+            ? img.image_url 
+            : `${baseUrl}${img.image_url.startsWith('/') ? '' : '/'}${img.image_url}`;
+          
+          return {
+            "@type": "ImageObject",
+            "contentUrl": imgUrl,
+            "description": img.caption || `${event.title} - Gaming event image`,
+            "name": img.caption || event.title,
+            "encodingFormat": "image/jpeg", // Assuming JPEG, adjust if needed
+            "uploadDate": img.created_at || new Date().toISOString(),
+            "about": {
+              "@type": "Event",
+              "name": event.title,
+              "description": event.description || `${event.game || 'Gaming'} tournament`
+            }
+          };
+        }),
+        "thumbnailUrl": galleryImages.length > 0 
+          ? (galleryImages[0].image_url.startsWith('http') 
+            ? galleryImages[0].image_url 
+            : `${baseUrl}${galleryImages[0].image_url.startsWith('/') ? '' : '/'}${galleryImages[0].image_url}`) 
+          : (imageUrl || "https://merrouchgaming.com/events.jpg"),
+        "creator": {
+          "@type": "Organization",
+          "name": "Merrouch Gaming",
+          "url": "https://merrouchgaming.com"
+        },
+        "about": {
+          "@type": "Event",
+          "name": event.title,
+          "description": event.description || `${event.game || 'Gaming'} tournament`,
+          "url": `https://merrouchgaming.com/events/${id}`
+        }
+      };
+      
+      // Add the gallery schema as additional structured data
+      metadata.structuredData = [metadata.structuredData, imageGallerySchema];
+      
+      // Add gallery images to OpenGraph for better social sharing
+      galleryImages.slice(0, 4).forEach(img => {
+        const imgUrl = img.image_url.startsWith('http') 
+          ? img.image_url 
+          : `${baseUrl}${img.image_url.startsWith('/') ? '' : '/'}${img.image_url}`;
+        
+        metadata.openGraph.images.push({
+          url: imgUrl,
+          width: 1200,
+          height: 800,
+          alt: img.caption || `${event.title} - Gaming event image`
+        });
+      });
     }
     
     return { props: { metaData: metadata } };
