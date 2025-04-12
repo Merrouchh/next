@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { useModal } from '../contexts/ModalContext';
 import DynamicMeta from '../components/DynamicMeta';
 import Image from 'next/image';
+import { FaSearch, FaCalendarAlt, FaGamepad, FaTrophy, FaFilter } from 'react-icons/fa';
 
 // Format date for display - moved to a utility function outside components
 const formatDate = (dateString) => {
@@ -135,6 +136,10 @@ export default function Events({ metaData }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [featured, setFeatured] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [pageLoaded, setPageLoaded] = useState(false);
@@ -178,6 +183,11 @@ export default function Events({ metaData }) {
         
         const data = await response.json();
         setEvents(data);
+        
+        // Find featured event (first upcoming event, or first event if none are upcoming)
+        const upcomingEvent = data.find(event => event.status === 'Upcoming');
+        const inProgressEvent = data.find(event => event.status === 'In Progress');
+        setFeatured(upcomingEvent || inProgressEvent || (data.length > 0 ? data[0] : null));
         
         // Sync registration counts if user is logged in
         if (user) {
@@ -305,48 +315,191 @@ export default function Events({ metaData }) {
     };
   }, [events, supabase]);
 
-  // Filter events based on status
-  const filteredEvents = events.filter(event => {
-    if (filter === 'all') return true;
-    return event.status?.toLowerCase() === filter.toLowerCase();
-  });
+  // Filter and search events
+  useEffect(() => {
+    if (!events.length) {
+      setFilteredEvents([]);
+      return;
+    }
+    
+    const filtered = events.filter(event => {
+      // Apply status filter
+      const statusMatch = filter === 'all' || 
+        event.status?.toLowerCase() === filter.toLowerCase();
+      
+      // Apply search query if present
+      const searchMatch = !searchQuery || (
+        (event.title?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (event.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (event.game?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (event.location?.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      
+      return statusMatch && searchMatch;
+    });
+    
+    setFilteredEvents(filtered);
+  }, [events, filter, searchQuery]);
 
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
 
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Gaming Events</h1>
-          <div className={styles.filters}>
-            <button 
-              className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
-              onClick={() => setFilter('all')}
-            >
-              All Events
-            </button>
-            <button 
-              className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
-              onClick={() => setFilter('upcoming')}
-            >
-              Upcoming
-            </button>
-            <button 
-              className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
-              onClick={() => setFilter('in progress')}
-            >
-              In Progress
-            </button>
-            <button 
-              className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
-              onClick={() => setFilter('completed')}
-            >
-              Completed
-            </button>
+        {/* Hero section with featured event */}
+        {!pageLoaded ? null : featured && !loading ? (
+          <motion.div 
+            className={styles.heroSection}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className={styles.heroImageContainer}>
+              {featured.image ? (
+                <img 
+                  src={featured.image} 
+                  alt={featured.title} 
+                  className={styles.heroImage}
+                />
+              ) : (
+                <div className={styles.heroPlaceholder}>
+                  <div className={styles.heroPlaceholderText}>{featured.title.charAt(0).toUpperCase()}</div>
+                </div>
+              )}
+              <div className={styles.heroOverlay}></div>
+              <div className={styles.heroStatus}>
+                <span className={`${styles.heroStatusBadge} ${styles[`status${featured.status?.replace(/\s+/g, '')}`]}`}>
+                  {featured.status}
+                </span>
+                {featured.team_type && (
+                  <span className={styles.heroTeamType}>
+                    {featured.team_type.charAt(0).toUpperCase() + featured.team_type.slice(1)} Event
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className={styles.heroContent}>
+              <h1 className={styles.heroTitle}>{featured.title}</h1>
+              <div className={styles.heroMeta}>
+                <span className={styles.heroDate}>
+                  <FaCalendarAlt /> {formatDate(featured.date)} • {featured.time}
+                </span>
+                <span className={styles.heroGame}>
+                  <FaGamepad /> {featured.game}
+                </span>
+                {featured.registration_limit && (
+                  <span className={styles.heroSpots}>
+                    <FaTrophy /> {featured.registered_count || 0} / {featured.registration_limit} spots
+                  </span>
+                )}
+              </div>
+              <p className={styles.heroDescription}>
+                {featured.description && featured.description.length > 200
+                  ? `${featured.description.substring(0, 200)}...`
+                  : featured.description}
+              </p>
+              <button 
+                className={styles.heroButton}
+                onClick={() => router.push(`/events/${featured.id}`)}
+              >
+                View Details
+              </button>
+            </div>
+          </motion.div>
+        ) : null}
+
+        <div className={styles.eventsHeader}>
+          <h2 className={styles.sectionTitle}>All Events</h2>
+          
+          <div className={styles.searchAndFilters}>
+            <div className={styles.searchContainer}>
+              <FaSearch className={styles.searchIcon} />
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder="Search events..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button 
+                  className={styles.clearSearch}
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            <div className={styles.filtersWrapper}>
+              <div className={styles.filtersDesktop}>
+                <button 
+                  className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
+                  onClick={() => setFilter('all')}
+                >
+                  All Events
+                </button>
+                <button 
+                  className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
+                  onClick={() => setFilter('upcoming')}
+                >
+                  Upcoming
+                </button>
+                <button 
+                  className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
+                  onClick={() => setFilter('in progress')}
+                >
+                  In Progress
+                </button>
+                <button 
+                  className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
+                  onClick={() => setFilter('completed')}
+                >
+                  Completed
+                </button>
+              </div>
+              
+              <button 
+                className={styles.mobileFilterButton}
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <FaFilter /> Filter
+              </button>
+              
+              {showFilters && (
+                <div className={styles.mobileFilters}>
+                  <button 
+                    className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
+                    onClick={() => { setFilter('all'); setShowFilters(false); }}
+                  >
+                    All Events
+                  </button>
+                  <button 
+                    className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
+                    onClick={() => { setFilter('upcoming'); setShowFilters(false); }}
+                  >
+                    Upcoming
+                  </button>
+                  <button 
+                    className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
+                    onClick={() => { setFilter('in progress'); setShowFilters(false); }}
+                  >
+                    In Progress
+                  </button>
+                  <button 
+                    className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
+                    onClick={() => { setFilter('completed'); setShowFilters(false); }}
+                  >
+                    Completed
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Use pageLoaded to avoid showing loading state until after hydration */}
+        {/* Events grid with search results or loading indicator */}
         {!pageLoaded ? (
           <div className={styles.hiddenLoader}>Loading events...</div>
         ) : loading ? (
@@ -358,22 +511,41 @@ export default function Events({ metaData }) {
           <div className={styles.emptyContainer}>
             <div className={styles.emptyIcon}>🎮</div>
             <h2>No Events Found</h2>
-            <p>There are no events matching your current filter.</p>
-            {filter !== 'all' && (
-              <button 
-                className={styles.resetButton}
-                onClick={() => setFilter('all')}
-              >
-                View All Events
-              </button>
+            {searchQuery ? (
+              <p>No events matching your search: "{searchQuery}"</p>
+            ) : (
+              <p>There are no events matching your current filter.</p>
             )}
+            <div className={styles.emptyActions}>
+              {searchQuery && (
+                <button 
+                  className={styles.resetButton}
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear Search
+                </button>
+              )}
+              {filter !== 'all' && (
+                <button 
+                  className={styles.resetButton}
+                  onClick={() => setFilter('all')}
+                >
+                  View All Events
+                </button>
+              )}
+            </div>
           </div>
         ) : (
-          <div className={styles.eventsGrid}>
+          <motion.div 
+            className={styles.eventsGrid}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
             {filteredEvents.map(event => (
               <EventCard key={event.id} event={event} />
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </ProtectedPageWrapper>
@@ -384,9 +556,9 @@ function EventCard({ event }) {
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
-  const [checkingRegistration, setCheckingRegistration] = useState(false); // Only set to true if user is logged in
+  const [checkingRegistration, setCheckingRegistration] = useState(false);
   const isPublicView = !user;
-  const { openLoginModal } = useModal(); // Import the modal context hook
+  const { openLoginModal } = useModal();
   
   // Only check registration status if user is logged in
   useEffect(() => {
@@ -452,11 +624,11 @@ function EventCard({ event }) {
     } else if (isFull) {
       return styles.fullBadges;
     } else {
-      return ''; // Default
+      return styles.normalBadges;
     }
   };
   
-  const truncateDescription = (text, maxLength = 150) => {
+  const truncateDescription = (text, maxLength = 120) => {
     if (!text || text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
@@ -485,12 +657,12 @@ function EventCard({ event }) {
   const getRegistrationButtonText = () => {
     // For completed events, always show "Event Ended"
     if (event.status === 'Completed') {
-      return 'Event Ended';
+      return 'View Results';
     }
     
     // For in-progress events, always show "In Progress"
     if (event.status === 'In Progress') {
-      return 'In Progress';
+      return 'View Tournament';
     }
     
     // Only show loading state if user is logged in and we're checking registration
@@ -507,7 +679,7 @@ function EventCard({ event }) {
     
     // For public users on upcoming events
     if (isPublicView) {
-      return event.status === 'Upcoming' ? 'Login to Register' : 'Register Now';
+      return event.status === 'Upcoming' ? 'Login to Register' : 'View Event';
     }
     
     // For authenticated users
@@ -550,11 +722,15 @@ function EventCard({ event }) {
   };
 
   return (
-    <div 
+    <motion.div 
       className={`${styles.eventCard} ${styles.clickableCard}`}
       onClick={viewEventDetails}
       role="button"
       tabIndex={0}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      whileHover={{ y: -5 }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           viewEventDetails();
@@ -596,32 +772,59 @@ function EventCard({ event }) {
           {/* Registered badge - if registered and upcoming */}
           {isRegistered && event.status === 'Upcoming' && (
             <div className={styles.registeredBadge}>
-              ✓ Registered
+              <span className={styles.checkmark}>✓</span> Registered
             </div>
           )}
         </div>
+        
+        {/* Add date badge */}
+        {event.date && (
+          <div className={styles.dateBadge}>
+            <div className={styles.dateMonth}>
+              {new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}
+            </div>
+            <div className={styles.dateDay}>
+              {new Date(event.date).toLocaleDateString('en-US', { day: 'numeric' })}
+            </div>
+          </div>
+        )}
       </div>
       <div className={styles.eventContent}>
-        <h3 className={styles.eventTitle}>{event.title}</h3>
+        <h3 className={styles.eventTitle}>
+          {event.title}
+          {event.game && (
+            <span className={styles.eventGameLabel}>{event.game}</span>
+          )}
+        </h3>
+
         <div className={styles.eventMeta}>
-          <div className={styles.eventDate}>
-            <span className={styles.metaIcon}>📅</span> {formatDate(event.date)}
-          </div>
           <div className={styles.eventTime}>
-            <span className={styles.metaIcon}>⏰</span> {event.time}
+            <FaCalendarAlt className={styles.metaIcon} /> {event.time}
           </div>
           <div className={styles.eventLocation}>
             <span className={styles.metaIcon}>📍</span> {event.location}
           </div>
-          <div className={styles.eventGame}>
-            <span className={styles.metaIcon}>🎮</span> {event.game || 'Various Games'}
-          </div>
           {event.registration_limit && (
             <div className={styles.eventRegistrations}>
-              <span className={styles.metaIcon}>👥</span> {registeredCount} / {event.registration_limit} spots
+              <span className={styles.metaIcon}>👥</span> 
+              <div className={styles.registrationProgress}>
+                <div className={styles.progressBarContainer}>
+                  <div 
+                    className={styles.progressBar}
+                    style={{ 
+                      width: `${Math.min(100, (registeredCount / event.registration_limit) * 100)}%`,
+                      backgroundColor: registeredCount >= event.registration_limit ? '#dc3545' : '#28a745'
+                    }}
+                  ></div>
+                </div>
+                <span className={styles.registrationCount}>
+                  {registeredCount}/{event.registration_limit}
+                </span>
+              </div>
             </div>
           )}
         </div>
+        
         <p className={styles.eventDescription}>
           {truncateDescription(event.description)}
         </p>
@@ -636,7 +839,6 @@ function EventCard({ event }) {
             handleRegisterClick();
           }}
           disabled={
-            // Don't disable for completed or in progress events
             (!isPublicView && checkingRegistration) ||
             (!isPublicView && isRegistered)
           }
@@ -644,6 +846,6 @@ function EventCard({ event }) {
           {getRegistrationButtonText()}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 } 
