@@ -205,6 +205,7 @@ export async function getServerSideProps({ params, res }) {
       structuredData: {
         "@context": "https://schema.org",
         "@type": "Event",
+        "@id": `https://merrouchgaming.com/events/${id}#event`,
         "name": event.title,
         "description": event.description || `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
         "startDate": event.date,
@@ -240,7 +241,9 @@ export async function getServerSideProps({ params, res }) {
           "url": `https://merrouchgaming.com/events/${id}`,
           "price": "0",
           "priceCurrency": "MAD"
-        }
+        },
+        // Add a source comment to help debugging
+        "source": "event-id-page"
       }
     };
     

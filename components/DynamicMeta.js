@@ -1,6 +1,17 @@
 import { NextSeo } from 'next-seo';
 import Head from 'next/head';
 
+// Simple hash function to identify content
+const hashCode = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16);
+};
+
 export default function DynamicMeta({ 
   title = '',
   description = '',
@@ -96,6 +107,43 @@ export default function DynamicMeta({
 
         {/* Add a flag for the app-level component to detect */}
         {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
+        
+        {/* Explicitly remove any previous structured data scripts */}
+        <script data-remove-previous-ld-json="true" type="text/plain" />
+        
+        {/* Add structured data if provided */}
+        {finalStructuredData && (
+          <>
+            {Array.isArray(finalStructuredData) ? (
+              // If it's an array of schema objects, render multiple script tags
+              finalStructuredData.map((schema, index) => {
+                const schemaContent = JSON.stringify(schema);
+                const schemaHash = hashCode(schemaContent);
+                return (
+                  <script
+                    key={`schema-${schemaHash}-${index}`}
+                    type="application/ld+json"
+                    data-schema-id={`structuredData-${schemaHash}`}
+                    dangerouslySetInnerHTML={{ __html: schemaContent }}
+                  />
+                );
+              })
+            ) : (
+              // If it's a single schema object, render one script tag
+              (() => {
+                const schemaContent = JSON.stringify(finalStructuredData);
+                const schemaHash = hashCode(schemaContent);
+                return (
+                  <script
+                    type="application/ld+json"
+                    data-schema-id={`structuredData-${schemaHash}`}
+                    dangerouslySetInnerHTML={{ __html: schemaContent }}
+                  />
+                );
+              })()
+            )}
+          </>
+        )}
       </Head>
       
       <NextSeo
@@ -112,28 +160,6 @@ export default function DynamicMeta({
           }
         ]}
       />
-      
-      {/* Add structured data if provided */}
-      {finalStructuredData && (
-        <Head>
-          {Array.isArray(finalStructuredData) ? (
-            // If it's an array of schema objects, render multiple script tags
-            finalStructuredData.map((schema, index) => (
-              <script
-                key={`schema-${index}`}
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-              />
-            ))
-          ) : (
-            // If it's a single schema object, render one script tag
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(finalStructuredData) }}
-            />
-          )}
-        </Head>
-      )}
     </>
   );
 } 

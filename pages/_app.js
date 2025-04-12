@@ -11,6 +11,7 @@ import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
 import DynamicMeta from '../components/DynamicMeta';
 import { ModalProvider } from '../contexts/ModalContext';
+import Head from 'next/head';
 
 // Disable error overlay in development
 if (process.env.NODE_ENV === 'development') {
@@ -169,11 +170,15 @@ function MyApp({ Component, pageProps }) {
     description: defaultSEO.description
   };
 
-  // Modify defaultSEO to remove structured data if page component specifies excludeFromAppSeo
+  // For pages with their own structured data, we need to completely
+  // disable JSON-LD in DefaultSeo to prevent duplication
   const appSeoConfig = {...defaultSEO};
-  if (safeMetaData.excludeFromAppSeo) {
-    // Remove any structured data from the app-level SEO to prevent duplication
-    delete appSeoConfig.additionalJSONLD;
+  const hasPageStructuredData = !!(safeMetaData.structuredData || safeMetaData.structuredDataItems);
+  
+  // If the page has its own structured data, remove any JSON-LD from DefaultSeo
+  if (hasPageStructuredData) {
+    delete appSeoConfig.additionalLinkTags;
+    delete appSeoConfig.jsonLd;
   }
 
   if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
@@ -181,6 +186,11 @@ function MyApp({ Component, pageProps }) {
       <StrictMode>
         <ErrorBoundary>
           <div suppressHydrationWarning>
+            {/* Add special tag to ensure only one set of structured data appears */}
+            <Head>
+              <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
+            </Head>
+            
             {/* Base SEO - lowest priority */}
             <DefaultSeo {...appSeoConfig} />
             
@@ -230,6 +240,11 @@ function MyApp({ Component, pageProps }) {
     <StrictMode>
       <ErrorBoundary>
         <div suppressHydrationWarning>
+          {/* Add special tag to ensure only one set of structured data appears */}
+          <Head>
+            <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
+          </Head>
+          
           {/* Base SEO - lowest priority */}
           <DefaultSeo {...appSeoConfig} />
           
