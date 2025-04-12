@@ -46,7 +46,8 @@ export async function getServerSideProps({ req, res }) {
         file_path,
         uploaded_at,
         user_id,
-        cloudflare_uid
+        cloudflare_uid,
+        mp4link
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
@@ -191,7 +192,8 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
           file_path,
           uploaded_at,
           user_id,
-          cloudflare_uid
+          cloudflare_uid,
+          mp4link
         `)
         .eq('visibility', 'public')
         .order('uploaded_at', { ascending: false })
@@ -263,13 +265,20 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
 
           switch (payload.eventType) {
             case 'INSERT':
-              if (payload.new.visibility === 'public' && payload.new.cloudflare_uid) {
+              if (payload.new.visibility === 'public') {
                 console.log('Adding new public clip:', payload.new.id);
+                // Ensure we have all required fields including mp4link
+                const newClip = {
+                  ...payload.new,
+                  thumbnail_url: payload.new.cloudflare_uid 
+                    ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${payload.new.cloudflare_uid}/thumbnails/thumbnail.jpg`
+                    : payload.new.thumbnail_path || 'https://merrouchgaming.com/top.jpg'
+                };
                 setClips(prevClips => {
-                  if (prevClips.some(clip => clip.id === payload.new.id)) {
+                  if (prevClips.some(clip => clip.id === newClip.id)) {
                     return prevClips;
                   }
-                  return [payload.new, ...prevClips];
+                  return [newClip, ...prevClips];
                 });
               }
               break;

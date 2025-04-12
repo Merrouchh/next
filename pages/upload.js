@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import { useVideoUpload } from '../hooks/useVideoUpload';
 import { v4 as uuidv4 } from 'uuid';
 import debounce from 'lodash/debounce';
+import MaintenanceOverlay from '../components/MaintenanceOverlay';
 
 // Constants for file validation
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -20,6 +21,10 @@ const SUPPORTED_FORMATS = {
   'video/quicktime': ['.mov'],
   'video/x-matroska': ['.mkv']
 };
+
+// Environment variable to control maintenance mode
+// Set to true to enable maintenance mode
+const UPLOAD_MAINTENANCE_MODE = true;
 
 // Dynamically import the VideoThumbnail component with no SSR
 const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
@@ -546,10 +551,27 @@ const UploadPage = () => {
     }
   }, [uploadStatus, resetForm]);
 
+  // Render the maintenance overlay if maintenance mode is enabled
+  if (UPLOAD_MAINTENANCE_MODE) {
+    return (
+      <div className={styles.container}>
+        <Head>
+          <title>Upload - Maintenance</title>
+          <meta name="description" content="Upload page currently under maintenance" />
+        </Head>
+        <MaintenanceOverlay 
+          message="We're currently improving the upload feature. Please check back soon!" 
+          fullPage={true}
+        />
+      </div>
+    );
+  }
+
   return (
     <ProtectedPageWrapper>
       <Head>
         <title>Upload Clip - MerrouchGaming</title>
+        <meta name="description" content="Upload your gameplay clips" />
       </Head>
       <div className={styles.uploadMain}>
         <PendingUploadsBanner userId={user?.id} />

@@ -82,7 +82,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           className={`${styles.actionButton} ${styles.loginButton}`}
         >
           <AiOutlineUser className={styles.buttonIcon} />
-          Login to Account
+          Login into website
         </button>
         <div className={styles.divider}>
           <span>or</span>
@@ -92,7 +92,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           className={`${styles.actionButton} ${styles.createButton}`}
         >
           <AiOutlineUser className={styles.buttonIcon} />
-          Create New Account
+          Link Merrouch Account
         </button>
       </div>
     </div>
@@ -203,7 +203,10 @@ const LoginModal = ({ isOpen, onClose }) => {
           setError(
             <div>
               This gaming account is already linked to an existing account.
-              <button onClick={() => setStep('LOGIN')}>
+              <button onClick={() => {
+                setError('');
+                setStep('LOGIN');
+              }}>
                 Go to Login
               </button>
             </div>
@@ -231,13 +234,13 @@ const LoginModal = ({ isOpen, onClose }) => {
   // Validation step
   const renderValidateStep = () => (
     <div className={styles.stepContainer}>
-      <h2>Validate Gaming Account</h2>
+      <h2>Link Merrouch Account</h2>
       <form className={styles.form} onSubmit={handleGizmoValidation}>
         <div className={styles.inputWrapper}>
           <AiOutlineUser className={styles.inputIcon} />
           <input
             type="text"
-            placeholder="Gaming Username"
+            placeholder="Merrouch Username"
             value={formData.username}
             onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase()})}
             pattern="[a-z0-9._%+-]+"
@@ -248,7 +251,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           <AiOutlineLock className={styles.inputIcon} />
           <input
             type="password"
-            placeholder="Gaming Password"
+            placeholder="Merrouch Password"
             value={formData.gizmoPassword}
             onChange={(e) => setFormData({...formData, gizmoPassword: e.target.value})}
           />
@@ -260,7 +263,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               <span>Validating...</span>
             </div>
           ) : (
-            'Validate Account'
+            'Link Account'
           )}
         </button>
         <button 

@@ -1,17 +1,226 @@
-/* Video wrapper */
+/* Video wrapper - the outermost container */
 .videoWrapper {
   position: relative;
   width: 100%;
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  background-color: #000;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  background: #000;
   overflow: hidden;
-  z-index: 10; /* Ensure this is lower than modal z-index */
-  border-radius: 6px;
+  max-width: 100%; /* Ensure the video doesn't expand beyond its container */
+  max-height: 100%;
 }
 
+/* Video.js container */
+.videoWrapper > div[data-vjs-player] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Prevent overflow */
+}
+
+/* The actual video element and its container */
+.videoWrapper :global(.video-js) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent overflow */
+}
+
+/* Fix fullscreen handling to prevent container issues */
+.videoWrapper :global(.vjs-fullscreen),
+.videoWrapper :global(.vjs-fullscreen .video-js) {
+  position: fixed;
+  overflow: hidden;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure object-fit is correct for the video */
+.videoWrapper :global(video) {
+  object-fit: contain;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Special handling for clip cards */
 .inClipCard {
-  border-radius: 0;
+  border-radius: 8px;
+  overflow: hidden !important; /* Force overflow hidden */
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+}
+
+.inClipCard :global(.video-js),
+.inClipCard :global(video) {
+  border-radius: 8px;
+  object-fit: cover; /* Cover for clip cards */
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Control bar styling - allow fading but style properly */
+.videoWrapper :global(.video-js .vjs-control-bar) {
+  opacity: 1; /* Start visible but allow fading */
+  visibility: visible;
+  transition: opacity 0.5s ease;
+  background-color: rgba(0, 0, 0, 0.7);
+  /* Ensure control bar doesn't overflow */
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
+/* Make controls visible when user is active */
+.videoWrapper :global(.video-js.vjs-user-active .vjs-control-bar) {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Allow controls to fade out when inactive and playing */
+.videoWrapper :global(.video-js.vjs-user-inactive.vjs-playing .vjs-control-bar) {
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+/* Always show controls when paused */
+.videoWrapper :global(.video-js.vjs-paused .vjs-control-bar) {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Poster image styling */
+.videoWrapper :global(.vjs-poster) {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* Custom Video.js Theme */
+:global(.video-js.vjs-theme-merrouch) {
+  --vjs-theme-merrouch--primary: #FFD700;
+  --vjs-theme-merrouch--secondary: #fff;
+  --vjs-theme-merrouch--background: rgba(0, 0, 0, 0.8);
+  font-size: 10px; /* Base font size for scaling */
+}
+
+/* Enhance control visibility with better background */
+:global(.video-js.vjs-theme-merrouch .vjs-control-bar) {
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 80%, transparent 100%);
+  height: 5em;
+}
+
+/* Ensure control elements are visible */
+:global(.video-js.vjs-theme-merrouch .vjs-control) {
+  color: white !important;
+  text-shadow: 0 0 2px rgba(0,0,0,0.8);
+}
+
+/* Custom Play Button - Completely independent from Video.js */
+.customPlayButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 3px solid #FFD700;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.customPlayButton:hover {
+  background-color: #FFD700;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.playIcon {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 20px 0 20px 35px;
+  border-color: transparent transparent transparent #FFD700;
+  margin-left: 5px; /* Optical center adjustment */
+  transition: all 0.3s ease;
+}
+
+.customPlayButton:hover .playIcon {
+  border-color: transparent transparent transparent #000;
+}
+
+/* Control bar styling */
+:global(.video-js.vjs-theme-merrouch .vjs-control-bar) {
+  background: var(--vjs-theme-merrouch--background);
+  height: 4em;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-button > .vjs-icon-placeholder:before) {
+  line-height: 2.2;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-play-progress) {
+  background: var(--vjs-theme-merrouch--primary);
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-slider) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-volume-level) {
+  background: var(--vjs-theme-merrouch--primary);
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-play-progress .vjs-time-tooltip) {
+  background: var(--vjs-theme-merrouch--primary);
+  color: #000;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-time-tooltip) {
+  background: var(--vjs-theme-merrouch--primary);
+  color: #000;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-menu-button-popup .vjs-menu) {
+  background: var(--vjs-theme-merrouch--background);
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-menu-item) {
+  padding: 8px 15px;
+  font-size: 14px;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-menu-item:hover) {
+  background: var(--vjs-theme-merrouch--primary);
+  color: #000;
+}
+
+:global(.video-js.vjs-theme-merrouch .vjs-playback-rate .vjs-menu) {
+  width: 80px;
 }
 
 /* Iframe container for the Cloudflare Stream player */
@@ -66,11 +275,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  z-index: 25;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
   text-align: center;
   padding: 20px;
+  z-index: 20;
 }
 
 .errorOverlay p {
@@ -79,34 +288,53 @@
 }
 
 .retryButton {
-  background-color: #FFD700;
-  color: black;
-  border: none;
+  margin-top: 10px;
   padding: 8px 16px;
+  background: var(--vjs-theme-merrouch--primary);
+  color: #000;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s;
+  font-weight: 600;
 }
 
 .retryButton:hover {
-  background-color: #e6c300;
+  background: #FFC800;
 }
 
 .errorContainer {
-  width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #222;
-  color: #ddd;
-  padding: 20px;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  background: #1a1a1a;
+  color: #fff;
   text-align: center;
-  font-size: 14px;
+  padding: 20px;
 }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Loading spinner */
+:global(.video-js.vjs-theme-merrouch .vjs-loading-spinner) {
+  border: 4px solid rgba(255, 215, 0, 0.2);
+  border-top-color: var(--vjs-theme-merrouch--primary);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: vjs-spinner-spin 1s infinite linear;
+}
+
+@keyframes vjs-spinner-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
