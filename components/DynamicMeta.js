@@ -10,7 +10,8 @@ export default function DynamicMeta({
   noindex = false,
   openGraph = null,
   twitter = null,
-  structuredData = null
+  structuredData = null,
+  structuredDataItems = null
 }) {
   const currentTime = new Date().toISOString();
   
@@ -76,6 +77,9 @@ export default function DynamicMeta({
     finalTwitter.image = primaryImageUrl;
   }
 
+  // Determine which structured data to use
+  const finalStructuredData = structuredDataItems || structuredData;
+
   return (
     <>
       <Head>
@@ -106,11 +110,11 @@ export default function DynamicMeta({
       />
       
       {/* Add structured data if provided */}
-      {structuredData && (
+      {finalStructuredData && (
         <Head>
-          {Array.isArray(structuredData) ? (
+          {Array.isArray(finalStructuredData) ? (
             // If it's an array of schema objects, render multiple script tags
-            structuredData.map((schema, index) => (
+            finalStructuredData.map((schema, index) => (
               <script
                 key={`schema-${index}`}
                 type="application/ld+json"
@@ -121,7 +125,7 @@ export default function DynamicMeta({
             // If it's a single schema object, render one script tag
             <script
               type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(finalStructuredData) }}
             />
           )}
         </Head>

@@ -282,7 +282,7 @@ export async function getServerSideProps({ params, res }) {
       // Add all gallery images to the main image array in structured data
       metadata.structuredData.image = [...metadata.structuredData.image, ...allImageUrls];
       
-      // Add ImageGallery schema as additional structured data
+      // Add ImageGallery schema as additional structured data - not as an array with the event
       const imageGallerySchema = {
         "@context": "https://schema.org",
         "@type": "ImageGallery",
@@ -316,16 +316,21 @@ export async function getServerSideProps({ params, res }) {
           "url": "https://merrouchgaming.com"
         },
         "about": {
-          "@type": "Event",
+          "@type": "SportsEvent", // Changed from Event to SportsEvent for differentiation
           "name": event.title,
-          "description": event.description || `${event.game || 'Gaming'} tournament`,
           "url": `https://merrouchgaming.com/events/${id}`
         }
       };
       
-      // Add the gallery schema as additional structured data
-      metadata.structuredData = [metadata.structuredData, imageGallerySchema];
+      // Store both structured data items but in a way that prevents duplication
+      metadata.structuredDataItems = [
+        metadata.structuredData,
+        imageGallerySchema
+      ];
       
+      // Remove the original to prevent duplication
+      delete metadata.structuredData;
+
       // First, ensure we're using the latest primary image URL based on data we just set
       const mainEventImage = metadata.image;
       
