@@ -282,38 +282,9 @@ export async function getServerSideProps({ params, res }) {
       // Add all gallery images to the main image array in structured data
       metadata.structuredData.image = [...metadata.structuredData.image, ...allImageUrls];
       
-      // Create a clean, minimal ImageGallery schema without embedded Event objects
-      const imageGallerySchema = {
-        "@context": "https://schema.org",
-        "@type": "ImageGallery",
-        "name": `${event.title} - Photo Gallery`,
-        "description": `Photo gallery for ${event.title} event at Merrouch Gaming Center`,
-        "thumbnailUrl": galleryImages.length > 0 
-          ? (galleryImages[0].image_url.startsWith('http') 
-            ? galleryImages[0].image_url 
-            : `${baseUrl}${galleryImages[0].image_url.startsWith('/') ? '' : '/'}${galleryImages[0].image_url}`) 
-          : (imageUrl || "https://merrouchgaming.com/events.jpg"),
-        "creator": {
-          "@type": "Organization",
-          "name": "Merrouch Gaming",
-          "url": "https://merrouchgaming.com"
-        },
-        "contentUrl": allImageUrls,
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `https://merrouchgaming.com/events/${id}`
-        }
-      };
+      // DO NOT create any secondary structured data objects - they cause validation errors
+      // ONLY keep the main Event structured data which is valid
       
-      // Use the structuredDataItems property with clean, complete objects only
-      metadata.structuredDataItems = [
-        metadata.structuredData,
-        imageGallerySchema
-      ];
-      
-      // Remove the original to prevent duplication
-      delete metadata.structuredData;
-
       // First, ensure we're using the latest primary image URL based on data we just set
       const mainEventImage = metadata.image;
       
