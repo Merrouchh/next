@@ -308,16 +308,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Loading spinner */
-:global(.video-js.vjs-theme-merrouch .vjs-loading-spinner) {
-  border: 4px solid rgba(255, 215, 0, 0.2);
-  border-top-color: var(--vjs-theme-merrouch--primary);
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  animation: vjs-spinner-spin 1s infinite linear;
-}
-
 @keyframes vjs-spinner-spin {
   0% {
     transform: rotate(0deg);
@@ -327,7 +317,7 @@
   }
 }
 
-/* Loading spinner */
+/* Loading spinner - properly wrapped version */
 .videoPlayerTheme :global(.video-js.vjs-theme-merrouch .vjs-loading-spinner) {
   border: 4px solid rgba(255, 215, 0, 0.2);
   border-top-color: var(--vjs-theme-merrouch--primary);
@@ -340,4 +330,4 @@
 .videoPlayerTheme :global(.video-js.vjs-theme-merrouch .vjs-control) {
   color: white !important;
   text-shadow: 0 0 2px rgba(0,0,0,0.8);
-}
+} 
