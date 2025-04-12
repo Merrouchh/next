@@ -98,8 +98,8 @@
 .galleryGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
   will-change: transform;
   contain: layout;
   min-height: 100px; /* Minimum height to prevent layout shifts */
@@ -110,7 +110,7 @@
 
 @supports (aspect-ratio: 1 / 1) {
   .galleryItem {
-    aspect-ratio: 1 / 1;
+    aspect-ratio: 3 / 2; /* Changed from 1/1 to 3/2 for better photo display */
     height: auto;
     padding-bottom: 0;
     min-height: 0;
@@ -121,29 +121,32 @@
 @supports not (aspect-ratio: 1 / 1) {
   .galleryItem {
     height: 0;
-    padding-bottom: 100%;
+    padding-bottom: 66.67%; /* 3:2 aspect ratio */
     min-height: 200px;
   }
 }
 
 .galleryItem {
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
-  aspect-ratio: 1/1;
-  background-color: #1a1a1a;
+  background-color: #1e1e1e;
   position: relative;
   will-change: transform;
   height: 0;
-  padding-bottom: 100%; /* Create a responsive square */
+  padding-bottom: 66.67%; /* Create a responsive 3:2 aspect ratio */
   display: flex;
   flex-direction: column;
   min-height: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .galleryItem:hover {
-  transform: scale(1.02);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 2px 5px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 193, 7, 0.3);
 }
 
 .imageContainer {
@@ -154,6 +157,7 @@
   height: 100%;
   background-color: #1a1a1a;
   overflow: hidden;
+  border-radius: 12px;
 }
 
 .placeholderContainer {
@@ -161,24 +165,24 @@
   align-items: center;
   justify-content: center;
   background-color: #1e1e1e;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
   width: 100%;
   height: 100%;
-  aspect-ratio: 1/1;
   position: relative;
   overflow: hidden;
 }
 
-.galleryImage {
+.thumbnail {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  will-change: transform, opacity;
+  transition: transform 0.5s ease, filter 0.3s ease;
+  will-change: transform, filter;
   display: block;
   backface-visibility: hidden; /* Prevent flickering during transitions */
   perspective: 1000px; /* Create a 3D context */
+  filter: brightness(0.95) contrast(1.05);
 }
 
 .hidden {
@@ -191,83 +195,79 @@
   visibility: visible;
 }
 
-.galleryItem:hover .galleryImage {
-  transform: scale(1.05);
-}
-
-.deleteButton {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background-color: rgba(220, 53, 69, 0.8);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.2s;
-  z-index: 2;
-}
-
-.imageContainer:hover .deleteButton {
-  opacity: 1;
-}
-
-.deleteButton:hover {
-  background-color: rgba(220, 53, 69, 1);
+.galleryItem:hover .thumbnail {
+  transform: scale(1.08);
+  filter: brightness(1.1) contrast(1.08);
 }
 
 .imageCaption {
   position: absolute;
   bottom: 0;
   left: 0;
-  right: 0;
-  padding: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 0.85rem;
-  transition: transform 0.3s, opacity 0.3s;
-  z-index: 1;
-  height: 2.5rem; /* Fixed height for captions */
-  display: flex;
-  align-items: center;
-  transform: translateY(100%);
+  width: 100%;
+  padding: 12px 15px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .galleryItem:hover .imageCaption {
+  opacity: 1;
   transform: translateY(0);
-  opacity: 1 !important; /* Override the inline opacity when hovering */
 }
 
-.expandIcon {
+.expandButton {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  color: white;
-  font-size: 1.5rem;
-  opacity: 0;
-  transition: transform 0.3s, opacity 0.3s;
-  background-color: rgba(255, 193, 7, 0.5); /* Yellow with transparency */
-  padding: 10px;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
+  color: white;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.2s ease;
+  backdrop-filter: blur(3px);
+  z-index: 10;
 }
 
-.galleryItem:hover .expandIcon {
+.galleryItem:hover .expandButton {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateY(0);
+}
+
+.expandButton:hover {
+  background-color: rgba(255, 193, 7, 0.8);
+  color: black;
+}
+
+.thumbnailError {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #2a2a2a;
+  color: #aaa;
+  font-size: 0.9rem;
 }
 
 /* Slide Portal Styles */
@@ -712,7 +712,7 @@
 
 @media (max-width: 768px) {
   .galleryGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 10px;
   }
   
@@ -755,11 +755,23 @@
     font-size: 12px;
     bottom: 15px;
   }
+  
+  .imageCaption {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+  
+  .expandButton {
+    width: 30px;
+    height: 30px;
+    top: 8px;
+    right: 8px;
+  }
 }
 
 @media (max-width: 480px) {
   .galleryGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
   
   .imageContainer {
