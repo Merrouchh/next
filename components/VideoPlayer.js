@@ -186,7 +186,16 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
             setVideoInitialized(true);
           }
           
+          // Add debugging info about player state
+          try {
+            console.log(`Player state on play: isPlaying=${!player.paused()}, playerId=${playerIdRef.current}, clipId=${clip.id}`);
+          } catch (e) {
+            console.error('Error logging player state:', e);
+          }
+          
           // Notify the video manager that this player has started playing
+          // This will pause all other players
+          console.log(`Notifying video manager that ${playerIdRef.current} has started playing`);
           videoPlayerManager.playerStartedPlaying(playerIdRef.current);
         });
 
@@ -195,11 +204,14 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           setIsActuallyPlaying(false);
           setShowCustomPlayButton(true);
           
+          // Update the video player manager if this was the currently playing video
+          if (videoPlayerManager.currentlyPlayingId === playerIdRef.current) {
+            console.log(`Clearing current playing ID in manager: ${playerIdRef.current}`);
+            videoPlayerManager.currentlyPlayingId = null;
+          }
+          
           // Show controls when paused
           player.userActive(true);
-          
-          // Notify the video manager that this player has been paused
-          videoPlayerManager.playerPaused(playerIdRef.current);
         });
 
         player.on('ended', () => {
@@ -208,9 +220,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           
           // Show controls when ended
           player.userActive(true);
-          
-          // Notify the video manager that this player has ended (same as paused for our purposes)
-          videoPlayerManager.playerPaused(playerIdRef.current);
         });
 
         // More precise timeupdate handling
@@ -286,11 +295,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         playerRef.current = player;
 
         // Register this player with the video manager
-        const unregister = videoPlayerManager.registerPlayer(playerIdRef.current, player);
-        console.log(`Registered player ${playerIdRef.current} with video manager`);
-
-        // Log the video manager's state for debugging
-        videoPlayerManager.logActivePlayers();
+        const unregisterPlayer = videoPlayerManager.registerPlayer(playerIdRef.current, player);
 
         // Apply containment styles on initialization and events
         containVideo();
@@ -303,8 +308,34 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           }
         });
 
-        // Return cleanup function that will unregister this player when unmounted
-        return unregister;
+        // Return cleanup function that will properly dispose the player when unmounted
+        return () => {
+          try {
+            // First, call the unregister function returned from video player manager
+            unregisterPlayer();
+            
+            // Safety check if player has been disposed or has invalid tech
+            if (!player || player.isDisposed_ || 
+                (typeof player.isDisposed === 'function' && player.isDisposed())) {
+              console.log(`Player ${playerIdRef.current} already disposed in inner cleanup`);
+              return;
+            }
+            
+            // Make sure the player is paused before disposal
+            try {
+              if (player && typeof player.pause === 'function') {
+                // Try to pause without checking paused state first
+                console.log(`Pausing player ${playerIdRef.current} on inner cleanup`);
+                player.pause();
+              }
+            } catch (e) {
+              console.error(`Error pausing player ${playerIdRef.current} on inner cleanup:`, e);
+              // Continue even if pause fails
+            }
+          } catch (error) {
+            console.error(`Error in inner cleanup for player ${playerIdRef.current}:`, error);
+          }
+        };
       } catch (error) {
         console.error('Error initializing video player:', error);
         setError('Failed to initialize video player');
@@ -317,10 +348,74 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
 
     // Cleanup on unmount
     return () => {
+      // Clear any pending timeouts
       clearTimeout(timeoutId);
+      
+      // Log that we're cleaning up
+      console.log(`Cleaning up player: ${playerIdRef.current}`);
+      
+      // Unregister from video player manager first
+      try {
+        // If this is the currently playing video, clear that reference
+        if (videoPlayerManager.currentlyPlayingId === playerIdRef.current) {
+          console.log(`Clearing current playing ID in manager on unmount: ${playerIdRef.current}`);
+          videoPlayerManager.currentlyPlayingId = null;
+        }
+        
+        // Remove the player from the active players without trying to pause all
+        // This avoids the error when navigating between pages
+        const playerToRemove = playerIdRef.current;
+        if (videoPlayerManager.activePlayers.has(playerToRemove)) {
+          console.log(`Manually removing player ${playerToRemove} from manager`);
+          videoPlayerManager.activePlayers.delete(playerToRemove);
+        }
+      } catch (err) {
+        console.error('Error updating video player manager:', err);
+      }
+      
+      // Dispose of the player - with additional safety
       if (playerRef.current) {
-        playerRef.current.dispose();
-        playerRef.current = null;
+        try {
+          const player = playerRef.current;
+          
+          // Check if player is already being disposed or is disposed
+          if (player.isDisposed_ || (typeof player.isDisposed === 'function' && player.isDisposed())) {
+            console.log(`Player ${playerIdRef.current} is already disposed`);
+            playerRef.current = null;
+            return;
+          }
+          
+          // Try to pause the video safely
+          if (typeof player.pause === 'function') {
+            try {
+              // Extra safety checks for tech element
+              if (player.tech && player.tech_ && player.tech_.el_) {
+                console.log(`Pausing player ${playerIdRef.current} with valid tech`);
+                player.pause();
+              } else {
+                console.log(`Pausing player ${playerIdRef.current} without tech check`);
+                player.pause();
+              }
+            } catch (e) {
+              console.error(`Error pausing player ${playerIdRef.current}:`, e);
+              // Continue with disposal even if pause fails
+            }
+          }
+          
+          // Finally dispose the player
+          try {
+            player.dispose();
+            console.log(`Player ${playerIdRef.current} disposed`);
+          } catch (disposeError) {
+            console.error(`Error disposing player ${playerIdRef.current}:`, disposeError);
+          }
+          
+          // Always clear the reference
+          playerRef.current = null;
+        } catch (error) {
+          console.error(`Error cleaning up player ${playerIdRef.current}:`, error);
+          playerRef.current = null;
+        }
       }
     };
   }, [clip?.mp4link, clip?.thumbnail_path, clip?.id, mounted, onLoadingChange, isInClipCard]);
