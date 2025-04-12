@@ -177,8 +177,10 @@ function MyApp({ Component, pageProps }) {
             {/* Base SEO - lowest priority */}
             <DefaultSeo {...defaultSEO} />
             
-            {/* Page-specific SEO will override DefaultSeo */}
-            <DynamicMeta {...safeMetaData} />
+            {/* Only include DynamicMeta when the page doesn't provide its own specific metadata */}
+            {!pageProps.metaData?.skipMeta && !router.pathname.startsWith('/events/') && (
+              <DynamicMeta {...safeMetaData} />
+            )}
             
             <AuthProvider onError={handleGlobalError}>
               <ModalProvider>
@@ -226,8 +228,10 @@ function MyApp({ Component, pageProps }) {
           {/* Base SEO - lowest priority */}
           <DefaultSeo {...defaultSEO} />
           
-          {/* Page-specific SEO will override DefaultSeo */}
-          <DynamicMeta {...safeMetaData} />
+          {/* Only include DynamicMeta when the page doesn't provide its own specific metadata */}
+          {!pageProps.metaData?.skipMeta && !router.pathname.startsWith('/events/') && (
+            <DynamicMeta {...safeMetaData} />
+          )}
           
           <AuthProvider onError={handleGlobalError}>
             <ModalProvider>

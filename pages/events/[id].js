@@ -49,7 +49,8 @@ export async function getServerSideProps({ params, res }) {
     image: "https://merrouchgaming.com/events.jpg",
     url: `https://merrouchgaming.com/events/${id}`,
     type: "website",
-    canonical: `https://merrouchgaming.com/events/${id}`
+    canonical: `https://merrouchgaming.com/events/${id}`,
+    skipMeta: true
   };
   
   try {
@@ -179,6 +180,7 @@ export async function getServerSideProps({ params, res }) {
       url: `https://merrouchgaming.com/events/${id}`,
       type: "event",
       canonical: `https://merrouchgaming.com/events/${id}`,
+      skipMeta: true,
       openGraph: {
         title: ogTitle,
         description: ogDescription,
@@ -1194,7 +1196,24 @@ export default function EventDetail({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+      {/* Only include page-specific metadata that isn't already in _app.js */}
+      {metaData && !metaData.skipMeta && (
+        <Head>
+          <title>{metaData.title}</title>
+          <meta name="description" content={metaData.description} />
+          {metaData.image && <meta property="og:image" content={metaData.image} />}
+          {metaData.url && <meta property="og:url" content={metaData.url} />}
+          {metaData.canonical && <link rel="canonical" href={metaData.canonical} />}
+          
+          {/* Include structured data directly here instead of using DynamicMeta */}
+          {metaData.structuredData && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(metaData.structuredData) }}
+            />
+          )}
+        </Head>
+      )}
 
       <div className={styles.container}>
         <Link href="/events" className={styles.backLink}>
