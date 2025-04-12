@@ -135,6 +135,7 @@ export async function getServerSideProps({ params, res }) {
         galleryImages = galleryResult.data.images || [];
       }
     } catch (error) {
+      console.error('Error fetching gallery images for SEO:', error);
       // Continue without gallery images if there's an error
     }
     
@@ -322,7 +323,7 @@ export async function getServerSideProps({ params, res }) {
     
     return { props: { metaData: metadata } };
   } catch (error) {
-    // Error handling for SEO data fetch
+    console.error('Error fetching event for SEO:', error);
     return { props: { metaData: notFoundMetadata } };
   }
 }
@@ -353,6 +354,8 @@ export default function EventDetail({ metaData }) {
   const [bracketLoading, setBracketLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const eventId = useRef(null);
+  // Remove debug info display flag - set to false by default
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   // Store event ID in ref to prevent re-renders
   if (event && event.id !== eventId.current) {
@@ -381,9 +384,10 @@ export default function EventDetail({ metaData }) {
           registeredCount: data.registered_count || 0,
           registrationLimit: data.registration_limit
         }));
+        console.log(`Updated event ${event.id} count to ${data.registered_count}`);
       }
     } catch (error) {
-      // Error handling for failed count fetch
+      console.error('Error fetching latest registration count:', error);
     }
   };
 
@@ -410,19 +414,21 @@ export default function EventDetail({ metaData }) {
               headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
             }
           } catch (sessionError) {
+            console.error('Session error:', sessionError);
             // Continue without auth header
           }
         }
         
         // Fetch event details
+        console.log("Fetching event details...");
         const response = await fetch(`/api/events/${id}`, {
           method: 'GET',
           headers
         });
         
         if (!response.ok) {
-          // Event fetch error handling
           const errorData = await response.json();
+          console.error(`Event Fetch Error (${response.status}):`, errorData);
           throw new Error(errorData.error || `Failed to fetch event: ${response.status}`);
         }
         
@@ -432,7 +438,7 @@ export default function EventDetail({ metaData }) {
         const eventData = data.event || data;
         
         if (!eventData) {
-          // Invalid data format
+          console.error("Invalid event data format:", data);
           throw new Error("Invalid event data format");
         }
         
@@ -450,19 +456,19 @@ export default function EventDetail({ metaData }) {
           if (accessToken) {
             // Fetch registration status in parallel
             fetchRegistrationStatus(accessToken).catch(error => {
-              // Registration status fetch error
+              console.error('Error fetching registration status:', error);
             });
             
             // Try to fetch bracket data in parallel
             fetchBracketData(accessToken).catch(error => {
-              // Bracket data fetch error
+              console.error('Error fetching bracket data:', error);
               setBracketData(null);
             });
           }
         } else {
           // For unauthenticated users, try to fetch public bracket data
           fetchPublicBracketData().catch(error => {
-            // Public bracket data fetch error
+            console.error('Error fetching public bracket data:', error);
             setBracketData(null);
           });
           
@@ -478,7 +484,7 @@ export default function EventDetail({ metaData }) {
           }, 1500);
         }
       } catch (error) {
-        // Error handling for event details fetch
+        console.error('Error fetching event details:', error);
         setLoading(false);
       }
     };
@@ -507,6 +513,8 @@ export default function EventDetail({ metaData }) {
   useEffect(() => {
     if (!event || !supabase) return;
     
+    console.log("Setting up real-time subscription for event:", event.id);
+    
     // Subscribe to changes in the event_registrations table
     const channel = supabase
       .channel(`event-${event.id}`)
@@ -519,6 +527,7 @@ export default function EventDetail({ metaData }) {
           filter: `event_id=eq.${event.id}`
         },
         (payload) => {
+          console.log('New registration detected:', payload);
           // Fetch the latest count instead of incrementing
           fetchLatestCount();
           toast.success('Someone just registered for this event!', { duration: 3000 });
@@ -533,6 +542,7 @@ export default function EventDetail({ metaData }) {
           filter: `event_id=eq.${event.id}`
         },
         async (payload) => {
+          console.log('Registration cancellation detected:', payload);
           // Fetch the latest count and updated registration status
           fetchLatestCount();
           
@@ -546,7 +556,7 @@ export default function EventDetail({ metaData }) {
                 await fetchRegistrationStatus(accessToken);
               }
             } catch (error) {
-              // Error handling for force refresh
+              console.error('Error refreshing registration status after cancellation:', error);
             }
           }
           
@@ -563,6 +573,7 @@ export default function EventDetail({ metaData }) {
           filter: `id=eq.${event.id}`
         },
         async (payload) => {
+          console.log('Event data updated:', payload);
           // This will update the count if it changed
           fetchLatestCount();
           
@@ -576,7 +587,7 @@ export default function EventDetail({ metaData }) {
                 await fetchRegistrationStatus(accessToken);
               }
             } catch (error) {
-              // Error handling for force refresh
+              console.error('Error refreshing registration status after event update:', error);
             }
           }
         }
@@ -591,6 +602,7 @@ export default function EventDetail({ metaData }) {
     
     // Clean up subscription when component unmounts
     return () => {
+      console.log("Cleaning up subscription for event:", event.id);
       supabase.channel(`event-${event.id}`).unsubscribe();
       clearInterval(intervalId);
     };
@@ -599,6 +611,7 @@ export default function EventDetail({ metaData }) {
   // Fetch registration status
   const fetchRegistrationStatus = async (accessToken) => {
     try {
+      console.log("Fetching registration status...");
       const response = await fetch(`/api/events/register?eventId=${id}`, {
         method: 'GET',
         headers: {
@@ -609,10 +622,12 @@ export default function EventDetail({ metaData }) {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`API Error (${response.status}):`, errorText);
         throw new Error(`Failed to fetch registration status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log("Registration status:", data);
       
       // Update team type from event data if available
       if (data.event && data.event.team_type) {
@@ -632,7 +647,7 @@ export default function EventDetail({ metaData }) {
       
       return data.isRegistered;
     } catch (error) {
-      // Registration status fetch error
+      console.error('Error fetching registration status:', error);
       return false;
     }
   };
@@ -642,13 +657,15 @@ export default function EventDetail({ metaData }) {
     if (!id) return;
     
     setBracketLoading(true);
+    console.log("Fetching bracket data for event ID:", id);
     
     try {
       if (!accessToken) {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !sessionData?.session?.access_token) {
-          throw new Error('Authentication token not available');
+        console.error("No access token available for bracket fetch");
+        throw new Error('Authentication token not available');
         }
         
         accessToken = sessionData.session.access_token;
@@ -662,7 +679,11 @@ export default function EventDetail({ metaData }) {
         }
       });
       
+      console.log("Bracket API response status:", response.status);
+      
+      // If 404, it means no bracket exists yet, which is not an error
       if (response.status === 404) {
+        console.log("No bracket found for this event");
         setBracketData(null);
         setBracketLoading(false);
         return;
@@ -674,15 +695,19 @@ export default function EventDetail({ metaData }) {
       }
       
       const data = await response.json();
+      console.log("Bracket data received:", data);
       
       if (data && data.bracket) {
+        console.log("Setting bracket data");
         setBracketData(data);
       } else {
+        console.log("No valid bracket data found");
         setBracketData(null);
       }
     } catch (error) {
-      // Error handling for bracket fetch
+      console.error('Error fetching bracket data:', error);
       setBracketData(null);
+      throw error; // Re-throw the error so the caller can handle it
     } finally {
       setBracketLoading(false);
     }
@@ -722,6 +747,7 @@ export default function EventDetail({ metaData }) {
         toast.success('Tournament bracket generated successfully!');
       }
     } catch (error) {
+      console.error('Error generating bracket:', error);
       toast.error(error.message || 'Failed to generate tournament bracket');
     } finally {
       setBracketLoading(false);
@@ -766,6 +792,7 @@ export default function EventDetail({ metaData }) {
       setBracketData(null);
       toast.success(data.message || 'Tournament bracket deleted successfully!');
     } catch (error) {
+      console.error('Error deleting bracket:', error);
       toast.error(error.message || 'Failed to delete tournament bracket');
     } finally {
       setBracketLoading(false);
@@ -919,8 +946,9 @@ export default function EventDetail({ metaData }) {
             try {
               // This delayed refresh ensures we get the latest state from the server
               await fetchRegistrationStatus(accessToken);
+              console.log("Forced refresh after unregistration completed");
             } catch (error) {
-              // Error handling for force refresh
+              console.error("Error in forced refresh:", error);
             }
           }, 1000); // Small delay to ensure server has time to process
         }
@@ -976,6 +1004,7 @@ export default function EventDetail({ metaData }) {
         await fetchRegistrationStatus(accessToken);
       }
     } catch (error) {
+      console.error('Error handling registration:', error);
       toast.error(error.message || 'An error occurred');
     } finally {
       setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
@@ -1097,6 +1126,7 @@ export default function EventDetail({ metaData }) {
   useEffect(() => {
     if (loading) {
       const timeoutId = setTimeout(() => {
+        console.log('Loading timeout reached, forcing loading state to false');
         setLoading(false);
         toast.error('Loading is taking longer than expected. Some data may still be loading in the background.');
       }, 5000); // 5 seconds timeout
@@ -1126,6 +1156,7 @@ export default function EventDetail({ metaData }) {
     if (!id) return;
     
     setBracketLoading(true);
+    console.log("Fetching public bracket data for event ID:", id);
     
     try {
       const response = await fetch(`/api/events/${id}/bracket`, {
@@ -1135,7 +1166,11 @@ export default function EventDetail({ metaData }) {
         }
       });
       
+      console.log("Bracket API response status:", response.status);
+      
+      // If 404, it means no bracket exists yet, which is not an error
       if (response.status === 404) {
+        console.log("No bracket found for this event");
         setBracketData(null);
         setBracketLoading(false);
         return;
@@ -1147,15 +1182,19 @@ export default function EventDetail({ metaData }) {
       }
       
       const data = await response.json();
+      console.log("Bracket data received:", data);
       
       if (data && data.bracket) {
+        console.log("Setting bracket data");
         setBracketData(data);
       } else {
+        console.log("No valid bracket data found");
         setBracketData(null);
       }
     } catch (error) {
-      // Error handling for bracket data fetch
+      console.error('Error fetching bracket data:', error);
       setBracketData(null);
+      throw error;
     } finally {
       setBracketLoading(false);
     }
