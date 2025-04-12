@@ -11,6 +11,7 @@
   min-height: 200px; /* Ensure minimum height even when empty */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Prevent horizontal scrolling on mobile */
 }
 
 .galleryTitle {
@@ -107,6 +108,7 @@
   visibility: visible; /* Ensure grid is always visible */
   grid-auto-rows: 1fr; /* Ensure equal height rows */
   padding: 0.5rem; /* Added padding around entire grid */
+  max-width: 100%; /* Ensure grid doesn't overflow container */
 }
 
 @supports (aspect-ratio: 1 / 1) {
@@ -143,6 +145,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.05);
   margin: 0.25rem; /* Added small margin to each item */
+  max-width: 100%; /* Ensure item doesn't overflow */
 }
 
 .galleryItem:hover {
@@ -711,57 +714,39 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 1.75rem; /* Adjusted for medium screens */
   }
+  
+  .galleryContainer {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .galleryGrid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
+  .galleryContainer {
+    padding: 1rem 0.75rem;
+    margin: 1.5rem 0;
+  }
+
   .galleryGrid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1.25rem; /* Increased from 10px for better spacing on mobile */
     padding: 0.25rem; /* Reduced padding for smaller screens */
+    margin-top: 1.5rem;
   }
   
   .galleryItem {
     margin: 0.15rem; /* Smaller margin on mobile */
+    min-height: 150px; /* Smaller minimum height for mobile */
   }
   
   .galleryTitle {
     font-size: 1.2rem;
-  }
-  
-  .slideModalCloseButton {
-    font-size: 20px;
-    width: 36px;
-    height: 36px;
-  }
-  
-  .slideImage {
-    max-width: 95%;
-    max-height: 75vh;
-  }
-  
-  .slideNavButton {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-  }
-  
-  .prevButton {
-    left: 10px;
-  }
-  
-  .nextButton {
-    right: 10px;
-  }
-  
-  .slideCaption {
-    padding: 10px;
-    font-size: 14px;
-    bottom: 50px;
-  }
-  
-  .slideCounter {
-    font-size: 12px;
-    bottom: 15px;
   }
   
   .imageCaption {
@@ -777,14 +762,65 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
+  .galleryContainer {
+    padding: 0.75rem 0.5rem;
+  }
+  
   .galleryGrid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem; /* Added specific gap for smallest screens */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 0.15rem;
+  }
+  
+  .galleryItem {
+    min-height: 130px;
+    margin: 0.1rem;
+    border-radius: 8px;
   }
   
   .imageContainer {
-    aspect-ratio: 16/10;
+    border-radius: 8px;
+  }
+  
+  .imageCaption {
+    font-size: 0.7rem;
+    padding: 6px 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .galleryContainer {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .galleryItem {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 360px) {
+  .galleryGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  
+  .galleryTitle {
+    font-size: 1rem;
+  }
+  
+  .expandButton {
+    width: 26px;
+    height: 26px;
+    top: 6px;
+    right: 6px;
   }
 }
 
