@@ -197,6 +197,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           
           // Show controls when paused
           player.userActive(true);
+          
+          // Notify the video manager that this player has been paused
+          videoPlayerManager.playerPaused(playerIdRef.current);
         });
 
         player.on('ended', () => {
@@ -205,6 +208,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           
           // Show controls when ended
           player.userActive(true);
+          
+          // Notify the video manager that this player has ended (same as paused for our purposes)
+          videoPlayerManager.playerPaused(playerIdRef.current);
         });
 
         // More precise timeupdate handling
@@ -281,6 +287,10 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
 
         // Register this player with the video manager
         const unregister = videoPlayerManager.registerPlayer(playerIdRef.current, player);
+        console.log(`Registered player ${playerIdRef.current} with video manager`);
+
+        // Log the video manager's state for debugging
+        videoPlayerManager.logActivePlayers();
 
         // Apply containment styles on initialization and events
         containVideo();
