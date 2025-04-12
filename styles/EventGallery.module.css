@@ -7,7 +7,7 @@
   box-shadow: none;
   contain: content; /* Add content containment for better performance */
   width: 100%;
-  padding: 1rem;
+  padding: 1.5rem; /* Increased padding */
   min-height: 200px; /* Ensure minimum height even when empty */
   display: flex;
   flex-direction: column;
@@ -98,14 +98,15 @@
 .galleryGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.25rem;
-  margin-top: 1.5rem;
+  gap: 2rem; /* Increased gap from 1.25rem to 2rem */
+  margin-top: 2rem; /* Increased from 1.5rem */
   will-change: transform;
   contain: layout;
   min-height: 100px; /* Minimum height to prevent layout shifts */
   position: relative;
   visibility: visible; /* Ensure grid is always visible */
   grid-auto-rows: 1fr; /* Ensure equal height rows */
+  padding: 0.5rem; /* Added padding around entire grid */
 }
 
 @supports (aspect-ratio: 1 / 1) {
@@ -141,6 +142,7 @@
   min-height: 200px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  margin: 0.25rem; /* Added small margin to each item */
 }
 
 .galleryItem:hover {
@@ -707,13 +709,19 @@
 @media (max-width: 1200px) {
   .galleryGrid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.75rem; /* Adjusted for medium screens */
   }
 }
 
 @media (max-width: 768px) {
   .galleryGrid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 10px;
+    gap: 1.25rem; /* Increased from 10px for better spacing on mobile */
+    padding: 0.25rem; /* Reduced padding for smaller screens */
+  }
+  
+  .galleryItem {
+    margin: 0.15rem; /* Smaller margin on mobile */
   }
   
   .galleryTitle {
@@ -772,6 +780,7 @@
 @media (max-width: 480px) {
   .galleryGrid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem; /* Added specific gap for smallest screens */
   }
   
   .imageContainer {
