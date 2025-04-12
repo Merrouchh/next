@@ -169,18 +169,23 @@ function MyApp({ Component, pageProps }) {
     description: defaultSEO.description
   };
 
+  // Modify defaultSEO to remove structured data if page component specifies excludeFromAppSeo
+  const appSeoConfig = {...defaultSEO};
+  if (safeMetaData.excludeFromAppSeo) {
+    // Remove any structured data from the app-level SEO to prevent duplication
+    delete appSeoConfig.additionalJSONLD;
+  }
+
   if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
     return (
       <StrictMode>
         <ErrorBoundary>
           <div suppressHydrationWarning>
             {/* Base SEO - lowest priority */}
-            <DefaultSeo {...defaultSEO} />
+            <DefaultSeo {...appSeoConfig} />
             
-            {/* Only include DynamicMeta when the page doesn't provide its own specific metadata */}
-            {!pageProps.metaData?.skipMeta && !router.pathname.startsWith('/events/') && (
-              <DynamicMeta {...safeMetaData} />
-            )}
+            {/* Page-specific SEO will override DefaultSeo */}
+            <DynamicMeta {...safeMetaData} />
             
             <AuthProvider onError={handleGlobalError}>
               <ModalProvider>
@@ -226,12 +231,10 @@ function MyApp({ Component, pageProps }) {
       <ErrorBoundary>
         <div suppressHydrationWarning>
           {/* Base SEO - lowest priority */}
-          <DefaultSeo {...defaultSEO} />
+          <DefaultSeo {...appSeoConfig} />
           
-          {/* Only include DynamicMeta when the page doesn't provide its own specific metadata */}
-          {!pageProps.metaData?.skipMeta && !router.pathname.startsWith('/events/') && (
-            <DynamicMeta {...safeMetaData} />
-          )}
+          {/* Page-specific SEO will override DefaultSeo */}
+          <DynamicMeta {...safeMetaData} />
           
           <AuthProvider onError={handleGlobalError}>
             <ModalProvider>

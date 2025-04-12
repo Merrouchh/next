@@ -11,7 +11,8 @@ export default function DynamicMeta({
   openGraph = null,
   twitter = null,
   structuredData = null,
-  structuredDataItems = null
+  structuredDataItems = null,
+  excludeFromAppSeo = false
 }) {
   const currentTime = new Date().toISOString();
   
@@ -92,6 +93,9 @@ export default function DynamicMeta({
         
         {/* Force Twitter image */}
         <meta name="twitter:image" content={primaryImageUrl} />
+
+        {/* Add a flag for the app-level component to detect */}
+        {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
       </Head>
       
       <NextSeo
