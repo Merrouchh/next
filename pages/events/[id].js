@@ -187,7 +187,8 @@ export async function getServerSideProps({ params, res }) {
             url: imageUrl || "https://merrouchgaming.com/events.jpg",
             width: 1200,
             height: 630,
-            alt: `${event.title} - Gaming Tournament`
+            alt: `${event.title} - Gaming Tournament`,
+            primary: true
           }
         ],
         site_name: "Merrouch Gaming",
@@ -335,7 +336,8 @@ export async function getServerSideProps({ params, res }) {
           url: imgUrl,
           width: 1200,
           height: 800,
-          alt: img.caption || `${event.title} - Gaming event image`
+          alt: img.caption || `${event.title} - Gaming event image`,
+          primary: false
         });
       });
     }

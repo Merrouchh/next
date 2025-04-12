@@ -34,6 +34,7 @@ export default function DynamicMeta({
         width: 1200,
         height: 630,
         alt: title || 'Merrouch Gaming',
+        primary: true
       },
     ],
   };
@@ -49,16 +50,32 @@ export default function DynamicMeta({
   const finalOpenGraph = openGraph || defaultOpenGraph;
   const finalTwitter = twitter || defaultTwitter;
 
-  // Ensure we have an image with timestamp in OpenGraph if not overridden
+  // Ensure we have properly sorted images in OpenGraph
   if (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) {
-    // Only add timestamp if the image URL doesn't already have parameters
+    // Sort images to ensure primary images come first
+    finalOpenGraph.images.sort((a, b) => {
+      // If one has primary: true and the other doesn't, the primary one comes first
+      if (a.primary === true && b.primary !== true) return -1;
+      if (a.primary !== true && b.primary === true) return 1;
+      return 0; // Keep original order otherwise
+    });
+    
+    // Ensure primary image has a timestamp for cache busting
     if (!finalOpenGraph.images[0].url.includes('?')) {
       finalOpenGraph.images[0].url = `${finalOpenGraph.images[0].url}?t=${currentTime}`;
     }
   }
 
-  // Ensure we have an image with timestamp in Twitter if not overridden
-  if (finalTwitter && finalTwitter.image && !finalTwitter.image.includes('?')) {
+  // Ensure primary image is used for Twitter card
+  if (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) {
+    // Get primary image or first image
+    const primaryImage = finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0];
+    
+    // Update Twitter image to use the primary OpenGraph image
+    if (finalTwitter) {
+      finalTwitter.image = primaryImage.url;
+    }
+  } else if (finalTwitter && finalTwitter.image && !finalTwitter.image.includes('?')) {
     finalTwitter.image = `${finalTwitter.image}?t=${currentTime}`;
   }
 
