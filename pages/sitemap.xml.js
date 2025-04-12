@@ -23,10 +23,10 @@ async function fetchAllClips(supabase) {
           title,
           username,
           cloudflare_uid,
-          thumbnail_path
+          thumbnail_path,
+          mp4link
         `)
         .eq('visibility', 'public')
-        .not('cloudflare_uid', 'is', null) // Ensure we have valid UIDs for video schema
         .order('uploaded_at', { ascending: false })
         .range(from, to);
       
@@ -84,8 +84,9 @@ async function generateSiteMap() {
       thumbnail_url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`,
       // Fallback to stored thumbnail if needed
       fallback_thumbnail: clip.thumbnail_path || null,
-      // Use Cloudflare Stream player URL
-      player_url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
+      // Use MP4 link if available, otherwise fallback to Cloudflare Stream player URL
+      player_url: clip.mp4link || `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
+      video_url: clip.mp4link, // Add direct video URL
       // Default duration since it's not in the database
       duration: 30
     }));
@@ -210,7 +211,8 @@ async function generateSiteMap() {
            <video:thumbnail_loc>${clip.thumbnail_url}</video:thumbnail_loc>
            <video:title>${safeTitle}</video:title>
            <video:description>${safeDescription}</video:description>
-           <video:player_loc allow_embed="yes">https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch</video:player_loc>
+           <video:player_loc allow_embed="yes">${clip.player_url}</video:player_loc>
+           ${clip.video_url ? `<video:content_loc>${clip.video_url}</video:content_loc>` : ''}
            <video:duration>${clip.duration}</video:duration>
            <video:publication_date>${uploadDate}</video:publication_date>
            <video:family_friendly>yes</video:family_friendly>
