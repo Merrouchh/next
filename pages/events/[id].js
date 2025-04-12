@@ -282,29 +282,12 @@ export async function getServerSideProps({ params, res }) {
       // Add all gallery images to the main image array in structured data
       metadata.structuredData.image = [...metadata.structuredData.image, ...allImageUrls];
       
-      // Add ImageGallery schema as additional structured data - not as an array with the event
+      // Create a clean, minimal ImageGallery schema without embedded Event objects
       const imageGallerySchema = {
         "@context": "https://schema.org",
         "@type": "ImageGallery",
-        "associatedMedia": galleryImages.map(img => {
-          const imgUrl = img.image_url.startsWith('http') 
-            ? img.image_url 
-            : `${baseUrl}${img.image_url.startsWith('/') ? '' : '/'}${img.image_url}`;
-          
-          return {
-            "@type": "ImageObject",
-            "contentUrl": imgUrl,
-            "description": img.caption || `${event.title} - Gaming event image`,
-            "name": img.caption || event.title,
-            "encodingFormat": "image/jpeg", // Assuming JPEG, adjust if needed
-            "uploadDate": img.created_at || new Date().toISOString(),
-            "about": {
-              "@type": "Event",
-              "name": event.title,
-              "description": event.description || `${event.game || 'Gaming'} tournament`
-            }
-          };
-        }),
+        "name": `${event.title} - Photo Gallery`,
+        "description": `Photo gallery for ${event.title} event at Merrouch Gaming Center`,
         "thumbnailUrl": galleryImages.length > 0 
           ? (galleryImages[0].image_url.startsWith('http') 
             ? galleryImages[0].image_url 
@@ -315,14 +298,14 @@ export async function getServerSideProps({ params, res }) {
           "name": "Merrouch Gaming",
           "url": "https://merrouchgaming.com"
         },
-        "about": {
-          "@type": "SportsEvent", // Changed from Event to SportsEvent for differentiation
-          "name": event.title,
-          "url": `https://merrouchgaming.com/events/${id}`
+        "contentUrl": allImageUrls,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `https://merrouchgaming.com/events/${id}`
         }
       };
       
-      // Store both structured data items but in a way that prevents duplication
+      // Use the structuredDataItems property with clean, complete objects only
       metadata.structuredDataItems = [
         metadata.structuredData,
         imageGallerySchema
