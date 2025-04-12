@@ -377,7 +377,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   }
 
   return (
-    <div className={`${styles.videoWrapper} ${isInClipCard ? styles.inClipCard : ''}`}>
+    <div className={`${styles.videoWrapper} ${isInClipCard ? styles.inClipCard : ''} ${styles.videoPlayerTheme}`}>
       {/* Video.js container with overflow:hidden */}
       <div data-vjs-player style={{ overflow: 'hidden' }}>
         <video

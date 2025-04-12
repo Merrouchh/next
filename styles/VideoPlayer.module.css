@@ -112,21 +112,20 @@
 }
 
 /* Custom Video.js Theme */
-:global(.video-js.vjs-theme-merrouch) {
+.videoPlayerTheme :global(.video-js.vjs-theme-merrouch) {
   --vjs-theme-merrouch--primary: #FFD700;
   --vjs-theme-merrouch--secondary: #fff;
   --vjs-theme-merrouch--background: rgba(0, 0, 0, 0.8);
   font-size: 10px; /* Base font size for scaling */
 }
 
-/* Enhance control visibility with better background */
-:global(.video-js.vjs-theme-merrouch .vjs-control-bar) {
-  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 80%, transparent 100%);
-  height: 5em;
+/* Control bar styling - modifying all global selectors */
+.videoPlayerTheme :global(.video-js.vjs-theme-merrouch .vjs-control-bar) {
+  background: var(--vjs-theme-merrouch--background);
+  height: 4em;
 }
 
-/* Ensure control elements are visible */
-:global(.video-js.vjs-theme-merrouch .vjs-control) {
+.videoPlayerTheme :global(.video-js.vjs-theme-merrouch .vjs-control) {
   color: white !important;
   text-shadow: 0 0 2px rgba(0,0,0,0.8);
 }
@@ -337,4 +336,14 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Loading spinner */
+.videoPlayerTheme :global(.video-js.vjs-theme-merrouch .vjs-loading-spinner) {
+  border: 4px solid rgba(255, 215, 0, 0.2);
+  border-top-color: var(--vjs-theme-merrouch--primary);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: vjs-spinner-spin 1s infinite linear;
 }
