@@ -666,10 +666,20 @@
 }
 
 .username {
-  color: var(--text-primary);
-  font-weight: 500;
-  font-size: 0.95rem;
-  line-height: 1;
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+}
+
+.usernameLink {
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.usernameLink:hover .username {
+  color: #FFD700;
+  text-decoration: underline;
 }
 
 .userInfo svg {

@@ -11,6 +11,7 @@ import VisibilityModal from './VisibilityModal';
 import ShareModal from './ShareModal';
 import { useRouter } from 'next/router';
 import ExpandedTitleModal from './ExpandedTitleModal';
+import Link from 'next/link';
 
 const ClipCard = ({ 
   clip, 
@@ -181,7 +182,9 @@ const ClipCard = ({
         <div className={styles.cardHeader}>
           <div className={styles.userInfo}>
             <MdPerson />
-            <span className={styles.username}>{clipData.username || 'Anonymous'}</span>
+            <Link href={`/profile/${clipData.username}`} className={styles.usernameLink}>
+              <span className={styles.username}>{clipData.username || 'Anonymous'}</span>
+            </Link>
           </div>
           
           <div className={styles.titleContainer}>
