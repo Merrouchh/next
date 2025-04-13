@@ -1,13 +1,13 @@
 /* EventGallery.module.css */
 .galleryContainer {
-  margin: 2rem 0;
+  margin: 2rem 0 0.5rem; /* Reduced bottom margin from 2rem to 0.5rem */
   padding: 0 15px;
   background-color: transparent;
   border-radius: 0;
   box-shadow: none;
   contain: content; /* Add content containment for better performance */
   width: 100%;
-  padding: 1.5rem; /* Increased padding */
+  padding: 1.5rem 1.5rem 0.75rem; /* Reduced bottom padding from 1.5rem to 0.75rem */
   min-height: 200px; /* Ensure minimum height even when empty */
   display: flex;
   flex-direction: column;
@@ -101,6 +101,7 @@
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 2rem; /* Increased gap from 1.25rem to 2rem */
   margin-top: 2rem; /* Increased from 1.5rem */
+  margin-bottom: 0.5rem; /* Added small bottom margin instead of default */
   will-change: transform;
   contain: layout;
   min-height: 100px; /* Minimum height to prevent layout shifts */
@@ -182,8 +183,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease, filter 0.3s ease;
-  will-change: transform, filter;
+  transition: transform 0.5s ease, filter 0.3s ease, opacity 0.3s ease;
+  will-change: transform, filter, opacity;
   display: block;
   backface-visibility: hidden; /* Prevent flickering during transitions */
   perspective: 1000px; /* Create a 3D context */
@@ -193,11 +194,13 @@
 .hidden {
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0s linear 0.2s;
 }
 
 .visible {
   opacity: 1;
   visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear;
 }
 
 .galleryItem:hover .thumbnail {
@@ -358,14 +361,13 @@
 
 .slideImage {
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  transition: opacity 0.3s ease;
+  background-color: transparent;
   margin: 0 auto;
   display: block;
-  object-fit: contain;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
-  border-radius: 4px;
-  transition: opacity 0.3s ease-in-out;
-  will-change: transform, opacity;
 }
 
 .slideNavButton {
@@ -716,7 +718,7 @@
   }
   
   .galleryContainer {
-    padding: 1.25rem;
+    padding: 1.25rem 1.25rem 0.5rem; /* Reduced bottom padding */
   }
 }
 
@@ -729,15 +731,16 @@
 
 @media (max-width: 768px) {
   .galleryContainer {
-    padding: 1rem 0.75rem;
-    margin: 1.5rem 0;
+    padding: 1rem 0.75rem 0.5rem; /* Reduced bottom padding */
+    margin: 1.5rem 0 0.25rem; /* Reduced bottom margin */
   }
 
   .galleryGrid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1.25rem; /* Increased from 10px for better spacing on mobile */
-    padding: 0.25rem; /* Reduced padding for smaller screens */
+    padding: 0.25rem 0.25rem 0.1rem; /* Reduced bottom padding */
     margin-top: 1.5rem;
+    margin-bottom: 0.25rem; /* Reduced bottom margin */
   }
   
   .galleryItem {
@@ -764,13 +767,15 @@
 
 @media (max-width: 576px) {
   .galleryContainer {
-    padding: 0.75rem 0.5rem;
+    padding: 0.75rem 0.5rem 0.25rem; /* Reduced bottom padding */
+    margin-bottom: 0.25rem; /* Reduced bottom margin */
   }
   
   .galleryGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-    padding: 0.15rem;
+    padding: 0.15rem 0.15rem 0.1rem; /* Reduced bottom padding */
+    margin-bottom: 0.1rem; /* Minimal bottom margin */
   }
   
   .galleryItem {
@@ -795,10 +800,12 @@
   .galleryGrid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
+    margin-bottom: 0; /* No bottom margin on very small screens */
   }
   
   .galleryContainer {
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.25rem 0.1rem; /* Minimal bottom padding */
+    margin-bottom: 0.1rem; /* Minimal bottom margin */
   }
   
   .galleryItem {
@@ -810,6 +817,7 @@
   .galleryGrid {
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
+    margin-bottom: 0; /* No bottom margin on very small screens */
   }
   
   .galleryTitle {

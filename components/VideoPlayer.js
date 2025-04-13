@@ -24,6 +24,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   const lastTimeUpdateRef = useRef(0);
   const actualPlaybackTimeRef = useRef(0); // Accurate tracking of actual playback time
   const [mounted, setMounted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const pendingViewTrackingRef = useRef(false); // Track if view tracking is pending
 
   // Set mounted state
   useEffect(() => {
@@ -291,6 +293,17 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           }
         });
 
+        player.on('fullscreenchange', () => {
+          // Update fullscreen state
+          const isInFullscreen = player.isFullscreen();
+          setIsFullscreen(isInFullscreen);
+          
+          // When exiting fullscreen, ensure containment
+          if (!isInFullscreen) {
+            setTimeout(containVideo, 100);
+          }
+        });
+
         // Store player reference
         playerRef.current = player;
 
@@ -301,28 +314,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         containVideo();
         player.on('loadedmetadata', containVideo);
         player.on('resize', containVideo);
-        
-        // Enhanced fullscreen change handler with fix for Brave browser
-        player.on('fullscreenchange', () => {
-          // When entering fullscreen
-          if (player.isFullscreen()) {
-            console.log(`Player ${playerIdRef.current} entering fullscreen`);
-            // Ensure UI is properly scaled
-            setTimeout(containVideo, 100);
-          } 
-          // When exiting fullscreen
-          else {
-            console.log(`Player ${playerIdRef.current} exiting fullscreen`);
-            
-            // Check if this is a Brave browser forced exit by checking timing
-            // In normal exits, there's user interaction that triggers this
-            const isBraveBrowser = navigator.userAgent.includes('Brave') || 
-              (window.navigator.brave && window.navigator.brave.isBrave && window.navigator.brave.isBrave.name === 'isBrave');
-            
-            // Only apply containment after a slight delay to ensure the transition is smooth
-            setTimeout(containVideo, 100);
-          }
-        });
 
         // Return cleanup function that will properly dispose the player when unmounted
         return () => {
@@ -451,9 +442,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
     }
   };
 
-  // Track views with more rigorous checking
+  // Track views after a minimum viewing time has been reached
   useEffect(() => {
-    // Skip early if conditions aren't right for tracking
     if (!clip?.id || hasTrackedView || !isActuallyPlaying || isBuffering) {
       return;
     }
@@ -468,16 +458,23 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         
         const trackViewAsync = async () => {
           try {
-            console.log(`Attempting to track view for clip ${clip.id} after ${actualPlaybackTimeRef.current.toFixed(1)} seconds`);
+            // Skip view tracking when in fullscreen mode to prevent browser issues
+            // (particularly in Brave browser where it causes fullscreen exit)
+            if (isFullscreen) {
+              console.log('[View Tracking] Currently in fullscreen mode, marking view tracking as pending');
+              pendingViewTrackingRef.current = true;
+              return; // Exit without tracking
+            }
+            
+            // Clear pending flag if we're tracking now
+            pendingViewTrackingRef.current = false;
+            
+            // Track the view
+            console.log(`[View Tracking] Tracking view for clip ${clip.id}`);
             const viewerId = user?.id || anonymousIdRef.current;
             if (viewerId) {
               const viewCount = await trackView(clip.id, viewerId, !user);
-              
-              // Check for pending fullscreen tracking (special return value -1)
-              if (viewCount === -1) {
-                console.log('View tracking delayed until exiting fullscreen');
-                setHasTrackedView(true); // Mark as tracked in the component
-              } else if (viewCount !== null) {
+              if (viewCount !== null) {
                 console.log(`View tracked successfully, count: ${viewCount}`);
                 setHasTrackedView(true);
               }
@@ -491,7 +488,43 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         trackViewAsync();
       }
     }
-  }, [playbackTime, hasTrackedView, clip?.id, user?.id, isActuallyPlaying, isBuffering]);
+  }, [playbackTime, hasTrackedView, clip?.id, user?.id, isActuallyPlaying, isBuffering, isFullscreen]);
+
+  // Handle pending view tracking when exiting fullscreen
+  useEffect(() => {
+    // If we're no longer in fullscreen and have pending tracking
+    if (!isFullscreen && pendingViewTrackingRef.current && !hasTrackedView) {
+      console.log('[View Tracking] Exited fullscreen with pending view tracking, executing now');
+      
+      const executeTrackingAfterFullscreen = async () => {
+        try {
+          // Small delay to ensure fullscreen exit is completely finished
+          // This prevents issues with Brave browser's fullscreen API
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Reset pending flag
+          pendingViewTrackingRef.current = false;
+          
+          // Now safe to track the view
+          console.log(`[View Tracking] Executing pending tracking for clip ${clip?.id}`);
+          const viewerId = user?.id || anonymousIdRef.current;
+          if (viewerId && clip?.id) {
+            const viewCount = await trackView(clip.id, viewerId, !user);
+            if (viewCount !== null) {
+              console.log(`View tracked successfully, count: ${viewCount}`);
+              setHasTrackedView(true);
+            }
+          }
+        } catch (err) {
+          console.error('[View Tracking] Error in delayed tracking after fullscreen:', err);
+          // Reset tracking flag to allow retrying
+          trackingAttemptedRef.current = false;
+        }
+      };
+      
+      executeTrackingAfterFullscreen();
+    }
+  }, [isFullscreen, hasTrackedView, clip?.id, user?.id]);
 
   // Handle missing clip data
   if (!clip) {

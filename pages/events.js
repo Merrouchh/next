@@ -143,6 +143,7 @@ export default function Events({ metaData }) {
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [pageLoaded, setPageLoaded] = useState(false);
+  const [featureLoading, setFeatureLoading] = useState(false);
 
   // Mark the page as loaded after mount
   useEffect(() => {
@@ -184,10 +185,35 @@ export default function Events({ metaData }) {
         const data = await response.json();
         setEvents(data);
         
-        // Find featured event (first upcoming event, or first event if none are upcoming)
-        const upcomingEvent = data.find(event => event.status === 'Upcoming');
-        const inProgressEvent = data.find(event => event.status === 'In Progress');
-        setFeatured(upcomingEvent || inProgressEvent || (data.length > 0 ? data[0] : null));
+        // Select featured event with proper sorting/prioritization
+        let featuredEvent = null;
+        
+        // Get all upcoming events
+        const upcomingEvents = data.filter(event => event.status === 'Upcoming');
+        // Get all in-progress events
+        const inProgressEvents = data.filter(event => event.status === 'In Progress');
+        
+        if (upcomingEvents.length > 0) {
+          // Sort upcoming events by date (ascending) to get the soonest one
+          const sortedUpcoming = [...upcomingEvents].sort((a, b) => {
+            return new Date(a.date) - new Date(b.date);
+          });
+          featuredEvent = sortedUpcoming[0]; // The soonest upcoming event
+        } else if (inProgressEvents.length > 0) {
+          // Sort in-progress events by date (ascending)
+          const sortedInProgress = [...inProgressEvents].sort((a, b) => {
+            return new Date(a.date) - new Date(b.date);
+          });
+          featuredEvent = sortedInProgress[0]; // The most current in-progress event
+        } else if (data.length > 0) {
+          // No upcoming or in-progress events, use the most recent by created date
+          const sortedByCreated = [...data].sort((a, b) => {
+            return new Date(b.created_at) - new Date(a.created_at);
+          });
+          featuredEvent = sortedByCreated[0]; // The most recently created event
+        }
+        
+        setFeatured(featuredEvent);
         
         // Sync registration counts if user is logged in
         if (user) {
@@ -346,163 +372,194 @@ export default function Events({ metaData }) {
       <DynamicMeta {...metaData} />
 
       <div className={styles.container}>
-        {/* Hero section with featured event */}
+        {/* Featured Event heading and card */}
         {!pageLoaded ? null : featured && !loading ? (
-          <motion.div 
-            className={styles.heroSection}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className={styles.heroImageContainer}>
-              {featured.image ? (
-                <img 
-                  src={featured.image} 
-                  alt={featured.title} 
-                  className={styles.heroImage}
-                />
-              ) : (
-                <div className={styles.heroPlaceholder}>
-                  <div className={styles.heroPlaceholderText}>{featured.title.charAt(0).toUpperCase()}</div>
-                </div>
-              )}
-              <div className={styles.heroOverlay}></div>
-              <div className={styles.heroStatus}>
-                <span className={`${styles.heroStatusBadge} ${styles[`status${featured.status?.replace(/\s+/g, '')}`]}`}>
-                  {featured.status}
-                </span>
-                {featured.team_type && (
-                  <span className={styles.heroTeamType}>
-                    {featured.team_type.charAt(0).toUpperCase() + featured.team_type.slice(1)} Event
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className={styles.heroContent}>
-              <h1 className={styles.heroTitle}>{featured.title}</h1>
-              <div className={styles.heroMeta}>
-                <span className={styles.heroDate}>
-                  <FaCalendarAlt /> {formatDate(featured.date)} • {featured.time}
-                </span>
-                <span className={styles.heroGame}>
-                  <FaGamepad /> {featured.game}
-                </span>
-                {featured.registration_limit && (
-                  <span className={styles.heroSpots}>
-                    <FaTrophy /> {featured.registered_count || 0} / {featured.registration_limit} spots
-                  </span>
-                )}
-              </div>
-              <p className={styles.heroDescription}>
-                {featured.description && featured.description.length > 200
-                  ? `${featured.description.substring(0, 200)}...`
-                  : featured.description}
-              </p>
-              <button 
-                className={styles.heroButton}
-                onClick={() => router.push(`/events/${featured.id}`)}
-              >
-                View Details
-              </button>
-            </div>
-          </motion.div>
-        ) : null}
-
-        <div className={styles.eventsHeader}>
-          <h2 className={styles.sectionTitle}>All Events</h2>
-          
-          <div className={styles.searchAndFilters}>
-            <div className={styles.searchContainer}>
-              <FaSearch className={styles.searchIcon} />
-              <input
-                type="text"
-                className={styles.searchInput}
-                placeholder="Search events..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              {searchQuery && (
-                <button 
-                  className={styles.clearSearch}
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                >
-                  ×
-                </button>
-              )}
+          <>
+            <div className={styles.eventsHeader}>
+              <h2 className={styles.sectionTitle}>Featured Event</h2>
             </div>
             
-            <div className={styles.filtersWrapper}>
-              <div className={styles.filtersDesktop}>
+            <motion.div 
+              className={`${styles.heroSection} ${styles.clickableCard}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              onClick={() => {
+                setFeatureLoading(true);
+                router.push(`/events/${featured.id}`);
+              }}
+            >
+              {featureLoading && (
+                <div className={styles.heroLoadingOverlay}>
+                  <div className={styles.heroLoadingSpinner}></div>
+                </div>
+              )}
+              <div className={styles.heroImageContainer}>
+                {featured.image ? (
+                  <img 
+                    src={featured.image} 
+                    alt={featured.title} 
+                    className={styles.heroImage}
+                  />
+                ) : (
+                  <div className={styles.heroPlaceholder}>
+                    <div className={styles.heroPlaceholderText}>{featured.title.charAt(0).toUpperCase()}</div>
+                  </div>
+                )}
+                <div className={styles.heroOverlay}></div>
+                
+                {/* Desktop status badges */}
+                <div className={styles.heroStatus}>
+                  <span className={`${styles.heroStatusBadge} ${styles[`status${featured.status?.replace(/\s+/g, '')}`]}`}>
+                    {featured.status}
+                  </span>
+                  {featured.team_type && (
+                    <span className={styles.heroTeamType}>
+                      {featured.team_type.charAt(0).toUpperCase() + featured.team_type.slice(1)} Event
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className={styles.heroContent}>
+                {/* Mobile status badges (only visible on mobile) */}
+                <div className={styles.heroStatusMobile}>
+                  <span className={`${styles.heroStatusBadge} ${styles[`status${featured.status?.replace(/\s+/g, '')}`]}`}>
+                    {featured.status}
+                  </span>
+                  {featured.team_type && (
+                    <span className={styles.heroTeamType}>
+                      {featured.team_type.charAt(0).toUpperCase() + featured.team_type.slice(1)} Event
+                    </span>
+                  )}
+                </div>
+                <h1 className={styles.heroTitle}>{featured.title}</h1>
+                <div className={styles.heroMeta}>
+                  <span className={styles.heroDate}>
+                    <FaCalendarAlt /> {formatDate(featured.date)} • {featured.time}
+                  </span>
+                  <span className={styles.heroGame}>
+                    <FaGamepad /> {featured.game}
+                  </span>
+                  {featured.registration_limit && (
+                    <span className={styles.heroSpots}>
+                      <FaTrophy /> {featured.registered_count || 0} / {featured.registration_limit} spots
+                    </span>
+                  )}
+                </div>
+                <p className={styles.heroDescription}>
+                  {featured.description && featured.description.length > 200
+                    ? `${featured.description.substring(0, 200)}...`
+                    : featured.description}
+                </p>
+                <button 
+                  className={styles.heroButton}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the parent click
+                    setFeatureLoading(true);
+                    router.push(`/events/${featured.id}`);
+                  }}
+                >
+                  View Details
+                </button>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+
+        {/* Browse Events section with search and filters */}
+        <div className={styles.eventsHeader}>
+          <h2 className={styles.sectionTitle}>Browse Events</h2>
+        </div>
+        
+        <div className={styles.searchAndFilters}>
+          <div className={styles.searchContainer}>
+            <FaSearch className={styles.searchIcon} />
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Search events..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                className={styles.clearSearch}
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          <div className={styles.filtersWrapper}>
+            <div className={styles.filtersDesktop}>
+              <button 
+                className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All Events
+              </button>
+              <button 
+                className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
+                onClick={() => setFilter('upcoming')}
+              >
+                Upcoming
+              </button>
+              <button 
+                className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
+                onClick={() => setFilter('in progress')}
+              >
+                In Progress
+              </button>
+              <button 
+                className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
+                onClick={() => setFilter('completed')}
+              >
+                Completed
+              </button>
+            </div>
+            
+            <button 
+              className={styles.mobileFilterButton}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <FaFilter /> Filter
+            </button>
+            
+            {showFilters && (
+              <div className={styles.mobileFilters}>
                 <button 
                   className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
-                  onClick={() => setFilter('all')}
+                  onClick={() => { setFilter('all'); setShowFilters(false); }}
                 >
                   All Events
                 </button>
                 <button 
                   className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
-                  onClick={() => setFilter('upcoming')}
+                  onClick={() => { setFilter('upcoming'); setShowFilters(false); }}
                 >
                   Upcoming
                 </button>
                 <button 
                   className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
-                  onClick={() => setFilter('in progress')}
+                  onClick={() => { setFilter('in progress'); setShowFilters(false); }}
                 >
                   In Progress
                 </button>
                 <button 
                   className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
-                  onClick={() => setFilter('completed')}
+                  onClick={() => { setFilter('completed'); setShowFilters(false); }}
                 >
                   Completed
                 </button>
               </div>
-              
-              <button 
-                className={styles.mobileFilterButton}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <FaFilter /> Filter
-              </button>
-              
-              {showFilters && (
-                <div className={styles.mobileFilters}>
-                  <button 
-                    className={`${styles.filterButton} ${filter === 'all' ? styles.filterActive : ''}`}
-                    onClick={() => { setFilter('all'); setShowFilters(false); }}
-                  >
-                    All Events
-                  </button>
-                  <button 
-                    className={`${styles.filterButton} ${filter === 'upcoming' ? styles.filterActive : ''}`}
-                    onClick={() => { setFilter('upcoming'); setShowFilters(false); }}
-                  >
-                    Upcoming
-                  </button>
-                  <button 
-                    className={`${styles.filterButton} ${filter === 'in progress' ? styles.filterActive : ''}`}
-                    onClick={() => { setFilter('in progress'); setShowFilters(false); }}
-                  >
-                    In Progress
-                  </button>
-                  <button 
-                    className={`${styles.filterButton} ${filter === 'completed' ? styles.filterActive : ''}`}
-                    onClick={() => { setFilter('completed'); setShowFilters(false); }}
-                  >
-                    Completed
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Events grid with search results or loading indicator */}
-        {!pageLoaded ? (
-          <div className={styles.hiddenLoader}>Loading events...</div>
-        ) : loading ? (
+        {/* Events grid with filtered events */}
+        {loading ? (
           <div className={styles.loadingContainer}>
             <div className={styles.loader}></div>
             <p>Loading events...</p>
@@ -557,6 +614,7 @@ function EventCard({ event }) {
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
   const [checkingRegistration, setCheckingRegistration] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const isPublicView = !user;
   const { openLoginModal } = useModal();
   
@@ -645,17 +703,23 @@ function EventCard({ event }) {
       return;
     }
     
+    // Show loading animation
+    setIsLoading(true);
+    
     // For upcoming events, navigate to the event detail page
     router.push(`/events/${event.id}`);
   };
   
   const viewEventDetails = () => {
+    if (isLoading) return; // Prevent multiple clicks
+    
+    setIsLoading(true); // Set loading state to true
     router.push(`/events/${event.id}`);
   };
 
   // Get registration button text
   const getRegistrationButtonText = () => {
-    // For completed events, always show "Event Ended"
+    // For completed events, always show "View Results"
     if (event.status === 'Completed') {
       return 'View Results';
     }
@@ -723,7 +787,7 @@ function EventCard({ event }) {
 
   return (
     <motion.div 
-      className={`${styles.eventCard} ${styles.clickableCard}`}
+      className={`${styles.eventCard} ${styles.clickableCard} ${isLoading ? styles.eventCardLoading : ''}`}
       onClick={viewEventDetails}
       role="button"
       tabIndex={0}
@@ -737,6 +801,11 @@ function EventCard({ event }) {
         }
       }}
     >
+      {isLoading && (
+        <div className={styles.eventCardLoadingOverlay}>
+          <div className={styles.eventCardLoadingSpinner}></div>
+        </div>
+      )}
       <div className={styles.eventImageContainer}>
         {event.image ? (
           <img 
@@ -789,7 +858,7 @@ function EventCard({ event }) {
           </div>
         )}
       </div>
-      <div className={styles.eventContent}>
+      <div className={`${styles.eventContent} ${styles.forceRepaint}`}>
         <h3 className={styles.eventTitle}>
           {event.title}
           {event.game && (
@@ -836,6 +905,7 @@ function EventCard({ event }) {
           className={getRegistrationButtonClass()}
           onClick={(e) => {
             e.stopPropagation();
+            setIsLoading(true); // Show loading animation
             handleRegisterClick();
           }}
           disabled={

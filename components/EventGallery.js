@@ -26,14 +26,22 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
     ? `${image.caption} - Event gallery image` 
     : `Event gallery image ${image.id}`;
   
-  // Handle image load with slight delay to ensure rendering
+  // Handle image load immediately without setTimeout to prevent race conditions
   const handleImageLoad = () => {
     setIsImageLoaded(true);
-    // Use setTimeout to ensure browser has time to paint
-    setTimeout(() => {
-          onLoaded();
-    }, 10);
+    // Call onLoaded immediately without setTimeout
+    onLoaded();
   };
+  
+  // Use useEffect to ensure browser knows the image is visible
+  useEffect(() => {
+    // If image is already in browser cache, it might not trigger onLoad
+    // Check if the image is complete already
+    const imgElement = document.querySelector(`img[src="${image.image_url}"]`);
+    if (imgElement && imgElement.complete && !imageError) {
+      handleImageLoad();
+    }
+  }, [image.image_url, imageError]);
   
   return (
     <>
@@ -56,6 +64,7 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
             style={{
               transform: 'translateZ(0)', // Force GPU acceleration
               backfaceVisibility: 'hidden', // Prevent flickering
+              willChange: 'opacity' // Hint for browser optimization
             }}
           />
       ) : (
@@ -73,6 +82,12 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
 const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNext, onPrevious }) => {
   const [slideLoaded, setSlideLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const slideshowRef = useRef(null);
+  
+  // Reset slide loaded state when current index changes
+  useEffect(() => {
+    setSlideLoaded(false);
+  }, [currentIndex]);
   
   // Check if mobile on client side
   useEffect(() => {
@@ -115,16 +130,38 @@ const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNe
     };
   }, [isOpen, onNext, onPrevious, onClose]);
   
-  if (!isOpen || !images.length) return null;
+  const onSlideLoaded = () => {
+    console.log("Slide loaded successfully");
+    setSlideLoaded(true);
+  };
   
-  const onSlideLoaded = () => setSlideLoaded(true);
-  const onSlideError = () => setSlideLoaded(true);
+  const onSlideError = () => {
+    console.log("Slide failed to load, still marking as loaded");
+    setSlideLoaded(true);
+  };
+  
+  // Preload adjacent images for smoother navigation
+  useEffect(() => {
+    if (isOpen && images.length > 1) {
+      const nextIdx = currentIndex === images.length - 1 ? 0 : currentIndex + 1;
+      const prevIdx = currentIndex === 0 ? images.length - 1 : currentIndex - 1;
+      
+      // Preload next and previous images
+      const preloadNext = new Image();
+      preloadNext.src = images[nextIdx].image_url;
+      
+      const preloadPrev = new Image();
+      preloadPrev.src = images[prevIdx].image_url;
+    }
+  }, [isOpen, images, currentIndex]);
+  
+  if (!isOpen || !images.length) return null;
   
   // Only render portal on client side
   if (typeof window === 'undefined') return null;
   
   return createPortal(
-    <div className={styles.slideshowPortal}>
+    <div className={styles.slideshowPortal} ref={slideshowRef}>
       <div className={styles.slideModalOverlay} onClick={onClose}>
         <div className={`${styles.slideModal} ${isMobile ? styles.mobileSlideModal : ''}`} onClick={(e) => e.stopPropagation()}>
           <div className={styles.slideModalHeader}>
@@ -224,13 +261,10 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
     ? `${image.caption} - Event gallery thumbnail` 
     : `Event gallery thumbnail ${image.id}`;
   
-  // Force a repaint when the image loads
+  // Load immediately without timeout
   const handleImageLoad = () => {
     setIsLoading(false);
-    // Slight delay to ensure DOM update before setting visible
-    setTimeout(() => {
-      setIsVisible(true);
-    }, 10);
+    setIsVisible(true);
   };
 
   // Handle image load error
@@ -239,6 +273,14 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
     setImageError(true);
     setIsLoading(false);
   };
+  
+  // Check if image is already loaded in cache
+  useEffect(() => {
+    const imgElement = document.querySelector(`img[data-thumbnail-id="${image.id}"]`);
+    if (imgElement && imgElement.complete && !imageError) {
+      handleImageLoad();
+    }
+  }, [image.id, imageError]);
 
   return (
     <div 
@@ -248,55 +290,59 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
       itemType="http://schema.org/ImageObject"
     >
       <div className={styles.imageContainer}>
-            {isLoading && !imageError && (
-              <div className={styles.thumbnailLoading}>
-                <FaSpinner className={styles.spinnerIcon} />
-              </div>
-            )}
-            
-            {!imageError ? (
-              <img 
-                src={image.image_url} 
-                alt={imageAlt}
-                title={imageTitle} 
-                className={`${styles.thumbnail} ${isVisible ? styles.visible : styles.hidden}`}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                loading="lazy"
-                decoding="async"
-                width="250"
-                height="180"
-                itemProp="thumbnailUrl"
-              />
-            ) : (
-              <div className={styles.thumbnailError}>
-                <FaImage size={32} />
-              </div>
-            )}
-            
-            {isAdmin && (
-              <button
-                className={styles.deleteButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(image.id);
-                }}
-                aria-label="Delete image"
-              >
-                <FaTrashAlt />
-              </button>
-            )}
-            
-            <button
-              className={styles.expandButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-              aria-label="View full image"
-            >
-              <FaExpand />
-            </button>
+        {isLoading && !imageError && (
+          <div className={styles.thumbnailLoading}>
+            <FaSpinner className={styles.spinnerIcon} />
+          </div>
+        )}
+        
+        {!imageError ? (
+          <img 
+            src={image.image_url}
+            alt={imageAlt}
+            title={imageTitle}
+            className={`${styles.thumbnail} ${isVisible ? styles.visible : styles.hidden}`}
+            loading="lazy"
+            data-thumbnail-id={image.id}
+            itemProp="thumbnailUrl"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            style={{
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden',
+              willChange: 'opacity, transform'
+            }}
+          />
+        ) : (
+          <div className={styles.thumbnailError}>
+            <FaImage size={30} />
+            <p>Image Error</p>
+          </div>
+        )}
+        
+        {isAdmin && (
+          <button
+            className={styles.deleteButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(image.id);
+            }}
+            aria-label="Delete image"
+          >
+            <FaTrashAlt />
+          </button>
+        )}
+        
+        <button
+          className={styles.expandButton}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          aria-label="View full image"
+        >
+          <FaExpand />
+        </button>
       </div>
       
       {image.caption && (

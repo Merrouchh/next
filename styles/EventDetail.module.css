@@ -62,10 +62,56 @@
 
 /* Event Detail Layout */
 .eventDetail {
-  background-color: #1a1a1a;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
+  border: none;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Add shine effect to event detail */
+.eventDetail::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.3;
+  animation: shineEffect 8s infinite linear;
+}
+
+@keyframes shineEffect {
+  0% { transform: rotate(30deg) translateY(0%); }
+  50% { transform: rotate(30deg) translateY(-10%); }
+  100% { transform: rotate(30deg) translateY(0%); }
+}
+
+/* Add subtle glow to event detail */
+.eventDetail::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(98, 0, 234, 0.05) 0%, rgba(55, 0, 179, 0.08) 100%);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .eventHeader {
@@ -86,6 +132,9 @@
   padding-bottom: 100%; /* Creates a square aspect ratio (1:1) */
   overflow: hidden;
   background-color: #141414;
+  border: none;
+  box-shadow: inset 0 0 20px rgba(98, 0, 234, 0.1);
+  border-radius: 4px;
 }
 
 @media (min-width: 768px) {
@@ -94,6 +143,9 @@
     min-width: 40%;
     padding-bottom: 40%; /* Maintains square aspect ratio at 40% width */
     margin-right: 0;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-right: none;
   }
 }
 
@@ -105,6 +157,12 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transition: transform 0.5s ease;
+  will-change: transform;
+}
+
+.eventImage:hover {
+  transform: scale(1.03);
 }
 
 .eventImagePlaceholder {
@@ -116,8 +174,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FFD700;
-  color: #121212;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
 }
 
 .placeholderText {
@@ -127,12 +186,12 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #121212;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .fallbackImage {
-  background-color: #141414;
+  background: linear-gradient(135deg, #252438 0%, #1e1e24 100%);
   position: absolute !important;
   top: 0;
   left: 0;
@@ -141,6 +200,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: inset 0 0 30px rgba(98, 0, 234, 0.1);
+  border: none;
 }
 
 .fallbackImage::after {
@@ -150,6 +211,31 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 10px rgba(98, 0, 234, 0.5));
+}
+
+/* Add a subtle shimmer effect to the image container */
+.eventImageContainer::before {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  transform: rotate(30deg);
+  animation: shimmerEffect 12s infinite linear;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes shimmerEffect {
+  0% { transform: rotate(30deg) translate(-30%, -30%); }
+  100% { transform: rotate(30deg) translate(30%, 30%); }
 }
 
 .eventStatusBadge {
@@ -162,23 +248,27 @@
   font-weight: 700;
   text-transform: uppercase;
   z-index: 5;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
 }
 
 .statusUpcoming {
-  background-color: #FFD700;
-  color: #121212;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+  border: none;
 }
 
 .statusInProgress {
-  background-color: #17a2b8;
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
   color: white;
+  border: none;
 }
 
 .statusCompleted {
-  background-color: #6c757d;
+  background: linear-gradient(135deg, #455a64 0%, #37474f 100%);
   color: white;
+  border: none;
 }
 
 .eventInfo {
@@ -269,37 +359,39 @@
 
 /* Registration Button Styles */
 .registerButton, 
-.cancelButton, 
-.bracketButton, 
-.editButton {
-  padding: 0.75rem 1.5rem;
-  min-width: 200px;
-  text-align: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.bracketButton,
+.cancelButton {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  border: none;
 }
 
 .registerButton {
-  background-color: #FFD700;
-  color: #121212;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3);
 }
 
 .registerButton:hover:not(:disabled) {
-  background-color: #FFD700;
-  box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
-  color: #121212;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5);
+  background: linear-gradient(135deg, #7019ff 0%, #4910d8 100%);
 }
 
 .registerButton:disabled {
-  opacity: 0.7;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .completedButton {
@@ -1605,15 +1697,15 @@
   align-items: center;
   justify-content: center;
   padding: 1rem 1.75rem;
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%); /* Purple gradient instead of blue */
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px; /* Slightly more rounded */
   font-size: 1.1rem;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3); /* Purple shadow */
   text-transform: uppercase;
   letter-spacing: 0.5px;
   min-width: 220px;
@@ -1634,8 +1726,8 @@
 }
 
 .tournamentBracketButton:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(23, 162, 184, 0.5);
+  transform: translateY(-3px) scale(1.03); /* Added scale effect */
+  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5); /* Purple shadow */
   color: white;
 }
 
@@ -1656,7 +1748,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .endedEventActions .primaryBracketButton {
@@ -1671,24 +1763,26 @@
 }
 
 .endedEventActions .tournamentBracketButton {
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
-  color: #121212;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-  margin-top: 0;
-  border-radius: 50px;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%); /* Purple gradient */
+  color: white; /* White text instead of black */
+  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3); /* Purple shadow */
+  margin-top: 0.5rem; /* Added small top margin instead of 0 */
+  border-radius: 8px; /* Square corners instead of rounded */
   max-width: fit-content;
   padding: 0.85rem 2.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .endedEventActions .tournamentBracketButton:hover {
-  box-shadow: 0 6px 15px rgba(255, 215, 0, 0.5);
-  color: #121212;
-  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5); /* Purple shadow */
+  color: white;
+  transform: translateY(-3px) scale(1.03); /* Added scale effect */
 }
 
 .endedEventActions .tournamentBracketButton .bracketIcon {
-  color: #121212;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.2));
+  color: white; /* White icon */
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
 }
 
 /* Champions container for completed events */
@@ -1697,7 +1791,8 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 1.5rem;
+  gap: 0.75rem; /* Reduced from 1.5rem to 0.75rem */
+  margin-bottom: 0.75rem; /* Added margin-bottom to reduce space */
 }
 
 .championsContainer .bracketWinner {
@@ -1705,7 +1800,7 @@
   display: inline-flex;
   margin: 0 auto;
   padding: 0.75rem 2rem;
-  border-radius: 50px;
+  border-radius: 50px; /* Keep rounded for champions */
   box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
 }
 
@@ -1759,9 +1854,9 @@
 
 /* Gallery Container Styles */
 .galleryContainer {
-  margin: 2rem 0;
+  margin: 0.75rem 0 0.5rem;
   border-top: 1px solid #303030;
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   contain: content;
 }
 
@@ -1837,8 +1932,8 @@
 /* Responsive styles for the gallery */
 @media (max-width: 767px) {
   .galleryContainer {
-    margin: 1.5rem 0;
-    padding-top: 1rem;
+    margin: 0.5rem 0;
+    padding-top: 0.75rem;
   }
   
   .galleryTitle {
@@ -1931,25 +2026,4 @@
     transform: scaleX(0.1);
     opacity: 0.3;
   }
-}
-
-/* Debug styles */
-.debugInfo {
-  background-color: #161616;
-  border: 2px solid #FFD700;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 5px;
-  color: #e0e0e0;
-}
-
-.debugInfo h3 {
-  color: #FFD700;
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.debugInfo p {
-  margin: 5px 0;
-  font-family: monospace;
 } 
