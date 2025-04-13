@@ -301,12 +301,100 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         containVideo();
         player.on('loadedmetadata', containVideo);
         player.on('resize', containVideo);
+        
+        // Enhanced fullscreen handling for better cross-browser support
+        let fullscreenAttemptTime = 0;
+        let fullscreenRetryTimeout;
+        
         player.on('fullscreenchange', () => {
-          // When exiting fullscreen, ensure containment
-          if (!player.isFullscreen()) {
+          // Clear any pending retry timeouts
+          if (fullscreenRetryTimeout) {
+            clearTimeout(fullscreenRetryTimeout);
+            fullscreenRetryTimeout = null;
+          }
+          
+          if (player.isFullscreen()) {
+            // Record when we entered fullscreen
+            fullscreenAttemptTime = Date.now();
+            console.log('Entered fullscreen mode');
+            
+            // Ensure video fits properly in fullscreen
+            const videoEl = player.el().querySelector('video');
+            if (videoEl) {
+              videoEl.style.objectFit = 'contain';
+              videoEl.style.width = '100%';
+              videoEl.style.height = '100%';
+            }
+          } else {
+            // Check if this was a premature exit (common in Brave)
+            const timeInFullscreen = Date.now() - fullscreenAttemptTime;
+            console.log(`Exited fullscreen after ${timeInFullscreen}ms`);
+            
+            // If exited fullscreen too quickly (less than 500ms) and not user-initiated
+            // This helps detect Brave's security-based automatic exits
+            if (timeInFullscreen < 500 && fullscreenAttemptTime > 0) {
+              console.log('Detected possible premature fullscreen exit, will retry');
+              
+              // Try to re-enter fullscreen with a slight delay
+              fullscreenRetryTimeout = setTimeout(() => {
+                try {
+                  // Only retry if player still exists and is not already in fullscreen
+                  if (player && !player.isDisposed() && !player.isFullscreen()) {
+                    console.log('Retrying fullscreen');
+                    player.requestFullscreen();
+                  }
+                } catch (err) {
+                  console.error('Error retrying fullscreen:', err);
+                }
+              }, 300);
+            }
+            
+            // When exiting fullscreen, ensure containment
             setTimeout(containVideo, 100);
           }
         });
+
+        // Additional handling for Brave's security features
+        if (typeof window !== 'undefined') {
+          // Detect if browser is Brave (using navigator.userAgent as a fallback)
+          const isBrave = navigator.userAgent.includes('Brave');
+          
+          // For more accurate detection, we can check navigator.brave if available
+          if (navigator.brave) {
+            navigator.brave.isBrave().then(isBraveResult => {
+              if (isBraveResult) {
+                console.log('Brave browser confirmed via navigator.brave.isBrave()');
+                applyBraveSpecificHandling();
+              }
+            }).catch(err => {
+              console.error('Error checking Brave browser:', err);
+            });
+          } else if (isBrave) {
+            console.log('Brave browser detected via user agent');
+            applyBraveSpecificHandling();
+          }
+          
+          // Function to apply Brave-specific video player tweaks
+          function applyBraveSpecificHandling() {
+            console.log('Applying special handling for Brave browser');
+            
+            // Add extra listeners for Brave's security behavior
+            player.on('fullscreenerror', (e) => {
+              console.error('Fullscreen error:', e);
+              // Notify user about Brave restrictions if needed
+            });
+            
+            // Handle play/pause on fullscreen change which helps in Brave
+            player.on('play', () => {
+              // Ensure video element is properly sized during playback
+              const videoEl = player.el().querySelector('video');
+              if (videoEl) {
+                videoEl.style.width = '100%';
+                videoEl.style.height = '100%';
+              }
+            });
+          }
+        }
 
         // Return cleanup function that will properly dispose the player when unmounted
         return () => {
