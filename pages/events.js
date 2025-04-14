@@ -471,7 +471,7 @@ export default function Events({ metaData }) {
             className={styles.eventsGrid}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: 0.3 }}
           >
             {filteredEvents.map(event => (
               <EventCard key={event.id} event={event} />
@@ -660,15 +660,11 @@ function EventCard({ event }) {
   };
 
   return (
-    <motion.div 
+    <div 
       className={`${styles.eventCard} ${styles.clickableCard} ${isLoading ? styles.eventCardLoading : ''}`}
       onClick={viewEventDetails}
       role="button"
       tabIndex={0}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      whileHover={{ y: -5 }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           viewEventDetails();
@@ -790,6 +786,6 @@ function EventCard({ event }) {
           {getRegistrationButtonText()}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 } 
