@@ -11,12 +11,13 @@ import DashboardHeader from './DashboardHeader';
 import MobileMenu from './MobileMenu';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useModal } from '../contexts/ModalContext';
-
+import React from 'react';
 
 const Header = () => {
   const [isSticky, setIsSticky] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const { user, logout } = useAuth();
   const navRef = useRef(null);
@@ -39,6 +40,20 @@ const Header = () => {
     router.pathname !== '/dashboard';
 
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('nav-loading');
+    }
+    
+    setMounted(true);
+    
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('nav-loading');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let lastScroll = 0;
@@ -145,7 +160,7 @@ const Header = () => {
             <div className={styles.bar}></div>
           </div>
 
-          {!isMobile && (
+          {mounted && !isMobile && (
             <nav ref={navRef} className={styles.nav}>
               {showGoBackButton && (
                 <button className={styles.goBackButton} onClick={() => router.back()}>
@@ -204,10 +219,9 @@ const Header = () => {
         </header>
       </div>
 
-      {isMobile && (
+      {mounted && isMobile && (
         <MobileMenu isOpen={isMenuOpen}>
           <nav ref={navRef} className={`${styles.nav} ${isMenuOpen ? styles.open : ''}`}>
-            {/* Navigation Links for Mobile - Only show when user is authenticated */}
             {user && (
               <div className={styles.mobileNavLinks}>
                 <button

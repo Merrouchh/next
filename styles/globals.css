@@ -357,3 +357,15 @@ code {
 .react-tel-input .selected-flag {
   tabindex: -1 !important;
 }
+
+/* Add nav-loading class to handle initial loading state */
+body.nav-loading .nav {
+  visibility: hidden !important;
+}
+
+/* Prevent flashing of desktop logout button on mobile during page load */
+@media (max-width: 768px) {
+  body.nav-loading .logoutButton {
+    display: none !important;
+  }
+}

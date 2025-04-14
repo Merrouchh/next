@@ -264,6 +264,9 @@
   transition: transform 0.3s ease;
   background-color: #141414;
   z-index: 1001;
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.2s ease;
 }
 
 .nav.open {
@@ -599,6 +602,17 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border: 1px solid rgba(255, 215, 0, 0.3);
+  }
+
+  /* Add a no-flash utility class to hide content during SSR */
+  .logoutButton {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav {
+    transition: none;
   }
 }
 
