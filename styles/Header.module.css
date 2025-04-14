@@ -205,6 +205,13 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Logo placeholder during SSR/loading */
+.logoPlaceholder {
+  width: 150px;
+  height: 40px;
+  background: transparent;
+}
+
 /* Logo Styles */
 .logoContainer {
   display: flex;

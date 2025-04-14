@@ -44,13 +44,28 @@ const Header = () => {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.body.classList.add('nav-loading');
+      
+      if (window.innerWidth <= 768) {
+        document.body.classList.add('mobile-view');
+      } else {
+        document.body.classList.add('desktop-view');
+      }
     }
     
-    setMounted(true);
-    
-    return () => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+      
       if (typeof document !== 'undefined') {
         document.body.classList.remove('nav-loading');
+      }
+    }, 50);
+    
+    return () => {
+      clearTimeout(timer);
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('nav-loading');
+        document.body.classList.remove('mobile-view');
+        document.body.classList.remove('desktop-view');
       }
     };
   }, []);
@@ -118,7 +133,7 @@ const Header = () => {
       <div className={styles.headerWrapper}>
         <header className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
           <div className={styles.logoContainer}>
-            {isMobile && showGoBackButton && (
+            {mounted && isMobile && showGoBackButton && (
               <button 
                 className={styles.goBackButton} 
                 onClick={() => router.back()}
@@ -129,7 +144,10 @@ const Header = () => {
 
             <Link href="/" passHref legacyBehavior>
               <a>
-                {isMobile ? (
+                {!mounted ? (
+                  // Show nothing during SSR
+                  <div className={styles.logoPlaceholder}></div>
+                ) : isMobile ? (
                   <Image
                     src="/logomobile.png"
                     alt="Merrouch Gaming"

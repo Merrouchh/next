@@ -369,3 +369,18 @@ body.nav-loading .nav {
     display: none !important;
   }
 }
+
+/* Hide logo text during initial load to prevent flashing */
+body.nav-loading .logo {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Initial loading states for mobile/desktop views */
+body.mobile-view .logo {
+  display: none !important;
+}
+
+body.desktop-view .mobileLogo {
+  display: none !important;
+}
