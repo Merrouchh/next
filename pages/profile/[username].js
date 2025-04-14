@@ -388,13 +388,13 @@ export async function getServerSideProps({ req, res, params }) {
         },
         achievements: achievements || [],
         metaData: {
-          title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier`,
+          title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier | Best Gaming Center in Tangier`,
           description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
           image: profileImage,
           url: `https://merrouchgaming.com/profile/${userData.username}`,
           type: "profile",
           openGraph: {
-            title: `${userData.username} | Gaming Profile | Merrouch Gaming Tangier`,
+            title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier | Best Gaming Center in Tangier`,
             description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
             images: [
               {
@@ -412,7 +412,7 @@ export async function getServerSideProps({ req, res, params }) {
           twitter: {
             card: "summary_large_image",
             site: "@merrouchgaming",
-            title: `${userData.username} | Gaming Profile | Best Gaming Center in Tangier`,
+            title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier | Best Gaming Center in Tangier`,
             description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
             image: profileImage
           },
