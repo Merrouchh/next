@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { validateUserCredentials } from '../utils/api';
 import { useAuth } from "../contexts/AuthContext";
 import styles from '../styles/LoginModal.module.css';
-import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail } from 'react-icons/ai';
+import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail, AiOutlineTrophy, AiOutlineCheckCircle } from 'react-icons/ai';
 import { createClient } from '../utils/supabase/component';
+import React from 'react';
+import { toast } from 'react-hot-toast';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const { login, userExists, createUser } = useAuth();
@@ -105,7 +107,9 @@ const LoginModal = ({ isOpen, onClose }) => {
     setError('');
 
     try {
-      const { success, message } = await login(formData.username, formData.password);
+      // Trim the username before login
+      const trimmedUsername = formData.username.trim();
+      const { success, message } = await login(trimmedUsername, formData.password);
       
       if (success) {
         handleClose(); // Close modal and reset state on success
@@ -169,15 +173,18 @@ const LoginModal = ({ isOpen, onClose }) => {
     </div>
   );
 
-  // Step 1: Validate with Gizmo
+  // Handle Gizmo validation
   const handleGizmoValidation = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
+      // Trim the username before validation
+      const trimmedUsername = formData.username.trim().toLowerCase();
+      
       const response = await validateUserCredentials(
-        formData.username.toLowerCase(), 
+        trimmedUsername, 
         formData.gizmoPassword
       );
 
@@ -214,11 +221,18 @@ const LoginModal = ({ isOpen, onClose }) => {
           return;
         }
 
-        // Store the validated data
+        // Store the validated data and update formData with trimmed username
         setValidatedGizmoData({
           ...response,
           gizmoId: gizmoId
         });
+        
+        // Update the formData with the trimmed username
+        setFormData({
+          ...formData,
+          username: trimmedUsername
+        });
+        
         setStep('CREATE');
       } else {
         setError('Invalid gaming account credentials');
@@ -308,7 +322,8 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleEmailChange = async (e) => {
     const email = e.target.value;
     setFormData(prev => ({ ...prev, email }));
-    const emailValidation = await validateEmail(email);
+    // Run validation against the trimmed email
+    const emailValidation = await validateEmail(email.trim());
     setValidation(prev => ({ ...prev, email: emailValidation }));
   };
 
@@ -361,6 +376,13 @@ const LoginModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setError('');
 
+    // Trim all string inputs
+    const trimmedData = {
+      ...formData,
+      username: formData.username.trim().toLowerCase(),
+      email: formData.email.trim()
+    };
+
     // Check if all validations pass
     if (!validation.email.isValid || 
         !validation.password.isValid || 
@@ -385,8 +407,8 @@ const LoginModal = ({ isOpen, onClose }) => {
 
     try {
       const success = await createUser({
-        username: formData.username.toLowerCase(),
-        email: formData.email.toLowerCase(),
+        username: trimmedData.username,
+        email: trimmedData.email,
         password: formData.password,
         gizmoId: validatedGizmoData.gizmoId
       });
@@ -497,21 +519,42 @@ const LoginModal = ({ isOpen, onClose }) => {
   );
 
   // Success step
-  const renderSuccessStep = () => (
-    <div className={styles.stepContainer}>
-      <img src="/images/success.png" alt="Success" className={styles.successIcon} />
-      <h2>Account Created!</h2>
-      <p className={styles.successText}>
-        Welcome to MerrouchGaming! You've been automatically logged in.
-      </p>
-      <button 
-        className={styles.continueButton}
-        onClick={handleClose}
-      >
-        Continue
-      </button>
-    </div>
-  );
+  const renderSuccessStep = () => {
+    // Show success toast notification
+    React.useEffect(() => {
+      toast.success('Account created successfully!', {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+        duration: 5000
+      });
+    }, []);
+    
+    return (
+      <div className={styles.stepContainer}>
+        <div className={styles.successIconContainer}>
+          <AiOutlineCheckCircle className={styles.successIcon} />
+        </div>
+        <h2>Account Created!</h2>
+        <p className={styles.successText}>
+          Welcome to MerrouchGaming! You've been automatically logged in.
+        </p>
+        <button 
+          className={styles.continueButton}
+          onClick={handleClose}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  };
 
   const renderStep = () => {
     switch (step) {

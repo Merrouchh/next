@@ -27,7 +27,7 @@ const EmailSection = ({
   const [lastResendTime, setLastResendTime] = useState(0);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  // Add a timer to update the countdown every 30 seconds and the resend cooldown every second
+  // Add a timer to update the countdown every second and the resend cooldown every second
   useEffect(() => {
     const countdownInterval = setInterval(() => {
       forceUpdate();
@@ -40,6 +40,14 @@ const EmailSection = ({
     
     return () => clearInterval(countdownInterval);
   }, [resendCooldown]);
+
+  // Limit how many verification checks can happen on component mount
+  useEffect(() => {
+    // Reset check counter on component unmount
+    return () => {
+      checkCountRef.current = 0;
+    };
+  }, []);
 
   // Set initial email when user is loaded and check pending verification
   useEffect(() => {
@@ -57,19 +65,22 @@ const EmailSection = ({
       setIsCheckingVerification(true);
       
       try {
-        // Check verification details from email_verifications table
-        const { data: verificationData, error } = await supabase
-          .from('email_verifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (!error && verificationData) {
-          console.log('Found pending verification in email_verifications:', verificationData);
-          setVerificationDetails(verificationData);
+        // Use the API instead of direct Supabase query to avoid 406 errors
+        const response = await fetch('/api/email/check-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: user.id
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.hasPendingRecord && data.pendingRecord) {
+          console.log('Found pending verification via API:', data.pendingRecord);
+          setVerificationDetails(data.pendingRecord);
           setEmailUpdatePending(true);
         } else {
           console.log('No valid pending verification found, resetting state');
@@ -84,16 +95,20 @@ const EmailSection = ({
     };
     
     // Only run the check if we haven't reached the limit
-    if (checkCountRef.current < 10) {
+    if (checkCountRef.current < 3) {
       checkPendingVerification();
+      // Increment the check counter
+      checkCountRef.current += 1;
     }
     
-    // Set up interval to periodically check verification status
+    // Set up interval to periodically check verification status (much less frequently)
     const intervalId = setInterval(() => {
       if (checkCountRef.current < 10) {
         checkPendingVerification();
+        // Don't increment the counter for interval checks
+        // This ensures we only count initial checks against the small limit
       }
-    }, 60000); // Check every 60 seconds
+    }, 600000); // Check every 10 minutes instead of every 5 minutes
     
     return () => {
       clearInterval(intervalId);
@@ -232,30 +247,6 @@ const EmailSection = ({
       // Exit edit mode
       setIsChangingEmail(false);
       
-      // Make an explicit API call to check verification status to ensure we have the latest data
-      try {
-        console.log('Calling check-verification API after email update');
-        const response = await fetch('/api/email/check-verification', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: user.id
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          if (data.hasPendingRecord && data.pendingRecord) {
-            setVerificationDetails(data.pendingRecord);
-          }
-        }
-      } catch (checkError) {
-        console.warn('Error checking verification status after update:', checkError);
-      }
-      
       // Show success message
       setMessage(prev => ({ 
         ...prev, 
@@ -265,30 +256,30 @@ const EmailSection = ({
         }
       }));
       
-      // Force a check of the email_verifications table as a last resort
-      // This should definitely find any pending verification
+      // Force a check of verification status through the API after a short delay
+      // to allow time for the database to update
       setTimeout(async () => {
         try {
-          console.log('Force-checking email_verifications table after update');
-          const { data, error } = await supabase
-            .from('email_verifications')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+          console.log('Checking email verification status through API');
+          const response = await fetch('/api/email/check-verification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              userId: user.id
+            })
+          });
             
-          if (error) {
-            console.warn('Error force-checking verification table:', error);
-          } else if (data) {
-            console.log('Found verification record in force-check:', data);
-            setVerificationDetails(data);
+          const data = await response.json();
+          
+          if (response.ok && data.hasPendingRecord && data.pendingRecord) {
+            console.log('Found verification record:', data.pendingRecord);
+            setVerificationDetails(data.pendingRecord);
             setEmailUpdatePending(true);
-            // No success message needed here
           }
         } catch (e) {
-          console.warn('Exception during force-check:', e);
+          console.warn('Exception during verification check:', e);
         }
       }, 1000); // Wait a second to ensure DB operations complete
       

@@ -58,7 +58,7 @@
 
 .eventImageContainer {
   position: relative;
-  height: 180px;
+  height: 220px;
   overflow: hidden;
   margin-bottom: -2px;
   border-bottom: none;
@@ -68,6 +68,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.5s ease-out;
 }
 
 .eventImagePlaceholder {
@@ -220,6 +221,10 @@
 
 .eventCard:hover .eventContent {
   background: linear-gradient(135deg, #252438 0%, #2c2752 70%, #3a2c7c 100%);
+}
+
+.eventCard:hover .eventImage {
+  transform: scale(1.05);
 }
 
 .eventTitle {
@@ -375,7 +380,7 @@
 /* Responsive adjustment */
 @media (max-width: 768px) {
   .eventCard {
-    min-height: 320px;
+    min-height: 340px;
     /* Remove any animations or transitions in mobile view */
     transform: none !important;
     transition: none !important;
@@ -395,7 +400,7 @@
   }
   
   .eventImageContainer {
-    height: 150px;
+    height: 200px;
   }
   
   .eventContent {
@@ -1114,7 +1119,21 @@
   }
   
   .eventCard {
-    min-height: 300px;
+    min-height: 340px;
+  }
+  
+  .eventImageContainer {
+    height: 220px !important;
+    margin-bottom: 0 !important;
+  }
+  
+  .eventImage {
+    transition: transform 0.5s ease-out;
+  }
+  
+  /* Allow hover effects on touch devices */
+  .eventCard:active .eventImage {
+    transform: scale(1.05);
   }
   
   .eventActions {

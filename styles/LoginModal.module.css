@@ -356,3 +356,20 @@
 .inputWrapper input:hover {
     border-color: #444;
 }
+
+.successIconContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    background-color: rgba(255, 215, 0, 0.15);
+    border-radius: 50%;
+    border: 2px solid #FFD700;
+}
+
+.successIcon {
+    font-size: 40px;
+    color: #FFD700;
+}

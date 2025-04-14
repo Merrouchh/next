@@ -194,7 +194,7 @@ const Header = () => {
                     <AiOutlineVideoCamera className={styles.buttonIcon} />
                     Public Clips
                   </button>
-                  <button className={styles.loginButton} onClick={openLoginModal}>
+                  <button className={`${styles.loginButton} ${styles.yellowButton}`} onClick={openLoginModal}>
                     Login
                   </button>
                 </>
@@ -302,7 +302,7 @@ const Header = () => {
                   Public Clips
                 </button>
                 <button
-                  className={styles.loginButton}
+                  className={`${styles.loginButton} ${styles.yellowButton}`}
                   onClick={() => {
                     openLoginModal();
                     closeMenu();

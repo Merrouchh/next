@@ -9,6 +9,7 @@ import ProfileDashboard from '../../components/profile/ProfileDashboard';
 import UploadButton from '../../components/profile/UploadButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import UserClips from '../../components/profile/UserClips';
+import { FaVideo } from 'react-icons/fa';
 
 export async function getServerSideProps({ req, res, params }) {
   const supabase = createClient({ req, res });
@@ -503,9 +504,22 @@ const ProfilePage = ({ userData, metaData, achievements }) => {
           isOwner={isOwner}
         />
 
-        {isOwner && <UploadButton />}
-
-        <UserClips userId={userData.id} isOwner={isOwner} />
+        {/* Clips Section with container */}
+        <div className="dashboard-section">
+          <div 
+            className="dashboard-section-header"
+            style={{ cursor: 'default', border: 'none', width: '100%', justifyContent: 'space-between' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <FaVideo className="dashboard-section-icon" />
+              <h3 className="dashboard-section-title">Clips ({userData.clips_count || 0})</h3>
+            </div>
+            {isOwner && <UploadButton isCompact={true} />}
+          </div>
+          <div>
+            <UserClips userId={userData.id} isOwner={isOwner} />
+          </div>
+        </div>
       </main>
     </ProtectedPageWrapper>
   );

@@ -634,6 +634,9 @@ export const AuthProvider = ({ children, onError }) => {
     setError(null);
 
     try {
+      // Trim the identifier to remove any leading/trailing spaces
+      identifier = identifier.trim();
+      
       // Check if identifier is an email
       const isEmail = identifier.includes('@');
       let email;
@@ -904,7 +907,7 @@ export const AuthProvider = ({ children, onError }) => {
       
       // Create auth user in Supabase
       const { data: authData, error: authError } = await supabaseRef.current.auth.signUp({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -916,7 +919,7 @@ export const AuthProvider = ({ children, onError }) => {
         .insert([
           {
             id: authData.user.id,
-            email: email,
+            email: email.trim(),
             username: normalizedUsername,
             gizmo_id: gizmoId
           }
@@ -928,7 +931,7 @@ export const AuthProvider = ({ children, onError }) => {
 
       // Auto login
       const { data: signInData, error: signInError } = await supabaseRef.current.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password
       });
 

@@ -1,40 +1,41 @@
-import React from 'react';
-import { useRouter } from 'next/router';
-import { MdCloudUpload, MdBuildCircle, MdWarning } from 'react-icons/md';
-import styles from '../../styles/Profile.module.css';
-import MaintenanceOverlay from '../MaintenanceOverlay';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { MdAdd, MdInfoOutline } from 'react-icons/md'
+import styles from '../../styles/Profile.module.css'
 
-// Set to true to enable maintenance mode
-const UPLOAD_MAINTENANCE_MODE = true;
+// Set to true if the upload feature is in maintenance
+const UPLOAD_MAINTENANCE_MODE = false
 
-const UploadButton = ({ isFixed = false }) => {
-  const router = useRouter();
+export default function UploadButton({ isFixed = true, isCompact = false }) {
+  const [showWarning, setShowWarning] = useState(false)
 
   if (UPLOAD_MAINTENANCE_MODE) {
     return (
-      <div 
-        className={`${styles.uploadButton} ${isFixed ? styles.fixedButton : styles.inlineButton} ${styles.maintenanceMode}`}
-        onClick={() => router.push('/upload')}
-      >
-        <MdBuildCircle className={styles.maintenanceIcon} />
-        <span>Under Maintenance</span>
-        <div className={styles.maintenanceBadge}>
-          <MdWarning size={16} />
-        </div>
+      <div className={isCompact ? styles.compactUploadContainer : (isFixed ? styles.fixedUploadContainer : styles.uploadContainer)}>
+        <button
+          className={isCompact ? styles.compactUploadButton : styles.uploadButton}
+          onClick={() => setShowWarning(true)}
+        >
+          <MdAdd /> {isCompact ? 'Upload Clip' : 'Upload New Clip'}
+        </button>
+        {showWarning && (
+          <div className={styles.maintenanceWarning}>
+            <MdInfoOutline size={20} />
+            <p>Upload feature is currently under maintenance. Please try again later.</p>
+            <button onClick={() => setShowWarning(false)}>Close</button>
+          </div>
+        )}
       </div>
-    );
+    )
   }
 
   return (
-    <button 
-      onClick={() => router.push('/upload')}
-      className={`${styles.uploadButton} ${isFixed ? styles.fixedButton : styles.inlineButton}`}
-      aria-label="Upload new clip"
-    >
-      <MdCloudUpload className={styles.uploadIcon} />
-      <span>{isFixed ? 'Upload Clip' : 'Upload New Clip'}</span>
-    </button>
-  );
-};
-
-export default UploadButton; 
+    <div className={isCompact ? styles.compactUploadContainer : (isFixed ? styles.fixedUploadContainer : styles.uploadContainer)}>
+      <Link href="/upload">
+        <button className={isCompact ? styles.compactUploadButton : styles.uploadButton}>
+          <MdAdd /> {isCompact ? 'Upload Clip' : 'Upload New Clip'}
+        </button>
+      </Link>
+    </div>
+  )
+} 

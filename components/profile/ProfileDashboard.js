@@ -1,134 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaGamepad, FaDiscord, FaTrophy, FaCalendarCheck, 
-  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt 
+  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt
 } from 'react-icons/fa';
 import { IoMdPodium } from 'react-icons/io';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
-import { AiOutlineCamera } from 'react-icons/ai';
+import { AiOutlineCamera, AiOutlineEdit, AiOutlineSave, AiOutlineClose, AiOutlineTrophy } from 'react-icons/ai';
 import Link from 'next/link';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { createClient } from '../../utils/supabase/component';
 import { useRouter } from 'next/router';
 import { fetchUserPicture, cleanupBlobUrls, uploadUserPicture } from '../../utils/api';
+import ProfilePicture from '../shared/ProfilePicture';
+import { useAuth } from '../../contexts/AuthContext';
+import { updateGamingProfiles } from '../../utils/api';
 
 const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [profilesExpanded, setProfilesExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const router = useRouter();
-  const [pictureUrl, setPictureUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [gamingProfiles, setGamingProfiles] = useState(profiles || {});
+  const [winCount, setWinCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const { refreshUserData } = useAuth();
+  
+  // Check if user is new (just created account)
+  useEffect(() => {
+    const isNewUser = router.query.newUser === 'true';
+    if (isNewUser) {
+      toast.success(`Welcome to MerrouchGaming, ${user?.username}!`, {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+        duration: 5000
+      });
+    }
+  }, [router.query, user?.username]);
   
   // Add this helper function to split/parse Valorant IDs
-  const parseValorantId = (valorantId) => {
-    if (!valorantId) return { name: '', tag: '' };
-    const parts = valorantId.split('#');
+  const splitValorantId = (fullId) => {
+    if (!fullId) return { name: '', tag: '' };
+    const parts = fullId.split('#');
     return {
       name: parts[0] || '',
-      tag: parts[1] || ''
+      tag: parts.length > 1 ? parts[1] : ''
     };
   };
 
-  // Update state to handle Valorant username and tag separately
+  // Parse the valorant ID into name and tag parts
+  const valorantParts = splitValorantId(profiles?.valorant_id);
+
+  // State for edited profiles
   const [editedProfiles, setEditedProfiles] = useState({
     discord_id: profiles?.discord_id || '',
-    valorant_id: profiles?.valorant_id || '',
-    valorant_name: parseValorantId(profiles?.valorant_id).name,
-    valorant_tag: parseValorantId(profiles?.valorant_id).tag,
+    valorant_name: valorantParts.name,
+    valorant_tag: valorantParts.tag,
     fortnite_name: profiles?.fortnite_name || '',
     battlenet_id: profiles?.battlenet_id || ''
   });
 
-  // Count the number of wins
-  const winCount = achievements ? achievements.filter(a => a.isWinner).length : 0;
-
-  // Sort achievements: first winners, then by date (newest first)
-  const sortedAchievements = achievements ? [...achievements].sort((a, b) => {
-    // Winners first
-    if (a.isWinner && !b.isWinner) return -1;
-    if (!a.isWinner && b.isWinner) return 1;
-    
-    // Then by date (newest first)
-    try {
-      return new Date(b.eventDate) - new Date(a.eventDate);
-    } catch (error) {
-      return 0;
-    }
-  }) : [];
-
   useEffect(() => {
-    let mounted = true;
-
-    const loadProfilePicture = async () => {
-      if (!user?.gizmo_id) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const url = await fetchUserPicture(user.gizmo_id);
-        if (mounted) {
-          setPictureUrl(url);
-        }
-      } catch (error) {
-        // Ignore error - will show placeholder
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadProfilePicture();
-
-    return () => {
-      mounted = false;
-      cleanupBlobUrls();
-    };
-  }, [user?.gizmo_id]);
-
-  const handlePictureUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
+    // Count winning achievements
+    if (achievements && Array.isArray(achievements)) {
+      setWinCount(achievements.filter(a => a.isWinner).length);
     }
-
-    try {
-      setLoading(true);
-      const success = await uploadUserPicture(user.gizmo_id, file);
-
-      if (success) {
-        const newPicture = await fetchUserPicture(user.gizmo_id);
-        setPictureUrl(newPicture);
-      } else {
-        throw new Error('Failed to upload picture');
-      }
-    } catch (error) {
-      console.error('Error uploading picture:', error);
-      alert('Failed to upload picture. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "";
-      return date.toLocaleDateString('en-US', { 
-        year: '2-digit', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch (error) {
-      return "";
-    }
-  };
+  }, [achievements]);
 
   const handleCopy = (text, label) => {
     navigator.clipboard.writeText(text);
@@ -146,6 +91,14 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
     });
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedProfiles(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSaveProfiles = async () => {
     try {
       // Make sure we have the complete Valorant ID
@@ -159,7 +112,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
       else if (editedProfiles.valorant_name && editedProfiles.valorant_tag) {
         valorantId = `${editedProfiles.valorant_name}#${editedProfiles.valorant_tag}`;
       } 
-      // If neither exists, empty string
+      // Neither exists, empty string
       else {
         valorantId = '';
       }
@@ -200,8 +153,36 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
     }
   };
 
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      return date.toLocaleDateString('en-US', { 
+        year: '2-digit', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return "";
+    }
+  };
+
+  // Sort achievements: first winners, then by date (newest first)
+  const sortedAchievements = achievements ? [...achievements].sort((a, b) => {
+    // Winners first
+    if (a.isWinner && !b.isWinner) return -1;
+    if (!a.isWinner && b.isWinner) return 1;
+    
+    // Then by date (newest first)
+    try {
+      return new Date(b.eventDate) - new Date(a.eventDate);
+    } catch (error) {
+      return 0;
+    }
+  }) : [];
+
   return (
-    <>
+    <div className="dashboard-container">
       <style jsx global>{`
         .dashboard-section {
           background-color: #0e0e0e;
@@ -224,12 +205,12 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         .dashboard-section-header {
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           padding: 14px 15px;
           position: relative;
           background-color: #0e0e0e;
           border-bottom: 1px solid transparent;
-          text-align: center;
+          text-align: left;
         }
         
         .dashboard-section-title {
@@ -239,6 +220,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           text-transform: uppercase;
           font-size: 16px;
           color: #fff;
+          text-align: left;
         }
         
         .dashboard-section-icon {
@@ -259,56 +241,62 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           display: flex;
           align-items: center;
           font-size: 14px;
+          transition: transform 0.3s ease;
+        }
+        
+        .dashboard-toggle-icon svg {
+          transition: transform 0.3s ease;
+        }
+        
+        .expanded .dashboard-toggle-icon svg {
+          transform: rotate(180deg);
         }
         
         .dashboard-section-content {
           max-height: 0;
           overflow: hidden;
-          transition: max-height 0.2s ease;
+          transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+          opacity: 0;
         }
         
         .dashboard-section-content.expanded {
           max-height: 2000px;
+          opacity: 1;
         }
         
         .user-profile-section {
           display: flex;
+          flex-direction: column;
           padding: 20px;
           align-items: center;
+          justify-content: center;
           background-color: #0e0e0e;
           border-radius: 8px;
           margin-bottom: 12px;
           border: 1px solid #222;
+          text-align: center;
         }
         
         .user-avatar {
+          position: relative;
+          width: 100px;
+          height: 100px;
           border-radius: 50%;
           overflow: hidden;
-          background-color: #1a1a1a;
           border: 2px solid #FFD700;
-          position: relative;
-          width: 80px;
-          height: 80px;
+          box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+          margin: 0 auto 15px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         .upload-button-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background-color: rgba(0, 0, 0, 0.6);
-          color: #FFD700;
-          cursor: pointer;
-          opacity: 0;
-          transition: opacity 0.2s ease;
+          display: none;
         }
         
         .user-avatar:hover .upload-button-overlay {
-          opacity: 1;
+          display: none;
         }
         
         .hidden-input {
@@ -316,15 +304,29 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         }
         
         .user-info {
-          margin-left: 20px;
-          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        
+        .username-container {
+          width: 100%;
+          max-width: 280px;
+          margin: 0 auto;
         }
         
         .user-name {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 700;
-          margin: 0 0 5px;
+          margin: 0 0 10px;
           color: #fff;
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          word-break: break-word;
+          overflow-wrap: break-word;
+          max-width: 100%;
+          text-align: center;
+          text-overflow: ellipsis;
         }
         
         .user-stats {
@@ -368,10 +370,17 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         }
         
         .gaming-profile-icon {
-          color: #FFD700;
+          color: #8A2BE2;
           font-size: 18px;
           margin-right: 12px;
           flex-shrink: 0;
+          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
+          transition: all 0.2s ease;
+        }
+        
+        .gaming-profile-item:hover .gaming-profile-icon {
+          color: #9D4EDD;
+          filter: drop-shadow(0 0 5px rgba(138, 43, 226, 0.8));
         }
         
         .gaming-profile-text {
@@ -402,6 +411,11 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           padding: 12px 15px;
           background-color: #0e0e0e;
           border-bottom: 1px solid #222;
+        }
+        
+        .gaming-profile-input .gaming-profile-icon {
+          color: #8A2BE2;
+          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
         }
         
         .valorant-input-group {
@@ -457,6 +471,13 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           width: 24px;
           height: 24px;
           flex-shrink: 0;
+          color: #8A2BE2;
+          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
+        }
+        
+        .event-item:hover .event-icon {
+          color: #9D4EDD;
+          filter: drop-shadow(0 0 5px rgba(138, 43, 226, 0.8));
         }
         
         .event-details {
@@ -499,7 +520,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         
         .event-date {
           font-size: 13px;
-          color: #777;
+          color: #9D4EDD;
           margin-left: 10px;
           text-align: right;
           flex-shrink: 0;
@@ -578,88 +599,115 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         .view-event-button:hover {
           background-color: rgba(255, 215, 0, 0.2);
         }
+        
+        .user-badge {
+          display: flex;
+          align-items: center;
+          background: rgba(255, 215, 0, 0.1);
+          padding: 5px 15px;
+          border-radius: 20px;
+          font-size: 16px;
+          color: #FFD700;
+          font-weight: 600;
+          margin-top: 5px;
+        }
+        
+        .user-badges {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          margin-top: 8px;
+        }
+        
+        .user-badges .user-badge:first-child {
+          margin-left: 0;
+        }
+        
+        .partner-username:hover {
+          color: #ffffff !important;
+          text-decoration: underline !important;
+        }
+
+        /* Mobile styles for user avatar */
+        @media (max-width: 768px) {
+          .user-avatar {
+            width: 90px;
+            height: 90px;
+            border-width: 2px;
+            margin: 0 auto 12px;
+          }
+          
+          .user-profile-section {
+            padding: 15px;
+          }
+          
+          .user-name {
+            font-size: 24px;
+            margin: 0 0 8px;
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            max-height: 60px;
+            hyphens: auto;
+          }
+        }
+
+        /* Extra small mobile screens */
+        @media (max-width: 375px) {
+          .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-width: 1px;
+            margin: 0 auto 10px;
+          }
+          
+          .user-profile-section {
+            padding: 12px;
+          }
+          
+          .user-name {
+            font-size: 20px;
+            max-width: 230px;
+          }
+          
+          .username-container {
+            max-width: 220px;
+          }
+        }
+
+        /* Extremely long usernames without spaces need special handling */
+        .extremely-long-username {
+          font-size: 20px;
+          max-height: 50px;
+          overflow-wrap: anywhere;
+          word-break: break-all;
+        }
       `}</style>
 
       {/* User Profile Summary Section */}
       <div className="user-profile-section">
         <div className="user-avatar">
-          {loading ? (
-            <div style={{ 
-              width: '100%', 
-              height: '100%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              color: '#666'
-            }}>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #FFD700', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-            </div>
-          ) : pictureUrl ? (
-            <Image 
-              src={pictureUrl} 
-              alt={user.username || 'User'} 
-              width={80} 
-              height={80}
-              objectFit="cover"
-              onError={() => setPictureUrl(null)}
-            />
-          ) : (
-            <div style={{ 
-              width: '100%', 
-              height: '100%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              color: '#666'
-            }}>
-              <FaUser size={30} />
-            </div>
-          )}
-          
-          {isOwner && !loading && (
-            <label className="upload-button-overlay">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePictureUpload}
-                className="hidden-input"
-              />
-              <AiOutlineCamera size={24} />
-            </label>
-          )}
+          <ProfilePicture 
+            userId={user.gizmo_id} 
+            username={user.username}
+            isOwner={isOwner}
+            size={100}
+          />
         </div>
+        
         <div className="user-info">
-          <h1 className="user-name">{user?.username || 'User'}</h1>
-          <div className="user-stats">
-            {user.clips_count > 0 ? (
-              <div className="stat-item">
-                <FaGamepad style={{ color: '#3a9df1' }} />
-                <span className="stat-value">{user.clips_count}</span>
-                <span className="stat-label">clips</span>
-                {achievements && achievements.length > 0 && (
-                  <>
-                    <span style={{ color: '#777', margin: '0 4px' }}>•</span>
-                    <IoMdPodium style={{ color: '#3a9df1', marginRight: '4px' }} />
-                    <span className="stat-value">{achievements.length}</span>
-                    <span className="stat-label">events</span>
-                  </>
-                )}
-              </div>
-            ) : achievements && achievements.length > 0 && (
-              <div className="stat-item">
-                <IoMdPodium style={{ color: '#3a9df1' }} />
-                <span className="stat-value">{achievements.length}</span>
-                <span className="stat-label">events</span>
-              </div>
-            )}
-            {winCount > 0 && (
-              <div className="stat-item">
-                <FaTrophy style={{ color: '#FFD700' }} />
-                <span className="stat-value">{winCount}</span>
-                <span className="stat-label">wins</span>
-              </div>
-            )}
+          <div className="username-container">
+            <h1 className={`user-name ${user?.username && user.username.length > 15 ? 'extremely-long-username' : ''}`}>
+              {user?.username || 'User'}
+            </h1>
           </div>
+          {winCount > 0 && (
+            <div className="user-badge">
+              <FaTrophy style={{ color: '#FFD700', marginRight: '8px' }} />
+              <span>{winCount} Tournament {winCount === 1 ? 'Win' : 'Wins'}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -671,26 +719,8 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           style={{ cursor: 'pointer', border: 'none', width: '100%' }}
         >
           <FaGamepad className="dashboard-section-icon" />
-          <h3 className="dashboard-section-title">Gaming Profiles</h3>
+          <h3 className="dashboard-section-title">Game Accounts</h3>
           <div className="dashboard-section-actions">
-            {isOwner && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isEditing) {
-                    handleSaveProfiles();
-                  } else {
-                    setIsEditing(true);
-                    if (!profilesExpanded) {
-                      setProfilesExpanded(true);
-                    }
-                  }
-                }}
-                className={isEditing ? "save-button" : "edit-button"}
-              >
-                {isEditing ? 'Save' : 'Edit'}
-              </button>
-            )}
             <span className="dashboard-toggle-icon">
               {profilesExpanded ? <FaChevronUp /> : <FaChevronDown />}
             </span>
@@ -698,6 +728,34 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         </button>
         
         <div className={`dashboard-section-content ${profilesExpanded ? 'expanded' : ''}`}>
+          {isOwner && profilesExpanded && (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              padding: '10px 15px 12px', 
+              borderBottom: '1px solid #222',
+              marginTop: '-5px'
+            }}>
+              <button 
+                onClick={() => {
+                  if (isEditing) {
+                    handleSaveProfiles();
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}
+                className={isEditing ? "save-button" : "edit-button"}
+                style={{ 
+                  margin: '0 auto',
+                  paddingTop: '4px',
+                  paddingBottom: '4px'
+                }}
+              >
+                {isEditing ? 'Save' : 'Edit Profiles'}
+              </button>
+            </div>
+          )}
+          
           {isEditing ? (
             <div className="gaming-profile-grid">
               <div className="gaming-profile-input">
@@ -790,11 +848,11 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
                 <div className="gaming-profile-item" onClick={() => handleCopy(profiles.valorant_id, 'Valorant ID')}>
                   <SiValorant className="gaming-profile-icon" />
                   <span className="gaming-profile-text">
-                    {parseValorantId(profiles.valorant_id).name}
-                    {parseValorantId(profiles.valorant_id).tag && (
+                    {valorantParts.name}
+                    {valorantParts.tag && (
                       <>
                         <span style={{ color: '#888', margin: '0 1px' }}>#</span>
-                        {parseValorantId(profiles.valorant_id).tag}
+                        {valorantParts.tag}
                       </>
                     )}
                   </span>
@@ -837,7 +895,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
             style={{ cursor: 'pointer', border: 'none', width: '100%' }}
           >
             <IoMdPodium className="dashboard-section-icon" />
-            <h3 className="dashboard-section-title">Event Participation ({achievements.length})</h3>
+            <h3 className="dashboard-section-title">Events Played ({achievements.length})</h3>
             <div className="dashboard-section-actions">
               {winCount > 0 && <span className="section-badge">{winCount} wins</span>}
               <span className="dashboard-toggle-icon">
@@ -853,7 +911,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
                   {achievement.isWinner ? (
                     <FaTrophy style={{ color: '#FFD700', fontSize: '18px' }} />
                   ) : (
-                    <IoMdPodium style={{ color: '#aaa', fontSize: '18px' }} />
+                    <IoMdPodium style={{ color: '#8A2BE2', fontSize: '18px' }} />
                   )}
                 </div>
                 
@@ -870,14 +928,22 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
                   <div className="event-meta">
                     {achievement.game || "Gaming Event"}
                     {achievement.teamType !== 'solo' && achievement.partners && achievement.partners.length > 0 && (
-                      <span style={{ color: '#777', fontSize: '13px', marginLeft: '8px' }}>
+                      <span style={{ color: '#9D4EDD', fontSize: '13px', marginLeft: '8px' }}>
                         • With: {' '}
                         <span style={{ marginLeft: '5px' }}>
                         {achievement.partners.map((partner, index) => (
                           <React.Fragment key={partner.userId || index}>
-                            <span style={{ color: '#FFD700' }}>
+                            <Link 
+                              href={`/profile/${partner.username}`}
+                              style={{ 
+                                color: '#FFD700',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s ease'
+                              }}
+                              className="partner-username"
+                            >
                               {partner.username}
-                            </span>
+                            </Link>
                             {index < achievement.partners.length - 1 ? ', ' : ''}
                           </React.Fragment>
                         ))}
@@ -903,7 +969,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

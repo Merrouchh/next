@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../../utils/supabase/component';
 import styles from '../../styles/Profile.module.css';
 import ClipCard from '../ClipCard';
+import { FaFilter, FaTimes } from 'react-icons/fa';
 
 const UserClips = ({ userId, isOwner }) => {
   const [clips, setClips] = useState([]);
@@ -10,6 +11,36 @@ const UserClips = ({ userId, isOwner }) => {
   const [games, setGames] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const filterRef = useRef(null);
+
+  useEffect(() => {
+    // Check if we're on mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Add click outside handler
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setShowFilters(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchClips = async () => {
@@ -60,6 +91,7 @@ const UserClips = ({ userId, isOwner }) => {
   const handleGameFilter = (game) => {
     setIsFiltering(true);
     setSelectedGame(game);
+    setShowFilters(false);
     setTimeout(() => {
       setIsFiltering(false);
     }, 300);
@@ -81,10 +113,90 @@ const UserClips = ({ userId, isOwner }) => {
     ? clips.filter(clip => (clip.game_name || clip.game) === selectedGame)
     : clips;
 
+  const renderFilters = () => {
+    if (isMobile) {
+      return (
+        <div className={styles.filtersWrapper} ref={filterRef}>
+          <button 
+            className={styles.mobileFilterButton}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <FaFilter /> Filter: {selectedGame || "All Games"}
+          </button>
+          
+          {showFilters && (
+            <div className={styles.mobileFilters}>
+              <button 
+                className={`${styles.filterButton} ${!selectedGame ? styles.filterActive : ''}`}
+                onClick={() => handleGameFilter(null)}
+              >
+                All Games ({clips.length})
+              </button>
+              
+              {games.map(game => {
+                const gameClips = clips.filter(clip => (clip.game_name || clip.game) === game);
+                
+                return (
+                  <button
+                    key={game}
+                    className={`${styles.filterButton} ${selectedGame === game ? styles.filterActive : ''}`}
+                    onClick={() => handleGameFilter(game)}
+                  >
+                    {game} ({gameClips.length})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Desktop filters
+    return (
+      <div className={styles.filtersDesktop}>
+        <button 
+          className={`${styles.filterButton} ${!selectedGame ? styles.filterActive : ''}`}
+          onClick={() => handleGameFilter(null)}
+        >
+          All Games ({clips.length})
+        </button>
+        
+        {games.map(game => {
+          const gameClips = clips.filter(clip => (clip.game_name || clip.game) === game);
+          
+          return (
+            <button
+              key={game}
+              className={`${styles.filterButton} ${selectedGame === game ? styles.filterActive : ''}`}
+              onClick={() => handleGameFilter(game)}
+            >
+              {game} ({gameClips.length})
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <div className={styles.clipsLoading}>
-        <div className={styles.spinner}></div>
+      <div className={styles.clipsSection}>
+        {games.length > 0 && renderFilters()}
+        <div className={styles.clipsGrid}>
+          <div className={styles.filterLoading}>
+            <div 
+              className={styles.spinner} 
+              style={{ 
+                border: '4px solid rgba(138, 43, 226, 0.15)', 
+                borderTop: '4px solid #8A2BE2',
+                width: '50px',
+                height: '50px',
+                boxShadow: '0 0 15px rgba(138, 43, 226, 0.3)'
+              }}
+            ></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -95,46 +207,21 @@ const UserClips = ({ userId, isOwner }) => {
 
   return (
     <div className={styles.clipsSection}>
-      {console.log('Games array:', games)} {/* Debug log */}
-      {games.length > 0 && (
-        <div className={styles.gameFilters} style={{background: '#1a1a1a', padding: '1rem', margin: '1rem 0'}}>
-          <button 
-            className={`${styles.gameFilterButton} ${!selectedGame ? styles.active : ''}`}
-            onClick={() => handleGameFilter(null)}
-          >
-            All Games ({clips.length})
-            {isOwner && (
-              <span className={styles.visibilityCount}>
-                ({clips.filter(clip => clip.visibility === 'public').length} public)
-              </span>
-            )}
-          </button>
-          {games.map(game => {
-            const gameClips = clips.filter(clip => (clip.game_name || clip.game) === game);
-            const publicClips = gameClips.filter(clip => clip.visibility === 'public');
-            
-            return (
-              <button
-                key={game}
-                className={`${styles.gameFilterButton} ${selectedGame === game ? styles.active : ''}`}
-                onClick={() => handleGameFilter(game)}
-              >
-                {game} ({gameClips.length})
-                {isOwner && publicClips.length !== gameClips.length && (
-                  <span className={styles.visibilityCount}>
-                    ({publicClips.length} public)
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {games.length > 0 && renderFilters()}
 
       <div className={`${styles.clipsGrid} ${isFiltering ? styles.filtering : ''}`}>
         {isFiltering ? (
           <div className={styles.filterLoading}>
-            <div className={styles.spinner}></div>
+            <div 
+              className={styles.spinner}
+              style={{ 
+                border: '4px solid rgba(138, 43, 226, 0.15)', 
+                borderTop: '4px solid #8A2BE2',
+                width: '50px',
+                height: '50px',
+                boxShadow: '0 0 15px rgba(138, 43, 226, 0.3)'
+              }}
+            ></div>
           </div>
         ) : filteredClips.length === 0 ? (
           <div className={styles.noClipsContainer}>

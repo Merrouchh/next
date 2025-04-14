@@ -9,14 +9,14 @@ import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
 import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload, AiOutlineDashboard } from 'react-icons/ai';
 import DashboardUserSearch from '../components/DashboardUserSearch';
+import ProfilePicture from '../components/shared/ProfilePicture';
 import { 
   fetchActiveUserSessions, 
   fetchTopUsers, 
   fetchUserPoints,
   fetchUserTimeInfo,
   fetchUserBalanceWithDebt,
-  fetchUserPicture,
-  uploadUserPicture
+  fetchUserPicture
 } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { FaBell } from 'react-icons/fa';
@@ -346,16 +346,28 @@ const Dashboard = ({ _initialClips, metaData }) => {
         try {
           console.log('🖼️ Loading user picture...');
           
-          // Add a timeout for picture loading
-          const picturePromise = fetchUserPicture(user.gizmo_id);
+          // Add a timeout for picture loading with increased timeout (8 seconds)
+          const picturePromise = fetchUserPicture(user.gizmo_id)
+            .catch(err => {
+              console.warn('Picture fetch error caught:', err);
+              return null; // Return null instead of throwing to avoid crashing
+            });
+            
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Picture loading timeout')), 5000)
+            setTimeout(() => {
+              console.warn('Picture loading timeout triggered');
+              reject(new Error('Picture loading timeout'));
+            }, 8000)
           );
           
           // Race between picture loading and timeout
-          const userPicture = await Promise.race([picturePromise, timeoutPromise]);
+          const userPicture = await Promise.race([picturePromise, timeoutPromise])
+            .catch(err => {
+              console.warn('Race promise error caught:', err);
+              return null; // Return null on any error
+            });
           
-          // Update state with the picture
+          // Update state with the picture (which might be null)
           setPageState(prev => ({
             ...prev,
             data: {
@@ -364,17 +376,22 @@ const Dashboard = ({ _initialClips, metaData }) => {
               isLoadingPicture: false
             }
           }));
-          console.log('✅ Picture loaded successfully');
+          
+          console.log(userPicture ? '✅ Picture loaded successfully' : '⚠️ No picture available');
         } catch (pictureError) {
           console.error('❌ Error loading picture:', pictureError);
-          setPageState(prev => ({
-            ...prev,
-            data: {
-              ...prev.data,
-              userPicture: null,
-              isLoadingPicture: false
-            }
-          }));
+          // Safely update state even after picture error
+          setPageState(prev => {
+            if (!prev || !prev.data) return prev; // Guard against null prev state
+            return {
+              ...prev,
+              data: {
+                ...prev.data,
+                userPicture: null,
+                isLoadingPicture: false
+              }
+            };
+          });
         }
       } catch (error) {
         console.error('❌ Dashboard initialization error:', error);
@@ -481,50 +498,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
     }
   };
 
-  const handlePictureUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
-      return;
-    }
-
-    try {
-      // Set loading state
-      setPageState(prev => ({
-        ...prev,
-        loading: true,
-        error: null
-      }));
-
-      const success = await uploadUserPicture(user.gizmo_id, file);
-
-      if (success) {
-        const newPicture = await fetchUserPicture(user.gizmo_id);
-        setPageState(prev => ({
-          ...prev,
-          loading: false,
-          data: {
-            ...prev.data,
-            userPicture: newPicture
-          }
-        }));
-      } else {
-        throw new Error('Failed to upload picture');
-      }
-    } catch (error) {
-      console.error('Error uploading picture:', error);
-      setPageState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to upload picture. Please try again.'
-      }));
-      // Show error to user
-      alert('Failed to upload picture. Please try again.');
-    }
-  };
-
   const handleEditProfile = () => {
     router.push('/editprofile');
   };
@@ -579,16 +552,28 @@ const Dashboard = ({ _initialClips, metaData }) => {
 
       // Then load the picture separately
       try {
-        // Add a timeout for picture loading
-        const picturePromise = fetchUserPicture(user.gizmo_id);
+        // Add a timeout for picture loading with increased timeout (8 seconds)
+        const picturePromise = fetchUserPicture(user.gizmo_id)
+          .catch(err => {
+            console.warn('Picture fetch error caught:', err);
+            return null; // Return null instead of throwing to avoid crashing
+          });
+          
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Picture loading timeout')), 5000)
+          setTimeout(() => {
+            console.warn('Picture loading timeout triggered');
+            reject(new Error('Picture loading timeout'));
+          }, 8000)
         );
         
         // Race between picture loading and timeout
-        const userPicture = await Promise.race([picturePromise, timeoutPromise]);
+        const userPicture = await Promise.race([picturePromise, timeoutPromise])
+          .catch(err => {
+            console.warn('Race promise error caught:', err);
+            return null; // Return null on any error
+          });
         
-        // Update state with the picture
+        // Update state with the picture (which might be null)
         setPageState(prev => ({
           ...prev,
           data: {
@@ -597,15 +582,22 @@ const Dashboard = ({ _initialClips, metaData }) => {
             isLoadingPicture: false
           }
         }));
+        
+        console.log(userPicture ? '✅ Picture loaded successfully' : '⚠️ No picture available');
       } catch (pictureError) {
-        console.error('Error loading picture:', pictureError);
-        setPageState(prev => ({
-          ...prev,
-          data: {
-            ...prev.data,
-            isLoadingPicture: false
-          }
-        }));
+        console.error('❌ Error loading picture:', pictureError);
+        // Safely update state even after picture error
+        setPageState(prev => {
+          if (!prev || !prev.data) return prev; // Guard against null prev state
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              userPicture: null,
+              isLoadingPicture: false
+            }
+          };
+        });
       }
     } catch (error) {
       console.error('Refresh error:', error);
@@ -628,7 +620,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
             <h1 className={styles.welcomeText}>
-              Hey <span className={styles.username}>{user?.username}</span>!
+              Hey <span className={styles.username}>
+                {user?.username ? (
+                  user.username.charAt(0).toUpperCase() + user.username.slice(1)
+                ) : 'User'}
+              </span>!
               {user?.isAdmin && <span className={styles.adminIndicator}>Admin</span>}
             </h1>
             <DashboardUserSearch />
@@ -654,41 +650,12 @@ const Dashboard = ({ _initialClips, metaData }) => {
             </div>
             <div className={styles.profileInfo}>
               <div className={styles.userPictureContainer}>
-                {pageState.data.isLoadingPicture ? (
-                  <div className={styles.userPictureLoading}>
-                    <div className={styles.spinner} />
-                  </div>
-                ) : pageState.data?.userPicture ? (
-                  <img 
-                    src={pageState.data.userPicture} 
-                    alt={`${user?.username}'s profile picture`}
-                    className={styles.userPicture}
-                    onError={() => {
-                      setPageState(prev => ({
-                        ...prev,
-                        data: {
-                          ...prev.data,
-                          userPicture: null
-                        }
-                      }));
-                    }}
-                  />
-                ) : (
-                  <div className={styles.userPicturePlaceholder}>
-                    <AiOutlineUser size={72} />
-                  </div>
-                )}
-                {!pageState.data.isLoadingPicture && (
-                  <label className={`${styles.uploadButtonOverlay} ${sharedStyles.clickableOverlay}`}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePictureUpload}
-                      className={styles.hiddenInput}
-                    />
-                    <AiOutlineCamera className={sharedStyles.buttonIcon} />
-                  </label>
-                )}
+                <ProfilePicture 
+                  userId={user?.gizmo_id} 
+                  username={user?.username}
+                  isOwner={true}
+                  size={150}
+                />
               </div>
               
               <div className={styles.profileDetails}>
