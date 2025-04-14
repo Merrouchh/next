@@ -28,9 +28,35 @@ const DashboardHeader = () => {
   const { user } = useAuth();
   const currentPath = router.pathname;
   const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isDragging = useRef(false);
   const navContainerRef = useRef(null);
   const isScrolling = useRef(false);
+
+  // Add mounted state to prevent layout flash
+  useEffect(() => {
+    // Add a class to body during initial load
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('dash-nav-loading');
+    }
+    
+    // Small delay to ensure media queries have time to evaluate
+    const timer = setTimeout(() => {
+      setMounted(true);
+      
+      // Remove the class once mounted
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('dash-nav-loading');
+      }
+    }, 50);
+    
+    return () => {
+      clearTimeout(timer);
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('dash-nav-loading');
+      }
+    };
+  }, []);
 
   // Update the navigation groups
   const topNavigationItems = [
@@ -248,21 +274,23 @@ const DashboardHeader = () => {
 
   return (
     <div className={styles.dashboardHeader}>
-      <div className={styles.topNav}>
-        <div className={styles.navContainer}>
-          {(isMobile ? topNavigationItems : [...topNavigationItems, ...desktopOnlyItems, ...bottomNavigationItems]).map((item) => (
-            <button
-              key={item.key}
-              data-path={item.path}
-              className={`${styles.navButton} ${isActive(item.path) ? styles.active : ''}`}
-              onClick={(e) => handleClick(e, item)}
-            >
-              <span className={styles.icon}>{item.icon}</span>
-              <span className={styles.label}>{item.label}</span>
-            </button>
-          ))}
+      {mounted && (
+        <div className={styles.topNav}>
+          <div className={styles.navContainer} ref={navContainerRef}>
+            {(isMobile ? topNavigationItems : [...topNavigationItems, ...desktopOnlyItems, ...bottomNavigationItems]).map((item) => (
+              <button
+                key={item.key}
+                data-path={item.path}
+                className={`${styles.navButton} ${isActive(item.path) ? styles.active : ''}`}
+                onClick={(e) => handleClick(e, item)}
+              >
+                <span className={styles.icon}>{item.icon}</span>
+                <span className={styles.label}>{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

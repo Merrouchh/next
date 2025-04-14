@@ -5,6 +5,7 @@
   z-index: 999;
   background: #0f0f0f;
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  transition: opacity 0.2s ease;
 }
 
 .topNav {
@@ -328,5 +329,23 @@
 @media (min-width: 769px) {
   .mainContent {
     padding-bottom: 0;
+  }
+}
+
+/* Add loading state styles */
+.dashboardHeader {
+  transition: opacity 0.2s ease;
+}
+
+/* Loading placeholder to maintain space */
+.dashboardHeader:empty {
+  height: var(--dashboard-header-height);
+  background: var(--dark-bg-secondary);
+  border-bottom: 1px solid var(--dark-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboardHeader {
+    transition: none;
   }
 } 

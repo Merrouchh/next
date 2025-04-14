@@ -384,3 +384,15 @@ body.mobile-view .logo {
 body.desktop-view .mobileLogo {
   display: none !important;
 }
+
+/* Dashboard header loading state */
+body.dash-nav-loading .dashboardHeader {
+  visibility: hidden !important;
+}
+
+/* Hide dashboard navigation on mobile during load */
+@media (max-width: 768px) {
+  body.dash-nav-loading .topNav {
+    display: none !important;
+  }
+}
