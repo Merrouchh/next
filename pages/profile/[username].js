@@ -388,14 +388,14 @@ export async function getServerSideProps({ req, res, params }) {
         },
         achievements: achievements || [],
         metaData: {
-          title: `${userData.username}'s Gaming Profile | ${clipsCount ? `${clipsCount} Clips` : ''} ${achievements.length ? `| ${achievements.length} Tournaments` : ''} | Merrouch Gaming`,
-          description: description,
+          title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier`,
+          description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
           image: profileImage,
           url: `https://merrouchgaming.com/profile/${userData.username}`,
           type: "profile",
           openGraph: {
-            title: `${userData.username} | Gaming Profile ${clipsCount ? `with ${clipsCount} Highlights` : ''} ${achievements.filter(a => a.isWinner).length ? `| ${achievements.filter(a => a.isWinner).length} Wins` : ''}`,
-            description: description,
+            title: `${userData.username} | Gaming Profile | Merrouch Gaming Tangier`,
+            description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
             images: [
               {
                 url: profileImage,
@@ -412,8 +412,8 @@ export async function getServerSideProps({ req, res, params }) {
           twitter: {
             card: "summary_large_image",
             site: "@merrouchgaming",
-            title: `${userData.username} | Gamer Profile ${clipsCount ? `| ${clipsCount} Gaming Highlights` : ''}`,
-            description: `Gaming profile with ${clipsCount || 0} clips. Check out ${userData.username}'s highlights!`,
+            title: `${userData.username} | Gaming Profile | Best Gaming Center in Tangier`,
+            description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
             image: profileImage
           },
           structuredData: {
