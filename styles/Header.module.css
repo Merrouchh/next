@@ -612,7 +612,7 @@
   }
 
   /* Add a no-flash utility class to hide content during SSR */
-  .logoutButton {
+  body.nav-loading .logoutButton {
     display: none !important;
   }
 }

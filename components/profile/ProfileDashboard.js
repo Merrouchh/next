@@ -535,6 +535,32 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           margin-right: 12px;
         }
         
+        .dashboard-title-container {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .section-badge-mobile {
+          display: none;
+          margin-top: 4px;
+          margin-left: 0;
+        }
+        
+        @media (max-width: 480px) {
+          .section-badge-mobile {
+            display: inline-flex;
+          }
+          
+          .section-badge-desktop {
+            display: none;
+          }
+          
+          .dashboard-section-header {
+            flex-wrap: wrap;
+          }
+        }
+        
         .edit-button {
           background-color: rgba(255, 215, 0, 0.1);
           color: #FFD700;
@@ -895,9 +921,12 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
             style={{ cursor: 'pointer', border: 'none', width: '100%' }}
           >
             <IoMdPodium className="dashboard-section-icon" />
-            <h3 className="dashboard-section-title">Events Played ({achievements.length})</h3>
+            <div className="dashboard-title-container">
+              <h3 className="dashboard-section-title">Events Played ({achievements.length})</h3>
+              {winCount > 0 && <span className="section-badge section-badge-mobile">{winCount} {winCount === 1 ? 'win' : 'wins'}</span>}
+            </div>
             <div className="dashboard-section-actions">
-              {winCount > 0 && <span className="section-badge">{winCount} wins</span>}
+              {winCount > 0 && <span className="section-badge section-badge-desktop">{winCount} {winCount === 1 ? 'win' : 'wins'}</span>}
               <span className="dashboard-toggle-icon">
                 {eventsExpanded ? <FaChevronUp /> : <FaChevronDown />}
               </span>
