@@ -416,38 +416,40 @@ export async function getServerSideProps({ req, res, params }) {
             description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
             image: profileImage
           },
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "ProfilePage",
-            "dateModified": new Date().toISOString(),
-            "headline": `${userData.username}'s Gaming Profile`,
-            "description": description,
-            "image": profileImage,
-            "url": `https://merrouchgaming.com/profile/${userData.username}`,
-            "author": {
-              "@type": "Person",
-              "name": userData.username
-            },
-            "mainEntity": {
-              "@type": "Person",
-              "name": userData.username,
-              "identifier": userData.id,
+          structuredDataItems: [
+            {
+              "@context": "https://schema.org",
+              "@type": "ProfilePage",
+              "dateModified": new Date().toISOString(),
+              "headline": `${userData.username}'s Gaming Profile`,
+              "description": description,
+              "image": profileImage,
               "url": `https://merrouchgaming.com/profile/${userData.username}`,
-              "sameAs": [
-                userData.discord_id ? `https://discord.com/users/${userData.discord_id}` : null,
-                userData.valorant_id ? `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(userData.valorant_id)}` : null
-              ].filter(Boolean)
-            },
-            "potentialAction": {
-              "@type": "ViewAction",
-              "target": `https://merrouchgaming.com/profile/${userData.username}`
-            },
-            "provider": {
-              "@type": "Organization",
-              "name": "Merrouch Gaming",
-              "url": "https://merrouchgaming.com"
+              "author": {
+                "@type": "Person",
+                "name": userData.username
+              },
+              "mainEntity": {
+                "@type": "Person",
+                "name": userData.username,
+                "identifier": userData.id,
+                "url": `https://merrouchgaming.com/profile/${userData.username}`,
+                "sameAs": [
+                  userData.discord_id ? `https://discord.com/users/${userData.discord_id}` : null,
+                  userData.valorant_id ? `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(userData.valorant_id)}` : null
+                ].filter(Boolean)
+              },
+              "potentialAction": {
+                "@type": "ViewAction",
+                "target": `https://merrouchgaming.com/profile/${userData.username}`
+              },
+              "provider": {
+                "@type": "Organization",
+                "name": "Merrouch Gaming",
+                "url": "https://merrouchgaming.com"
+              }
             }
-          }
+          ]
         }
       }
     };
