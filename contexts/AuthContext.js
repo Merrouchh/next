@@ -299,9 +299,13 @@ export const AuthProvider = ({ children, onError }) => {
 
   // Extract common refresh logic to a single function
   const refreshUserSession = async (retryOptions = {}) => {
-    const { maxRetries = 3, shouldNotifyTabs = false } = retryOptions;
-    console.log('Auth: Refreshing session');
-    setIsRefreshing(true);
+    const { maxRetries = 3, shouldNotifyTabs = false, silent = false } = retryOptions;
+    console.log('Auth: Refreshing session', silent ? '(silent mode)' : '');
+    
+    // Only set loading state when not in silent mode
+    if (!silent) {
+      setIsRefreshing(true);
+    }
     
     try {
       let retryCount = 0;
@@ -355,12 +359,15 @@ export const AuthProvider = ({ children, onError }) => {
 
             console.log('Refreshed user data:', processedUserData);
 
-            setAuthState({
-              isLoggedIn: true,
-              user: processedUserData,
-              loading: false,
-              initialized: true
-            });
+            // Only update auth state when not in silent mode
+            if (!silent) {
+              setAuthState({
+                isLoggedIn: true,
+                user: processedUserData,
+                loading: false,
+                initialized: true
+              });
+            }
             
             // Notify other tabs if requested
             if (shouldNotifyTabs) {
@@ -1079,7 +1086,7 @@ export const AuthProvider = ({ children, onError }) => {
   const value = {
     isLoggedIn: authState.isLoggedIn,
     user: authState.user,
-    loading: authState.loading || shouldShowLoading(),
+    loading: authState.loading || isRefreshing,
     initialized: authState.initialized,
     isLoading, 
     isRefreshing,
@@ -1092,7 +1099,7 @@ export const AuthProvider = ({ children, onError }) => {
     createUser,
     supabase: supabaseRef.current,
     refreshUserData,
-    refreshSession: performSessionRefresh
+    refreshSession: (options) => refreshUserSession(options)
   };
 
   return (

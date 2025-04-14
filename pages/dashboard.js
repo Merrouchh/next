@@ -268,12 +268,42 @@ const DebtCard = ({ debtAmount, hasTime }) => {
 
 const Dashboard = ({ _initialClips, metaData }) => {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
   const [pageState, setPageState] = useState({
     loading: true,
     error: null,
     data: null
   });
+
+  // Auto refresh session when the page is loaded or becomes visible
+  useEffect(() => {
+    const autoRefreshSession = async () => {
+      if (!user) return;
+      
+      try {
+        // Silently try to refresh the session on page load
+        await refreshSession({ silent: true });
+      } catch (error) {
+        console.error('Auto session refresh failed:', error);
+      }
+    };
+    
+    // Run on initial load
+    autoRefreshSession();
+    
+    // Set up visibility change handler
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        autoRefreshSession();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, refreshSession]);
 
   // Log user information to verify admin status
   useEffect(() => {
