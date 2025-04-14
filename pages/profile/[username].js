@@ -388,13 +388,13 @@ export async function getServerSideProps({ req, res, params }) {
         },
         achievements: achievements || [],
         metaData: {
-          title: `${userData.username}'s Gaming Profile | Merrouch Gaming`,
+          title: `${userData.username}'s Gaming Profile | ${clipsCount ? `${clipsCount} Clips` : ''} ${achievements.length ? `| ${achievements.length} Tournaments` : ''} | Merrouch Gaming`,
           description: description,
           image: profileImage,
           url: `https://merrouchgaming.com/profile/${userData.username}`,
           type: "profile",
           openGraph: {
-            title: `${userData.username} | Gaming Profile`,
+            title: `${userData.username} | Gaming Profile ${clipsCount ? `with ${clipsCount} Highlights` : ''} ${achievements.filter(a => a.isWinner).length ? `| ${achievements.filter(a => a.isWinner).length} Wins` : ''}`,
             description: description,
             images: [
               {
@@ -412,7 +412,7 @@ export async function getServerSideProps({ req, res, params }) {
           twitter: {
             card: "summary_large_image",
             site: "@merrouchgaming",
-            title: `${userData.username} | Gamer Profile`,
+            title: `${userData.username} | Gamer Profile ${clipsCount ? `| ${clipsCount} Gaming Highlights` : ''}`,
             description: `Gaming profile with ${clipsCount || 0} clips. Check out ${userData.username}'s highlights!`,
             image: profileImage
           },
