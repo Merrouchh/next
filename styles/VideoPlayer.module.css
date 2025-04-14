@@ -49,7 +49,7 @@
 
 /* Ensure object-fit is correct for the video */
 .videoWrapper :global(video) {
-  object-fit: contain;
+  object-fit: contain !important; /* Always use contain instead of cover */
   width: 100% !important;
   height: 100% !important;
   position: absolute;
@@ -69,9 +69,22 @@
 .inClipCard :global(.video-js),
 .inClipCard :global(video) {
   border-radius: 8px;
-  object-fit: cover; /* Cover for clip cards */
+  object-fit: contain !important; /* Changed from cover to contain */
   max-width: 100%;
   max-height: 100%;
+}
+
+/* Special handling for different aspect ratio videos */
+.videoWrapper :global(.vjs-tech) {
+  object-fit: contain !important;
+  background-color: #000 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Add letterboxing for videos that don't match 16:9 */
+.videoWrapper :global(.video-js) {
+  background-color: #000 !important;
 }
 
 /* Control bar styling - allow fading but style properly */
