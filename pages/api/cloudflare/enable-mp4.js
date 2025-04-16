@@ -392,22 +392,21 @@ export default async function handler(req, res) {
     // Get the thumbnail URL
     const thumbnailUrl = await getThumbnailUrl(videoUid);
     
-    // Check current status before updating to mp4downloading
-    console.log(`[MP4-Step 7] Getting current status before finalizing MP4 process`);
+    // Check current status before updating
+    console.log(`[MP4-Final] Checking current status before updating to mp4downloading`);
     const { data: currentStatusData } = await supabase
       .from('clips')
       .select('status, processing_details')
       .eq('cloudflare_uid', videoUid)
       .single();
-      
-    // Define statuses that come after mp4downloading in the workflow
+    
+    // Never move status backward in the workflow
     const LATER_STATUSES = ['r2_uploading', 'complete'];
     
-    // Only update to mp4downloading if we're not already in a later status
     if (currentStatusData && LATER_STATUSES.includes(currentStatusData.status)) {
-      console.log(`[MP4-Step 7] Not changing status: current status (${currentStatusData.status}) is further in the workflow`);
+      // Already in a later status, don't move backward
+      console.log(`[MP4-Final] Not changing status: already in ${currentStatusData.status}`);
       
-      // Update processing details without changing status
       await supabase
         .from('clips')
         .update({
@@ -421,20 +420,20 @@ export default async function handler(req, res) {
             r2_upload_pending: true,
             thumbnail_url: thumbnailUrl,
             last_checked: new Date().toISOString(),
-            status_message: `MP4 ready but maintaining ${currentStatusData.status} status to prevent cycling`
+            status_message: `MP4 ready, preserving ${currentStatusData.status} status`
           }
         })
         .eq('cloudflare_uid', videoUid);
     } else {
-      // Update status with MP4 download URL and success
-      console.log(`[MP4-Step 7] Setting status to mp4downloading`);
+      // Update to mp4downloading
+      console.log(`[MP4-Final] Setting status to mp4downloading`);
       await updateProcessingStatus(videoUid, 'mp4downloading', {
         mp4_download_url: mp4Data.url,
         mp4_ready: true,
         mp4_ready_time: new Date().toISOString(),
         mp4_status: 'ready',
-        mp4_processing: false, // MP4 generation is complete
-        r2_upload_pending: true, // Flag that R2 upload should happen next
+        mp4_processing: false,
+        r2_upload_pending: true,
         thumbnail_url: thumbnailUrl
       });
     }
