@@ -27,48 +27,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // Update the database with the current processing status
 const updateProcessingStatus = async (videoUid, status, details = {}) => {
   try {
-    console.log(`[R2-Status] Setting flags for state: ${status}, details:`, details);
+    console.log(`[R2-Status] Updating status to: ${status}, details:`, details);
     
-    // Get current details
-    const { data: currentData } = await supabase
-      .from('clips')
-      .select('processing_details')
-      .eq('cloudflare_uid', videoUid)
-      .single();
-    
-    // Set state-specific flags
-    let updatedDetails = {
-      ...(currentData?.processing_details || {}),
-      ...details,
-      last_updated: new Date().toISOString()
-    };
-    
-    // Add state-specific flags
-    switch (status) {
-      case 'r2_uploading':
-        updatedDetails.r2_upload_started = true;
-        updatedDetails.r2_upload_start_time = updatedDetails.r2_upload_start_time || new Date().toISOString();
-        break;
-      case 'complete':
-        updatedDetails.r2_upload_complete = true;
-        updatedDetails.r2_upload_complete_time = updatedDetails.r2_upload_complete_time || new Date().toISOString();
-        break;
-      case 'error':
-        // Preserve error information
-        if (!updatedDetails.error_message && details.error_message) {
-          updatedDetails.error_message = details.error_message;
-        }
-        if (!updatedDetails.error_time) {
-          updatedDetails.error_time = new Date().toISOString();
-        }
-        break;
-    }
-    
-    // Update the clips table - only the processing_details
+    // Update the clips table
     const { error: clipsError } = await supabase
       .from('clips')
       .update({
-        processing_details: updatedDetails
+        status: status,
+        processing_details: {
+          ...details,
+          r2_upload_processing: status === 'r2_uploading',
+          last_updated: new Date().toISOString()
+        }
       })
       .eq('cloudflare_uid', videoUid);
       
@@ -76,7 +46,7 @@ const updateProcessingStatus = async (videoUid, status, details = {}) => {
       console.log(`[R2-Status] Warning: Failed to update clips table: ${clipsError.message}`);
       return false;
     } else {
-      console.log(`[R2-Status] Successfully updated processing details for ${status} state`);
+      console.log(`[R2-Status] Successfully updated clips table status to ${status}`);
       return true;
     }
   } catch (error) {
@@ -155,12 +125,25 @@ export default async function handler(req, res) {
     
     console.log(`[Step 2c] Found video in clips table with id: ${videoData.id}`);
     
-    // Only set r2_uploading if not already in that status
-    if (videoData.status !== 'r2_uploading') {
-      console.log(`[Step 2d] Setting r2_uploading flags (current: ${videoData.status})`);
+    // Only set r2_uploading if not already in that status and not in complete status
+    if (videoData.status !== 'r2_uploading' && videoData.status !== 'complete') {
+      console.log(`[Step 2d] Setting status to r2_uploading (current: ${videoData.status})`);
       await updateProcessingStatus(videoUid, 'r2_uploading', {
         r2_upload_start_time: new Date().toISOString()
       });
+    } else if (videoData.status === 'complete') {
+      console.log(`[Step 2d] Not updating status: video is already complete`);
+      // Just update processing details to show we checked it
+      await supabase
+        .from('clips')
+        .update({
+          processing_details: {
+            ...(videoData.processing_details || {}),
+            last_checked: new Date().toISOString(),
+            status_message: `Already complete, no status change needed`
+          }
+        })
+        .eq('cloudflare_uid', videoUid);
     }
     
     // If the video already has mp4link in clips table and it's an R2 URL, we can skip the upload
@@ -306,9 +289,11 @@ export default async function handler(req, res) {
     // Download the MP4 from Cloudflare
     console.log(`[Step 5] Downloading MP4 from Cloudflare`);
     
-    // Set status to mp4downloading only if not already in that status
-    if (videoData.status !== 'mp4downloading') {
-      console.log(`[Step 5a] Setting mp4downloading flags (current: ${videoData.status})`);
+    // Set status to mp4downloading only if not already in that status AND not in a later status
+    // This prevents backward status cycling
+    const LATER_STATUSES = ['r2_uploading', 'complete'];
+    if (videoData.status !== 'mp4downloading' && !LATER_STATUSES.includes(videoData.status)) {
+      console.log(`[Step 5a] Setting status to mp4downloading (current: ${videoData.status})`);
       await updateProcessingStatus(videoUid, 'mp4downloading', {
         mp4_download_url: mp4DownloadUrl,
         mp4_download_started: true,
@@ -316,6 +301,20 @@ export default async function handler(req, res) {
         mp4_processing: false,
         r2_upload_progress: 10
       });
+    } else if (LATER_STATUSES.includes(videoData.status)) {
+      console.log(`[Step 5a] Not updating status: current status (${videoData.status}) is ahead in the processing flow`);
+      // Update processing details without changing status
+      await supabase
+        .from('clips')
+        .update({
+          processing_details: {
+            ...(videoData.processing_details || {}),
+            mp4_download_url: mp4DownloadUrl,
+            last_checked: new Date().toISOString(),
+            status_message: `Continuing processing without status change (current: ${videoData.status})`
+          }
+        })
+        .eq('cloudflare_uid', videoUid);
     }
     
     const mp4Response = await fetch(mp4DownloadUrl);
