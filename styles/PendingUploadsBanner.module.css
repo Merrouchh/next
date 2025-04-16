@@ -133,7 +133,19 @@
 
 .progressPercent {
   font-weight: bold;
-  color: #fff;
+  margin-left: 4px;
+}
+
+.detailText {
+  display: block;
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+  font-style: italic;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Progress Bar */

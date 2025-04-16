@@ -14,42 +14,8 @@ import ExpandedTitleModal from './ExpandedTitleModal';
 import Link from 'next/link';
 
 // Helper functions for processing status display
-function getStatusLabel(status, processingDetails) {
-  // Check processing_details first for more accurate status
-  if (processingDetails) {
-    if (processingDetails.error_message) {
-      return 'Error: ' + (processingDetails.error_message.substring(0, 30) + '...');
-    }
-    if (processingDetails.r2_upload_complete === true) {
-      return 'Processing complete';
-    }
-    if (processingDetails.r2_upload_started === true) {
-      return 'Uploading to storage...';
-    }
-    if (processingDetails.mp4_ready === true || processingDetails.mp4_download_url) {
-      return 'Downloading MP4...';
-    }
-    if (processingDetails.mp4_poll_started === true) {
-      return 'Creating MP4 version...';
-    }
-    if (processingDetails.mp4_processing_started === true) {
-      return 'Processing MP4...';
-    }
-    if (processingDetails.cloudflare_status === 'ready') {
-      return 'Ready for MP4 creation...';
-    }
-    if (processingDetails.cloudflare_status === 'inprogress') {
-      return 'Processing video...';
-    }
-    if (processingDetails.cloudflare_status === 'pendingupload') {
-      return 'Uploading to server...';
-    }
-    if (processingDetails.cloudflare_status === 'queued') {
-      return 'Queued for processing...';
-    }
-  }
-  
-  // Fall back to status-based labels if no processing_details
+function getStatusLabel(status) {
+  // If status is null or undefined, display "Ready"
   if (!status) return 'Ready';
   
   switch (status) {
@@ -61,52 +27,55 @@ function getStatusLabel(status, processingDetails) {
     case 'mp4downloading': return 'Downloading MP4...';
     case 'mp4_processing': return 'Processing MP4...';
     case 'r2_uploading': return 'Uploading to storage...';
-    case 'complete': return 'Processing complete';
-    case 'error': return 'Error processing video';
     default: return 'Processing...';
   }
 }
 
 function getProgressPercentage(clip) {
-  // Check for explicit progress in processing_details first
-  if (clip?.processing_details?.progress) {
+  // Safety check - if clip has no status or is missing, return 100% (complete)
+  if (!clip || !clip.status) return 100;
+  
+  const { status } = clip;
+  
+  // First priority: use progress from processing_details if available
+  if (clip.processing_details?.progress !== undefined && 
+      typeof clip.processing_details.progress === 'number') {
     return clip.processing_details.progress;
   }
   
-  // Only then fall back to status-based percentages
-  const status = clip?.status || 'complete';
-  
-  // For MP4 processing steps, ensure progress is always moving forward not backwards
-  if (['mp4_processing', 'waitformp4'].includes(status)) {
-    return Math.max(70, clip.processing_details?.mp4_percent_complete || 70);
+  // Second priority: use specific processing stage percentages
+  if (clip.processing_details) {
+    // For MP4 processing steps, check mp4_percent_complete
+    if (['mp4_processing', 'waitformp4'].includes(status) && 
+        clip.processing_details.mp4_percent_complete !== undefined) {
+      return Math.max(70, clip.processing_details.mp4_percent_complete);
+    }
+    
+    // For R2 upload, check r2_upload_progress
+    if (status === 'r2_uploading' && 
+        clip.processing_details.r2_upload_progress !== undefined) {
+      return clip.processing_details.r2_upload_progress;
+    }
+    
+    // For Cloudflare processing, scale their percentage to our range
+    if (status === 'processing' && 
+        clip.processing_details.cloudflare_status === 'inprogress' && 
+        typeof clip.processing_details.progress === 'number') {
+      // Scale Cloudflare progress (0-100) to our range (30-60)
+      return 30 + (clip.processing_details.progress * 0.3);
+    }
   }
   
-  // If we have an MP4 download URL, we're at least at mp4downloading stage
-  if (clip?.processing_details?.mp4_download_url) {
-    return 90;
-  }
-  
-  // If R2 upload is started, we're at least at r2_uploading stage
-  if (clip?.processing_details?.r2_upload_started === true) {
-    return 95;
-  }
-  
-  // If R2 upload is complete, we're done
-  if (clip?.processing_details?.r2_upload_complete === true) {
-    return 100;
-  }
-  
-  // Otherwise, return specific percentage based on the status
+  // Third priority: fall back to default percentages based on status
   switch (status) {
     case 'uploading': return 15;
     case 'queued': return 30;
     case 'processing': return 50;
-    case 'stream_ready': return 60;
-    case 'mp4_processing': return 70;
+    case 'stream_ready': return 65;
+    case 'mp4_processing': return 70; 
     case 'waitformp4': return 80;
     case 'mp4downloading': return 90;
     case 'r2_uploading': return 95;
-    case 'complete': return 100;
     default: return 50;
   }
 }
@@ -156,22 +125,10 @@ const ClipCard = ({
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Check if the clip is still processing
-  // First check status, then fall back to processing_details flags
+  // Add safety check - if status is missing, assume clip is complete
   const clipStatus = clipData.status || 'complete';
-  const processingFlags = ['uploading', 'queued', 'processing', 'stream_ready', 
+  const isProcessing = ['uploading', 'queued', 'processing', 'stream_ready', 
     'waitformp4', 'mp4downloading', 'mp4_processing', 'r2_uploading'].includes(clipStatus);
-    
-  // Also check processing_details flags as a backup
-  const hasProcessingFlags = clipData.processing_details && (
-    clipData.processing_details.cloudflare_status === 'inprogress' ||
-    clipData.processing_details.cloudflare_status === 'pendingupload' ||
-    clipData.processing_details.mp4_processing_started === true ||
-    clipData.processing_details.mp4_poll_started === true ||
-    clipData.processing_details.r2_upload_started === true &&
-    clipData.processing_details.r2_upload_complete !== true
-  );
-  
-  const isProcessing = processingFlags || hasProcessingFlags;
   
   // Log processing state for debugging
   if (isProcessing) {
@@ -466,9 +423,22 @@ const ClipCard = ({
   if (isProcessing || isTransitioning) {
     // Ensure we have valid status and progress information with defaults
     const status = clipData.status || 'processing';
-    const statusLabel = isTransitioning ? 'Loading completed video...' : getStatusLabel(status, clipData.processing_details);
+    const statusLabel = isTransitioning ? 'Loading completed video...' : getStatusLabel(status);
     const progressPercentage = isTransitioning ? 100 : getProgressPercentage(clipData);
     const progressColor = isTransitioning ? '#7ed321' : getProgressColor(status);
+    
+    // Get additional details if available
+    let detailText = '';
+    if (clipData.processing_details) {
+      if (clipData.processing_details.status_message) {
+        detailText = clipData.processing_details.status_message;
+      } else if (clipData.processing_details.cloudflare_status) {
+        detailText = `Cloudflare: ${clipData.processing_details.cloudflare_status}`;
+        if (clipData.processing_details.processing_step) {
+          detailText += ` (${clipData.processing_details.processing_step})`;
+        }
+      }
+    }
 
     return (
       <div className={styles.cardContainer} ref={cardRef}>
@@ -489,6 +459,9 @@ const ClipCard = ({
           <div className={`${styles.videoContainer} ${styles.processingContainer}`}>
             <div className={styles.processingMessage}>
               <div className={styles.processingStatus}>{statusLabel}</div>
+              {detailText && (
+                <div className={styles.processingDetail}>{detailText}</div>
+              )}
               <div className={styles.progressBarWrapper}>
                 <div 
                   className={styles.progressBarFill} 
@@ -498,7 +471,7 @@ const ClipCard = ({
                   }} 
                 />
               </div>
-              <div className={styles.progressPercent}>{progressPercentage}%</div>
+              <div className={styles.progressPercent}>{Math.round(progressPercentage)}%</div>
             </div>
           </div>
 

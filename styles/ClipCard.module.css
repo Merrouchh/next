@@ -1230,9 +1230,17 @@
 }
 
 .processingStatus {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.processingDetail {
+  margin-bottom: 8px;
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  max-width: 80%;
+  margin: 0 auto 8px;
 }
 
 .progressBarWrapper {

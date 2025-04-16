@@ -172,10 +172,18 @@ const PendingUploadsBanner = ({ userId }) => {
         <div className={styles.uploadsList}>
           {uploads.map(upload => {
             const progress = getProgressPercentage(upload);
-            const statusText = getStatusLabel(upload.status, upload.processing_details);
+            const statusText = getStatusLabel(upload.status);
             const isCancelling = cancellingIds.includes(upload.id);
             // Determine if upload is cancellable based on status
             const isCancellable = ['uploading', 'queued', 'processing', 'stream_ready'].includes(upload.status);
+            
+            // Get detail text from processing_details if available
+            let detailText = '';
+            if (upload.processing_details?.status_message) {
+              detailText = upload.processing_details.status_message;
+            } else if (upload.processing_details?.cloudflare_status) {
+              detailText = `Cloudflare: ${upload.processing_details.cloudflare_status}`;
+            }
             
             return (
               <div key={upload.id} className={styles.uploadItem}>
@@ -186,7 +194,8 @@ const PendingUploadsBanner = ({ userId }) => {
                   <div className={styles.uploadTitle}>{upload.title || 'Untitled'}</div>
                   <div className={styles.uploadStatus}>
                     <div className={styles.statusText}>
-                      {statusText} <span className={styles.progressPercent}>{progress}%</span>
+                      {statusText} <span className={styles.progressPercent}>{Math.round(progress)}%</span>
+                      {detailText && <span className={styles.detailText}>{detailText}</span>}
                     </div>
                     <div className={styles.progressBar}>
                       <div 
@@ -224,42 +233,7 @@ const PendingUploadsBanner = ({ userId }) => {
 };
 
 // Helper functions to display status information
-function getStatusLabel(status, processingDetails) {
-  // Check processing_details first for more accurate status
-  if (processingDetails) {
-    if (processingDetails.error_message) {
-      return 'Error: ' + (processingDetails.error_message.substring(0, 30) + '...');
-    }
-    if (processingDetails.r2_upload_complete === true) {
-      return 'Processing complete';
-    }
-    if (processingDetails.r2_upload_started === true) {
-      return 'Uploading to storage...';
-    }
-    if (processingDetails.mp4_ready === true || processingDetails.mp4_download_url) {
-      return 'Downloading MP4...';
-    }
-    if (processingDetails.mp4_poll_started === true) {
-      return 'Creating MP4 version...';
-    }
-    if (processingDetails.mp4_processing_started === true) {
-      return 'Processing MP4...';
-    }
-    if (processingDetails.cloudflare_status === 'ready') {
-      return 'Ready for MP4 creation...';
-    }
-    if (processingDetails.cloudflare_status === 'inprogress') {
-      return 'Processing video...';
-    }
-    if (processingDetails.cloudflare_status === 'pendingupload') {
-      return 'Uploading to server...';
-    }
-    if (processingDetails.cloudflare_status === 'queued') {
-      return 'Queued for processing...';
-    }
-  }
-  
-  // Fall back to status-based labels
+function getStatusLabel(status) {
   switch (status) {
     case 'uploading': return 'Uploading to server...';
     case 'queued': return 'Queued for processing...';
@@ -269,52 +243,45 @@ function getStatusLabel(status, processingDetails) {
     case 'mp4downloading': return 'Downloading MP4...';
     case 'mp4_processing': return 'Processing MP4...';
     case 'r2_uploading': return 'Uploading to storage...';
-    case 'complete': return 'Processing complete';
-    case 'error': return 'Error processing video';
     default: return 'Processing...';
   }
 }
 
 function getProgressPercentage(upload) {
-  // Check for explicit progress in processing_details first
-  if (upload?.processing_details?.progress) {
+  // If we have explicit progress in processing_details, use that
+  if (upload.processing_details?.progress) {
     return upload.processing_details.progress;
   }
   
-  // Only then fall back to status-based percentages
-  const status = upload?.status || 'processing';
-  
-  // For MP4 processing steps, ensure progress is always moving forward
-  if (['mp4_processing', 'waitformp4'].includes(status)) {
-    return Math.max(70, upload.processing_details?.mp4_percent_complete || 70);
+  // For MP4 processing, use mp4_percent_complete if available
+  if (['mp4_processing', 'waitformp4'].includes(upload.status) && 
+      upload.processing_details?.mp4_percent_complete) {
+    return Math.max(70, upload.processing_details.mp4_percent_complete);
   }
   
-  // If we have an MP4 download URL, we're at least at mp4downloading stage
-  if (upload?.processing_details?.mp4_download_url) {
-    return 90;
+  // For r2_uploading with progress, use r2_upload_progress
+  if (upload.status === 'r2_uploading' && upload.processing_details?.r2_upload_progress) {
+    return upload.processing_details.r2_upload_progress;
   }
   
-  // If R2 upload is started, we're at least at r2_uploading stage
-  if (upload?.processing_details?.r2_upload_started === true) {
-    return 95;
-  }
-  
-  // If R2 upload is complete, we're done
-  if (upload?.processing_details?.r2_upload_complete === true) {
-    return 100;
-  }
-  
-  // Otherwise, return specific percentage based on the status
+  // Otherwise use default mapping based on status
+  const { status } = upload;
   switch (status) {
     case 'uploading': return 15;
     case 'queued': return 30;
-    case 'processing': return 50;
-    case 'stream_ready': return 60;
+    case 'processing': 
+      // If we have cloudflare progress, use it scaled to our range
+      if (upload.processing_details?.cloudflare_status === 'inprogress' && 
+          typeof upload.processing_details?.progress === 'number') {
+        // Scale Cloudflare progress (0-100) to our range (30-60)
+        return 30 + (upload.processing_details.progress * 0.3);
+      }
+      return 50;
+    case 'stream_ready': return 65;
     case 'mp4_processing': return 70;
     case 'waitformp4': return 80;
     case 'mp4downloading': return 90;
     case 'r2_uploading': return 95;
-    case 'complete': return 100;
     default: return 50;
   }
 }
