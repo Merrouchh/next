@@ -392,51 +392,16 @@ export default async function handler(req, res) {
     // Get the thumbnail URL
     const thumbnailUrl = await getThumbnailUrl(videoUid);
     
-    // Check current status before updating
-    console.log(`[MP4-Final] Checking current status before updating to mp4downloading`);
-    const { data: currentStatusData } = await supabase
-      .from('clips')
-      .select('status, processing_details')
-      .eq('cloudflare_uid', videoUid)
-      .single();
-    
-    // Never move status backward in the workflow
-    const LATER_STATUSES = ['r2_uploading', 'complete'];
-    
-    if (currentStatusData && LATER_STATUSES.includes(currentStatusData.status)) {
-      // Already in a later status, don't move backward
-      console.log(`[MP4-Final] Not changing status: already in ${currentStatusData.status}`);
-      
-      await supabase
-        .from('clips')
-        .update({
-          processing_details: {
-            ...(currentStatusData.processing_details || {}),
-            mp4_download_url: mp4Data.url,
-            mp4_ready: true,
-            mp4_ready_time: new Date().toISOString(),
-            mp4_status: 'ready',
-            mp4_processing: false,
-            r2_upload_pending: true,
-            thumbnail_url: thumbnailUrl,
-            last_checked: new Date().toISOString(),
-            status_message: `MP4 ready, preserving ${currentStatusData.status} status`
-          }
-        })
-        .eq('cloudflare_uid', videoUid);
-    } else {
-      // Update to mp4downloading
-      console.log(`[MP4-Final] Setting status to mp4downloading`);
-      await updateProcessingStatus(videoUid, 'mp4downloading', {
-        mp4_download_url: mp4Data.url,
-        mp4_ready: true,
-        mp4_ready_time: new Date().toISOString(),
-        mp4_status: 'ready',
-        mp4_processing: false,
-        r2_upload_pending: true,
-        thumbnail_url: thumbnailUrl
-      });
-    }
+    // Update status with MP4 download URL and success
+    await updateProcessingStatus(videoUid, 'mp4downloading', {
+      mp4_download_url: mp4Data.url,
+      mp4_ready: true,
+      mp4_ready_time: new Date().toISOString(),
+      mp4_status: 'ready',
+      mp4_processing: false, // MP4 generation is complete
+      r2_upload_pending: true, // Flag that R2 upload should happen next
+      thumbnail_url: thumbnailUrl
+    });
     
     // Update clips table with thumbnail if available
     if (thumbnailUrl) {
