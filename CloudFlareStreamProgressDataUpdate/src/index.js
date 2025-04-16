@@ -16,6 +16,19 @@ const CONFIG = {
     inprogress: 'processing',     // Cloudflare processing the video
     ready: 'ready',               // Basic Cloudflare processing complete
     error: 'error',               // Processing error
+  },
+  // Define the status progression order to prevent cycling
+  STATUS_ORDER: {
+    'uploading': 1,
+    'queued': 2,
+    'processing': 3,
+    'stream_ready': 4,
+    'waitformp4': 5,
+    'mp4_processing': 6,
+    'mp4downloading': 7,
+    'r2_uploading': 8,
+    'complete': 9,
+    'error': 10
   }
 };
 
@@ -160,7 +173,8 @@ async function deleteCloudflareVideo(uid) {
 async function updateDatabaseStatus(uid, cloudflareData) {
   try {
     logger.info(`[VIDEO ${uid}] --- START STATUS UPDATE ---`);
-    const dbStatus = CONFIG.STATUS_MAPPING[cloudflareData.status.state] || cloudflareData.status.state;
+    const cfStatus = cloudflareData.status.state || 'unknown';
+    const dbStatus = CONFIG.STATUS_MAPPING[cfStatus] || cfStatus;
     
     // Check current status first
     const { data: currentData, error: checkError } = await supabase
@@ -175,12 +189,13 @@ async function updateDatabaseStatus(uid, cloudflareData) {
     }
 
     const processingDetails = currentData.processing_details || {};
+    const currentStatus = currentData.status || '';
     
-    logger.info(`[VIDEO ${uid}] CURRENT STATUS: ${currentData.status}, PROGRESS: ${processingDetails.progress || 0}%`);
-    logger.info(`[VIDEO ${uid}] CLOUDFLARE STATUS: ${cloudflareData.status.state} → ${dbStatus}, PROGRESS: ${cloudflareData.status.pctComplete || 0}%`);
+    logger.info(`[VIDEO ${uid}] CURRENT STATUS: ${currentStatus}, PROGRESS: ${processingDetails.progress || 0}%`);
+    logger.info(`[VIDEO ${uid}] CLOUDFLARE STATUS: ${cfStatus} → ${dbStatus}, PROGRESS: ${cloudflareData.status.pctComplete || 0}%`);
 
     // Check for pending timeout
-    if (cloudflareData.status.state === 'pendingupload') {
+    if (cfStatus === 'pendingupload') {
       const startTime = new Date(currentData.uploaded_at);
       const now = new Date();
       const minutesElapsed = (now - startTime) / MS_PER_MINUTE;
@@ -194,34 +209,46 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       }
     }
 
+    // Calculate progress for the update
+    let progressValue = cloudflareData.status.pctComplete || 0;
+    
+    // For transitioning between MP4 states, ensure progress keeps moving forward
+    if ((currentStatus === 'mp4_processing' && dbStatus === 'waitformp4') || 
+        (currentStatus === 'waitformp4' && dbStatus === 'mp4_processing')) {
+      // Use the higher of the current progress or a minimum based on status
+      const minProgress = getMinProgressForStatus(dbStatus);
+      progressValue = Math.max(processingDetails.progress || 0, progressValue, minProgress);
+      logger.info(`[VIDEO ${uid}] MP4 cycling: Ensuring progress moves forward: ${progressValue}%`);
+    }
+
     // Update processing_details with current Cloudflare status
     const updatedDetails = {
       ...processingDetails,
-      cloudflare_status: cloudflareData.status.state,
+      cloudflare_status: cfStatus,
       processing_step: cloudflareData.status.step,
       error_code: cloudflareData.status.errorReasonCode,
       last_checked: new Date().toISOString(),
-      processing_complete: ['ready', 'error', 'cancelled'].includes(cloudflareData.status.state),
-      progress: cloudflareData.status.pctComplete || 0
+      processing_complete: ['ready', 'error', 'cancelled'].includes(cfStatus),
+      progress: progressValue,
+      status_message: getStatusMessageForState(dbStatus, cfStatus)
     };
 
+    // Get the appropriate status based on current status and Cloudflare status
+    const mappedStatus = getMappedProcessingStatus(dbStatus, updatedDetails, currentStatus);
+
     // Skip if status and progress haven't changed and not in pending state
-    if (currentData.status === getMappedProcessingStatus(dbStatus, updatedDetails) && 
-        processingDetails.progress === cloudflareData.status.pctComplete &&
-        dbStatus !== 'pendingupload') {
+    if (currentStatus === mappedStatus && 
+        processingDetails.progress === progressValue &&
+        cfStatus !== 'pendingupload') {
       logger.info(`[VIDEO ${uid}] NO CHANGE: Skipping database update`);
       // Check if this is really a final state - only complete and error states are truly final
-      const currentStatus = currentData.status;
       const isReallyFinal = currentStatus === 'complete' || currentStatus === 'error';
       return isReallyFinal;
     }
 
-    // Map Cloudflare status to processing_status for the clips table
-    const clipProcessingStatus = getMappedProcessingStatus(dbStatus, updatedDetails);
-    
     // Update basic video metadata if available
     const updatePayload = {
-      status: clipProcessingStatus,
+      status: mappedStatus,
       processing_details: updatedDetails
     };
     
@@ -257,7 +284,7 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       updatePayload.error_message = cloudflareData.status.errorReasonText;
     }
 
-    logger.info(`[VIDEO ${uid}] UPDATING DATABASE: Setting status to ${clipProcessingStatus}`);
+    logger.info(`[VIDEO ${uid}] UPDATING DATABASE: Setting status to ${mappedStatus}`);
     const { error: updateError } = await supabase
       .from('clips')
       .update(updatePayload)
@@ -269,12 +296,12 @@ async function updateDatabaseStatus(uid, cloudflareData) {
     }
     
     // Check if this is really a final state - only complete and error states are truly final
-    const statusIsFinal = clipProcessingStatus === 'complete' || clipProcessingStatus === 'error';
+    const statusIsFinal = mappedStatus === 'complete' || mappedStatus === 'error';
     
-    logger.info(`[VIDEO ${uid}] DATABASE UPDATED: Status=${clipProcessingStatus}, Progress=${cloudflareData.status.pctComplete || 0}%, Final=${statusIsFinal}`);
+    logger.info(`[VIDEO ${uid}] DATABASE UPDATED: Status=${mappedStatus}, Progress=${progressValue}%, Final=${statusIsFinal}`);
 
     // Special handling for 'ready' state - this is our handoff point
-    if (cloudflareData.status.state === 'ready') {
+    if (cfStatus === 'ready') {
       // First check if this video has already started MP4 processing
       const { data: currentState } = await supabase
         .from('clips')
@@ -313,7 +340,7 @@ async function updateDatabaseStatus(uid, cloudflareData) {
           processing_details: {
             ...(currentData.processing_details || {}),
             cloudflare_status: 'ready',
-            progress: cloudflareData.status.pctComplete || 0,
+            progress: progressValue,
             last_checked: new Date().toISOString(),
             handoff_to_mp4_processing: true // This flag signals that index.js has done its job
           }
@@ -359,12 +386,29 @@ async function updateDatabaseStatus(uid, cloudflareData) {
  * 
  * @param {string} dbStatus - Raw status from Cloudflare
  * @param {object} metadata - Processing metadata
+ * @param {string} currentStatus - Current status in the database
  * @returns {string} Mapped processing status 
  */
-function getMappedProcessingStatus(dbStatus, metadata) {
-  // MP4 processing statuses - don't change these once set
+function getMappedProcessingStatus(dbStatus, metadata, currentStatus = '') {
+  // If we have a current status, check if the new status would be going backward
+  if (currentStatus && CONFIG.STATUS_ORDER[currentStatus] && CONFIG.STATUS_ORDER[dbStatus]) {
+    // Only allow backward status changes for error states or if specifically 
+    // cycling between mp4_processing and waitformp4
+    const isAllowedBackward = 
+      dbStatus === 'error' || 
+      (currentStatus === 'mp4_processing' && dbStatus === 'waitformp4') ||
+      (currentStatus === 'waitformp4' && dbStatus === 'mp4_processing');
+    
+    // If this would move backward in the progression and it's not allowed, keep current status
+    if (CONFIG.STATUS_ORDER[dbStatus] < CONFIG.STATUS_ORDER[currentStatus] && !isAllowedBackward) {
+      logger.info(`Status would go backward from ${currentStatus} to ${dbStatus} - keeping current status`);
+      return currentStatus;
+    }
+  }
+  
+  // MP4 processing statuses - don't change these once set unless explicitly handled by MP4 processing logic
   if (['waitformp4', 'mp4downloading', 'mp4_processing', 'r2_uploading'].includes(dbStatus)) {
-    return dbStatus; // Keep as-is to prevent cycling
+    return dbStatus; // Keep as-is to prevent unintended cycling
   }
   
   switch (dbStatus) {
@@ -397,12 +441,223 @@ function getMappedProcessingStatus(dbStatus, metadata) {
 }
 
 /**
+ * Get a human-readable status message for the current processing state
+ * 
+ * @param {string} mappedStatus - Our internal mapped status
+ * @param {string} cloudflareStatus - Raw status from Cloudflare
+ * @returns {string} Human-readable status message
+ */
+function getStatusMessageForState(mappedStatus, cloudflareStatus) {
+  switch (mappedStatus) {
+    case 'uploading':
+      return 'Uploading video to Cloudflare...';
+    case 'queued':
+      return 'Queued for processing...';
+    case 'processing':
+      return 'Cloudflare is processing your video...';
+    case 'stream_ready':
+      return 'Preparing to create MP4 version...';
+    case 'waitformp4':
+      return 'Creating MP4 version...';
+    case 'mp4_processing':
+      return 'Processing MP4 file...';
+    case 'mp4downloading':
+      return 'Downloading MP4 file...';
+    case 'r2_uploading':
+      return 'Uploading to permanent storage...';
+    case 'complete':
+      return 'Processing complete';
+    case 'error':
+      return 'Error processing video';
+    default:
+      return `Processing... (${cloudflareStatus})`;
+  }
+}
+
+/**
+ * Get the minimum progress percentage for a given status
+ * 
+ * @param {string} status - Processing status
+ * @returns {number} Minimum progress percentage
+ */
+function getMinProgressForStatus(status) {
+  switch (status) {
+    case 'uploading': return 15;
+    case 'queued': return 30;
+    case 'processing': return 50;
+    case 'stream_ready': return 60;
+    case 'waitformp4': return 70;
+    case 'mp4_processing': return 75;
+    case 'mp4downloading': return 85;
+    case 'r2_uploading': return 95;
+    case 'complete': return 100;
+    default: return 0;
+  }
+}
+
+/**
  * Monitor videos that are currently in a pending state
  * This is the main function that periodically checks video status
  */
 async function monitorPendingVideos() {
   try {
     logger.info(`[MONITOR] === START CHECKING VIDEOS ===`);
+    
+    // First check for any videos with requested status changes from API endpoints
+    const { data: requestedStatusVideos, error: requestError } = await supabase
+      .from('clips')
+      .select('*')
+      .not('processing_details->requested_status', 'is', null)
+      .order('uploaded_at', { ascending: true })
+      .limit(10); // Process a few at a time
+      
+    if (requestError) {
+      logger.error(`[MONITOR] ERROR: Cannot fetch videos with requested status: ${requestError.message}`);
+    } else if (requestedStatusVideos?.length) {
+      logger.info(`[MONITOR] Found ${requestedStatusVideos.length} videos with requested status updates`);
+      
+      // Process each video with requested status update
+      for (const video of requestedStatusVideos) {
+        const videoUid = video.cloudflare_uid;
+        if (!videoUid) continue;
+        
+        const requestedStatus = video.processing_details?.requested_status;
+        const currentStatus = video.status;
+        
+        logger.info(`[VIDEO ${videoUid}] Status change requested: ${currentStatus} -> ${requestedStatus}`);
+        
+        // Special handling for different status transitions
+        if (requestedStatus === 'waitformp4' && currentStatus !== 'waitformp4') {
+          // Start MP4 generation - get MP4 status to ensure it exists
+          try {
+            const response = await fetch(
+              `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}/downloads`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              const mp4Status = data.result?.default?.status || 'pending';
+              const mp4Progress = data.result?.default?.percentComplete || 0;
+              
+              // Update to waitformp4 status with MP4 details
+              await supabase
+                .from('clips')
+                .update({
+                  status: 'waitformp4',
+                  processing_details: {
+                    ...video.processing_details,
+                    mp4_status: mp4Status,
+                    mp4_percent_complete: mp4Progress,
+                    progress: Math.max(70, mp4Progress),
+                    status_message: `Creating MP4 version (${mp4Status})...`,
+                    requested_status: null, // Clear the requested status
+                    requested_status_handled: new Date().toISOString()
+                  }
+                })
+                .eq('cloudflare_uid', videoUid);
+                
+              logger.info(`[VIDEO ${videoUid}] Updated to waitformp4 status, MP4 status: ${mp4Status}`);
+            } else {
+              // Failed to check MP4 status
+              logger.warn(`[VIDEO ${videoUid}] Failed to check MP4 status: ${response.status}`);
+              
+              // Still update to waitformp4 but note the error
+              await supabase
+                .from('clips')
+                .update({
+                  status: 'waitformp4',
+                  processing_details: {
+                    ...video.processing_details,
+                    mp4_status: 'unknown',
+                    mp4_status_error: `Failed to check: ${response.status}`,
+                    progress: 70,
+                    status_message: 'Creating MP4 version...',
+                    requested_status: null,
+                    requested_status_handled: new Date().toISOString()
+                  }
+                })
+                .eq('cloudflare_uid', videoUid);
+            }
+          } catch (error) {
+            logger.error(`[VIDEO ${videoUid}] Error handling waitformp4 request: ${error.message}`);
+            
+            // Still update status but note the error
+            await supabase
+              .from('clips')
+              .update({
+                status: 'waitformp4',
+                processing_details: {
+                  ...video.processing_details,
+                  error_details: error.message,
+                  progress: 70,
+                  status_message: 'Creating MP4 version (with errors)...',
+                  requested_status: null,
+                  requested_status_handled: new Date().toISOString()
+                }
+              })
+              .eq('cloudflare_uid', videoUid);
+          }
+        } else if (requestedStatus === 'error') {
+          // Handle error status request
+          await supabase
+            .from('clips')
+            .update({
+              status: 'error',
+              processing_details: {
+                ...video.processing_details,
+                error_handled_at: new Date().toISOString(),
+                requested_status: null,
+                requested_status_handled: new Date().toISOString()
+              }
+            })
+            .eq('cloudflare_uid', videoUid);
+            
+          logger.info(`[VIDEO ${videoUid}] Updated to error status`);
+          completedVideos.add(videoUid); // Mark as completed
+        } else {
+          // For all other requested statuses
+          // Check if the requested status is valid according to our progression
+          if (CONFIG.STATUS_ORDER[requestedStatus] && 
+              (CONFIG.STATUS_ORDER[requestedStatus] > CONFIG.STATUS_ORDER[currentStatus] || requestedStatus === 'error')) {
+            
+            await supabase
+              .from('clips')
+              .update({
+                status: requestedStatus,
+                processing_details: {
+                  ...video.processing_details,
+                  status_message: getStatusMessageForState(requestedStatus, video.processing_details?.cloudflare_status || 'unknown'),
+                  progress: getMinProgressForStatus(requestedStatus),
+                  requested_status: null,
+                  requested_status_handled: new Date().toISOString()
+                }
+              })
+              .eq('cloudflare_uid', videoUid);
+              
+            logger.info(`[VIDEO ${videoUid}] Updated to requested status: ${requestedStatus}`);
+            
+            // If status is final, mark as completed
+            if (requestedStatus === 'complete' || requestedStatus === 'error') {
+              completedVideos.add(videoUid);
+            }
+          } else {
+            // Invalid status progression, just clear the request flag
+            logger.warn(`[VIDEO ${videoUid}] Invalid status progression: ${currentStatus} -> ${requestedStatus}`);
+            await updateProcessingDetailsOnly(videoUid, {
+              requested_status: null,
+              requested_status_handled: new Date().toISOString(),
+              requested_status_error: `Invalid progression from ${currentStatus} to ${requestedStatus}`
+            });
+          }
+        }
+      }
+    }
     
     // First check for videos in mp4downloading status that need to move to R2 upload
     const { data: mp4ReadyVideos, error: mp4Error } = await supabase
@@ -664,5 +919,44 @@ initializeMonitoring().catch(error => {
 process.on('SIGINT', () => {
   logger.info('Shutting down...');
   process.exit(0);
-}); 
+});
+
+// Helper function to update only processing_details without changing status
+async function updateProcessingDetailsOnly(uid, details) {
+  try {
+    const { data: currentData } = await supabase
+      .from('clips')
+      .select('processing_details')
+      .eq('cloudflare_uid', uid)
+      .single();
+      
+    if (!currentData) {
+      logger.warn(`[VIDEO ${uid}] Cannot update details - video not found`);
+      return false;
+    }
+    
+    const updatedDetails = {
+      ...(currentData.processing_details || {}),
+      ...details,
+      last_updated: new Date().toISOString()
+    };
+    
+    const { error } = await supabase
+      .from('clips')
+      .update({
+        processing_details: updatedDetails
+      })
+      .eq('cloudflare_uid', uid);
+      
+    if (error) {
+      logger.error(`[VIDEO ${uid}] Failed to update processing details: ${error.message}`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    logger.error(`[VIDEO ${uid}] Error updating processing details: ${error.message}`);
+    return false;
+  }
+} 
 

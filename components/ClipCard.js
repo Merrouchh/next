@@ -209,92 +209,20 @@ const ClipCard = ({
         (payload) => {
           // Update the clip data when changes occur
           if (payload.new) {
-            console.log('Clip updated:', payload.new);
+            console.log(`[ClipCard ${clipData.id}] Clip updated:`, payload.new);
             
-            // Get the current status from the existing clipData state
-            const currentStatus = clipData.status; 
-            const newStatus = payload.new.status;
-
-            // Log status change for debugging
-            console.log(`[ClipCard ${clipData.id}] Status update: ${currentStatus} -> ${newStatus}`);
-            
-            // Define status progression order 
-            const statusOrder = {
-              'uploading': 1,
-              'queued': 2,
-              'processing': 3,
-              'stream_ready': 4,
-              'waitformp4': 5,
-              'mp4_processing': 6,
-              'mp4downloading': 7,
-              'r2_uploading': 8,
-              'complete': 9
-            };
-
-            // Decide if we should update the status based on progression
-            const shouldUpdateStatus = 
-              // Always update if status is 'complete'
-              newStatus === 'complete' || 
-              // Always update if we don't have the current status in our order map
-              !statusOrder[currentStatus] ||
-              // Only update if the new status is further along in the process
-              statusOrder[newStatus] > statusOrder[currentStatus] ||
-              // Special case: waitformp4 and mp4_processing can cycle between each other
-              // Allow the update if they're in this cycle
-              (currentStatus === 'waitformp4' && newStatus === 'mp4_processing') ||
-              (currentStatus === 'mp4_processing' && newStatus === 'waitformp4');
-            
-            // Handle special case for mp4_processing/waitformp4 cycling
-            // Don't visually "go backwards" in the progress
-            if ((currentStatus === 'mp4_processing' && newStatus === 'waitformp4') ||
-                (currentStatus === 'waitformp4' && newStatus === 'mp4_processing')) {
-              
-              // For mp4 cycling, keep the progress moving forward
-              // but update other fields like processing_details for accurate information
-              const mergedProcessingDetails = {
-                ...payload.new.processing_details,
-                status_message: 'Processing MP4...',
-                // Ensure progress keeps moving forward
-                progress: Math.max(
-                  clipData.processing_details?.progress || 70,
-                  payload.new.processing_details?.progress || 70
-                )
-              };
-              
-              // Update state with merged data
-              setClipData(prev => ({
-                ...prev, 
-                ...payload.new,
-                // Keep whichever status has higher progress value for visual consistency
-                status: statusOrder[currentStatus] >= statusOrder[newStatus] 
-                  ? currentStatus : newStatus,
-                processing_details: mergedProcessingDetails
-              }));
-              
-              console.log(`[ClipCard ${clipData.id}] MP4 cycle: Keeping status visual progression consistent`);
-              
-            } else if (newStatus === 'complete' && currentStatus !== 'complete') {
-              // If status has changed to complete, set transitioning state and refresh after a delay
+            // If transitioning to complete, add a smooth animation
+            if (payload.new.status === 'complete' && clipData.status !== 'complete') {
               console.log(`[ClipCard ${clipData.id}] Video complete! Transitioning to player`);
               setIsTransitioning(true);
               setTimeout(() => refreshClipData(), 500); // Give DB time to finalize
-            } else if (shouldUpdateStatus) {
-              // Normal update for progressive status changes
-              console.log(`[ClipCard ${clipData.id}] Updating to new status: ${newStatus}`);
-              setClipData(prev => ({...prev, ...payload.new}));
             } else {
-              // For status "going backward" that's not part of mp4 cycling,
-              // update all fields except status to avoid confusion
-              console.log(`[ClipCard ${clipData.id}] Ignoring backward status change: ${currentStatus} -> ${newStatus}`);
-              setClipData(prev => ({
-                ...prev, 
-                ...payload.new,
-                status: prev.status // Keep current status
-              }));
+              // For all other updates, just update the state directly
+              setClipData(prev => ({...prev, ...payload.new}));
             }
             
             // If clip is now complete, call onClipUpdate if provided
-            if (newStatus === 'complete' && typeof onClipUpdate === 'function') {
+            if (payload.new.status === 'complete' && typeof onClipUpdate === 'function') {
               onClipUpdate(clipData.id, 'status', payload.new);
             }
           }
