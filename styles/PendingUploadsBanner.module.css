@@ -1,325 +1,504 @@
-.banner {
-  width: 100%;
+/* Banner Container */
+.bannerContainer {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #333;
+  transition: all 0.3s ease;
   max-width: 700px;
-  margin: 0 auto 2rem;
-  background: rgba(26, 26, 26, 0.95);
-  border-radius: 12px;
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
-.header {
+.bannerContainer.expanded {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Banner Header */
+.bannerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #232323;
+  border-bottom: 1px solid #333;
+}
+
+.bannerTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 8px;
 }
 
-.header h3 {
-  font-size: 1rem;
-  color: #FFD700;
+.bannerTitle h3 {
   margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f0f0f0;
 }
 
+.bannerIcon {
+  color: #4d9aff;
+  animation: spin 2s linear infinite;
+}
+
+.expandButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #ccc;
+  transition: all 0.2s ease;
+}
+
+.expandButton:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+.expandButton svg {
+  font-size: 18px;
+}
+
+/* Uploads List */
 .uploadsList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 8px;
 }
 
+/* Upload Item */
 .uploadItem {
+  background-color: #252525;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  padding: 12px;
   display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  animation: slideIn 0.3s ease;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  border: 1px solid #333;
+}
+
+.uploadItem:last-child {
+  margin-bottom: 0;
+}
+
+.uploadItem:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.uploadIcon {
+  font-size: 20px;
+  color: #4d9aff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .uploadInfo {
   flex: 1;
-  min-width: 0; /* Prevent flex item from overflowing */
+  min-width: 0;
 }
 
-.title {
-  display: block;
-  font-size: 0.9rem;
+.uploadTitle {
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 0.4rem;
+  color: #e0e0e0;
+  margin-bottom: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.metadata {
-  display: flex;
-  gap: 0.75rem;
-  font-size: 0.8rem;
-  color: #888;
-  flex-wrap: wrap;
-}
-
-.statusContainer {
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.4rem;
-}
-
-.progressBar {
+.uploadStatus {
   width: 100%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+}
+
+.statusText {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.progressPercent {
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Progress Bar */
+.progressBar {
+  height: 8px;
+  background-color: #2a2a2a;
+  border-radius: 4px;
   overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .progressFill {
   height: 100%;
-  transition: width 0.3s ease;
+  background-color: #4d9aff;
+  border-radius: 4px;
+  position: relative;
+  transition: width 0.5s ease, background-color 0.3s ease;
+  background-image: linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 20px 20px;
+  animation: progressAnimation 1.5s linear infinite;
 }
 
-.status {
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-/* Mobile styles */
-@media (max-width: 768px) {
-  .banner {
-    margin: 1rem;
-    padding: 0.75rem;
-    border-radius: 8px;
+@keyframes progressAnimation {
+  0% {
+    background-position: 0 0;
   }
-
-  .uploadItem {
-    flex-direction: column;
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .metadata {
-    gap: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .statusContainer {
-    min-width: unset;
-    width: 100%;
-  }
-
-  .title {
-    font-size: 0.95rem;
-  }
-
-  .status {
-    font-size: 0.85rem;
-  }
-
-  .header h3 {
-    font-size: 1rem;
+  100% {
+    background-position: 20px 0;
   }
 }
 
-/* Animation for new items */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Spinner animation */
+.spinning {
+  animation: spin 1.5s linear infinite;
+  margin-right: 10px;
+  color: #4d9aff;
 }
 
-/* Animation for completed items */
-.fadeOut {
-  animation: fadeOut 0.5s ease forwards;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes fadeOut {
-  to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
+/* Different progress styles based on status */
+.progressFill[data-status="uploading"] {
+  background: linear-gradient(90deg, #4d9aff 30%, #5991e5 100%);
+  background-size: 200% 100%;
 }
 
-/* Pulse animation for progress bars */
-.pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.progressFill[data-status="processing"] {
+  background: linear-gradient(90deg, #5991e5 0%, #673AB7 100%);
+  background-size: 200% 100%;
+  animation: gradientMove 3s ease-in-out infinite alternate;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+.progressFill[data-status="ready"] {
+  background-color: #4CAF50;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Status-specific styles */
-.uploadItem[data-status='error'] {
-  background: rgba(244, 67, 54, 0.1);
+.progressFill[data-status="error"] {
+  background-color: #f44336;
 }
 
-.uploadItem[data-status='error'] .progressFill {
-  background: #f44336;
+.progressFill.pulse {
+  animation: pulse 2s infinite;
 }
 
-.uploadItem[data-status='ready'] {
-  background: rgba(76, 175, 80, 0.1);
+.progressFill[data-status="processing"].pulse {
+  animation: pulse 2s infinite, gradientMove 3s ease-in-out infinite alternate;
 }
 
-.uploadItem[data-status='ready'] .progressFill {
-  background: #4CAF50;
+.progressText {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
 }
 
-/* Processing animation */
+/* Expanded Details */
+.expandedDetails {
+  padding: 0 12px 12px 12px;
+  background-color: #1e1e1e;
+  border-top: 1px solid #333;
+  animation: slideDown 0.3s ease;
+}
+
+.detailsSection {
+  padding: 10px 0;
+}
+
+.detailsSubtext {
+  color: #bbb;
+  font-size: 14px;
+  margin: 0 0 10px 0;
+}
+
+.metadataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metadataItem {
+  display: flex;
+  flex-direction: column;
+  background-color: #2a2a2a;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #444;
+}
+
+.metadataLabel {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+.metadataValue {
+  font-size: 14px;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.errorMessage {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* Upload Item Status-specific Styles */
+.uploadItem[data-status="pendingupload"] {
+  border-left: 3px solid #FFA000;
+}
+
+.uploadItem[data-status="uploading"] {
+  border-left: 3px solid #4d9aff;
+}
+
+.uploadItem[data-status="processing"] {
+  border-left: 3px solid #673AB7;
+}
+
+.uploadItem[data-status="ready"] {
+  border-left: 3px solid #4CAF50;
+}
+
+.uploadItem.error {
+  border-left: 3px solid #f44336;
+}
+
+/* Animations */
 @keyframes pulse {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
 
-.uploadItem[data-status='processing'] .progressFill {
-  animation: pulse 2s infinite;
-  background: #2196F3;
+@keyframes slideDown {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 1000px; opacity: 1; }
 }
 
-/* Queue number style */
-.queueNumber {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 10px;
-  padding: 2px 8px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  font-size: 0.85em;
-  color: #fff;
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 
-/* Update the processing animation */
-.uploadItem[data-status='processing'] .progressFill,
-.uploadItem[data-status='inprogress'] .progressFill {
-  animation: progressPulse 2s infinite;
+/* Ensure width transitions are smooth and never go backward */
+@keyframes smoothWidth {
+  from { transform: scaleX(var(--prev-width, 0)); }
+  to { transform: scaleX(var(--new-width, 1)); }
 }
 
-.uploadItem[data-status='pendingupload'] .status,
-.uploadItem[data-status='queued'] .status {
-  animation: textPulse 1.5s infinite;
+.fadeOut {
+  animation: fadeOut 0.5s forwards;
 }
 
-@keyframes progressPulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
-  100% { opacity: 1; }
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; height: 0; margin: 0; padding: 0; }
 }
 
-@keyframes textPulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .bannerContainer {
+    max-width: 100%;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+    border-radius: 12px;
+  }
+  
+  .metadataGrid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  
+  .uploadItemContent {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .stageIndicator {
+    margin-bottom: 10px;
+  }
+  
+  .uploadInfo {
+    width: 100%;
+  }
 }
 
-/* Add these styles */
-.resolution, .duration {
+@media (max-width: 480px) {
+  .bannerContainer {
+    margin: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+  
+  .bannerHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .expandButton {
+    margin-top: 8px;
+  }
+  
+  .metadataGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .progressText {
+    flex-direction: column;
+  }
+  
+  .stageIndicator {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .stageNumber {
+    font-size: 14px;
+  }
+  
+  .stageText {
+    font-size: 7px;
+  }
+}
+
+/* Add styles for error display and dismiss button */
+.error {
+  color: #ff6b6b;
+}
+
+.dismissButton {
+  background-color: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 14px;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.1);
+  justify-content: center;
+  padding: 4px;
   border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
-/* Add pulsing animation for queued state */
-.progressFill.pulse {
-  animation: progressPulse 2s infinite;
-  opacity: 0.8;
+.dismissButton:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Update the queued state styling */
-.uploadItem[data-status='queued'] {
-  background: rgba(255, 152, 0, 0.05);
+.dismissButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(77, 154, 255, 0.5);
 }
 
-.uploadItem[data-status='queued'] .progressBar {
-  position: relative;
-  overflow: visible;
+.errorMessage {
+  animation: fadeIn 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff6b6b;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-top: 10px;
+  border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
-.uploadItem[data-status='queued'] .progressFill {
-  position: relative;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.uploadItem[data-status='queued'] .progressFill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 4px;
-  background: inherit;
-  border-radius: 2px;
-  animation: queuePulse 1.5s infinite;
+.fadeOut {
+  animation: fadeOut 0.5s forwards;
 }
 
-@keyframes queuePulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(255, 152, 0, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
-  }
-}
-
-/* Add these status-specific styles */
-.uploadItem[data-status='pendingupload'] {
-  background: rgba(255, 160, 0, 0.05);
-}
-
-.uploadItem[data-status='inprogress'],
-.uploadItem[data-status='processing'] {
-  background: rgba(33, 150, 243, 0.05);
-}
-
-/* Update the pulse animations */
-.progressFill.pulse {
-  animation: progressPulse 2s infinite;
-  opacity: 0.8;
-}
-
-/* Status-specific progress bar colors */
-.uploadItem[data-status='pendingupload'] .progressFill {
-  background: #FFA000;
-  width: 5% !important; /* Show minimal progress */
-}
-
-.uploadItem[data-status='inprogress'] .progressFill,
-.uploadItem[data-status='processing'] .progressFill {
-  background: #2196F3;
-}
-
-/* Add loading indicator for pending states */
-.uploadItem[data-status='pendingupload'] .status::after,
-.uploadItem[data-status='queued'] .status::after {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 4px;
-  margin-left: 4px;
+/* Cancel button styles */
+.cancelButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  color: #ff5252;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
   border-radius: 50%;
-  animation: loadingDots 1.4s infinite;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  width: 36px;
+  height: 36px;
 }
 
-@keyframes loadingDots {
-  0%, 20% { content: ''; }
-  40% { content: '.'; }
-  60% { content: '..'; }
-  80%, 100% { content: '...'; }
+.cancelButton:hover {
+  background-color: rgba(255, 82, 82, 0.1);
+  transform: scale(1.1);
+}
+
+.cancelButton:disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+.cancelButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.5);
+}
+
+/* Small spinner for cancel button */
+.smallSpinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid #ff5252;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 } 

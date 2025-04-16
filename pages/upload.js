@@ -7,12 +7,11 @@ import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useDropzone } from 'react-dropzone';
 import UploadProgress from '../components/UploadProgress';
-import PendingUploadsBanner from '../components/PendingUploadsBanner';
 import dynamic from 'next/dynamic';
 import { useVideoUpload } from '../hooks/useVideoUpload';
 import { v4 as uuidv4 } from 'uuid';
 import debounce from 'lodash/debounce';
-import MaintenanceOverlay from '../components/MaintenanceOverlay';
+import PendingUploadsBanner from '../components/PendingUploadsBanner';
 
 // Constants for file validation
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -21,10 +20,6 @@ const SUPPORTED_FORMATS = {
   'video/quicktime': ['.mov'],
   'video/x-matroska': ['.mkv']
 };
-
-// Environment variable to control maintenance mode
-// Set to true to enable maintenance mode
-const UPLOAD_MAINTENANCE_MODE = true;
 
 // Dynamically import the VideoThumbnail component with no SSR
 const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
@@ -95,11 +90,14 @@ const UploadPage = () => {
   const blobUrlRef = useRef(null);
   const processingTimeoutRef = useRef(null);
   const [fileProcessed, setFileProcessed] = useState(false);
+  const [bannerKey, setBannerKey] = useState(0); // Add state to force banner refresh
+  const [localUploadStatus, setLocalUploadStatus] = useState('idle');
 
   const { 
     uploadStatus, 
     uploadProgress, 
     uploadFile, 
+    uploadWithUrl,
     cancelUpload,
     resetForm 
   } = useVideoUpload();
@@ -276,6 +274,7 @@ const UploadPage = () => {
       } : null
     });
 
+    // Set up the UI for upload
     setShowProgress(true);
     logEvent('PROGRESS_MODAL_OPENED');
 
@@ -288,26 +287,53 @@ const UploadPage = () => {
         fileExtension: fileExt
       });
 
-      const uploadedUid = await uploadFile(selectedFile, {
-        title,
-        game,
-        visibility,
-        username,
-        fileName
+      // Get upload URL from Cloudflare
+      console.log(`[Frontend-Init-2] Requesting upload URL from server via /api/copy-to-stream`);
+      const response = await fetch('/api/copy-to-stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          game,
+          visibility,
+          username,
+          fileName
+        })
       });
+
+      console.log(`[Frontend-Init-3] Server response status: ${response.status}`);
       
-      currentUploadUid.current = uploadedUid;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.log(`[Frontend-Error] Failed to get upload URL:`, errorData);
+        throw new Error(errorData.error || `Failed to get upload URL: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(`[Frontend-Init-4] Received upload URL and UID from server:`, { 
+        uid: data.uid,
+        success: data.success
+      });
+      const { uploadUrl, uid } = data;
+      
+      // Set the current upload UID here so we have it if the user cancels
+      currentUploadUid.current = uid;
+
+      // Upload the file to Cloudflare - this is the step that should take time and show progress
+      console.log(`[Frontend-Upload] Starting actual file upload to Cloudflare`);
+      await uploadWithUrl(selectedFile, uploadUrl, uid);
+      console.log(`[Frontend-Upload] File upload completed successfully`);
 
       logEvent('UPLOAD_COMPLETED', {
-        uid: uploadedUid,
+        uid: uid,
         duration: `${Date.now() - new Date()}ms`
       });
       
-      // Don't clean up the UID here - let the server handle it
-      // Reset the current upload UID after successful upload
-      currentUploadUid.current = null;
+      // Show success state before auto-closing
+      console.log(`[Frontend-Upload] Showing success state before auto-closing`);
+      setLocalUploadStatus('success');
       
-      handleSuccess();
+      // Auto-close will be handled by the UploadProgress component
       
     } catch (error) {
       if (error.message === 'Upload cancelled') {
@@ -328,8 +354,14 @@ const UploadPage = () => {
 
   // Handle successful upload without cancellation
   const handleSuccess = useCallback(() => {
-    // Don't clean up the UID here - it should already be null after successful upload
+    // First log the current UID for debugging
+    console.log(`handleSuccess called, current upload UID: ${currentUploadUid.current}`);
     
+    // Now it's safe to reset the UID since the upload is complete
+    currentUploadUid.current = null;
+    console.log('currentUploadUid cleared after successful upload');
+    
+    // Reset all form fields and states
     setTitle('');
     setGame('');
     setVisibility('public');
@@ -340,20 +372,69 @@ const UploadPage = () => {
     setShowProgress(false);
     setFileError(null);
     setFileProcessed(false);
+    setLocalUploadStatus('idle');
+    setBannerKey(prev => prev + 1); // Force banner refresh
+    
+    // Force refresh the uploads banner using the global function
+    if (typeof window.forceRefreshUploads === 'function') {
+      console.log('Directly calling forceRefreshUploads after successful upload');
+      window.forceRefreshUploads();
+    } else {
+      // Fallback to the custom event if the global function isn't available
+      console.log('Using refreshUploads event as fallback');
+      window.dispatchEvent(new CustomEvent('refreshUploads'));
+    }
+    
+    logEvent('UPLOAD_SUCCESS_COMPLETE', {
+      bannerRefreshTriggered: true,
+      usingDirectMethod: typeof window.forceRefreshUploads === 'function'
+    });
   }, [resetForm, cleanupBlobUrl, logEvent]);
 
   // Improved cancel upload handler - This is the ONLY place we should call the cleanup API
   const handleCancelUpload = useCallback(async () => {
     try {
+      console.log('Cancel upload triggered!'); // Add logging to confirm function is called
+      
+      // First cancel the XHR upload
       await cancelUpload();
       
       // Clean up the current upload UID - ONLY when user explicitly cancels
       if (currentUploadUid.current) {
         try {
-          await fetch(`/api/copy-to-stream?uid=${currentUploadUid.current}&status=cancelled`, {
-            method: 'DELETE'
+          console.log(`Deleting video with UID: ${currentUploadUid.current}`);
+          
+          // Use the new delete-video API to properly clean up from both Cloudflare and database
+          const response = await fetch('/api/cloudflare/delete-video', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              videoUid: currentUploadUid.current,
+              userId: user?.id
+            }),
           });
-          logEvent('CANCEL_CLEANUP_COMPLETED', { uid: currentUploadUid.current });
+          
+          const responseData = await response.json().catch(() => ({}));
+          console.log('Delete video API response:', responseData);
+          
+          if (response.ok) {
+            logEvent('CANCEL_CLEANUP_COMPLETED', { 
+              uid: currentUploadUid.current,
+              method: 'delete-video API'
+            });
+          } else {
+            // Fallback to old method if new API fails
+            console.warn('New delete API failed, falling back to legacy endpoint');
+            await fetch(`/api/copy-to-stream?uid=${currentUploadUid.current}&status=cancelled`, {
+              method: 'DELETE'
+            });
+            logEvent('CANCEL_CLEANUP_COMPLETED', { 
+              uid: currentUploadUid.current,
+              method: 'legacy DELETE endpoint'
+            });
+          }
         } catch (error) {
           console.error('Error during cancel cleanup:', error);
           logEvent('CANCEL_CLEANUP_FAILED', { 
@@ -361,8 +442,13 @@ const UploadPage = () => {
             error: error.message
           });
         } finally {
+          // Clear the UID after clean up attempt regardless of success/fail
+          const previousUid = currentUploadUid.current;
           currentUploadUid.current = null;
+          console.log(`Cleared currentUploadUid after cancel: previous value was ${previousUid}`);
         }
+      } else {
+        console.log('No upload UID to clean up');
       }
       
       // Clean up preview if exists
@@ -376,10 +462,22 @@ const UploadPage = () => {
       setShowProgress(false);
       setFileError(null);
       setFileProcessed(false);
+      
+      // Force banner refresh after cancellation
+      setBannerKey(prev => prev + 1);
+      if (typeof window.forceRefreshUploads === 'function') {
+        window.forceRefreshUploads();
+      } else {
+        window.dispatchEvent(new CustomEvent('refreshUploads'));
+      }
+      
+      // Update uploadStatus to show cancellation in UI
+      resetForm();
+      
     } catch (error) {
       console.error('Error canceling upload:', error);
     }
-  }, [cancelUpload, cleanupBlobUrl, logEvent]);
+  }, [cancelUpload, cleanupBlobUrl, logEvent, user, resetForm]);
 
   // Connection monitoring effect - Simplified
   useEffect(() => {
@@ -407,7 +505,7 @@ const UploadPage = () => {
   // Page visibility and unload handling - optimized
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (uploadStatus === 'uploading') {
+      if (uploadStatus === 'uploading' || localUploadStatus === 'uploading') {
         logEvent('PAGE_CLOSE_ATTEMPTED_DURING_UPLOAD');
         e.preventDefault();
         e.returnValue = 'Upload in progress. Are you sure you want to leave?';
@@ -421,14 +519,48 @@ const UploadPage = () => {
     };
 
     const handleRouteChange = async () => {
-      if (uploadStatus === 'uploading') {
+      if (uploadStatus === 'uploading' || localUploadStatus === 'uploading') {
         const confirm = window.confirm('Upload in progress. Are you sure you want to leave?');
         if (!confirm) {
           router.events.emit('routeChangeError');
           throw 'routeChange aborted';
         } else {
-          // Only call cancel upload if user confirms - this will trigger the cleanup
-          await handleCancelUpload();
+          // If user confirms leaving, directly call delete-video API
+          if (currentUploadUid.current) {
+            logEvent('PAGE_NAVIGATION_DURING_UPLOAD', { 
+              confirmed: true,
+              cleanup: 'delete-video API',
+              uid: currentUploadUid.current
+            });
+            
+            try {
+              // Cancel the upload using the hook's cancelUpload function
+              await cancelUpload();
+              
+              // Call delete-video API directly
+              const response = await fetch('/api/cloudflare/delete-video', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  videoUid: currentUploadUid.current,
+                  userId: user?.id
+                }),
+              });
+              
+              if (response.ok) {
+                console.log(`Cleanup successful when leaving page: ${currentUploadUid.current}`);
+              } else {
+                console.warn(`Cleanup failed when leaving page: ${currentUploadUid.current}`);
+              }
+              
+              // Clear the UID
+              currentUploadUid.current = null;
+            } catch (error) {
+              console.error('Error cleaning up during navigation:', error);
+            }
+          }
         }
       }
       // Don't clean up if not uploading
@@ -545,27 +677,17 @@ const UploadPage = () => {
 
   const handleCloseProgress = useCallback(() => {
     // Only close if not uploading
-    if (uploadStatus !== 'uploading') {
+    console.log(`[CloseProgress] Called with uploadStatus: ${uploadStatus}, localUploadStatus: ${localUploadStatus}`);
+    
+    if (uploadStatus !== 'uploading' && localUploadStatus !== 'uploading') {
+      console.log('[CloseProgress] Closing modal and resetting state');
       setShowProgress(false);
+      setLocalUploadStatus('idle');
       resetForm();
+    } else {
+      console.log('[CloseProgress] Cannot close while uploading');
     }
-  }, [uploadStatus, resetForm]);
-
-  // Render the maintenance overlay if maintenance mode is enabled
-  if (UPLOAD_MAINTENANCE_MODE) {
-    return (
-      <div className={styles.container}>
-        <Head>
-          <title>Upload - Maintenance</title>
-          <meta name="description" content="Upload page currently under maintenance" />
-        </Head>
-        <MaintenanceOverlay 
-          message="We're currently improving the upload feature. Please check back soon!" 
-          fullPage={true}
-        />
-      </div>
-    );
-  }
+  }, [uploadStatus, localUploadStatus, resetForm]);
 
   return (
     <ProtectedPageWrapper>
@@ -574,7 +696,8 @@ const UploadPage = () => {
         <meta name="description" content="Upload your gameplay clips" />
       </Head>
       <div className={styles.uploadMain}>
-        <PendingUploadsBanner userId={user?.id} />
+        {user && <PendingUploadsBanner userId={user.id} key={bannerKey} />}
+        
         <div className={styles.uploadCard}>
           <header className={styles.header}>
             <MdGamepad className={styles.gameIcon} />
@@ -735,12 +858,16 @@ const UploadPage = () => {
         progress={uploadProgress}
         isOpen={showProgress}
         onClose={handleCloseProgress}
-        status={uploadStatus}
-        onCancel={handleCancelUpload}
+        status={localUploadStatus !== 'idle' ? localUploadStatus : uploadStatus}
+        onCancel={() => {
+          console.log('Cancel button clicked from UploadProgress');
+          console.log(`Current upload UID when cancelling: ${currentUploadUid.current}`);
+          handleCancelUpload();
+        }}
         onReset={handleSuccess}
         title={title}
         game={game}
-        allowClose={uploadStatus !== 'uploading'}
+        allowClose={uploadStatus !== 'uploading' && localUploadStatus !== 'uploading'}
         isNetworkFile={fileError && fileError.includes("Network file")}
       />
     </ProtectedPageWrapper>

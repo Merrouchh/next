@@ -47,7 +47,9 @@ export async function getServerSideProps({ req, res }) {
         uploaded_at,
         user_id,
         cloudflare_uid,
-        mp4link
+        mp4link,
+        status,
+        processing_details
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
@@ -193,7 +195,9 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
           uploaded_at,
           user_id,
           cloudflare_uid,
-          mp4link
+          mp4link,
+          status,
+          processing_details
         `)
         .eq('visibility', 'public')
         .order('uploaded_at', { ascending: false })
@@ -267,12 +271,16 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
             case 'INSERT':
               if (payload.new.visibility === 'public') {
                 console.log('Adding new public clip:', payload.new.id);
-                // Ensure we have all required fields including mp4link
+                // Ensure we have all required fields including mp4link and processing fields
                 const newClip = {
                   ...payload.new,
+                  // Add thumbnail_url for client-side use
                   thumbnail_url: payload.new.cloudflare_uid 
                     ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${payload.new.cloudflare_uid}/thumbnails/thumbnail.jpg`
-                    : payload.new.thumbnail_path || 'https://merrouchgaming.com/top.jpg'
+                    : payload.new.thumbnail_path || 'https://merrouchgaming.com/top.jpg',
+                  // Ensure status and processing_details are present
+                  status: payload.new.status || 'complete',
+                  processing_details: payload.new.processing_details || {}
                 };
                 setClips(prevClips => {
                   if (prevClips.some(clip => clip.id === newClip.id)) {
@@ -293,8 +301,19 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
                   if (payload.new.visibility === 'private') {
                     return null;
                   }
-                  // Otherwise update it
-                  return { ...clip, ...payload.new };
+                  
+                  // For processing updates, ensure we maintain the required fields
+                  // and add thumbnail_url if it doesn't exist
+                  const updatedClip = { 
+                    ...clip, 
+                    ...payload.new,
+                    // Preserve existing thumbnail_url or generate it
+                    thumbnail_url: clip.thumbnail_url || (payload.new.cloudflare_uid 
+                      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${payload.new.cloudflare_uid}/thumbnails/thumbnail.jpg`
+                      : payload.new.thumbnail_path || 'https://merrouchgaming.com/top.jpg')
+                  };
+                  
+                  return updatedClip;
                 }).filter(Boolean); // Remove null entries (private clips)
               });
               break;

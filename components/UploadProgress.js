@@ -1,9 +1,9 @@
-import React, { memo } from 'react';
-import styles from './UploadProgress.module.css';
+import React, { useState, useEffect, useCallback } from 'react';
+import styles from '../styles/UploadProgress.module.css';
 import { MdClose, MdCheckCircle, MdError, MdCancel } from 'react-icons/md';
 import { createPortal } from 'react-dom';
 
-const UploadProgress = memo(({ 
+const UploadProgress = ({ 
   progress, 
   isOpen, 
   onClose, 
@@ -15,25 +15,64 @@ const UploadProgress = memo(({
   allowClose,
   isNetworkFile = false 
 }) => {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  
+  // Make sure we only mount on client-side
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  
+  // Create a safe cancel handler that logs everything for debugging
+  const handleCancel = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[UploadProgress] Cancel button clicked');
+    console.log('[UploadProgress] onCancel type:', typeof onCancel);
+    
+    if (typeof onCancel === 'function') {
+      console.log('[UploadProgress] Calling onCancel function');
+      onCancel();
+    } else {
+      console.error('[UploadProgress] onCancel is not a function:', onCancel);
+    }
+  }, [onCancel]);
+
+  // Handle completion of upload
+  const handleDone = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[UploadProgress] Done button clicked');
+    if (typeof onReset === 'function') {
+      onReset();
+    }
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  }, [onReset, onClose]);
 
   const getStatusInfo = () => {
+    console.log(`[UploadProgress] Getting status info for status: ${status}`);
+    
     switch (status) {
       case 'uploading':
+        console.log('[UploadProgress] Status is "uploading", should show cancel button');
         return {
           text: 'Uploading...',
           color: '#2196F3',
           showCancel: true
         };
       case 'success':
+        console.log('[UploadProgress] Status is "success", auto-closing enabled');
         return {
           text: 'Upload Complete!',
           color: '#4CAF50',
           icon: <MdCheckCircle />,
-          showClose: true,
-          showDone: true
+          showClose: false,
+          showDone: false
         };
       case 'error':
+        console.log('[UploadProgress] Status is "error", should show close button');
         return {
           text: 'Upload Failed',
           color: '#f44336',
@@ -41,23 +80,27 @@ const UploadProgress = memo(({
           showClose: true
         };
       case 'cancelled':
+        console.log('[UploadProgress] Status is "cancelled", should show close button');
         return {
           text: 'Upload Cancelled',
           color: '#757575',
           icon: <MdCancel />,
           showClose: true
         };
+      case 'preparing':
+        console.log('[UploadProgress] Status is "preparing", should show cancel button');
+        return {
+          text: 'Preparing...',
+          color: '#FFA000',
+          showCancel: true
+        };
       default:
+        console.log(`[UploadProgress] Status is default (${status}), showing processing`);
         return {
           text: 'Processing...',
           color: '#FFA000'
         };
     }
-  };
-
-  const handleDone = () => {
-    onReset();
-    onClose();
   };
 
   const statusInfo = getStatusInfo();
@@ -96,18 +139,56 @@ const UploadProgress = memo(({
     }
   };
 
+  // Auto-close modal when status becomes 'success'
+  useEffect(() => {
+    if (status === 'success' && isOpen) {
+      console.log('[UploadProgress] Status changed to success, auto-closing after 1.5 seconds');
+      const timer = setTimeout(() => {
+        console.log('[UploadProgress] Auto-closing from success state');
+        if (typeof onReset === 'function') {
+          onReset();
+        }
+        if (typeof onClose === 'function') {
+          onClose();
+        }
+      }, 2000); // Close after 2 seconds to let user see success state
+      
+      return () => clearTimeout(timer);
+    }
+  }, [status, isOpen, onReset, onClose]);
+  
+  // Additional styles for success message
+  const successStyle = status === 'success' ? {
+    animation: 'fadeIn 0.3s ease',
+    padding: '12px 16px',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    border: '1px solid rgba(76, 175, 80, 0.3)',
+    borderRadius: '4px',
+    margin: '12px 0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    color: '#4CAF50',
+    fontWeight: 'bold'
+  } : {};
+  
+  // If not open or not mounted, don't render anything
+  if (!isOpen || !mounted) return null;
+
   const modalContent = (
-    <div className={styles.modalOverlay} onClick={allowClose ? onClose : undefined}>
+    <div className={styles.overlay} onClick={e => e.stopPropagation()}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <h3 title={title || 'Uploading Video'}>
             {title || 'Uploading Video'}
           </h3>
-          {allowClose && (
+          {allowClose && status !== 'success' && (
             <button 
               className={styles.closeButton} 
               onClick={onClose}
               aria-label="Close"
+              type="button"
             >
               <MdClose />
             </button>
@@ -117,32 +198,36 @@ const UploadProgress = memo(({
         <div className={styles.content}>
           {game && <p className={styles.game}>{game}</p>}
           
-          <div className={styles.progressContainer}>
+          <div className={styles.progressBar}>
             <div 
-              className={styles.progressBar}
-              style={{
-                '--progress': `${progress}%`,
-                '--status-color': statusInfo.color
-              }}
-            >
-              <div className={styles.progressFill} />
-            </div>
-            <div className={styles.statusText} style={{ color: statusInfo.color }}>
-              {statusInfo.icon && <span className={styles.icon}>{statusInfo.icon}</span>}
-              <span>{statusInfo.text}</span>
-              {progress > 0 && progress < 100 && (
-                <span className={styles.percentage}>{Math.round(progress)}%</span>
-              )}
-            </div>
+              className={styles.progressFill} 
+              style={{ width: `${progress}%`, backgroundColor: statusInfo.color }}
+            />
+          </div>
+          
+          <div className={styles.progressText} style={{ color: statusInfo.color }}>
+            {statusInfo.icon && <span className={styles.icon}>{statusInfo.icon}</span>}
+            <span>{statusInfo.text}</span>
+            {progress > 0 && progress < 100 && (
+              <span className={styles.percentage}>{Math.round(progress)}%</span>
+            )}
           </div>
 
           <p className={styles.statusMessage}>{getStatusMessage()}</p>
+          
+          {status === 'success' && (
+            <div style={successStyle}>
+              <MdCheckCircle size={24} />
+              <span>Upload completed successfully! Closing automatically...</span>
+            </div>
+          )}
 
-          <div className={styles.actions}>
+          <div className={styles.actions} style={{ marginTop: '1rem' }}>
             {statusInfo.showCancel && (
               <button 
                 className={styles.cancelButton}
-                onClick={onCancel}
+                onClick={handleCancel}
+                type="button"
               >
                 Cancel Upload
               </button>
@@ -151,6 +236,7 @@ const UploadProgress = memo(({
               <button 
                 className={styles.doneButton}
                 onClick={handleDone}
+                type="button"
               >
                 Done
               </button>
@@ -169,10 +255,7 @@ const UploadProgress = memo(({
   );
 
   // Use createPortal to render the modal at the root level
-  return createPortal(
-    modalContent,
-    document.body
-  );
-});
+  return createPortal(modalContent, document.body);
+};
 
 export default UploadProgress; 

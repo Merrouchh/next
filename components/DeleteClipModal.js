@@ -3,7 +3,14 @@ import styles from '../styles/DeleteClipModal.module.css';
 import cardStyles from '../styles/ClipCard.module.css';
 import { useEffect } from 'react';
 
-const DeleteClipModal = ({ isOpen, onClose, onConfirm }) => {
+const DeleteClipModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm,
+  title = "Delete Clip", 
+  message = "Are you sure you want to delete this clip?",
+  confirmText = "Delete"
+}) => {
   // Close modal on scroll
   useEffect(() => {
     if (!isOpen) return;
@@ -25,14 +32,14 @@ const DeleteClipModal = ({ isOpen, onClose, onConfirm }) => {
     <div className={`${styles.deleteModalOverlay} ${cardStyles.deleteModalOverlay}`}>
       <div className={`${styles.deleteModal} ${cardStyles.deleteModal}`}>
         <div className={styles.modalHeader}>
-          <h3>Delete Clip</h3>
+          <h3>{title}</h3>
           <button onClick={onClose} className={styles.closeButton}>
             <MdClose />
           </button>
         </div>
         <div className={styles.modalContent}>
           <MdDelete className={styles.deleteIcon} />
-          <p>Are you sure you want to delete this clip?</p>
+          <p>{message}</p>
           <p className={styles.warning}>This action cannot be undone.</p>
         </div>
         <div className={styles.modalActions}>
@@ -46,7 +53,7 @@ const DeleteClipModal = ({ isOpen, onClose, onConfirm }) => {
             onClick={onConfirm}
             className={styles.deleteButton}
           >
-            Delete
+            {confirmText}
           </button>
         </div>
       </div>

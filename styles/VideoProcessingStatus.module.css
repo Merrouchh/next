@@ -1,0 +1,263 @@
+.container {
+  background: rgba(26, 26, 26, 0.95);
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+  margin: 10px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 0;
+  user-select: none;
+}
+
+.statusHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusIcon {
+  font-size: 22px;
+  color: #4CAF50;
+}
+
+.statusTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.collapseToggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #999;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.collapseToggle:hover {
+  color: #fff;
+}
+
+.progressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #4CAF50;
+  transition: width 0.3s ease;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.spinningIcon {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.details {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+.detailLabel {
+  color: #999;
+  font-weight: 500;
+}
+
+.detailValue {
+  color: #fff;
+}
+
+.metadataSection {
+  margin-top: 15px;
+}
+
+.metadataSection h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #999;
+}
+
+.processingSteps {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+  position: relative;
+}
+
+.processingSteps::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 15px;
+  right: 15px;
+  height: 2px;
+  background-color: #e0e0e0;
+  z-index: 1;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.stepDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  margin-bottom: 5px;
+  transition: all 0.3s ease;
+  border: 2px solid #fff;
+}
+
+.stepLabel {
+  font-size: 12px;
+  color: #757575;
+  transition: all 0.3s ease;
+}
+
+.completedStep .stepDot {
+  background-color: #4CAF50;
+}
+
+.completedStep .stepLabel {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.activeStep .stepDot {
+  background-color: #FF9800;
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.3);
+}
+
+.activeStep .stepLabel {
+  color: #FF9800;
+  font-weight: 600;
+}
+
+.errorMessage {
+  margin-top: 10px;
+  padding: 10px 15px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-left: 3px solid #F44336;
+  color: #F44336;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.errorIcon {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dismissButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  padding: 5px;
+  font-size: 20px;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+}
+
+.dismissButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.dismissButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 768px) {
+  .statusTitle {
+    font-size: 14px;
+  }
+  
+  .collapseToggle {
+    font-size: 12px;
+  }
+  
+  .processingSteps {
+    margin: 10px 0;
+  }
+  
+  .stepLabel {
+    font-size: 10px;
+  }
+  
+  .stepDot {
+    width: 14px;
+    height: 14px;
+  }
+} 
