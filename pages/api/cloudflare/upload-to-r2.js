@@ -125,25 +125,27 @@ export default async function handler(req, res) {
     
     console.log(`[Step 2c] Found video in clips table with id: ${videoData.id}`);
     
-    // Only set r2_uploading if not already in that status and not in complete status
+    // FIXED: Only set r2_uploading if not already in 'complete' status
     if (videoData.status !== 'r2_uploading' && videoData.status !== 'complete') {
       console.log(`[Step 2d] Setting status to r2_uploading (current: ${videoData.status})`);
       await updateProcessingStatus(videoUid, 'r2_uploading', {
         r2_upload_start_time: new Date().toISOString()
       });
     } else if (videoData.status === 'complete') {
-      console.log(`[Step 2d] Not updating status: video is already complete`);
-      // Just update processing details to show we checked it
+      console.log(`[Step 2d] Video is already complete, not changing status`);
+      // Just update processing details to maintain complete status
       await supabase
         .from('clips')
         .update({
           processing_details: {
             ...(videoData.processing_details || {}),
             last_checked: new Date().toISOString(),
-            status_message: `Already complete, no status change needed`
+            status_message: `Video already complete, preserving status`
           }
         })
         .eq('cloudflare_uid', videoUid);
+    } else {
+      console.log(`[Step 2d] Already in r2_uploading status, continuing upload process`);
     }
     
     // If the video already has mp4link in clips table and it's an R2 URL, we can skip the upload
@@ -289,21 +291,24 @@ export default async function handler(req, res) {
     // Download the MP4 from Cloudflare
     console.log(`[Step 5] Downloading MP4 from Cloudflare`);
     
-    // Set status to mp4downloading only if not already in that status AND not in a later status
+    // FIXED: Only set status to mp4downloading if we're not already in a later state
     // This prevents backward status cycling
     const LATER_STATUSES = ['r2_uploading', 'complete'];
-    if (videoData.status !== 'mp4downloading' && !LATER_STATUSES.includes(videoData.status)) {
-      console.log(`[Step 5a] Setting status to mp4downloading (current: ${videoData.status})`);
-      await updateProcessingStatus(videoUid, 'mp4downloading', {
-        mp4_download_url: mp4DownloadUrl,
-        mp4_download_started: true,
-        mp4_download_start_time: new Date().toISOString(),
-        mp4_processing: false,
-        r2_upload_progress: 10
-      });
-    } else if (LATER_STATUSES.includes(videoData.status)) {
-      console.log(`[Step 5a] Not updating status: current status (${videoData.status}) is ahead in the processing flow`);
-      // Update processing details without changing status
+    if (!LATER_STATUSES.includes(videoData.status)) {
+      // Only update the status if we're not already in a later step of the process
+      if (videoData.status !== 'mp4downloading') {
+        console.log(`[Step 5a] Setting status to mp4downloading (current: ${videoData.status})`);
+        await updateProcessingStatus(videoUid, 'mp4downloading', {
+          mp4_download_url: mp4DownloadUrl,
+          mp4_download_started: true,
+          mp4_download_start_time: new Date().toISOString(),
+          mp4_processing: false,
+          r2_upload_progress: 10
+        });
+      }
+    } else {
+      console.log(`[Step 5a] Not changing status: current status (${videoData.status}) is further in the workflow`);
+      // Just update processing details without changing the status
       await supabase
         .from('clips')
         .update({
@@ -311,7 +316,7 @@ export default async function handler(req, res) {
             ...(videoData.processing_details || {}),
             mp4_download_url: mp4DownloadUrl,
             last_checked: new Date().toISOString(),
-            status_message: `Continuing processing without status change (current: ${videoData.status})`
+            status_message: `Maintaining ${videoData.status} status - preventing backward cycling`
           }
         })
         .eq('cloudflare_uid', videoUid);

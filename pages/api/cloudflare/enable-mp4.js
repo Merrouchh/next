@@ -393,9 +393,10 @@ export default async function handler(req, res) {
     const thumbnailUrl = await getThumbnailUrl(videoUid);
     
     // Check current status before updating to mp4downloading
+    console.log(`[MP4-Step 7] Getting current status before finalizing MP4 process`);
     const { data: currentStatusData } = await supabase
       .from('clips')
-      .select('status')
+      .select('status, processing_details')
       .eq('cloudflare_uid', videoUid)
       .single();
       
@@ -404,13 +405,14 @@ export default async function handler(req, res) {
     
     // Only update to mp4downloading if we're not already in a later status
     if (currentStatusData && LATER_STATUSES.includes(currentStatusData.status)) {
-      console.log(`[MP4-Step 7] Not updating status: current status (${currentStatusData.status}) is ahead in the processing flow`);
+      console.log(`[MP4-Step 7] Not changing status: current status (${currentStatusData.status}) is further in the workflow`);
       
       // Update processing details without changing status
       await supabase
         .from('clips')
         .update({
           processing_details: {
+            ...(currentStatusData.processing_details || {}),
             mp4_download_url: mp4Data.url,
             mp4_ready: true,
             mp4_ready_time: new Date().toISOString(),
@@ -419,12 +421,13 @@ export default async function handler(req, res) {
             r2_upload_pending: true,
             thumbnail_url: thumbnailUrl,
             last_checked: new Date().toISOString(),
-            status_message: `MP4 ready but maintaining current status (${currentStatusData.status})`
+            status_message: `MP4 ready but maintaining ${currentStatusData.status} status to prevent cycling`
           }
         })
         .eq('cloudflare_uid', videoUid);
     } else {
       // Update status with MP4 download URL and success
+      console.log(`[MP4-Step 7] Setting status to mp4downloading`);
       await updateProcessingStatus(videoUid, 'mp4downloading', {
         mp4_download_url: mp4Data.url,
         mp4_ready: true,
