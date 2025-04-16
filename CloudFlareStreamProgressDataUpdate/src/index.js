@@ -206,7 +206,7 @@ async function updateDatabaseStatus(uid, cloudflareData) {
     };
 
     // Skip if status and progress haven't changed and not in pending state
-    if (currentData.status === getMappedProcessingStatus(dbStatus, updatedDetails) && 
+    if (processingDetails.cloudflare_status === cloudflareData.status.state && 
         processingDetails.progress === cloudflareData.status.pctComplete &&
         dbStatus !== 'pendingupload') {
       logger.info(`[VIDEO ${uid}] NO CHANGE: Skipping database update`);
@@ -215,13 +215,9 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       const isReallyFinal = currentStatus === 'complete' || currentStatus === 'error';
       return isReallyFinal;
     }
-
-    // Map Cloudflare status to processing_status for the clips table
-    const clipProcessingStatus = getMappedProcessingStatus(dbStatus, updatedDetails);
     
     // Update basic video metadata if available
     const updatePayload = {
-      status: clipProcessingStatus,
       processing_details: updatedDetails
     };
     
@@ -257,7 +253,7 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       updatePayload.error_message = cloudflareData.status.errorReasonText;
     }
 
-    logger.info(`[VIDEO ${uid}] UPDATING DATABASE: Setting status to ${clipProcessingStatus}`);
+    logger.info(`[VIDEO ${uid}] UPDATING DATABASE with processing details`);
     const { error: updateError } = await supabase
       .from('clips')
       .update(updatePayload)
@@ -268,10 +264,17 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       throw updateError;
     }
     
-    // Check if this is really a final state - only complete and error states are truly final
-    const statusIsFinal = clipProcessingStatus === 'complete' || clipProcessingStatus === 'error';
+    // Fetch the new status after the update (which will be set by the database trigger)
+    const { data: updatedData } = await supabase
+      .from('clips')
+      .select('status')
+      .eq('cloudflare_uid', uid)
+      .single();
     
-    logger.info(`[VIDEO ${uid}] DATABASE UPDATED: Status=${clipProcessingStatus}, Progress=${cloudflareData.status.pctComplete || 0}%, Final=${statusIsFinal}`);
+    const newStatus = updatedData?.status || currentData.status;
+    const statusIsFinal = newStatus === 'complete' || newStatus === 'error';
+    
+    logger.info(`[VIDEO ${uid}] DATABASE UPDATED: Status=${newStatus}, Progress=${cloudflareData.status.pctComplete || 0}%, Final=${statusIsFinal}`);
 
     // Special handling for 'ready' state - this is our handoff point
     if (cloudflareData.status.state === 'ready') {
@@ -282,23 +285,16 @@ async function updateDatabaseStatus(uid, cloudflareData) {
         .eq('cloudflare_uid', uid)
         .single();
       
-      // Check ALL possible MP4 and R2 related statuses to avoid any cycling
-      const inMp4Process = currentState && [
-        'mp4_processing', 
-        'waitformp4', 
-        'mp4downloading', 
-        'r2_uploading'
-      ].includes(currentState.status);
-      
-      // Also check if MP4 processing has started in any way
+      // Check if MP4 processing has started in any way
       const mp4Started = currentState?.processing_details?.mp4_processing_started ||
                         currentState?.processing_details?.mp4_poll_started ||
-                        currentState?.processing_details?.mp4_status === 'polling';
+                        currentState?.processing_details?.mp4_status === 'polling' ||
+                        currentState?.processing_details?.r2_upload_started;
       
       // Log thorough status information
       logger.info(`[VIDEO ${uid}] Current status: ${currentState?.status}, MP4 process started: ${mp4Started ? 'YES' : 'NO'}`);
       
-      if (inMp4Process || mp4Started) {
+      if (mp4Started) {
         logger.info(`[VIDEO ${uid}] Already in MP4 processing flow: ${currentState?.status}. Skipping duplicate enable-mp4 call to prevent status cycling.`);
         completedVideos.add(uid); // Mark as completed from index.js perspective
         processingVideos.delete(uid);
@@ -309,7 +305,6 @@ async function updateDatabaseStatus(uid, cloudflareData) {
       await supabase
         .from('clips')
         .update({
-          status: 'stream_ready',
           processing_details: {
             ...(currentData.processing_details || {}),
             cloudflare_status: 'ready',
@@ -351,48 +346,6 @@ async function updateDatabaseStatus(uid, cloudflareData) {
   } catch (error) {
     logger.error(`[VIDEO ${uid}] CRITICAL ERROR: ${error.message}`);
     throw error;
-  }
-}
-
-/**
- * Map Cloudflare status to our internal processing status
- * 
- * @param {string} dbStatus - Raw status from Cloudflare
- * @param {object} metadata - Processing metadata
- * @returns {string} Mapped processing status 
- */
-function getMappedProcessingStatus(dbStatus, metadata) {
-  // MP4 processing statuses - don't change these once set
-  if (['waitformp4', 'mp4downloading', 'mp4_processing', 'r2_uploading'].includes(dbStatus)) {
-    return dbStatus; // Keep as-is to prevent cycling
-  }
-  
-  switch (dbStatus) {
-    // Initial upload statuses
-    case 'pendingupload':
-      return 'uploading';
-    case 'uploading':
-      return 'uploading';
-    case 'queued':
-      return 'queued';
-    
-    // Cloudflare processing statuses
-    case 'processing': 
-    case 'inprogress':
-      return 'processing';
-    
-    // Ready status - simplify to always return stream_ready
-    // enable-mp4.js will handle the subsequent states
-    case 'ready':
-      return 'stream_ready';
-    
-    // Error status
-    case 'error':
-      return 'error';
-    
-    // Default to uploading for unknown statuses
-    default:
-      return 'uploading';
   }
 }
 

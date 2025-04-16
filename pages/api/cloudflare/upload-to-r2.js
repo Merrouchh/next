@@ -27,18 +27,48 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 // Update the database with the current processing status
 const updateProcessingStatus = async (videoUid, status, details = {}) => {
   try {
-    console.log(`[R2-Status] Updating status to: ${status}, details:`, details);
+    console.log(`[R2-Status] Setting flags for state: ${status}, details:`, details);
     
-    // Update the clips table
+    // Get current details
+    const { data: currentData } = await supabase
+      .from('clips')
+      .select('processing_details')
+      .eq('cloudflare_uid', videoUid)
+      .single();
+    
+    // Set state-specific flags
+    let updatedDetails = {
+      ...(currentData?.processing_details || {}),
+      ...details,
+      last_updated: new Date().toISOString()
+    };
+    
+    // Add state-specific flags
+    switch (status) {
+      case 'r2_uploading':
+        updatedDetails.r2_upload_started = true;
+        updatedDetails.r2_upload_start_time = updatedDetails.r2_upload_start_time || new Date().toISOString();
+        break;
+      case 'complete':
+        updatedDetails.r2_upload_complete = true;
+        updatedDetails.r2_upload_complete_time = updatedDetails.r2_upload_complete_time || new Date().toISOString();
+        break;
+      case 'error':
+        // Preserve error information
+        if (!updatedDetails.error_message && details.error_message) {
+          updatedDetails.error_message = details.error_message;
+        }
+        if (!updatedDetails.error_time) {
+          updatedDetails.error_time = new Date().toISOString();
+        }
+        break;
+    }
+    
+    // Update the clips table - only the processing_details
     const { error: clipsError } = await supabase
       .from('clips')
       .update({
-        status: status,
-        processing_details: {
-          ...details,
-          r2_upload_processing: status === 'r2_uploading',
-          last_updated: new Date().toISOString()
-        }
+        processing_details: updatedDetails
       })
       .eq('cloudflare_uid', videoUid);
       
@@ -46,7 +76,7 @@ const updateProcessingStatus = async (videoUid, status, details = {}) => {
       console.log(`[R2-Status] Warning: Failed to update clips table: ${clipsError.message}`);
       return false;
     } else {
-      console.log(`[R2-Status] Successfully updated clips table status to ${status}`);
+      console.log(`[R2-Status] Successfully updated processing details for ${status} state`);
       return true;
     }
   } catch (error) {
@@ -127,7 +157,7 @@ export default async function handler(req, res) {
     
     // Only set r2_uploading if not already in that status
     if (videoData.status !== 'r2_uploading') {
-      console.log(`[Step 2d] Setting status to r2_uploading (current: ${videoData.status})`);
+      console.log(`[Step 2d] Setting r2_uploading flags (current: ${videoData.status})`);
       await updateProcessingStatus(videoUid, 'r2_uploading', {
         r2_upload_start_time: new Date().toISOString()
       });
@@ -278,7 +308,7 @@ export default async function handler(req, res) {
     
     // Set status to mp4downloading only if not already in that status
     if (videoData.status !== 'mp4downloading') {
-      console.log(`[Step 5a] Setting status to mp4downloading (current: ${videoData.status})`);
+      console.log(`[Step 5a] Setting mp4downloading flags (current: ${videoData.status})`);
       await updateProcessingStatus(videoUid, 'mp4downloading', {
         mp4_download_url: mp4DownloadUrl,
         mp4_download_started: true,
