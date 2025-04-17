@@ -140,6 +140,17 @@ export default async function handler(req, res) {
         });
       }
       
+      // Update database with error information
+      const errorUpdate = {
+        status: 'error',
+        error_message: deleteError.message
+      };
+
+      await supabase
+        .from('clips')
+        .update(errorUpdate)
+        .eq('cloudflare_uid', cloudflareUid);
+      
       throw deleteError;
     }
     

@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { 
-  getStatusMessage,
-  getMinProgressForStatus
-} from '../../../CloudFlareStreamProgressDataUpdate/src/statusUtils.js';
 
-// Configuration constants
+// Environment variables
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -52,32 +48,91 @@ async function getThumbnailUrl(videoUid) {
 }
 
 /**
- * Signal for a status update in the database
+ * Check MP4 status from Cloudflare
  * @param {string} videoUid - Cloudflare video UID
- * @param {string} requestedStatus - The status to request
- * @returns {Promise<boolean>} Success indicator
+ * @returns {Promise<{status: string, url: string, percentComplete: number}>} MP4 status info
  */
-async function signalStatusUpdate(videoUid, requestedStatus) {
+async function checkMp4Status(videoUid) {
   try {
-    console.log(`[ENABLE-MP4] Signaling status update: ${requestedStatus} for ${videoUid}`);
+    console.log(`[MP4-Check] Checking MP4 status for video ${videoUid}`);
     
-    const { error } = await supabase
-      .from('clips')
-      .update({
-        requested_status: requestedStatus,
-        requested_status_at: new Date().toISOString()
-      })
-      .eq('cloudflare_uid', videoUid);
-      
-    if (error) {
-      console.error(`[ENABLE-MP4] Error signaling status update: ${error.message}`);
-      return false;
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}/downloads`,
+      {
+        headers: {
+          'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      console.log(`[MP4-Check] Error checking MP4 status: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to check MP4 status: ${response.statusText}`);
     }
     
-    return true;
+    const data = await response.json();
+    if (!data.success) {
+      console.log(`[MP4-Check] Cloudflare API error:`, data.errors);
+      throw new Error('Cloudflare API error: ' + JSON.stringify(data.errors));
+    }
+    
+    const mp4Info = data.result?.default || {};
+    console.log(`[MP4-Check] MP4 status: ${mp4Info.status}, progress: ${mp4Info.percentComplete}%`);
+    
+    return {
+      status: mp4Info.status || 'unknown',
+      url: mp4Info.url,
+      percentComplete: mp4Info.percentComplete || 0
+    };
   } catch (error) {
-    console.error(`[ENABLE-MP4] Exception signaling status update: ${error.message}`);
-    return false;
+    console.error(`[MP4-Check] Error checking MP4 status: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Triggers the R2 upload process
+ * @param {string} videoUid - Cloudflare video UID
+ * @returns {Promise<{status: number}>} Upload response status
+ */
+async function triggerR2Upload(videoUid) {
+  console.log(`[MP4] 🚀 Triggering R2 upload for ${videoUid}`);
+  
+  try {
+    const r2Response = await fetch('http://localhost:3000/api/cloudflare/upload-to-r2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Source': 'enable-mp4'
+      },
+      body: JSON.stringify({ videoUid })
+    });
+    
+    console.log(`[MP4] ✅ R2 upload triggered successfully, status: ${r2Response.status}`);
+    return { status: r2Response.status };
+  } catch (error) {
+    console.error(`[MP4] ❌ Error triggering R2 upload: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Updates the database with an error status
+ * @param {string} videoUid - Cloudflare video UID
+ * @param {string} errorMessage - Error message
+ */
+async function updateErrorStatus(videoUid, errorMessage) {
+  try {
+    await supabase
+      .from('clips')
+      .update({
+        status: 'error',
+        error_message: errorMessage
+      })
+      .eq('cloudflare_uid', videoUid);
+  } catch (error) {
+    console.error(`[MP4] Error updating database with error status: ${error.message}`);
   }
 }
 
@@ -85,53 +140,56 @@ async function signalStatusUpdate(videoUid, requestedStatus) {
  * API handler for enabling MP4 processing
  */
 export default async function handler(req, res) {
-  // Only accept POST requests
+  // Step 1: Validate request method
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   const { videoUid } = req.body;
   const source = req.headers.source || 'unknown';
+  const requestId = Math.random().toString(36).substring(2, 15);
 
-  console.log(`[ENABLE-MP4] Starting MP4 process for ${videoUid}. Source: ${source}`);
+  console.log(`[ENABLE-MP4-${requestId}] 🚀 Starting MP4 process for ${videoUid}. Source: ${source}`);
 
+  // Step 2: Validate videoUid
   if (!videoUid) {
-    console.error('[ENABLE-MP4] No videoUid provided');
+    console.error('[ENABLE-MP4] ❌ No videoUid provided');
     return res.status(400).json({ message: 'videoUid is required' });
   }
 
   try {
-    // Check if video exists and get current status
-    const { data: existingData } = await supabase
+    // Step 3: Check if video exists in database
+    const { data: existingData, error: dbError } = await supabase
       .from('clips')
       .select('*')
       .eq('cloudflare_uid', videoUid)
       .single();
 
-    if (!existingData) {
-      console.error(`[ENABLE-MP4] Video ${videoUid} not found in database`);
-      return res.status(404).json({ message: 'Video not found' });
+    if (dbError || !existingData) {
+      console.error(`[ENABLE-MP4-${requestId}] ❌ Video ${videoUid} not found in database`);
+      return res.status(404).json({ message: 'Video not found', requestId });
     }
 
-    // Get current status
+    // Step 4: Get current status and check if already processed
     const currentStatus = existingData.status;
-    console.log(`[ENABLE-MP4] Video current status: ${currentStatus}`);
+    console.log(`[ENABLE-MP4-${requestId}] 📊 Video current status: ${currentStatus}`);
 
-    // If already in MP4 processing or beyond, return success
-    if (['waitformp4', 'mp4_processing', 'mp4downloading', 'r2_uploading', 'complete'].includes(currentStatus)) {
-      console.log(`[ENABLE-MP4] Video ${videoUid} is already in ${currentStatus} status, no need to process again`);
+    // Step 5: Skip if already in MP4 processing or beyond
+    if (['mp4_processing', 'mp4_downloading', 'r2_uploading', 'complete'].includes(currentStatus)) {
+      console.log(`[ENABLE-MP4-${requestId}] ✓ Video ${videoUid} already in ${currentStatus} status, skipping`);
       return res.status(200).json({ 
         message: `Video already in ${currentStatus} status`,
-        status: currentStatus
+        status: currentStatus,
+        requestId
       });
     }
 
-    // If not in stream_ready status, check with Cloudflare
-    if (currentStatus !== 'stream_ready') {
-      console.log(`[ENABLE-MP4] Video ${videoUid} is not in stream_ready status (current: ${currentStatus})`);
+    // Step 6: Check Cloudflare status if not ready_to_stream
+    if (currentStatus !== 'ready_to_stream') {
+      console.log(`[ENABLE-MP4-${requestId}] ⚠️ Video ${videoUid} is not in ready_to_stream status (current: ${currentStatus})`);
       
-      // Check with Cloudflare to see if it's ready
-      console.log(`[MP4-Step 1] Checking Cloudflare API for video: ${videoUid}`);
+      // Step 6a: Check Cloudflare API for video status
+      console.log(`[MP4-${requestId}] 🔍 Checking Cloudflare API for video: ${videoUid}`);
       
       const cloudflareResponse = await fetch(
         `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
@@ -143,67 +201,45 @@ export default async function handler(req, res) {
         }
       );
       
+      // Step 6b: Handle Cloudflare API errors
       if (!cloudflareResponse.ok) {
-        console.log(`[MP4-Step 1a] Cloudflare API error: ${cloudflareResponse.status}`);
+        console.log(`[MP4-${requestId}] ❌ Cloudflare API error: ${cloudflareResponse.status}`);
         
         if (cloudflareResponse.status === 404) {
-          // Update database with error status
-          await supabase
-            .from('clips')
-            .update({
-              status: 'error',
-              error_message: 'Video not found in Cloudflare'
-            })
-            .eq('cloudflare_uid', videoUid);
-            
-          return res.status(404).json({ message: 'Video not found in Cloudflare' });
+          await updateErrorStatus(videoUid, 'Video not found in Cloudflare');
+          return res.status(404).json({ message: 'Video not found in Cloudflare', requestId });
         }
         
-        return res.status(cloudflareResponse.status).json({ message: 'Error checking Cloudflare status' });
+        return res.status(cloudflareResponse.status).json({ message: 'Error checking Cloudflare status', requestId });
       }
       
+      // Step 6c: Check if video is ready in Cloudflare
       const cfData = await cloudflareResponse.json();
       const cloudflareStatus = cfData.result?.status?.state;
       
-      console.log(`[MP4-Step 1b] Cloudflare status: ${cloudflareStatus}`);
+      console.log(`[MP4-${requestId}] 📊 Cloudflare status: ${cloudflareStatus}`);
       
-      // If not ready in Cloudflare, return error
       if (cloudflareStatus !== 'ready') {
-        console.log(`[MP4-Step 1c] Video is not ready in Cloudflare: ${cloudflareStatus}`);
+        console.log(`[MP4-${requestId}] ⚠️ Video is not ready in Cloudflare: ${cloudflareStatus}`);
         return res.status(400).json({ 
           message: 'Video is not ready for MP4 processing',
-          cloudflareStatus: cloudflareStatus
+          cloudflareStatus,
+          requestId
         });
       }
-      
-      // Update status to stream_ready first
-      console.log(`[MP4-Step 1d] Updating status to stream_ready`);
-      await supabase
-        .from('clips')
-        .update({
-          status: 'stream_ready',
-          status_message: getStatusMessage('stream_ready'),
-          progress: getMinProgressForStatus('stream_ready')
-        })
-        .eq('cloudflare_uid', videoUid);
     }
     
-    // Signal for status update to waitformp4 instead of directly changing it
-    console.log(`[MP4-Step 2] Signaling status update to waitformp4`);
-    await signalStatusUpdate(videoUid, 'waitformp4');
-    
-    // Update progress and message
+    // Step 7: Update status to mp4_processing
+    console.log(`[MP4-${requestId}] ⚠️ Updating status to mp4_processing`);
     await supabase
       .from('clips')
       .update({
-        status_message: getStatusMessage('waitformp4'),
-        progress: getMinProgressForStatus('waitformp4'),
-        mp4_started_at: new Date().toISOString()
+        status: 'mp4_processing'
       })
       .eq('cloudflare_uid', videoUid);
     
-    // Request MP4 from Cloudflare
-    console.log(`[MP4-Step 3] Requesting MP4 from Cloudflare API`);
+    // Step 8: Request MP4 from Cloudflare
+    console.log(`[MP4-${requestId}] 📥 Requesting MP4 from Cloudflare API`);
     const mp4Response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}/downloads`,
       {
@@ -215,135 +251,159 @@ export default async function handler(req, res) {
       }
     );
     
+    // Step 9: Handle MP4 request errors
     if (!mp4Response.ok) {
-      console.log(`[MP4-Step 3a] Error requesting MP4: ${mp4Response.status}`);
-      
-      // Update with error status
-      await supabase
-        .from('clips')
-        .update({
-          status: 'error',
-          error_message: 'Failed to request MP4 from Cloudflare'
-        })
-        .eq('cloudflare_uid', videoUid);
-        
-      return res.status(mp4Response.status).json({ message: 'Failed to request MP4 from Cloudflare' });
+      console.log(`[MP4-${requestId}] ❌ Error requesting MP4: ${mp4Response.status}`);
+      await updateErrorStatus(videoUid, 'Failed to request MP4 from Cloudflare');
+      return res.status(mp4Response.status).json({ message: 'Failed to request MP4 from Cloudflare', requestId });
     }
     
+    // Step 10: Process MP4 response
     const mp4Data = await mp4Response.json();
-    console.log(`[MP4-Step 3b] MP4 request response:`, mp4Data);
+    console.log(`[MP4-${requestId}] 📄 MP4 request response received`);
     
     if (!mp4Data.success) {
-      console.log(`[MP4-Step 3c] Cloudflare API error:`, mp4Data.errors);
-      
-      // Update with error status
-      await supabase
-        .from('clips')
-        .update({
-          status: 'error',
-          error_message: 'Failed to request MP4: ' + JSON.stringify(mp4Data.errors)
-        })
-        .eq('cloudflare_uid', videoUid);
-        
-      return res.status(400).json({ message: 'Cloudflare API error', errors: mp4Data.errors });
+      console.log(`[MP4-${requestId}] ❌ Cloudflare API error:`, mp4Data.errors);
+      await updateErrorStatus(videoUid, 'Failed to request MP4: ' + JSON.stringify(mp4Data.errors));
+      return res.status(400).json({ message: 'Cloudflare API error', errors: mp4Data.errors, requestId });
     }
     
-    // Get the MP4 status and URL
+    // Step 11: Get MP4 status and URL
     const mp4Status = mp4Data.result?.default?.status || 'unknown';
     const mp4Url = mp4Data.result?.default?.url;
-    const mp4Progress = mp4Data.result?.default?.percentComplete || 0;
     
-    console.log(`[MP4-Step 3d] MP4 status: ${mp4Status}, progress: ${mp4Progress}%, URL: ${mp4Url}`);
+    console.log(`[MP4-${requestId}] 📊 MP4 status: ${mp4Status}, URL: ${mp4Url ? 'Available' : 'Not available'}`);
     
-    // Get thumbnail URL
+    // Step 12: Get thumbnail URL
     const thumbnailUrl = await getThumbnailUrl(videoUid);
     
-    // If MP4 is ready immediately (rare, but possible), signal for mp4downloading
+    // Step 13: Handle immediate MP4 ready case
     if (mp4Status === 'ready' && mp4Url) {
-      console.log(`[MP4-Step 4] MP4 is already ready, signaling status update to mp4downloading`);
+      console.log(`[MP4-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
+      console.log(`[MP4-${requestId}] ✅ MP4 is already READY!`);
+      console.log(`[MP4-${requestId}] ⚠️ Updating status to mp4_downloading`);
       
-      await signalStatusUpdate(videoUid, 'mp4downloading');
-      
-      // Update status-related fields
       await supabase
         .from('clips')
-        .update({
-          status_message: getStatusMessage('mp4downloading'),
-          progress: getMinProgressForStatus('mp4downloading'),
-          mp4_download_url: mp4Url,
-          mp4_ready_at: new Date().toISOString(),
-          thumbnail_url: thumbnailUrl,
-          mp4_status: mp4Status,
-          mp4_percent: mp4Progress,
-          mp4_url: mp4Url
+        .update({ 
+          status: 'mp4_downloading',
+          mp4link: mp4Url
         })
         .eq('cloudflare_uid', videoUid);
         
-      // Update thumbnail in clips table
-      if (thumbnailUrl) {
-        await supabase
-          .from('clips')
-          .update({ thumbnail_url: thumbnailUrl, thumbnail_path: thumbnailUrl })
-          .eq('cloudflare_uid', videoUid);
-      }
-        
-      console.log(`[MP4-Step 4a] Updated status message to mp4downloading, will trigger R2 upload next`);
+      console.log(`[MP4-${requestId}] ✅ Updated status to mp4_downloading`);
+      console.log(`[MP4-${requestId}] 🚀 Will trigger R2 upload next`);
       
-      // We'll trigger the upload-to-r2 endpoint to handle the next step
+      // Step 14: Trigger R2 upload
       try {
-        const r2Response = await fetch('http://localhost:3000/api/cloudflare/upload-to-r2', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Source': 'enable-mp4'
-          },
-          body: JSON.stringify({ videoUid })
-        });
+        await triggerR2Upload(videoUid);
         
-        console.log(`[MP4-Step 4b] R2 upload triggered, status: ${r2Response.status}`);
+        // Just trigger R2 upload and continue - don't wait for it to complete
+        // R2 upload will handle its own status updates
+        console.log(`[MP4-${requestId}] ✅ R2 upload initiated successfully`);
+        console.log(`[MP4-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
+        return res.status(200).json({
+          message: 'MP4 is ready, R2 upload triggered',
+          status: 'mp4_downloading',
+          mp4Url: mp4Url,
+          requestId
+        });
       } catch (r2Error) {
-        console.log(`[MP4-Step 4c] Error triggering R2 upload: ${r2Error.message}`);
+        console.log(`[MP4-${requestId}] ❌ Error triggering R2 upload: ${r2Error.message}`);
+        await updateErrorStatus(videoUid, `Failed to trigger R2 upload: ${r2Error.message}`);
+        return res.status(500).json({
+          message: 'Failed to trigger R2 upload',
+          error: r2Error.message,
+          requestId
+        });
       }
-      
-      return res.status(200).json({
-        message: 'MP4 is ready, triggered R2 upload',
-        status: 'mp4downloading',
-        mp4Url: mp4Url
-      });
     }
     
-    // Otherwise, leave in waitformp4 status and let poll-mp4-status handle it
-    console.log(`[MP4-Step 5] MP4 is being processed (${mp4Status}), leaving status signal as waitformp4`);
+    // Step 15: Start polling for MP4 status
+    console.log(`[MP4-${requestId}] ⏳ MP4 is being processed (${mp4Status}), starting status polling`);
     
-    // Update with any available info but keep status signal as waitformp4
+    // Step 16: Update with available info
     await supabase
       .from('clips')
       .update({
-        mp4_status: mp4Status,
-        mp4_percent: mp4Progress,
-        mp4_url: mp4Url,
-        progress: Math.max(getMinProgressForStatus('waitformp4'), mp4Progress),
-        status_message: `Creating MP4 version (${mp4Status})...`,
-        thumbnail_url: thumbnailUrl
+        mp4link: mp4Url,
+        thumbnail_url: thumbnailUrl,
+        thumbnail_path: thumbnailUrl
       })
       .eq('cloudflare_uid', videoUid);
+    
+    // Step 17: Poll for MP4 status
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes maximum (5 seconds * 60)
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds between checks
       
-    // Update thumbnail in clips table
-    if (thumbnailUrl) {
-      await supabase
-        .from('clips')
-        .update({ thumbnail_url: thumbnailUrl, thumbnail_path: thumbnailUrl })
-        .eq('cloudflare_uid', videoUid);
+      try {
+        const mp4Info = await checkMp4Status(videoUid);
+        
+        // Step 18: Handle MP4 ready case
+        if (mp4Info.status === 'ready' && mp4Info.url) {
+          console.log(`[MP4-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
+          console.log(`[MP4-${requestId}] ✅ MP4 is ready after ${attempts} attempts!`);
+          console.log(`[MP4-${requestId}] ⚠️ Updating status to mp4_downloading`);
+          
+          await supabase
+            .from('clips')
+            .update({ 
+              status: 'mp4_downloading',
+              mp4link: mp4Info.url
+            })
+            .eq('cloudflare_uid', videoUid);
+            
+          console.log(`[MP4-${requestId}] ✅ Updated status to mp4_downloading`);
+          console.log(`[MP4-${requestId}] 🚀 Will trigger R2 upload next`);
+          
+          // Step 19: Trigger R2 upload
+          try {
+            await triggerR2Upload(videoUid);
+            
+            // Just trigger R2 upload and continue - don't wait for it to complete
+            // R2 upload will handle its own status updates
+            console.log(`[MP4-${requestId}] ✅ R2 upload initiated successfully`);
+            console.log(`[MP4-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
+            return res.status(200).json({
+              message: 'MP4 is ready, R2 upload triggered',
+              status: 'mp4_downloading',
+              mp4Url: mp4Info.url,
+              requestId
+            });
+          } catch (r2Error) {
+            console.log(`[MP4-${requestId}] ❌ Error triggering R2 upload: ${r2Error.message}`);
+            await updateErrorStatus(videoUid, `Failed to trigger R2 upload: ${r2Error.message}`);
+            return res.status(500).json({
+              message: 'Failed to trigger R2 upload',
+              error: r2Error.message,
+              requestId
+            });
+          }
+        }
+        
+        console.log(`[MP4-${requestId}] ⏳ MP4 still processing (${mp4Info.status}, ${mp4Info.percentComplete}%)`);
+      } catch (error) {
+        console.error(`[MP4-${requestId}] ❌ Error checking MP4 status: ${error.message}`);
+        // Continue polling despite errors
+      }
     }
     
-    console.log('=== ENABLE MP4 PROCESS COMPLETED SUCCESSFULLY ===');
-    return res.status(200).json({
-      message: 'MP4 generation started',
-      status: mp4Status,
-      mp4Url: mp4Url
+    // Step 20: Handle timeout case
+    console.log(`[MP4-${requestId}] ⏱️ MP4 not ready after ${maxAttempts} attempts, giving up`);
+    await updateErrorStatus(videoUid, 'MP4 processing timed out');
+    
+    return res.status(408).json({
+      message: 'MP4 processing timed out',
+      status: 'error',
+      requestId
     });
   } catch (error) {
-    console.error(`[ENABLE-MP4] Error processing ${videoUid}: ${error.message}`);
-    return res.status(500).json({ message: 'Server error', error: error.message });
+    // Step 21: Handle general errors
+    console.error(`[ENABLE-MP4-${requestId}] ❌ Error processing ${videoUid}: ${error.message}`);
+    return res.status(500).json({ message: 'Server error', error: error.message, requestId });
   }
 } 

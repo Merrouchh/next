@@ -1,265 +1,234 @@
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getStatusMessage, getMinProgressForStatus } from '../../../CloudFlareStreamProgressDataUpdate/src/statusUtils.js';
 
 // Environment variables
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'pub-4884e5ccdad64ae89dbf9c9f39875f1b.r2.dev';
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Track active uploads to prevent duplicates
-const activeUploads = new Set();
+// Initialize S3 client for R2
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+  },
+});
+
+// Validate R2 configuration
+if (!R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME || !R2_ACCOUNT_ID) {
+  console.error('[R2-Config] ❌ Missing R2 configuration. Please check environment variables:');
+  console.error(`R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID ? '✅ Set' : '❌ Missing'}`);
+  console.error(`R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY ? '✅ Set' : '❌ Missing'}`);
+  console.error(`R2_BUCKET_NAME: ${R2_BUCKET_NAME ? '✅ Set' : '❌ Missing'}`);
+  console.error(`R2_ACCOUNT_ID: ${R2_ACCOUNT_ID ? '✅ Set' : '❌ Missing'}`);
+  throw new Error('R2 configuration is incomplete. Please check environment variables.');
+}
 
 /**
- * API endpoint to upload a video from Cloudflare to R2 storage
- * 
- * This endpoint fetches the MP4 from Cloudflare and uploads it to R2 storage.
- * It updates the clip status to 'complete' after successful upload.
+ * Downloads a file from a URL
+ * @param {string} url - The URL to download from
+ * @returns {Promise<Buffer>} The downloaded file as a buffer
+ */
+async function downloadFile(url) {
+  try {
+    console.log(`[R2-Step 1] 📥 Downloading file from: ${url}`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+    
+    const fileBuffer = Buffer.from(await response.arrayBuffer());
+    const fileSizeMB = (fileBuffer.length / 1024 / 1024).toFixed(2);
+    console.log(`[R2-Step 1] ✅ Downloaded file successfully: ${fileBuffer.length} bytes (${fileSizeMB} MB)`);
+    return fileBuffer;
+  } catch (error) {
+    console.error(`[R2-Step 1] ❌ Error downloading file: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Uploads a file to R2
+ * @param {string} key - The key to store the file under in R2
+ * @param {Buffer} fileBuffer - The file buffer to upload
+ * @returns {Promise<string>} The URL of the uploaded file
+ */
+async function uploadToR2(key, fileBuffer) {
+  try {
+    console.log(`[R2-Step 2] 📤 Uploading file to R2 with key: ${key}`);
+    console.log(`[R2-Step 2] ℹ️ Using bucket: ${R2_BUCKET_NAME}`);
+    console.log(`[R2-Step 2] ℹ️ Using endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`);
+    console.log(`[R2-Step 2] ℹ️ Public URL format: https://${R2_PUBLIC_URL}`);
+    
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Body: fileBuffer,
+      ContentType: 'video/mp4',
+    });
+
+    await s3Client.send(command);
+    const fileUrl = `https://${R2_PUBLIC_URL}/${key}`;
+    console.log(`[R2-Step 2] ✅ File uploaded successfully: ${fileUrl}`);
+    return fileUrl;
+  } catch (error) {
+    console.error(`[R2-Step 2] ❌ Error uploading to R2: ${error.message}`);
+    console.error(`[R2-Step 2] ❌ Error details:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the database with error status
+ * @param {string} videoUid - Cloudflare video UID
+ * @param {string} errorMessage - Error message
+ */
+async function updateErrorStatus(videoUid, errorMessage) {
+  try {
+    await supabase
+      .from('clips')
+      .update({
+        status: 'error',
+        error_message: errorMessage
+      })
+      .eq('cloudflare_uid', videoUid);
+  } catch (error) {
+    console.error(`[R2] Error updating database with error status: ${error.message}`);
+  }
+}
+
+/**
+ * API handler for uploading MP4 to R2
  */
 export default async function handler(req, res) {
-  // Only accept POST requests
+  // Step 1: Validate request method
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
   const { videoUid } = req.body;
   const source = req.headers.source || 'unknown';
-  
+  const requestId = Math.random().toString(36).substring(2, 15);
+  const startTime = Date.now();
+
+  console.log(`[R2-Upload-${requestId}] 🚀 Starting R2 upload process for ${videoUid}. Source: ${source}`);
+
+  // Step 2: Validate videoUid
   if (!videoUid) {
-    return res.status(400).json({ message: 'Missing videoUid parameter' });
+    console.error(`[R2-Upload-${requestId}] ❌ No videoUid provided`);
+    return res.status(400).json({ message: 'videoUid is required' });
   }
 
-  // Check if this video is already being uploaded
-  if (activeUploads.has(videoUid)) {
-    console.log(`[UPLOAD-R2][${videoUid}] Upload already in progress, skipping`);
-    return res.status(409).json({ message: 'Upload already in progress for this video' });
-  }
-
-  // Mark this video as being uploaded
-  activeUploads.add(videoUid);
-  
   try {
-    console.log(`[UPLOAD-R2][${videoUid}] Starting upload process. Source: ${source}`);
-    
-    // Get video from database
-    const { data: video, error: videoError } = await supabase
+    // Step 3: Check if video exists and get current status
+    const { data: existingData, error: dbError } = await supabase
       .from('clips')
       .select('*')
       .eq('cloudflare_uid', videoUid)
       .single();
-    
-    if (videoError) {
-      console.error(`[UPLOAD-R2][${videoUid}] Error fetching video: ${videoError.message}`);
-      return res.status(500).json({ message: `Error fetching video: ${videoError.message}` });
-    }
-    
-    if (!video) {
-      console.log(`[UPLOAD-R2][${videoUid}] Video not found in database`);
+
+    if (dbError || !existingData) {
+      console.error(`[R2-Upload-${requestId}] ❌ Video ${videoUid} not found in database`);
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    // Check if video is already completed
-    if (video.status === 'complete') {
-      console.log(`[UPLOAD-R2][${videoUid}] Video already in complete status, skipping upload`);
-      return res.status(200).json({
-        message: 'Video already completed',
-        videoUid,
-        status: 'complete'
+    // Step 4: Get current status
+    const currentStatus = existingData.status;
+    console.log(`[R2-Upload-${requestId}] 📊 Video current status: ${currentStatus}`);
+
+    // Step 5: If already in r2_uploading or complete status, return success
+    if (['r2_uploading', 'complete'].includes(currentStatus)) {
+      console.log(`[R2-Upload-${requestId}] ✓ Video ${videoUid} already in ${currentStatus} status, skipping`);
+      return res.status(200).json({ 
+        message: `Video already in ${currentStatus} status`,
+        status: currentStatus
       });
     }
-    
-    if (video.status !== 'mp4downloading') {
-      // Update status to mp4downloading if in a valid previous state
-      if (['waitformp4', 'ready', 'processing'].includes(video.status)) {
-        console.log(`[UPLOAD-R2][${videoUid}] Changing status from ${video.status} to mp4downloading`);
-        
-        await supabase
-          .from('clips')
-          .update({
-            status: 'mp4downloading',
-            status_message: getStatusMessage('mp4downloading'),
-            progress: getMinProgressForStatus('mp4downloading')
-          })
-          .eq('cloudflare_uid', videoUid);
-      } else {
-        console.log(`[UPLOAD-R2][${videoUid}] Video in unexpected status: ${video.status}, proceeding anyway`);
-      }
+
+    // Step 6: If not in mp4_downloading status, return error
+    if (currentStatus !== 'mp4_downloading') {
+      console.log(`[R2-Upload-${requestId}] ⚠️ Video ${videoUid} is not in mp4_downloading status (current: ${currentStatus})`);
+      return res.status(400).json({ 
+        message: 'Video is not ready for R2 upload',
+        currentStatus: currentStatus
+      });
     }
-    
-    // Check if we have the MP4 URL
-    if (!video.mp4_download_url) {
-      console.log(`[UPLOAD-R2][${videoUid}] No MP4 URL found, checking status`);
-      
-      try {
-        // Call poll-mp4-status to get the URL
-        const response = await fetch('http://localhost:3000/api/cloudflare/poll-mp4-status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Source': 'upload-r2'
-          },
-          body: JSON.stringify({ videoUid })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Poll MP4 API returned ${response.status}: ${response.statusText}`);
-        }
-        
-        const pollResult = await response.json();
-        console.log(`[UPLOAD-R2][${videoUid}] MP4 poll result:`, pollResult);
-        
-        // Re-fetch video to get updated MP4 URL
-        const { data: updatedVideo, error: updateError } = await supabase
-          .from('clips')
-          .select('*')
-          .eq('cloudflare_uid', videoUid)
-          .single();
-        
-        if (updateError) {
-          throw new Error(`Error re-fetching video: ${updateError.message}`);
-        }
-        
-        if (!updatedVideo.mp4_download_url) {
-          throw new Error('MP4 URL still not available');
-        }
-        
-        // Update our reference
-        video.mp4_download_url = updatedVideo.mp4_download_url;
-        
-      } catch (pollError) {
-        console.error(`[UPLOAD-R2][${videoUid}] Error getting MP4 URL: ${pollError.message}`);
-        
-        await supabase
-          .from('clips')
-          .update({
-            error_message: `Failed to get MP4 URL: ${pollError.message}`
-          })
-          .eq('cloudflare_uid', videoUid);
-        
-        return res.status(500).json({ message: `Error getting MP4 URL: ${pollError.message}` });
-      }
+
+    // Step 7: Get MP4 URL from database
+    const mp4Url = existingData.mp4link;
+    if (!mp4Url) {
+      const errorMessage = 'No MP4 URL found in database';
+      console.error(`[R2-Upload-${requestId}] ❌ ${errorMessage}`);
+      await updateErrorStatus(videoUid, errorMessage);
+      return res.status(400).json({ message: errorMessage });
     }
-    
-    console.log(`[UPLOAD-R2][${videoUid}] Starting download from: ${video.mp4_download_url}`);
-    
-    // Update progress
+
+    // Step 8: Download MP4 from Cloudflare
+    const fileBuffer = await downloadFile(mp4Url);
+    const fileSizeMB = (fileBuffer.length / 1024 / 1024).toFixed(2);
+    console.log(`[R2-Upload-${requestId}] ✅ Downloaded MP4 file: ${fileSizeMB} MB`);
+
+    // Step 9: Update status to r2_uploading before starting R2 upload
+    console.log(`[R2-Upload-${requestId}] ⚠️ Updating status to r2_uploading`);
     await supabase
       .from('clips')
       .update({
-        status_message: 'Downloading MP4 from Cloudflare...',
-        progress: Math.max(getMinProgressForStatus('mp4downloading'), 75)
+        status: 'r2_uploading'
       })
       .eq('cloudflare_uid', videoUid);
-    
-    // Download MP4 from Cloudflare
-    const mp4Response = await fetch(video.mp4_download_url);
-    
-    if (!mp4Response.ok) {
-      console.error(`[UPLOAD-R2][${videoUid}] Error downloading MP4: ${mp4Response.status} ${mp4Response.statusText}`);
-      
-      await supabase
-        .from('clips')
-        .update({
-          error_message: `Failed to download MP4: ${mp4Response.statusText}`
-        })
-        .eq('cloudflare_uid', videoUid);
-      
-      return res.status(500).json({ message: `Error downloading MP4: ${mp4Response.statusText}` });
-    }
-    
-    const mp4Data = await mp4Response.arrayBuffer();
-    console.log(`[UPLOAD-R2][${videoUid}] Downloaded MP4, size: ${Math.round(mp4Data.byteLength / 1024 / 1024)}MB`);
-    
-    // Update progress
-    await supabase
-      .from('clips')
-      .update({
-        status_message: 'Uploading MP4 to R2...',
-        progress: Math.max(getMinProgressForStatus('mp4downloading'), 85)
-      })
-      .eq('cloudflare_uid', videoUid);
-    
-    // Initialize R2 client
-    const r2 = new S3Client({
-      region: 'auto',
-      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID,
-        secretAccessKey: R2_SECRET_ACCESS_KEY
-      }
-    });
-    
-    // Generate a unique key for the object
-    const filename = `${videoUid}.mp4`;
-    const r2ObjectKey = `videos/${filename}`;
-    
-    // Upload to R2
-    const putCommand = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: r2ObjectKey,
-      Body: Buffer.from(mp4Data),
-      ContentType: 'video/mp4'
-    });
-    
-    console.log(`[UPLOAD-R2][${videoUid}] Uploading to R2 with key: ${r2ObjectKey}`);
-    const r2Result = await r2.send(putCommand);
-    console.log(`[UPLOAD-R2][${videoUid}] R2 upload complete:`, r2Result);
-    
-    // Generate public URL
-    const publicUrl = `${R2_PUBLIC_URL}/${r2ObjectKey}`;
-    console.log(`[UPLOAD-R2][${videoUid}] Public URL: ${publicUrl}`);
-    
-    // Update database with complete status
+
+    // Step 10: Upload to R2
+    const r2Key = `videos/${videoUid}.mp4`;
+    const r2Url = await uploadToR2(r2Key, fileBuffer);
+
+    // Step 11: Update database with R2 URL and complete status
+    console.log(`[R2-Upload-${requestId}] ⚠️ Updating database with R2 URL and complete status`);
     const { error: updateError } = await supabase
       .from('clips')
       .update({
         status: 'complete',
-        status_message: getStatusMessage('complete'),
-        progress: 100,
-        r2_url: publicUrl,
-        completed_at: new Date().toISOString()
+        mp4link: r2Url
       })
       .eq('cloudflare_uid', videoUid);
-    
+
     if (updateError) {
-      console.error(`[UPLOAD-R2][${videoUid}] Error updating database: ${updateError.message}`);
-      return res.status(500).json({ message: `Error updating database: ${updateError.message}` });
+      console.error(`[R2-Upload-${requestId}] ❌ Error updating database:`, updateError);
+      throw updateError;
     }
-    
-    console.log(`[UPLOAD-R2][${videoUid}] Process complete, video available at: ${publicUrl}`);
+
+    const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[R2-Upload-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
+    console.log(`[R2-Upload-${requestId}] ✅ R2 UPLOAD COMPLETED SUCCESSFULLY`);
+    console.log(`[R2-Upload-${requestId}] 📊 Video ${videoUid} is now COMPLETE`);
+    console.log(`[R2-Upload-${requestId}] 🔗 MP4 URL: ${r2Url}`);
+    console.log(`[R2-Upload-${requestId}] ⏱️ Processing time: ${processingTime} seconds`);
+    console.log(`[R2-Upload-${requestId}] ✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨`);
     
     return res.status(200).json({
-      message: 'Upload complete',
-      videoUid,
-      publicUrl,
-      status: 'complete'
+      message: 'Video uploaded to R2 successfully',
+      status: 'complete',
+      mp4link: r2Url,
+      processingTime: `${processingTime} seconds`
     });
-    
   } catch (error) {
-    console.error(`[UPLOAD-R2][${videoUid}] Unexpected error: ${error.message}`);
+    console.error(`[R2-Upload-${requestId}] ❌ Error processing ${videoUid}: ${error.message}`);
     
-    // Update with error info
-    try {
-      await supabase
-        .from('clips')
-        .update({
-          error_message: error.message
-        })
-        .eq('cloudflare_uid', videoUid);
-    } catch (updateError) {
-      console.error(`[UPLOAD-R2][${videoUid}] Error updating error message: ${updateError.message}`);
-    }
-    
-    return res.status(500).json({ message: error.message });
-  } finally {
-    // Always clean up the active upload tracking
-    activeUploads.delete(videoUid);
+    // Step 12: Update database with error status
+    await updateErrorStatus(videoUid, error.message);
+      
+    return res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 }

@@ -19,14 +19,19 @@ function getStatusLabel(status) {
   if (!status) return 'Ready';
   
   switch (status) {
-    case 'uploading': return 'Uploading to server...';
-    case 'queued': return 'Queued for processing...';
+    case 'uploading': return 'Uploading to Cloudflare...';
+    case 'queue': return 'Queued for processing...';
     case 'processing': return 'Processing video...';
+    case 'ready_to_stream': return 'Ready for MP4 creation...';
+    case 'mp4_processing': return 'Creating MP4 version...';
+    case 'mp4_downloading': return 'Downloading MP4...';
+    case 'r2_uploading': return 'Uploading to storage...';
+    case 'complete': return 'Processing complete!';
+    // Handle legacy status names for backward compatibility
+    case 'queued': return 'Queued for processing...';
     case 'stream_ready': return 'Ready for MP4 creation...';
     case 'waitformp4': return 'Creating MP4 version...';
     case 'mp4downloading': return 'Downloading MP4...';
-    case 'mp4_processing': return 'Processing MP4...';
-    case 'r2_uploading': return 'Uploading to storage...';
     default: return 'Processing...';
   }
 }
@@ -39,34 +44,24 @@ function getProgressPercentage(clip) {
   
   // Check if we have a progress value in processing_details
   if (clip.processing_details?.progress) {
-    // For MP4 processing steps, ensure progress is always at least 70%
+    // For MP4 processing steps, ensure progress is always at least 65%
     if (['mp4_processing', 'waitformp4'].includes(status)) {
-      return Math.max(70, clip.processing_details.progress);
+      return Math.max(65, clip.processing_details.progress);
     }
     
     // For other statuses, use the provided progress value
     return clip.processing_details.progress;
   }
   
-  // Special handling for MP4 processing steps to ensure visual progress
-  // This ensures the progress bar doesn't appear to go backward
-  if (status === 'mp4_processing') {
-    // Use higher value between default and any mp4_percent_complete from details
-    return Math.max(75, clip.processing_details?.mp4_percent_complete || 75);
-  }
-  
-  if (status === 'waitformp4') {
-    // Use higher value between default and any mp4_percent_complete from details
-    return Math.max(80, clip.processing_details?.mp4_percent_complete || 80);
-  }
-  
-  // Otherwise, return specific percentage based on the status
+  // Return specific percentage based on the status
+  // More evenly distributed percentages across the pipeline
   switch (status) {
-    case 'uploading': return 15;
-    case 'queued': return 30;
-    case 'processing': return 50;
-    case 'stream_ready': return 60;
-    case 'mp4downloading': return 90;
+    case 'uploading': return 12;
+    case 'queue': case 'queued': return 25;
+    case 'processing': return 38;
+    case 'ready_to_stream': case 'stream_ready': return 50;
+    case 'mp4_processing': case 'waitformp4': return 65;
+    case 'mp4_downloading': case 'mp4downloading': return 80;
     case 'r2_uploading': return 95;
     case 'complete': return 100;
     default: return 50;
@@ -75,22 +70,48 @@ function getProgressPercentage(clip) {
 
 function getProgressColor(status) {
   // Default for undefined status
-  if (!status) return '#7ed321'; // Green for completed/default
+  if (!status) return '#00b74a'; // Bright Green for completed/default
   
+  // Map status to processing stage
+  const stage = getProcessingStage(status);
+  
+  // Color palette from early to late stages
+  switch (stage) {
+    case 1: return '#4a90e2'; // Blue - Early stages (uploading, queue)
+    case 2: return '#5d8edd'; // Blue-teal - Processing
+    case 3: return '#f5a623'; // Orange - Middle stages (ready_to_stream, mp4_processing)
+    case 4: return '#a1d05e'; // Yellow-green - Late stages (mp4_downloading)
+    case 5: return '#7ed321'; // Green - Final stages (r2_uploading)
+    case 6: return '#00b74a'; // Bright Green - Complete
+    default: return '#4a90e2'; // Default blue
+  }
+}
+
+/**
+ * Helper function to determine the processing stage for color coding
+ */
+function getProcessingStage(status) {
   switch (status) {
-    case 'uploading':
+    case 'uploading': 
+      return 1;
+    case 'queue': 
     case 'queued':
-      return '#4a90e2'; // Blue for early stages
-    case 'processing':
+    case 'processing': 
+      return 2;
+    case 'ready_to_stream': 
     case 'stream_ready':
+    case 'mp4_processing': 
     case 'waitformp4':
-      return '#f5a623'; // Orange for middle stages
+      return 3;
+    case 'mp4_downloading': 
     case 'mp4downloading':
-    case 'mp4_processing':
-    case 'r2_uploading':
-      return '#7ed321'; // Green for final stages
-    default:
-      return '#4a90e2'; // Default blue
+      return 4;
+    case 'r2_uploading': 
+      return 5;
+    case 'complete':
+      return 6;
+    default: 
+      return 1;
   }
 }
 
@@ -120,8 +141,9 @@ const ClipCard = ({
   // Check if the clip is still processing
   // Add safety check - if status is missing, assume clip is complete
   const clipStatus = clipData.status || 'complete';
-  const isProcessing = ['uploading', 'queued', 'processing', 'stream_ready', 
-    'waitformp4', 'mp4downloading', 'mp4_processing', 'r2_uploading'].includes(clipStatus);
+  const isProcessing = ['uploading', 'queue', 'queued', 'processing', 'ready_to_stream', 
+    'stream_ready', 'waitformp4', 'mp4_processing', 'mp4_downloading', 'mp4downloading', 
+    'r2_uploading'].includes(clipStatus);
   
   // Log processing state for debugging
   if (isProcessing) {

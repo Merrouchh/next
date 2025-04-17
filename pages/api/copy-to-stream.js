@@ -255,15 +255,7 @@ export default async function handler(req, res) {
         dash_url: null,
         mp4link: null,
         likes_count: 0,
-        views_count: 0,
-        // Direct fields instead of nested processing_details
-        progress: 0,
-        upload_started_at: new Date().toISOString(),
-        original_filename: fileName,
-        cloudflare_status: 'uploading',
-        ready_to_stream: false,
-        status_message: 'Uploading video to Cloudflare...',
-        description: description || ''
+        views_count: 0
       }]);
       
     // ===== STEP 7.4: VERIFY DATABASE INSERT =====
