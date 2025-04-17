@@ -25,10 +25,10 @@ const updateProcessingStatus = async (videoUid, status, details = {}, userId = n
         .from('clips')
         .update({
           status: status,
-          processing_details: {
-            ...details,
-            last_updated: new Date().toISOString()
-          }
+          error_message: details.error_message || null,
+          progress: details.progress || 0,
+          status_message: details.status_message || null,
+          last_updated: new Date().toISOString()
         })
         .eq('cloudflare_uid', videoUid);
         
@@ -60,10 +60,10 @@ const updateProcessingStatus = async (videoUid, status, details = {}, userId = n
             visibility: details.visibility || 'public',
             uploaded_at: new Date().toISOString(),
             status: status,
-            processing_details: {
-              ...details,
-              initial_upload_timestamp: new Date().toISOString()
-            }
+            progress: details.progress || 0,
+            status_message: details.status_message || null,
+            error_message: details.error_message || null,
+            initial_upload_timestamp: new Date().toISOString()
           }]);
             
         if (insertError) {
@@ -98,9 +98,8 @@ export default async function handler(req, res) {
       
       // Update the status in clips table
       await updateProcessingStatus(uid, 'error', {
-        cancelled_at: new Date().toISOString(),
-        cancelled_reason: 'User cancelled upload',
-        error_message: 'Upload cancelled by user'
+        error_message: 'Upload cancelled by user',
+        status_message: 'Upload cancelled by user'
       });
       
       return res.status(200).json({ success: true, message: 'Upload cancelled successfully' });
@@ -123,9 +122,8 @@ export default async function handler(req, res) {
       
       // Update status in clips table
       await updateProcessingStatus(uid, 'error', {
-        cancelled_at: new Date().toISOString(),
-        cancelled_reason: 'Page closed during upload',
-        error_message: 'Upload cancelled - page closed by user'
+        error_message: 'Upload cancelled - page closed by user',
+        status_message: 'Page closed during upload'
       });
       
       return res.status(200).json({ success: true, message: 'Upload marked as cancelled' });
@@ -258,19 +256,14 @@ export default async function handler(req, res) {
         mp4link: null,
         likes_count: 0,
         views_count: 0,
-        processing_details: {
-          progress: 0,
-          upload_started_at: new Date().toISOString(),
-          original_filename: fileName,
-          cloudflare_status: 'uploading',
-          ready_to_stream: false,
-          title,
-          game,
-          visibility,
-          username,
-          thumbnail_url: expectedThumbnailUrl,
-          description: description || ''
-        }
+        // Direct fields instead of nested processing_details
+        progress: 0,
+        upload_started_at: new Date().toISOString(),
+        original_filename: fileName,
+        cloudflare_status: 'uploading',
+        ready_to_stream: false,
+        status_message: 'Uploading video to Cloudflare...',
+        description: description || ''
       }]);
       
     // ===== STEP 7.4: VERIFY DATABASE INSERT =====

@@ -785,3 +785,205 @@
 {"level":"error","message":"Error fetching Cloudflare status for 62653c1a2b8f46618f75946c7c89d41a: VIDEO_NOT_FOUND","stack":"Error: VIDEO_NOT_FOUND\n    at getCloudflareStatus (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/src/index.js:100:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async monitorPendingVideos (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/src/index.js:497:32)\n    at async Timeout._onTimeout (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/src/index.js:641:15)","timestamp":"2025-04-16T07:49:22.764Z"}
 {"level":"error","message":"[VIDEO 62653c1a2b8f46618f75946c7c89d41a] ERROR: VIDEO_NOT_FOUND","timestamp":"2025-04-16T07:49:22.764Z"}
 {"level":"error","message":"[VIDEO d5a4f1061abf4d968eca92c4f557042e] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-16T07:56:25.877Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.268Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.268Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.270Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.272Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.273Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.275Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.277Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.279Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.282Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.285Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.274Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.276Z"}
+{"level":"error","message":"[VIDEO 5847d147fb5d473e829789c6e7013fa2] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.279Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.283Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: read ECONNRESET","timestamp":"2025-04-17T02:52:43.284Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.288Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.288Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.291Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.293Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.291Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.294Z"}
+{"level":"error","message":"[VIDEO 573b92787a554977b8407e55d21e2bd6] Error calling upload-to-r2 API: request to http://localhost:3000/api/cloudflare/upload-to-r2 failed, reason: ","timestamp":"2025-04-17T02:52:43.296Z"}
+{"code":"ECONNREFUSED","errno":"ECONNREFUSED","level":"error","message":"MP4 polling failed: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: ","stack":"FetchError: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: \n    at ClientRequest.<anonymous> (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/node_modules/node-fetch/src/index.js:108:11)\n    at ClientRequest.emit (node:events:530:35)\n    at emitErrorEvent (node:_http_client:103:11)\n    at Socket.socketErrorListener (node:_http_client:506:5)\n    at Socket.emit (node:events:518:28)\n    at emitErrorNT (node:internal/streams/destroy:170:8)\n    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-04-17T02:52:44.869Z","type":"system"}
+{"code":"ECONNREFUSED","errno":"ECONNREFUSED","level":"error","message":"MP4 polling failed: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: ","stack":"FetchError: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: \n    at ClientRequest.<anonymous> (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/node_modules/node-fetch/src/index.js:108:11)\n    at ClientRequest.emit (node:events:530:35)\n    at emitErrorEvent (node:_http_client:103:11)\n    at Socket.socketErrorListener (node:_http_client:506:5)\n    at Socket.emit (node:events:518:28)\n    at emitErrorNT (node:internal/streams/destroy:170:8)\n    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-04-17T02:52:59.871Z","type":"system"}
+{"code":"ECONNREFUSED","errno":"ECONNREFUSED","level":"error","message":"MP4 polling failed: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: ","stack":"FetchError: request to http://localhost:3000/api/cloudflare/poll-mp4-status failed, reason: \n    at ClientRequest.<anonymous> (file:///C:/Users/Merrouch/Desktop/merrouchgaming/next-main/CloudFlareStreamProgressDataUpdate/node_modules/node-fetch/src/index.js:108:11)\n    at ClientRequest.emit (node:events:530:35)\n    at emitErrorEvent (node:_http_client:103:11)\n    at Socket.socketErrorListener (node:_http_client:506:5)\n    at Socket.emit (node:events:518:28)\n    at emitErrorNT (node:internal/streams/destroy:170:8)\n    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","timestamp":"2025-04-17T02:56:38.961Z","type":"system"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:41.820Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:41.894Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:41.894Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:51.560Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:51.641Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:12:51.642Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:01.579Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:01.661Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:01.661Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:11.566Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:11.641Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:11.641Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:21.569Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:21.640Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:21.640Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:31.598Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:31.675Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:31.676Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:41.588Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:41.661Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:41.661Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:51.960Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:52.062Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:13:52.062Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:01.595Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:01.675Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:01.675Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:11.598Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:11.675Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:11.676Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:21.695Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:21.773Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:21.773Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:31.627Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:31.706Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:31.707Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:41.615Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:41.687Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:41.687Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:51.635Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:51.708Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:14:51.709Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:01.634Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:01.709Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:01.709Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:11.635Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:11.709Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:11.713Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:21.712Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:21.797Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:21.797Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:31.653Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:31.736Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:31.736Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:41.656Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:41.733Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:41.734Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:51.677Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:51.756Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:15:51.756Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:01.690Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:01.764Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:01.765Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:11.856Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:11.992Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:11.993Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:22.008Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:22.078Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:22.078Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:31.704Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:31.775Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:31.775Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:41.722Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:41.797Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:41.797Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:51.721Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:51.793Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:16:51.794Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:01.731Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:01.807Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:01.807Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:11.732Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:11.808Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:11.809Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:21.791Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:21.869Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:21.869Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:31.732Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:31.814Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:31.815Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:41.769Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:41.848Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:41.848Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:51.776Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:51.860Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:17:51.861Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:01.993Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:02.068Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:02.068Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:11.754Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:11.830Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:11.831Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:21.838Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:21.912Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:21.913Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:31.882Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:31.959Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:31.960Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:41.789Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:41.868Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:41.869Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:51.794Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:51.872Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:18:51.872Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:01.798Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:01.877Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:01.878Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:11.807Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:11.889Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:11.889Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:21.811Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:21.891Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:21.891Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:31.857Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:31.941Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:31.942Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:42.307Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:42.397Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:42.397Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:52.017Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:52.161Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:19:52.162Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:01.853Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:01.929Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:01.929Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:11.846Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:11.921Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:11.921Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:21.856Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:21.932Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:21.933Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:31.871Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:31.950Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:31.950Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:41.889Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:41.966Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:41.966Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:51.894Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:51.972Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:20:51.973Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:01.895Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:01.976Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:01.977Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:11.923Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:12.007Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:12.008Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:21.928Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:22.009Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:22.009Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:31.907Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:31.982Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:31.982Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:41.984Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:42.060Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:42.061Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:51.935Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:52.033Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:21:52.033Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:01.945Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:02.023Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:02.023Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:11.948Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:12.021Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:12.021Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch mp4downloading videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:21.939Z"}
+{"level":"error","message":"[MONITOR] ERROR: Cannot fetch videos: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:22.010Z"}
+{"level":"error","message":"[MONITOR] CRITICAL ERROR: column clips.processing_details does not exist","timestamp":"2025-04-17T03:22:22.010Z"}
