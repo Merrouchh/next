@@ -48,8 +48,7 @@ export async function getServerSideProps({ req, res }) {
         user_id,
         cloudflare_uid,
         mp4link,
-        status,
-        processing_details
+        status
       `)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
