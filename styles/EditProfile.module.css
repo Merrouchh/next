@@ -681,4 +681,93 @@
 .removeButton:hover {
   background-color: #4a3030 !important;
   border-color: #ff5555 !important;
+}
+
+/* Grid layout for option cards */
+.optionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Option card styling */
+.optionCard {
+  background: var(--background-secondary, #1a1a1a);
+  border: 1px solid var(--border-primary, #333);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.optionCard:hover {
+  background: var(--background-hover, #222);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-primary, #FFB006);
+}
+
+.optionIcon {
+  font-size: 2rem;
+  color: var(--accent-primary, #FFB006);
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 176, 6, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.optionDetails {
+  flex: 1;
+}
+
+.optionDetails h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, white);
+}
+
+.optionDetails p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #bbb);
+  word-break: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .optionsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+  
+  .optionCard {
+    padding: 1.25rem;
+  }
+  
+  .optionIcon {
+    font-size: 1.75rem;
+    width: 45px;
+    height: 45px;
+  }
+}
+
+@media (max-width: 480px) {
+  .optionsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .optionIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
 } 

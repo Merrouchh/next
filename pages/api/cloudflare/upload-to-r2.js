@@ -8,7 +8,7 @@ const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'pub-4884e5ccdad64ae89dbf9c9f39875f1b.r2.dev';
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'clips.merrouchgaming.com';
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

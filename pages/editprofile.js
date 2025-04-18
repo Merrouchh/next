@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/EditProfile.module.css';
-import { AiOutlineUser } from 'react-icons/ai';
+import { AiOutlineUser, AiOutlineMail, AiOutlinePhone, AiOutlineLock } from 'react-icons/ai';
+import { FaGamepad } from 'react-icons/fa';
 import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useRouter } from 'next/router';
@@ -9,10 +10,13 @@ import EmailSection from '../components/EditProfile/EmailSection';
 import PhoneSection from '../components/EditProfile/PhoneSection';
 import PasswordSection from '../components/EditProfile/PasswordSection';
 import GamingSection from '../components/EditProfile/GamingSection';
+import EditProfileModal from '../components/EditProfile/EditProfileModal';
 
 const EditProfile = () => {
   const router = useRouter();
   const { user, supabase, refreshUserData } = useAuth();
+  
+  // State for user account data
   const [websiteAccount, setWebsiteAccount] = useState({
     email: '',
     phone: '',
@@ -30,6 +34,7 @@ const EditProfile = () => {
     confirmPassword: ''
   });
 
+  // Loading states
   const [isLoading, setIsLoading] = useState({
     website: false,
     gaming: false,
@@ -40,6 +45,7 @@ const EditProfile = () => {
     emailResend: false
   });
   
+  // UI message states
   const [message, setMessage] = useState({
     website: { type: '', text: '' },
     gaming: { type: '', text: '' },
@@ -74,6 +80,27 @@ const EditProfile = () => {
     pendingPhone: '',
     otpCode: ''
   });
+
+  // Modal states for each section
+  const [activeModal, setActiveModal] = useState(null);
+
+  // Modal section titles
+  const modalTitles = {
+    email: "Edit Email Address",
+    phone: "Edit Phone Number",
+    password: "Change Password",
+    gaming: "Gaming Account Settings"
+  };
+
+  // Open a specific modal
+  const openModal = (modalName) => {
+    setActiveModal(modalName);
+  };
+
+  // Close the active modal
+  const closeModal = () => {
+    setActiveModal(null);
+  };
 
   // Update form with user data when available
   useEffect(() => {
@@ -146,7 +173,61 @@ const EditProfile = () => {
             <h2>Website Account</h2>
           </div>
           
-          {/* Email Section */}
+          {/* Options Cards */}
+          <div className={styles.optionsGrid}>
+            {/* Email Card */}
+            <div className={styles.optionCard} onClick={() => openModal('email')}>
+              <div className={styles.optionIcon}>
+                <AiOutlineMail />
+              </div>
+              <div className={styles.optionDetails}>
+                <h3>Email Address</h3>
+                <p>{user?.email || 'No email set'}</p>
+              </div>
+            </div>
+            
+            {/* Phone Card */}
+            <div className={styles.optionCard} onClick={() => openModal('phone')}>
+              <div className={styles.optionIcon}>
+                <AiOutlinePhone />
+              </div>
+              <div className={styles.optionDetails}>
+                <h3>Phone Number</h3>
+                <p>{user?.phone || 'No phone set'}</p>
+              </div>
+            </div>
+            
+            {/* Password Card */}
+            <div className={styles.optionCard} onClick={() => openModal('password')}>
+              <div className={styles.optionIcon}>
+                <AiOutlineLock />
+              </div>
+              <div className={styles.optionDetails}>
+                <h3>Password</h3>
+                <p>Update your account password</p>
+              </div>
+            </div>
+            
+            {/* Gaming Card */}
+            <div className={styles.optionCard} onClick={() => openModal('gaming')}>
+              <div className={styles.optionIcon}>
+                <FaGamepad />
+              </div>
+              <div className={styles.optionDetails}>
+                <h3>Gaming Account</h3>
+                <p>{user?.username ? `Username: ${user.username}` : 'Set up your gaming account'}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Modals */}
+        {/* Email Modal */}
+        <EditProfileModal
+          isOpen={activeModal === 'email'}
+          onClose={closeModal}
+          title={modalTitles.email}
+        >
           <EmailSection 
             user={user}
             supabase={supabase}
@@ -159,8 +240,14 @@ const EditProfile = () => {
             showPasswords={showPasswords}
             togglePasswordVisibility={togglePasswordVisibility}
           />
-          
-          {/* Phone Section */}
+        </EditProfileModal>
+        
+        {/* Phone Modal */}
+        <EditProfileModal
+          isOpen={activeModal === 'phone'}
+          onClose={closeModal}
+          title={modalTitles.phone}
+        >
           <PhoneSection 
             user={user}
             supabase={supabase}
@@ -175,8 +262,14 @@ const EditProfile = () => {
             showPasswords={showPasswords}
             togglePasswordVisibility={togglePasswordVisibility}
           />
-          
-          {/* Password Section */}
+        </EditProfileModal>
+        
+        {/* Password Modal */}
+        <EditProfileModal
+          isOpen={activeModal === 'password'}
+          onClose={closeModal}
+          title={modalTitles.password}
+        >
           <PasswordSection 
             websiteAccount={websiteAccount}
             setWebsiteAccount={setWebsiteAccount}
@@ -187,10 +280,16 @@ const EditProfile = () => {
             showPasswords={showPasswords}
             togglePasswordVisibility={togglePasswordVisibility}
           />
-        </section>
-
-        {/* Gaming Account Section */}
-        <GamingSection />
+        </EditProfileModal>
+        
+        {/* Gaming Modal */}
+        <EditProfileModal
+          isOpen={activeModal === 'gaming'}
+          onClose={closeModal}
+          title={modalTitles.gaming}
+        >
+          <GamingSection />
+        </EditProfileModal>
       </div>
     </ProtectedPageWrapper>
   );

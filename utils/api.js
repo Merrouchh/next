@@ -586,3 +586,53 @@ export const fetchShiftReports = async (dateFrom, dateTo, reportType = 2) => {
     throw error;
   }
 };
+
+// Add the login user to computer function near other user-related functions
+
+export const loginUserToComputer = async (gizmoId, hostId) => {
+  try {
+    // Validate parameters
+    if (!gizmoId || !hostId) {
+      console.error('Missing required parameters for loginUserToComputer', { gizmoId, hostId });
+      return { 
+        success: false, 
+        error: 'Missing user ID or host ID'
+      };
+    }
+
+    console.log(`Logging in user ${gizmoId} to host ${hostId}`);
+    
+    // Call our API endpoint
+    const response = await fetch(`/api/users/${gizmoId}/login/${hostId}`, {
+      method: 'POST',
+      headers: {
+        ...fetchConfig.headers
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.error(`Failed to login user to computer: ${response.status}`, errorData);
+      return {
+        success: false,
+        error: errorData.message || `Server error: ${response.status}`,
+        status: response.status
+      };
+    }
+
+    const data = await response.json();
+    console.log('Login successful:', data);
+    
+    return {
+      success: true,
+      result: data.result,
+      message: data.message || 'User logged in successfully'
+    };
+  } catch (error) {
+    console.error('Error in loginUserToComputer:', error);
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred'
+    };
+  }
+};

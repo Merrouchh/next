@@ -10,6 +10,7 @@ import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions } from '../../utils/api';
+import LoginUserModal from '../../components/LoginUserModal';
 
 // Custom useInterval hook for polling
 const useInterval = (callback, delay) => {
@@ -43,7 +44,7 @@ const debugLog = (message, data) => {
 };
 
 // ComputerGridView component for the grid display
-const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router }) => {
+const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionStatus, prepareComputersWithSessionData, router, handleOpenLoginModal }) => {
   // Move useState hook outside of conditional rendering
   const [computerData, setComputerData] = React.useState({
     sortedVipComputers: [],
@@ -109,7 +110,16 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                 <div className={styles.computerBody}>
                   {computer.available ? (
                     <div className={styles.emptyCardPlaceholder}>
-                      No active session
+                      <div>No active session</div>
+                      <button 
+                        className={styles.loginUserButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenLoginModal(computer);
+                        }}
+                      >
+                        Login User
+                      </button>
                     </div>
                   ) : (
                     <div className={styles.userInfo}>
@@ -189,7 +199,16 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
               <div className={styles.computerBody}>
                 {computer.available ? (
                   <div className={styles.emptyCardPlaceholder}>
-                    No active session
+                    <div>No active session</div>
+                    <button 
+                      className={styles.loginUserButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenLoginModal(computer);
+                      }}
+                    >
+                      Login User
+                    </button>
                   </div>
                 ) : (
                   <div className={styles.userInfo}>
@@ -260,7 +279,16 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
               <div className={styles.computerBody}>
                 {computer.available ? (
                   <div className={styles.emptyCardPlaceholder}>
-                    No active session
+                    <div>No active session</div>
+                    <button 
+                      className={styles.loginUserButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenLoginModal(computer);
+                      }}
+                    >
+                      Login User
+                    </button>
                   </div>
                 ) : (
                   <div className={styles.userInfo}>
@@ -321,6 +349,10 @@ export default function SessionsPage() {
     loading: true
   });
   const [sessionViewMode, setSessionViewMode] = useState('grid'); // 'list' or 'grid'
+  const [loginModalState, setLoginModalState] = useState({
+    isOpen: false,
+    selectedComputer: null
+  });
   
   // AbortController reference for cleanup
   const abortControllerRef = React.useRef(null);
@@ -733,6 +765,31 @@ export default function SessionsPage() {
     };
   }, []);
 
+  const handleOpenLoginModal = (computer) => {
+    setLoginModalState({
+      isOpen: true,
+      selectedComputer: {
+        hostId: computer.hostId,
+        type: computer.type === 'vip' ? 'VIP' : 'Normal',
+        number: computer.number
+      }
+    });
+  };
+
+  const handleCloseLoginModal = () => {
+    setLoginModalState({
+      isOpen: false,
+      selectedComputer: null
+    });
+  };
+
+  const handleLoginSuccess = (user, computer) => {
+    console.log(`User ${user.username} (ID: ${user.gizmoId}) logged in to ${computer.type} ${computer.number} (Host ID: ${computer.hostId})`);
+    
+    // Refresh the sessions data
+    fetchSessionData();
+  };
+
   return (
     <AdminPageWrapper title="Session Management">
       <Head>
@@ -916,11 +973,19 @@ export default function SessionsPage() {
                 getSessionStatus={getSessionStatus}
                 prepareComputersWithSessionData={prepareComputersWithSessionData}
                 router={router}
+                handleOpenLoginModal={handleOpenLoginModal}
               />
             </div>
           )}
         </section>
       </div>
+
+      <LoginUserModal 
+        isOpen={loginModalState.isOpen}
+        onClose={handleCloseLoginModal}
+        selectedComputer={loginModalState.selectedComputer}
+        onSuccess={handleLoginSuccess}
+      />
     </AdminPageWrapper>
   );
 }

@@ -1,0 +1,281 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  background: var(--background-secondary, #1a1a1a);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary, #333);
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary, #333);
+  background: var(--background-tertiary, #222);
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: var(--text-primary, white);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.headerIcon {
+  margin-right: 8px;
+  color: var(--accent-primary, #FFB006);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: white;
+}
+
+.modalContent {
+  padding: 20px;
+}
+
+/* Computer info section */
+.computerInfo {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.infoIcon {
+  font-size: 2rem;
+  color: var(--accent-primary, #FFB006);
+  margin-right: 15px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.infoDetails {
+  flex: 1;
+}
+
+.infoDetails h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: var(--text-primary, white);
+}
+
+.infoDetails p {
+  margin: 5px 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #aaa);
+}
+
+/* Search section */
+.searchSection {
+  margin-top: 20px;
+}
+
+.searchSection h4 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: var(--text-primary, white);
+}
+
+.searchInput {
+  position: relative;
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.searchInput input {
+  flex: 1;
+  padding: 10px 10px 10px 35px;
+  background: var(--background-tertiary, #222);
+  border: 1px solid var(--border-primary, #333);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.searchInput input:focus {
+  outline: none;
+  border-color: var(--accent-primary, #FFB006);
+}
+
+.searchInput input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.searchButton {
+  padding: 0 15px;
+  background: var(--accent-primary, #FFB006);
+  color: black;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.searchButton:hover:not(:disabled) {
+  background: var(--accent-hover, #ffc53d);
+}
+
+.searchButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #666;
+}
+
+/* Messages */
+.errorMessage {
+  padding: 10px;
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 5px;
+  margin: 10px 0;
+  font-size: 0.9rem;
+}
+
+.successMessage {
+  padding: 10px;
+  background: rgba(52, 199, 89, 0.1);
+  color: #34c759;
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  border-radius: 5px;
+  margin: 10px 0;
+  font-size: 0.9rem;
+}
+
+/* Found user section */
+.foundUserSection {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.foundUser {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.userIcon {
+  font-size: 1.2rem;
+  color: var(--accent-primary, #FFB006);
+  margin-right: 12px;
+  background: rgba(255, 176, 6, 0.1);
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.userDetails h4 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: var(--text-primary, white);
+}
+
+.userDetails p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #aaa);
+}
+
+/* Login button */
+.loginButton {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: var(--accent-primary, #FFB006);
+  color: black;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loginButton:hover:not(:disabled) {
+  background: var(--accent-hover, #ffc53d);
+  transform: translateY(-2px);
+}
+
+.loginButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #666;
+}
+
+/* Animation for modal */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .modal {
+    max-width: 90%;
+  }
+  
+  .modalContent {
+    padding: 15px;
+  }
+  
+  .computerInfo {
+    padding: 12px;
+  }
+  
+  .infoIcon {
+    font-size: 1.5rem;
+  }
+} 
