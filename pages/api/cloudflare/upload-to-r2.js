@@ -68,7 +68,7 @@ async function uploadToR2(key, fileBuffer) {
     console.log(`[R2-Step 2] 📤 Uploading file to R2 with key: ${key}`);
     console.log(`[R2-Step 2] ℹ️ Using bucket: ${R2_BUCKET_NAME}`);
     console.log(`[R2-Step 2] ℹ️ Using endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`);
-    console.log(`[R2-Step 2] ℹ️ Public URL format: https://${R2_PUBLIC_URL}`);
+    console.log(`[R2-Step 2] ℹ️ Public URL domain: ${R2_PUBLIC_URL}`);
     
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
@@ -122,6 +122,7 @@ export default async function handler(req, res) {
   const startTime = Date.now();
 
   console.log(`[R2-Upload-${requestId}] 🚀 Starting R2 upload process for ${videoUid}. Source: ${source}`);
+  console.log(`[R2-Upload-${requestId}] 🔍 Using R2_PUBLIC_URL: ${R2_PUBLIC_URL}`);
 
   // Step 2: Validate videoUid
   if (!videoUid) {
