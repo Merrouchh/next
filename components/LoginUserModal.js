@@ -5,7 +5,7 @@ import Portal from './Portal';
 import { loginUserToComputer, fetchGizmoId } from '../utils/api';
 
 /**
- * Modal component for logging users into computers
+ * Modal component for logging users into computers (Admin version)
  * 
  * @param {Object} props Component props
  * @param {boolean} props.isOpen Whether the modal is open

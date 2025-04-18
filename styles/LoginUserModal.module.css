@@ -278,4 +278,170 @@
   .infoIcon {
     font-size: 1.5rem;
   }
+}
+
+/* Auto-login section */
+.autoLoginSection {
+  margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.autoLoginSection h4 {
+  margin-top: 0;
+  color: #fff;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.loadingText {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.loadingText:before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #64748b;
+  border-top-color: transparent;
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Simple confirmation modal styles */
+.simpleModal {
+  background: var(--background-secondary, #1a1a1a);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary, #333);
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.3s ease-out;
+}
+
+.simpleModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-primary, #333);
+  background: var(--background-tertiary, #222);
+}
+
+.simpleModalHeader h3 {
+  margin: 0;
+  color: var(--text-primary, white);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.simpleModalContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.confirmationText {
+  font-size: 1.1rem;
+  color: var(--text-primary, white);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.cancelButton, .confirmButton, .closeModalButton {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.cancelButton {
+  background: #333;
+  color: white;
+  border: 1px solid #444;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #444;
+}
+
+.confirmButton {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.closeModalButton {
+  background: #2563eb;
+  color: white;
+  border: none;
+  width: 100%;
+  max-width: 200px;
+}
+
+.closeModalButton:hover {
+  background: #1d4ed8;
+}
+
+/* Disable button styles */
+.cancelButton:disabled, .confirmButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .simpleModal {
+    max-width: 90%;
+  }
+  
+  .simpleModalContent {
+    padding: 15px;
+  }
+
+  .confirmationText {
+    font-size: 1rem;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+  }
+  
+  .cancelButton, .confirmButton, .closeModalButton {
+    width: 100%;
+  }
 } 

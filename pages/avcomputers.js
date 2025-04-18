@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { fetchActiveUserSessions, fetchUserBalance, fetchComputers } from '../utils/api';
+import { fetchActiveUserSessions, fetchUserBalance, fetchComputers, loginUserToComputer } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
@@ -9,6 +9,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
 import DynamicMeta from '../components/DynamicMeta';
 import { MdChevronRight } from 'react-icons/md';
+import UserLoginModal from '../components/UserLoginModal';
 
 // We can remove cache headers since they're handled globally in next.config.js
 export const getServerSideProps = async ({ res }) => {
@@ -70,7 +71,25 @@ export const getServerSideProps = async ({ res }) => {
 };
 
 // Computer component
-const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
+const ComputerBox = ({ 
+  computer, 
+  isVip, 
+  lastUpdate, 
+  highlightActive, 
+  onOpenLoginModal, 
+  isLoading, 
+  userAlreadyLoggedIn, 
+  userCurrentComputer 
+}) => {
+  // If component is in loading state, show a skeleton
+  if (isLoading) {
+    return (
+      <div className={`${isVip ? styles.vipPcBox : styles.pcSquare} ${styles.loadingComputer}`}>
+        <div className={styles.loadingPulse}></div>
+      </div>
+    );
+  }
+
   const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
     ? computer.timeLeft.split(' : ') 
     : [0, 0];
@@ -87,6 +106,9 @@ const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
 
   const lastUpdateTime = lastUpdate[computer.id];
   const isRecentlyUpdated = lastUpdateTime && Date.now() - lastUpdateTime < 1000;
+  
+  // Check if this is the computer the user is logged into
+  const isUserCurrentComputer = userCurrentComputer && userCurrentComputer.hostId === computer.id;
 
   return (
     <div 
@@ -96,8 +118,12 @@ const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
         ${activeClass}
         ${isRecentlyUpdated ? styles.updated : ''}
         ${highlightActive && computer.isActive ? styles.highlight : ''}
+        ${isUserCurrentComputer ? styles.userCurrentComputer : ''}
       `}
     >
+      {isUserCurrentComputer && (
+        <div className={styles.currentUserBadge}>Your Session</div>
+      )}
       <div className={styles.pcNumber}>
         {isVip ? 'VIP PC' : 'PC'}{computer.number}
       </div>
@@ -106,12 +132,35 @@ const ComputerBox = ({ computer, isVip, lastUpdate, highlightActive }) => {
           ? `Active - Time Left: ${computer.timeLeft}` 
           : 'No User'}
       </div>
+      
+      {/* Show login button only for available computers and if user is not already logged in elsewhere */}
+      {!computer.isActive && !userAlreadyLoggedIn && (
+        <button 
+          className={styles.loginButton}
+          onClick={() => onOpenLoginModal({
+            hostId: computer.id,
+            type: isVip ? 'VIP' : 'Normal',
+            number: computer.number
+          })}
+        >
+          Login
+        </button>
+      )}
     </div>
   );
 };
 
 // VIP Computers section
-const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
+const VIPComputers = ({ 
+  computers, 
+  lastUpdate, 
+  highlightActive, 
+  onOpenLoginModal, 
+  isLoading, 
+  userAlreadyLoggedIn,
+  userCurrentComputer,
+  isComputerLoaded
+}) => {
   const vipContainerRef = useRef(null);
   const [isAtEnd, setIsAtEnd] = useState(false);
   const [isAtStart, setIsAtStart] = useState(true);
@@ -208,6 +257,10 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
               isVip={true}
               lastUpdate={lastUpdate}
               highlightActive={highlightActive}
+              onOpenLoginModal={onOpenLoginModal}
+              isLoading={!isComputerLoaded(computer.id)}
+              userAlreadyLoggedIn={userAlreadyLoggedIn}
+              userCurrentComputer={userCurrentComputer}
             />
           ))}
         </div>
@@ -216,16 +269,41 @@ const VIPComputers = ({ computers, lastUpdate, highlightActive }) => {
   );
 };
 
-// Main component
+/**
+ * AvailableComputers page component
+ * 
+ * This page allows users to:
+ * 1. View the status of all computers (normal and VIP)
+ * 2. See which computers are available
+ * 3. Log in to available computers using their own account
+ *    - When a user clicks "Login" on an available computer, the system uses
+ *      their own Gizmo ID (linked to their website account) to log them in
+ *    - Users must have sufficient time balance to log in
+ */
 const AvailableComputers = ({ metaData }) => {
-  const { user } = useAuth();
+  const { user, supabase } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pageReady, setPageReady] = useState(false); // State for full page readiness
   const [lastUpdate, setLastUpdate] = useState({});
   const prevComputers = useRef({ normal: [], vip: [] });
   const [highlightActive, setHighlightActive] = useState(false);
+  // State for login modal
+  const [loginModalState, setLoginModalState] = useState({
+    isOpen: false,
+    selectedComputer: null,
+    autoLogin: null
+  });
+  // State to track if current user is already logged in
+  const [userAlreadyLoggedIn, setUserAlreadyLoggedIn] = useState(false);
+  // Store which computer the user is currently logged in to
+  const [userCurrentComputer, setUserCurrentComputer] = useState(null);
+  // Store user's gizmo_id for checking active sessions
+  const [userGizmoId, setUserGizmoId] = useState(null);
+  // Track which computers have loaded data
+  const [loadedComputers, setLoadedComputers] = useState({});
 
   // Move computersList to useMemo to prevent unnecessary recreations
   const computersList = useMemo(() => ({
@@ -242,6 +320,29 @@ const AvailableComputers = ({ metaData }) => {
     ]
   }), []);
 
+  // Fetch user's gizmo_id when they log in
+  useEffect(() => {
+    if (user?.id) {
+      const fetchUserGizmoId = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .select('gizmo_id')
+            .eq('id', user.id)
+            .single();
+            
+          if (data && !error && data.gizmo_id) {
+            setUserGizmoId(data.gizmo_id);
+          }
+        } catch (err) {
+          console.error("Error fetching user's gizmo_id:", err);
+        }
+      };
+      
+      fetchUserGizmoId();
+    }
+  }, [user, supabase]);
+
   const updateSingleComputer = useCallback((computer, newData) => {
     setComputers(prev => {
       const section = computer.number <= 8 ? 'normal' : 'vip';
@@ -253,6 +354,12 @@ const AvailableComputers = ({ metaData }) => {
       };
       return newComputers;
     });
+
+    // Mark this computer as loaded
+    setLoadedComputers(prev => ({
+      ...prev,
+      [computer.id]: true
+    }));
   }, []);
 
   // Optimize data fetching
@@ -288,8 +395,37 @@ const AvailableComputers = ({ metaData }) => {
           pc.id === computer.id ? { ...pc, ...currentStatus } : pc
         );
 
+        // Check if current user is logged in to any computer
+        if (userGizmoId) {
+          const userSession = activeSessions.find(s => s.userId === userGizmoId);
+          if (userSession) {
+            setUserAlreadyLoggedIn(true);
+            
+            // Find the computer details for the session
+            const userComputer = computersList.normal.find(c => c.id === userSession.hostId) || 
+                                computersList.vip.find(c => c.id === userSession.hostId);
+            
+            if (userComputer) {
+              const computerType = userComputer.number <= 8 ? 'Normal' : 'VIP';
+              setUserCurrentComputer({
+                type: computerType,
+                number: userComputer.number,
+                hostId: userSession.hostId
+              });
+            }
+          } else {
+            setUserAlreadyLoggedIn(false);
+            setUserCurrentComputer(null);
+          }
+        }
+
       } catch (error) {
         console.error(`Error updating computer ${computer.number}:`, error);
+        // Even if there's an error, mark as loaded to prevent endless loading state
+        setLoadedComputers(prev => ({
+          ...prev,
+          [computer.id]: true
+        }));
       }
     };
 
@@ -306,6 +442,13 @@ const AvailableComputers = ({ metaData }) => {
       } catch (err) {
         console.error('Error fetching computer data:', err);
         if (mounted) setError('Unable to fetch computer data. Please try again.');
+        
+        // Mark all computers as loaded even on error to prevent infinite loading
+        const allLoaded = {};
+        [...computersList.normal, ...computersList.vip].forEach(computer => {
+          allLoaded[computer.id] = true;
+        });
+        setLoadedComputers(allLoaded);
       }
     };
 
@@ -320,7 +463,7 @@ const AvailableComputers = ({ metaData }) => {
         clearInterval(intervalId);
       }
     };
-  }, [user, updateSingleComputer, computersList]);
+  }, [user, updateSingleComputer, computersList, userGizmoId]);
 
   // Initialize computers state
   useEffect(() => {
@@ -331,7 +474,12 @@ const AvailableComputers = ({ metaData }) => {
       };
       setComputers(initialComputers);
       prevComputers.current = initialComputers;
-      setIsLoading(false);
+      
+      // Only set loading to false after a short delay to ensure UI updates
+      setTimeout(() => {
+        setIsLoading(false);
+        setPageReady(true);
+      }, 500);
     }
   }, [computersList, computers.normal.length, computers.vip.length]);
 
@@ -343,11 +491,125 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, [router.query]);
 
-  if (isLoading) {
+  // Handle open login modal
+  const handleOpenLoginModal = async (computer) => {
+    // Don't allow login if user is already logged in elsewhere
+    if (userAlreadyLoggedIn) {
+      alert("You are already logged in to another computer");
+      return;
+    }
+    
+    // Check if user is authenticated
+    if (!user || !user.id) {
+      alert("You must be logged in to use this feature");
+      return;
+    }
+    
+    try {
+      // Get the user's profile from Supabase to find their gizmo_id
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select('gizmo_id, username')
+        .eq('id', user.id)
+        .single();
+      
+      if (error || !userProfile) {
+        console.error("Error fetching user profile:", error);
+        alert("Could not find your user profile. Please contact support.");
+        return;
+      }
+      
+      if (!userProfile.gizmo_id) {
+        alert("Your account doesn't have a gaming user ID associated with it. Please visit the gaming center to connect your accounts.");
+        return;
+      }
+      
+      // Open the modal with the user's info for auto-login
+      setLoginModalState({
+        isOpen: true,
+        selectedComputer: computer,
+        autoLogin: {
+          gizmoId: userProfile.gizmo_id,
+          username: userProfile.username || `User ${userProfile.gizmo_id}`
+        }
+      });
+    } catch (error) {
+      console.error("Error preparing login:", error);
+      alert("An error occurred. Please try again.");
+    }
+  };
+
+  // Handle close login modal
+  const handleCloseLoginModal = () => {
+    setLoginModalState({
+      isOpen: false,
+      selectedComputer: null,
+      autoLogin: null
+    });
+  };
+
+  // Handle login success
+  const handleLoginSuccess = (user, computer) => {
+    console.log(`User ${user.username} (ID: ${user.gizmoId}) logged in to ${computer.type} ${computer.number} (Host ID: ${computer.hostId})`);
+    
+    // Update UI to show the computer is now in use
+    const computerType = computer.type.toLowerCase();
+    const computerSection = computerType === 'vip' ? 'vip' : 'normal';
+    
+    // Mark the computer as being updated
+    setLastUpdate(prev => ({ ...prev, [computer.hostId]: Date.now() }));
+    
+    // Set user as logged in immediately and track which computer
+    setUserAlreadyLoggedIn(true);
+    setUserCurrentComputer(computer);
+    
+    // Delay the refetch to give the server time to update
+    setTimeout(() => {
+      const refreshData = async () => {
+        try {
+          const activeSessions = await fetchActiveUserSessions();
+          const session = activeSessions.find(s => s.hostId === computer.hostId);
+          
+          if (session) {
+            const balance = await fetchUserBalance(session.userId);
+            
+            // Update the specific computer
+            setComputers(prev => {
+              const updatedComputers = {
+                ...prev,
+                [computerSection]: prev[computerSection].map(pc => 
+                  pc.id === computer.hostId ? {
+                    ...pc,
+                    isActive: true,
+                    userId: session.userId,
+                    timeLeft: balance || 'No Time'
+                  } : pc
+                )
+              };
+              return updatedComputers;
+            });
+          }
+        } catch (error) {
+          console.error(`Error updating computer status after login:`, error);
+        }
+      };
+      
+      refreshData();
+    }, 2000);
+  };
+
+  // Check if a specific computer has loaded data
+  const isComputerLoaded = useCallback((computerId) => {
+    return loadedComputers[computerId] === true;
+  }, [loadedComputers]);
+
+  // If the page is not yet ready, show the full page loading screen
+  if (!pageReady) {
     return <LoadingScreen />;
   }
 
-  if (error) {
+  // Only show the error screen if there's an error and the page is ready
+  if (error && pageReady) {
     return (
       <ProtectedPageWrapper>
         <div className={styles.error}>
@@ -371,7 +633,7 @@ const AvailableComputers = ({ metaData }) => {
           <div className={styles.liveDot}></div>
           <span className={styles.liveText}>Live</span>
         </div>
-
+        
         <h2 className={styles.sectionHeading}>Normal Computers</h2>
         <div className={styles.computerGrid}>
           {computers.normal.map(computer => (
@@ -381,6 +643,10 @@ const AvailableComputers = ({ metaData }) => {
               isVip={false}
               lastUpdate={lastUpdate}
               highlightActive={highlightActive}
+              onOpenLoginModal={handleOpenLoginModal}
+              isLoading={!isComputerLoaded(computer.id)}
+              userAlreadyLoggedIn={userAlreadyLoggedIn}
+              userCurrentComputer={userCurrentComputer}
             />
           ))}
         </div>
@@ -389,6 +655,20 @@ const AvailableComputers = ({ metaData }) => {
           computers={computers.vip} 
           lastUpdate={lastUpdate}
           highlightActive={highlightActive}
+          onOpenLoginModal={handleOpenLoginModal}
+          isLoading={isLoading}
+          userAlreadyLoggedIn={userAlreadyLoggedIn}
+          userCurrentComputer={userCurrentComputer}
+          isComputerLoaded={isComputerLoaded}
+        />
+        
+        {/* User confirmation login modal */}
+        <UserLoginModal 
+          isOpen={loginModalState.isOpen}
+          onClose={handleCloseLoginModal}
+          selectedComputer={loginModalState.selectedComputer}
+          onSuccess={handleLoginSuccess}
+          autoLoginUser={loginModalState.autoLogin}
         />
       </main>
     </ProtectedPageWrapper>
