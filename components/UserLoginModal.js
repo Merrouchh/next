@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaDesktop, FaTimes } from 'react-icons/fa';
 import styles from '../styles/UserLoginModal.module.css';
 import Portal from './Portal';
@@ -22,6 +22,8 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
   // State for success message
   const [successMessage, setSuccessMessage] = useState('');
 
+  const confirmButtonRef = useRef(null);
+
   // Reset state when modal opens or closes
   useEffect(() => {
     if (isOpen) {
@@ -29,6 +31,23 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
       setSuccessMessage('');
       setIsLoading(false);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && confirmButtonRef.current) {
+      confirmButtonRef.current.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscKey);
+    return () => window.removeEventListener('keydown', handleEscKey);
   }, [isOpen]);
 
   // Close modal and reset state
@@ -71,8 +90,9 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
                 }, 
                 selectedComputer
               );
+              // Auto-close after success
               handleClose();
-            }, 1500);
+            }, 2500); // Increased to 2.5 seconds to give user time to see success message
           }
         } else if (result.result === 256) {
           // User is already logged in
@@ -148,6 +168,7 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
                   </button>
                   
                   <button 
+                    ref={confirmButtonRef}
                     onClick={handleLoginConfirm} 
                     className={styles.confirmButton}
                     disabled={isLoading || successMessage || errorMessage}
@@ -157,7 +178,8 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
                 </>
               )}
               
-              {(successMessage || errorMessage) && (
+              {/* Only show Close button for error messages, not success messages */}
+              {errorMessage && !successMessage && (
                 <button 
                   onClick={handleClose} 
                   className={styles.closeModalButton}

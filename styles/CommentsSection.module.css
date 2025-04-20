@@ -1,0 +1,402 @@
+.commentsSection {
+  margin-top: 1rem;
+  background-color: var(--background-secondary, #1E1E1E);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-primary, #333);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-primary, #333);
+  padding-bottom: 0.75rem;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #aaa);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  padding: 0.25rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.commentForm {
+  display: flex;
+  margin-bottom: 1.25rem;
+  align-items: center;
+}
+
+.commentInput {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-primary, #333);
+  border-radius: 1.5rem;
+  background-color: var(--background-tertiary, #252525);
+  color: var(--text-primary, #fff);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.commentInput:focus {
+  outline: none;
+  border-color: var(--accent-primary, #FFD700);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.sendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.75rem;
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-primary, #FFD700);
+  color: #000;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.sendButton:hover:not(:disabled) {
+  background-color: var(--accent-hover, #F8C400);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sendButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.sendButton:disabled {
+  background-color: #444;
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.loginPrompt {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--text-secondary, #aaa);
+  background-color: var(--background-tertiary, #252525);
+  border-radius: 0.75rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.95rem;
+  border: 1px dashed var(--border-primary, #333);
+}
+
+.errorMessage {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background-color: rgba(255, 87, 87, 0.15);
+  color: #ff5757;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.3s ease;
+  border-left: 3px solid #ff5757;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dismissButton {
+  background: none;
+  border: none;
+  color: #ff5757;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.dismissButton:hover {
+  background-color: rgba(255, 87, 87, 0.2);
+}
+
+.commentsList {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  /* Styled scrollbar for WebKit browsers */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary, #FFD700) rgba(0, 0, 0, 0.2);
+}
+
+.commentsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.commentsList::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.commentsList::-webkit-scrollbar-thumb {
+  background-color: var(--accent-primary, #FFD700);
+  border-radius: 6px;
+}
+
+.commentsList::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-hover, #F8C400);
+}
+
+.commentItem {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: var(--background-tertiary, #252525);
+  border-radius: 0.75rem;
+  position: relative;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  animation: commentAppear 0.3s ease;
+}
+
+@keyframes commentAppear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.commentItem:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-primary, #333);
+}
+
+.commentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.commentUser {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.userIcon {
+  margin-right: 0.5rem;
+  color: var(--accent-primary, #FFD700);
+  font-size: 1.1rem;
+}
+
+.username {
+  color: var(--text-primary, #fff);
+  font-size: 0.95rem;
+}
+
+.commentDate {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #aaa);
+}
+
+.commentContent {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-primary, #fff);
+  word-break: break-word;
+  white-space: pre-wrap;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.commentActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.commentItem:hover .commentActions {
+  opacity: 1;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #aaa);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--accent-primary, #FFD700);
+  transform: scale(1.1);
+}
+
+.editCommentForm {
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease;
+}
+
+.editInput {
+  padding: 0.75rem;
+  border: 1px solid var(--border-primary, #333);
+  border-radius: 0.5rem;
+  background-color: var(--background-secondary, #1E1E1E);
+  color: var(--text-primary, #fff);
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--accent-primary, #FFD700);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.saveButton, .cancelButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.saveButton {
+  background-color: var(--accent-primary, #FFD700);
+  color: #000;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: var(--accent-hover, #F8C400);
+  transform: translateY(-2px);
+}
+
+.saveButton:disabled {
+  background-color: #444;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary, #aaa);
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.loadMoreButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary, #aaa);
+  border: 1px solid var(--border-primary, #333);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.loadMoreButton:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.loadMoreButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.loadMoreButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  color: var(--text-secondary, #aaa);
+  font-size: 0.95rem;
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 215, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--accent-primary, #FFD700);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.noComments {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary, #aaa);
+  font-style: italic;
+  font-size: 0.95rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  border: 1px dashed var(--border-primary, #333);
+} 

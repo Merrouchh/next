@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdVisibility, MdPerson, MdExpandMore, 
-  MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync } from 'react-icons/md';
+  MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync, MdComment } from 'react-icons/md';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
 import VideoPlayer from './VideoPlayer';
 import { useLikes } from '../hooks/useLikes';
@@ -11,6 +12,9 @@ import VisibilityModal from './VisibilityModal';
 import ShareModal from './ShareModal';
 import { useRouter } from 'next/router';
 import ExpandedTitleModal from './ExpandedTitleModal';
+import CommentsSection from './CommentsSection';
+import CommentModal from './CommentModal';
+import { fetchCommentsByClipId } from '../utils/supabase/comments';
 import Link from 'next/link';
 
 // Helper functions for processing status display
@@ -137,6 +141,15 @@ const ClipCard = ({
   const cardRef = useRef(null);
   const subscriptionRef = useRef(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Add state for heart animation
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState([]);
+  
+  // Add state for comments 
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
 
   // Check if the clip is still processing
   // Add safety check - if status is missing, assume clip is complete
@@ -314,6 +327,25 @@ const ClipCard = ({
     return () => window.removeEventListener('resize', checkTruncation);
   }, [clipData.title]);
 
+  // Fetch comment count when ClipCard mounts or when comments are shown/hidden
+  useEffect(() => {
+    const getCommentCount = async () => {
+      if (!clipData?.id || !supabase) return;
+      
+      try {
+        setIsLoadingComments(true);
+        const result = await fetchCommentsByClipId(clipData.id, 1, 0);
+        setCommentsCount(result.count || 0);
+      } catch (error) {
+        console.error('Error fetching comment count:', error);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+    
+    getCommentCount();
+  }, [clipData?.id, supabase, showCommentModal]);
+
   const handleVisibilityToggle = async (newVisibility) => {
     if (isUpdating) return;
     
@@ -406,6 +438,43 @@ const ClipCard = ({
       setShowFullTitle(false);
       setIsClosing(false);
     }, 200);
+  };
+
+  // Enhanced like handler with multiple floating hearts animation
+  const handleLikeWithAnimation = () => {
+    // Only animate if the user is logged in and not already liking/unliking
+    if (!user || isUpdatingLike) return;
+    
+    // If not already liked, show the animation
+    if (!liked) {
+      setIsHeartAnimating(true);
+      
+      // Create 3-5 random floating hearts
+      const numHearts = Math.floor(Math.random() * 3) + 3; // 3-5 hearts
+      const newHearts = [];
+      
+      for (let i = 0; i < numHearts; i++) {
+        // Create random positions and delays for each heart
+        newHearts.push({
+          id: `heart-${Date.now()}-${i}`,
+          left: Math.random() * 40 - 20, // -20px to +20px from center
+          delay: Math.random() * 0.3, // 0 to 0.3s delay
+          scale: 0.8 + Math.random() * 0.4, // 0.8 to 1.2 scale
+          rotation: (Math.random() * 40) - 20 // -20 to +20 degrees
+        });
+      }
+      
+      setFloatingHearts(newHearts);
+      
+      // Clear animation state after animation completes
+      setTimeout(() => {
+        setIsHeartAnimating(false);
+        setFloatingHearts([]);
+      }, 1200);
+    }
+    
+    // Call the original like handler
+    handleLike();
   };
 
   // If clip is deleted or made private (on discover page), don't render anything
@@ -558,23 +627,53 @@ const ClipCard = ({
           <div className={styles.actionGroup}>
             <div className={styles.likeContainer}>
               <button 
-                className={`${styles.statButton} ${liked ? styles.liked : ''}`}
-                onClick={handleLike}
+                className={`${styles.statButton} ${liked ? styles.liked : ''} ${isHeartAnimating ? styles.heartAnimating : ''}`}
+                onClick={handleLikeWithAnimation}
                 disabled={!user || isUpdatingLike}
+                aria-label={liked ? "Unlike" : "Like"}
               >
-                {liked ? <MdFavorite /> : <MdFavoriteBorder />}
+                {liked ? <FaHeart className={styles.likeIcon} /> : <FaRegHeart />}
                 <span>{likesCount}</span>
               </button>
+              
+              {/* Multiple floating hearts */}
+              {floatingHearts.length > 0 && (
+                <div className={styles.floatingHeartsContainer}>
+                  {floatingHearts.map(heart => (
+                    <FaHeart 
+                      key={heart.id}
+                      className={styles.floatingHeart}
+                      style={{
+                        left: `calc(50% + ${heart.left}px)`,
+                        animationDelay: `${heart.delay}s`,
+                        transform: `scale(${heart.scale}) rotate(${heart.rotation}deg)`
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              
               {likesCount > 0 && (
                 <button 
                   className={styles.showLikesButton}
                   onClick={() => setShowLikesModal(true)}
                 >
-                  Show likes
+                  View {likesCount > 1 ? 'likes' : 'like'}
                 </button>
               )}
             </div>
 
+            <button
+              className={`${styles.actionButton}`}
+              onClick={() => setShowCommentModal(true)}
+              title="Show comments"
+            >
+              <MdComment />
+              {commentsCount > 0 && (
+                <span className={styles.inlineCount}>{commentsCount}</span>
+              )}
+            </button>
+            
             <button
               className={styles.actionButton}
               onClick={() => setShowShareModal(true)}
@@ -595,6 +694,14 @@ const ClipCard = ({
             </div>
           )}
         </div>
+        
+        {/* Add CommentModal component */}
+        <CommentModal
+          isOpen={showCommentModal}
+          onClose={() => setShowCommentModal(false)}
+          clipId={clipData.id}
+          clipTitle={clipData.title || 'Untitled Clip'}
+        />
 
         <div className={styles.modalContainer}>
           <DeleteClipModal

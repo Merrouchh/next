@@ -195,8 +195,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
           user_id,
           cloudflare_uid,
           mp4link,
-          status,
-          processing_details
+          status
         `)
         .eq('visibility', 'public')
         .order('uploaded_at', { ascending: false })

@@ -383,6 +383,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative; /* For absolute positioning of floating hearts */
 }
 
 .likeButton {
@@ -780,9 +781,14 @@
 }
 
 .statButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
   background: none;
   border: none;
-  padding: 6px;
+  padding: 6px 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 8px;
@@ -798,8 +804,23 @@
   cursor: not-allowed;
 }
 
+/* Enhanced liked button styling */
 .statButton.liked {
-  color: var(--accent-color, #ff4757);
+  color: var(--accent-primary, #FFD700);
+}
+
+/* New styles for heart icons */
+.statButton svg {
+  font-size: 1.1rem;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.statButton:hover:not(:disabled) svg {
+  transform: scale(1.2);
+}
+
+.statButton.liked svg {
+  animation: heartPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .gameTag {
@@ -886,20 +907,24 @@
   background: var(--background-hover, rgba(255, 255, 255, 0.1));
 }
 
+/* Improved show likes button */
 .showLikesButton {
   background: none;
   border: none;
-  color: var(--text-secondary, #999);
-  font-size: 0.8rem;
+  color: var(--accent-primary, #FFD700);
+  font-size: 0.85rem;
   padding: 4px 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 4px;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .showLikesButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary, #fff);
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--accent-primary, #FFD700);
+  opacity: 1;
 }
 
 .modalContainer {
@@ -1259,4 +1284,295 @@
 .progressPercent {
   font-size: 14px;
   color: #ccc;
+}
+
+/* Add this new style after the activeButton style */
+.activeButton {
+  color: var(--primary-color, #3f51b5);
+  background-color: rgba(63, 81, 181, 0.1);
+}
+
+/* New inline count style - shows the number directly next to the icon */
+.inlineCount {
+  margin-left: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-primary, #FFD700);
+}
+
+/* Comment out the badge style since we're not using it anymore */
+/* .commentCount {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: var(--accent-primary, #FFD700);
+  color: #000;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  transform: scale(1);
+  transition: all 0.2s ease;
+} */
+
+/* Remove the hover rule since we're not using badges anymore */
+/* .actionButton:hover .commentCount {
+  opacity: 1;
+  transform: scale(1);
+} */
+
+/* Update visibility button colors */
+.actionButton[title*="Change visibility"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Public icon style */
+.actionButton[title*="Change visibility"] svg[data-visibility="public"] {
+  color: var(--accent-primary, #FFD700);
+  transition: all 0.2s ease;
+}
+
+.actionButton[title*="Change visibility"]:hover svg[data-visibility="public"] {
+  color: #4CAF50;
+  transform: scale(1.1);
+}
+
+/* Private icon style */
+.actionButton[title*="Change visibility"] svg[data-visibility="private"] {
+  color: #FFA726;
+  transition: all 0.2s ease;
+}
+
+.actionButton[title*="Change visibility"]:hover svg[data-visibility="private"] {
+  color: #FF7043;
+  transform: scale(1.1);
+}
+
+.likesModalWrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.likesModalOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 100;
+}
+
+/* Keeping only one definition for likesModal */
+.likesModal {
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 90%;
+  max-width: 300px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  /* Yellow scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary, #FFD700) transparent;
+  margin: 0 auto;
+}
+
+/* Custom scrollbar for Webkit browsers */
+.likesModal::-webkit-scrollbar {
+  width: 4px; /* Thinner scrollbar */
+}
+
+.likesModal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.likesModal::-webkit-scrollbar-thumb {
+  background-color: var(--accent-primary, #FFD700);
+  border-radius: 2px;
+}
+
+/* Mobile styles */
+@media (max-width: 767px) {
+  .likesModal {
+    max-height: 300px; /* Taller on mobile */
+  }
+}
+
+/* Desktop styles - specific for profile grid */
+@media (min-width: 768px) {
+  /* When inside profile grid */
+  [class^="Profile_clipsGrid__"] .likesModal {
+    max-height: 180px; /* Even smaller for grid view */
+  }
+}
+
+.processingCard {
+  position: relative;
+}
+
+.processingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  min-height: 200px;
+}
+
+.processingMessage {
+  text-align: center;
+  color: #fff;
+  padding: 20px;
+  width: 80%;
+}
+
+.processingStatus {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.processingSubStatus {
+  font-size: 14px;
+  color: #ccc;
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.progressBarWrapper {
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.progressPercent {
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* Add these styles */
+.activeButton {
+  color: var(--primary-color, #3f51b5);
+  background-color: rgba(63, 81, 181, 0.1);
+}
+
+/* Comment out the badge style since we're not using it anymore */
+/* .commentCount {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: var(--accent-primary, #FFD700);
+  color: #000;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+  transform: scale(1);
+  transition: all 0.2s ease;
+} */
+
+/* New inline count style - shows the number directly next to the icon */
+.inlineCount {
+  margin-left: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-primary, #FFD700);
+}
+
+/* Remove the hover rule since we're not using badges anymore */
+/* .actionButton:hover .commentCount {
+  opacity: 1;
+  transform: scale(1);
+} */
+
+.statButton.heartAnimating svg {
+  animation: heartBeat 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* Floating hearts container */
+.floatingHeartsContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Floating heart icon */
+.floatingHeart {
+  position: absolute;
+  top: -15px;
+  color: var(--accent-primary, #FFD700);
+  font-size: 1.4rem;
+  animation: floatHeartAway 1.2s ease-out forwards;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+}
+
+/* Heart beat animation on click */
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(0.95); }
+  45% { transform: scale(1.2); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Heart pulse animation for liked state */
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Floating heart animation */
+@keyframes floatHeartAway {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateY(-40px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-60px);
+  }
 } 
