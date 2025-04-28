@@ -4,6 +4,16 @@ import styles from '../../styles/Profile.module.css';
 import ClipCard from '../ClipCard';
 import { FaFilter, FaTimes } from 'react-icons/fa';
 
+// LoadingSpinner component
+const LoadingSpinner = ({ message = "Loading clips..." }) => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>{message}</p>
+  </div>
+);
+
 const UserClips = ({ userId, isOwner }) => {
   const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -183,20 +193,7 @@ const UserClips = ({ userId, isOwner }) => {
     return (
       <div className={styles.clipsSection}>
         {games.length > 0 && renderFilters()}
-        <div className={styles.clipsGrid}>
-          <div className={styles.filterLoading}>
-            <div 
-              className={styles.spinner} 
-              style={{ 
-                border: '4px solid rgba(138, 43, 226, 0.15)', 
-                borderTop: '4px solid #8A2BE2',
-                width: '50px',
-                height: '50px',
-                boxShadow: '0 0 15px rgba(138, 43, 226, 0.3)'
-              }}
-            ></div>
-          </div>
-        </div>
+        <LoadingSpinner />
       </div>
     );
   }
@@ -211,18 +208,7 @@ const UserClips = ({ userId, isOwner }) => {
 
       <div className={`${styles.clipsGrid} ${isFiltering ? styles.filtering : ''}`}>
         {isFiltering ? (
-          <div className={styles.filterLoading}>
-            <div 
-              className={styles.spinner}
-              style={{ 
-                border: '4px solid rgba(138, 43, 226, 0.15)', 
-                borderTop: '4px solid #8A2BE2',
-                width: '50px',
-                height: '50px',
-                boxShadow: '0 0 15px rgba(138, 43, 226, 0.3)'
-              }}
-            ></div>
-          </div>
+          <LoadingSpinner message="Filtering clips..." />
         ) : filteredClips.length === 0 ? (
           <div className={styles.noClipsContainer}>
             <p className={styles.noClipsMessage}>

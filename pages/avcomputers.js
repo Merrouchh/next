@@ -3,7 +3,6 @@ import { fetchActiveUserSessions, fetchUserBalance, fetchComputers, loginUserToC
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
-import LoadingScreen from '../components/LoadingScreen';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
@@ -605,7 +604,15 @@ const AvailableComputers = ({ metaData }) => {
 
   // If the page is not yet ready, show the full page loading screen
   if (!pageReady) {
-    return <LoadingScreen />;
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.loading}>
+          <div className={styles.loadingDot}></div>
+          <div className={styles.loadingDot}></div>
+          <div className={styles.loadingDot}></div>
+        </div>
+      </ProtectedPageWrapper>
+    );
   }
 
   // Only show the error screen if there's an error and the page is ready

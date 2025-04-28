@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import LoadingScreen from '../../components/LoadingScreen';
+
+// Simple styled component for loading/message display
+const StyleWrapper = ({ message }) => {
+  return (
+    <div className="auth-message-container" style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      width: '100%',
+      background: '#0f1119',
+      color: '#FFD700',
+      fontSize: '1.2rem',
+      textAlign: 'center',
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      <div>{message || "Processing, please wait..."}</div>
+    </div>
+  );
+};
 
 export default function Confirm() {
   const router = useRouter();
@@ -67,17 +87,8 @@ export default function Confirm() {
   }, [router, router.isReady, supabase, user]);
   
   if (error) {
-    return (
-      <div className="auth-message-container">
-        <LoadingScreen 
-          message={`${error}. Redirecting...`} 
-          type="verification" 
-        />
-      </div>
-    );
+    return <StyleWrapper message={`${error}. Redirecting...`} />;
   }
   
-  return (
-    <LoadingScreen message="Confirming your email..." type="verification" />
-  );
+  return <StyleWrapper message="Confirming your email..." />;
 } 

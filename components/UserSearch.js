@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styles from '../styles/UserSearch.module.css';
 import { AiOutlineSearch, AiOutlineUser } from 'react-icons/ai';
 import { createClient } from '../utils/supabase/component';
+import { useRouter } from 'next/router';
 
 const UserSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,6 +13,7 @@ const UserSearch = () => {
   const searchContainerRef = useRef(null);
   const searchRef = useRef(null);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -24,7 +26,7 @@ const UserSearch = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSearch = useCallback(async (query) => {
+  const handleSearch = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -45,7 +47,7 @@ const UserSearch = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [supabase]);
+  };
 
   const handleUserClick = (selectedUsername) => {
     // Clear search results and query
@@ -53,11 +55,8 @@ const UserSearch = () => {
     setSearchQuery('');
     setShowResults(false);
     
-    // Force loading state before navigation
-    setIsSearching(true);
-    
-    // Use direct URL navigation to force a full page load
-    window.location.href = `/profile/${selectedUsername}`;
+    // Use Next.js router for navigation
+    router.push(`/profile/${selectedUsername}`);
   };
 
   const handleInputChange = (e) => {

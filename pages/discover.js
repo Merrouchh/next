@@ -11,6 +11,16 @@ import { useRouter } from 'next/router';
 
 const CLIPS_PER_PAGE = 5;
 
+// LoadingSpinner component
+const LoadingSpinner = ({ message = "Loading clips..." }) => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>{message}</p>
+  </div>
+);
+
 export async function getServerSideProps({ req, res }) {
   // Set cache headers for discover page
   res.setHeader(
@@ -31,56 +41,8 @@ export async function getServerSideProps({ req, res }) {
       .select('id', { count: 'exact' })
       .eq('visibility', 'public');
 
-    // Fetch initial clips
-    const { data: clips, error } = await supabase
-      .from('clips')
-      .select(`
-        id, 
-        thumbnail_path, 
-        title, 
-        username,
-        game, 
-        visibility, 
-        likes_count, 
-        views_count,
-        file_path,
-        uploaded_at,
-        user_id,
-        cloudflare_uid,
-        mp4link,
-        status
-      `)
-      .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false })
-      .limit(CLIPS_PER_PAGE);
-
-    if (error) throw error;
-
-    // Get the latest clip for the preview image
-    let previewImage = 'https://merrouchgaming.com/top.jpg';
-    let latestClipTitle = '';
-    
-    if (clips && clips.length > 0) {
-      const featuredClip = clips[0];
-      
-      // Prefer cloudflare thumbnail if available
-      if (featuredClip.cloudflare_uid) {
-        previewImage = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${featuredClip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
-      } else if (featuredClip.thumbnail_path) {
-        previewImage = featuredClip.thumbnail_path;
-      }
-      
-      latestClipTitle = featuredClip.title || '';
-      
-      // Add thumbnail_url to processed clips for client-side use
-      clips.forEach(clip => {
-        clip.thumbnail_url = clip.cloudflare_uid 
-          ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-          : clip.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
-      });
-    }
-    
-    console.log('Using preview image for discover page:', previewImage);
+    // Use a default preview image instead of loading initial clips
+    const previewImage = 'https://merrouchgaming.com/top.jpg';
 
     // Set cache headers
     res.setHeader(
@@ -89,15 +51,13 @@ export async function getServerSideProps({ req, res }) {
     );
 
     // Build rich metadata
-    const metaDescription = clips && clips.length > 0 
-      ? `Watch the best gaming moments from our community, including "${latestClipTitle}". High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.`
-      : "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.";
+    const metaDescription = "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.";
 
     return {
       props: {
-        initialClips: clips || [],
+        initialClips: [], // Don't fetch clips initially
         totalClips: count || 0,
-        hasMore: (clips?.length || 0) < (count || 0),
+        hasMore: (count || 0) > 0, // If there are clips, hasMore is true
         metaData: {
           title: "Discover Gaming Highlights | RTX 3070 Gaming Clips",
           description: metaDescription,
@@ -112,7 +72,7 @@ export async function getServerSideProps({ req, res }) {
                 url: previewImage,
                 width: 1200,
                 height: 630,
-                alt: latestClipTitle || "Gaming Highlights"
+                alt: "Gaming Highlights"
               }
             ]
           },
@@ -169,6 +129,64 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const loaderRef = useRef(null);
+
+  // Load initial clips when component mounts
+  useEffect(() => {
+    const loadInitialClips = async () => {
+      if (!mounted || clips.length > 0) return;
+      
+      setIsLoading(true);
+      
+      try {
+        const { data: newClips, error } = await supabase
+          .from('clips')
+          .select(`
+            id, 
+            thumbnail_path, 
+            title, 
+            username,
+            game, 
+            visibility, 
+            likes_count, 
+            views_count,
+            file_path,
+            uploaded_at,
+            user_id,
+            cloudflare_uid,
+            mp4link,
+            status
+          `)
+          .eq('visibility', 'public')
+          .order('uploaded_at', { ascending: false })
+          .range(0, CLIPS_PER_PAGE - 1);
+
+        if (error) throw error;
+        
+        if (newClips?.length) {
+          // Process clips to add thumbnail_url
+          newClips.forEach(clip => {
+            clip.thumbnail_url = clip.cloudflare_uid 
+              ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+              : clip.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
+          });
+          
+          setClips(newClips);
+          setHasMore(newClips.length < totalClips);
+        } else {
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error('Error loading initial clips:', error);
+      } finally {
+        setIsLoading(false);
+        setInitialLoad(false);
+      }
+    };
+    
+    loadInitialClips();
+  }, [mounted, supabase, clips.length, totalClips]);
 
   const loadMoreClips = async () => {
     if (isLoading || !hasMore) return;
@@ -204,6 +222,13 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
       if (error) throw error;
 
       if (newClips?.length) {
+        // Process clips to add thumbnail_url
+        newClips.forEach(clip => {
+          clip.thumbnail_url = clip.cloudflare_uid 
+            ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+            : clip.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
+        });
+        
         setClips(prev => [...prev, ...newClips]);
         const newHasMore = clips.length + newClips.length < totalClips;
         setHasMore(newHasMore);
@@ -217,37 +242,31 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
     }
   };
 
-  // Handle scroll with throttling
+  // Set up intersection observer for infinite scrolling
   useEffect(() => {
-    let timeoutId = null;
-
-    const handleScroll = () => {
-      if (timeoutId || isLoading || !hasMore) return;
-
-      timeoutId = setTimeout(() => {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const windowHeight = window.innerHeight;
-        const documentHeight = document.documentElement.scrollHeight;
-        
-        // Calculate percentage scrolled
-        const scrollPercentage = (scrollTop + windowHeight) / documentHeight * 100;
-        
-        // Load more when user has scrolled past 95% of the page
-        if (scrollPercentage > 95) {
-          console.log(`Scrolled ${scrollPercentage.toFixed(2)}% - Loading more`);
-          loadMoreClips();
-        }
-
-        timeoutId = null;
-      }, 150); // Throttle scroll events
+    if (!mounted || !loaderRef.current) return;
+    
+    const options = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.5,
     };
-
-    window.addEventListener('scroll', handleScroll);
+    
+    const observer = new IntersectionObserver((entries) => {
+      const [entry] = entries;
+      if (entry.isIntersecting && hasMore && !isLoading && !initialLoad) {
+        loadMoreClips();
+      }
+    }, options);
+    
+    observer.observe(loaderRef.current);
+    
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (timeoutId) clearTimeout(timeoutId);
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
     };
-  }, [hasMore, isLoading]);
+  }, [mounted, hasMore, isLoading, initialLoad, clips.length]);
 
   // Subscribe to changes in clips
   useEffect(() => {
@@ -343,9 +362,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
   if (!mounted) {
     return (
       <ProtectedPageWrapper>
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner} />
-        </div>
+        <LoadingSpinner message="Loading discover page..." />
       </ProtectedPageWrapper>
     );
   }
@@ -355,7 +372,9 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
       <DynamicMeta {...metaData} />
       <main className={styles.discoverMain}>
         <div className={styles.feedContainer}>
-          {clips.length > 0 ? (
+          {initialLoad ? (
+            <LoadingSpinner message="Loading clips..." />
+          ) : clips.length > 0 ? (
             <>
               {clips.map(clip => (
                 <ClipCard
@@ -363,17 +382,18 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
                   clip={clip}
                 />
               ))}
-              <div className={styles.loadingMore}>
-                {isLoading && (
-                  <div className={styles.spinner} />
-                )}
-                {!hasMore && (
+              
+              {/* Loading more indicator / End message */}
+              <div className={styles.loadingMore} ref={loaderRef}>
+                {isLoading ? (
+                  <LoadingSpinner message="Loading more clips..." />
+                ) : !hasMore ? (
                   <div className={styles.endMessage}>
                     <span className={styles.endIcon}>🎮</span>
                     <p>You've seen all the clips!</p>
                     <p className={styles.endSubtext}>Check back later for more gaming moments</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </>
           ) : (

@@ -380,10 +380,10 @@
 }
 
 .likeContainer {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  position: relative; /* For absolute positioning of floating hearts */
 }
 
 .likeButton {
@@ -761,6 +761,7 @@
 }
 
 .likeContainer {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -784,14 +785,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary, #999);
-  font-size: 0.9rem;
   background: none;
   border: none;
-  padding: 6px 10px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
 }
 
 .statButton:hover:not(:disabled) {
@@ -804,23 +806,46 @@
   cursor: not-allowed;
 }
 
-/* Enhanced liked button styling */
+/* Enhanced liked state transitions */
 .statButton.liked {
-  color: var(--accent-primary, #FFD700);
+  color: #FFD700;
+  transition: color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* New styles for heart icons */
+/* New styles for heart icons with smoother transitions */
 .statButton svg {
   font-size: 1.1rem;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Smoother hover effect */
 .statButton:hover:not(:disabled) svg {
   transform: scale(1.2);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.statButton.liked svg {
-  animation: heartPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* Heartbeat animation - smoother with better timing function */
+.statButton.heartAnimating svg {
+  animation: heartBeat 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+  color: #FFD700;
+}
+
+/* Heart beat animation on click - improved */
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(0.95); }
+  45% { transform: scale(1.2); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Heart pulse animation for liked state */
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 .gameTag {
@@ -919,6 +944,7 @@
   border-radius: 4px;
   font-weight: 500;
   opacity: 0.8;
+  z-index: 1;
 }
 
 .showLikesButton:hover {
@@ -1514,65 +1540,55 @@
 } */
 
 .statButton.heartAnimating svg {
-  animation: heartBeat 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+  animation: heartBeat 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+  color: #FFD700;
 }
 
-/* Floating hearts container */
+/* Floating hearts container - positioned in the component inline styles now */
 .floatingHeartsContainer {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 5;
   pointer-events: none;
   overflow: visible;
+  z-index: 20;
 }
 
 /* Floating heart icon */
 .floatingHeart {
   position: absolute;
-  top: -15px;
-  color: var(--accent-primary, #FFD700);
-  font-size: 1.4rem;
-  animation: floatHeartAway 1.2s ease-out forwards;
+  top: 0;
+  left: 0;
+  color: #FFD700; /* Brighter yellow */
+  font-size: 1.6rem; /* Larger size */
+  animation: floatHeartAway 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; /* Smoother easing */
   opacity: 0;
   pointer-events: none;
-  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.7)); /* Stronger glow */
+  z-index: 20;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); /* Add text shadow for more glow */
+  transform-origin: center bottom; /* Make hearts float from bottom center */
+  will-change: transform, opacity; /* Performance optimization */
 }
 
-/* Heart beat animation on click */
-@keyframes heartBeat {
-  0% { transform: scale(1); }
-  15% { transform: scale(1.3); }
-  30% { transform: scale(0.95); }
-  45% { transform: scale(1.2); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* Heart pulse animation for liked state */
-@keyframes heartPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1); }
-}
-
-/* Floating heart animation */
+/* Smoother heart animation with more subtle keyframes */
 @keyframes floatHeartAway {
   0% {
     opacity: 0;
-    transform: translateY(0);
+    transform: translateY(0) scale(0.8);
   }
-  10% {
+  5% {
+    opacity: 0.5;
+    transform: translateY(-3px) scale(0.9);
+  }
+  15% {
     opacity: 1;
+    transform: translateY(-8px) scale(1);
   }
   60% {
-    opacity: 0.8;
-    transform: translateY(-40px);
+    opacity: 0.7;
+    transform: translateY(-40px) scale(0.95);
   }
   100% {
     opacity: 0;
-    transform: translateY(-60px);
+    transform: translateY(-60px) scale(0.8);
   }
 } 

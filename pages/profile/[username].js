@@ -10,461 +10,378 @@ import UploadButton from '../../components/profile/UploadButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import UserClips from '../../components/profile/UserClips';
 import { FaVideo } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+
+// LoadingSpinner component
+const LoadingSpinner = ({ message = "Loading profile..." }) => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>{message}</p>
+  </div>
+);
 
 export async function getServerSideProps({ req, res, params }) {
-  const supabase = createClient({ req, res });
   const { username } = params;
   const normalizedUsername = username.toLowerCase();
 
-  try {
-    // First get basic user data
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        gizmo_id,
-        discord_id,
-        valorant_id,
-        fortnite_name,
-        battlenet_id
-      `)
-      .eq('username', normalizedUsername)
-      .single();
+  // Set cache headers
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=60, stale-while-revalidate=300'
+  );
 
-    if (userError || !userData) {
-      console.error('User not found:', userError);
-      return {
-        notFound: true
-      };
-    }
-
-    // Get clips count and latest public clip thumbnail
-    const { data: clipsData, count: clipsCount } = await supabase
-      .from('clips')
-      .select('thumbnail_path, title, cloudflare_uid', { count: 'exact' })
-      .eq('user_id', userData.id)
-      .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false })
-      .limit(1);
-
-    // Get the thumbnail URL from the latest clip or use default
-    let profileImage = 'https://merrouchgaming.com/top.jpg';
-    let latestClipTitle = '';
-    
-    if (clipsData && clipsData.length > 0) {
-      // Prefer cloudflare thumbnail if available
-      if (clipsData[0].cloudflare_uid) {
-        profileImage = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clipsData[0].cloudflare_uid}/thumbnails/thumbnail.jpg`;
-      } else if (clipsData[0].thumbnail_path) {
-        profileImage = clipsData[0].thumbnail_path;
-      }
-      latestClipTitle = clipsData[0].title || '';
-    }
-    
-    // Fetch user's event participation data - both direct registrations and team memberships
-    // First, get all event registrations where the user is the main registrant
-    const { data: userRegistrations, error: regError } = await supabase
-      .from('event_registrations')
-      .select(`
-        id,
-        event_id,
-        username,
-        status
-      `)
-      .eq('user_id', userData.id);
-    
-    if (regError) {
-      console.error('Error fetching user registrations:', regError);
-    }
-    
-    // Next, get all team memberships where the user is a partner/team member
-    const { data: teamMemberships, error: teamMemberError } = await supabase
-      .from('event_team_members')
-      .select(`
-        registration_id,
-        username
-      `)
-      .eq('user_id', userData.id);
-    
-    if (teamMemberError) {
-      console.error('Error fetching team memberships:', teamMemberError);
-    }
-    
-    // If user has team memberships, get the associated registration details
-    let teamRegistrations = [];
-    if (teamMemberships && teamMemberships.length > 0) {
-      const registrationIds = teamMemberships.map(member => member.registration_id);
-      
-      const { data: regDetails, error: regDetailsError } = await supabase
-        .from('event_registrations')
-        .select(`
-          id,
-          event_id,
-          username,
-          status
-        `)
-        .in('id', registrationIds);
-      
-      if (regDetailsError) {
-        console.error('Error fetching team registration details:', regDetailsError);
-      } else if (regDetails) {
-        teamRegistrations = regDetails;
-      }
-    }
-    
-    // Combine direct registrations and team registrations, avoiding duplicates
-    const allRegistrations = [...(userRegistrations || [])];
-    
-    // Add team registrations but avoid duplicates (in case the user is both registrant and team member)
-    if (teamRegistrations && teamRegistrations.length > 0) {
-      teamRegistrations.forEach(teamReg => {
-        const isDuplicate = allRegistrations.some(reg => reg.event_id === teamReg.event_id);
-        if (!isDuplicate) {
-          // Add a flag to indicate this is a team participation, not direct registration
-          allRegistrations.push({
-            ...teamReg,
-            isTeamMember: true
-          });
+  return {
+    props: {
+      username: normalizedUsername,
+      metaData: {
+        title: `Gaming Profile | Merrouch Gaming Center Tangier`,
+        description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
+        type: "profile",
+        openGraph: {
+          title: `Gaming Profile | Merrouch Gaming Center Tangier`,
+          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
+          images: [
+            {
+              url: "https://merrouchgaming.com/top.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Gaming Profile"
+            }
+          ],
+          type: "profile",
+          profile: {
+            username: normalizedUsername
+          }
+        },
+        twitter: {
+          card: "summary_large_image",
+          site: "@merrouchgaming",
+          title: `Gaming Profile | Best Gaming Center in Tangier`,
+          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
+          image: "https://merrouchgaming.com/top.jpg"
         }
-      });
+      }
     }
+  };
+}
+
+const ProfilePage = ({ username, metaData }) => {
+  const { user, supabase } = useAuth();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingAchievements, setLoadingAchievements] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Determine if current user is profile owner after userData loads
+  const isOwner = user?.id && userData?.id ? user.id === userData.id : false;
+
+  // Fetch the user data on client side
+  useEffect(() => {
+    setMounted(true);
     
-    // If there are registrations, get the event details
-    let achievements = [];
-    if (allRegistrations && allRegistrations.length > 0) {
-      const eventIds = allRegistrations.map(reg => reg.event_id);
-      
-      // Get basic event info
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          game,
-          status,
-          date,
-          time,
-          team_type
-        `)
-        .in('id', eventIds);
-      
-      if (eventsError) {
-        console.error('Error fetching events data:', eventsError);
-      } else if (eventsData && eventsData.length > 0) {
-        // For team events, get team members
-        const registrationIds = allRegistrations.map(reg => reg.id);
-        
-        // Create a mapping of partner data by registration ID
-        let teamMembersByRegId = {};
-        
-        // For duo and team events, get the partners
-        const { data: teamMembers, error: teamMembersError } = await supabase
-          .from('event_team_members')
+    const fetchUserData = async () => {
+      try {
+        // Fetch user data
+        const { data: userData, error: userError } = await supabase
+          .from('users')
           .select(`
-            registration_id,
-            user_id,
-            username
+            id,
+            username,
+            gizmo_id,
+            discord_id,
+            valorant_id,
+            fortnite_name,
+            battlenet_id
           `)
-          .in('registration_id', registrationIds);
-        
-        if (teamMembersError) {
-          console.error('Error fetching team members:', teamMembersError);
-        } else if (teamMembers && teamMembers.length > 0) {
-          // Group team members by registration ID
-          teamMembers.forEach(member => {
-            if (!teamMembersByRegId[member.registration_id]) {
-              teamMembersByRegId[member.registration_id] = [];
-            }
-            // Only add team members that aren't the current user
-            if (member.user_id !== userData.id) {
-              teamMembersByRegId[member.registration_id].push(member);
-            }
-          });
+          .eq('username', username)
+          .single();
+
+        if (userError || !userData) {
+          console.error('User not found:', userError);
+          setError('User not found');
+          setLoadingUser(false);
+          return;
         }
-        
-        // Create a mapping of registration info by event ID for quick lookup
-        const registrationByEvent = {};
-        allRegistrations.forEach(reg => {
-          registrationByEvent[reg.event_id] = reg;
+
+        // Get clips count
+        const { count: clipsCount } = await supabase
+          .from('clips')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userData.id)
+          .eq('visibility', 'public');
+
+        // Set the user data with clips count
+        setUserData({
+          ...userData,
+          clips_count: clipsCount || 0
         });
+        setLoadingUser(false);
+
+        // Update meta data with user info
+        updateMetaData(userData, clipsCount);
         
-        // For completed events, check if user is a winner
-        const completedEventIds = eventsData
-          .filter(event => event.status === 'Completed')
-          .map(event => event.id);
+        // Now fetch achievements for this user
+        fetchAchievements(userData.id);
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to load user profile');
+        setLoadingUser(false);
+      }
+    };
+
+    if (supabase && username && mounted) {
+      fetchUserData();
+    }
+  }, [username, supabase, mounted]);
+
+  // Function to update meta data with user info
+  const updateMetaData = (userData, clipsCount) => {
+    // This would normally update the page's meta data
+    // For Next.js, we'd typically use a meta data component
+    // This is left as a placeholder as this would normally
+    // be handled by Next.js head management
+    console.log('Updated meta data with user info');
+  };
+
+  // Fetch achievements 
+  const fetchAchievements = async (userId) => {
+    if (!userId) return;
+    
+    try {
+      const registrationsPromise = supabase
+        .from('event_registrations')
+        .select('id, event_id, status, username')
+        .eq('user_id', userId);
         
-        // For each completed event, check bracket data to see if user is a winner
-        let winnerInfo = {};
+      const teamMembershipsPromise = supabase
+        .from('event_team_members')
+        .select('registration_id, username')
+        .eq('user_id', userId);
         
-        if (completedEventIds.length > 0) {
-          // Fetch bracket data for completed events to check winners
-          for (const eventId of completedEventIds) {
-            const { data: bracketData, error: bracketError } = await supabase
-              .from('event_brackets')
-              .select('matches')
-              .eq('event_id', eventId)
-              .single();
-            
-            if (!bracketError && bracketData && bracketData.matches) {
-              try {
-                // The bracket data is an array of rounds, each containing match objects
-                // Check if matches is already an object or needs to be parsed
-                const bracketMatches = typeof bracketData.matches === 'string' 
-                  ? JSON.parse(bracketData.matches) 
-                  : bracketData.matches;
-                
-                console.log(`Event ID ${eventId}: Found bracket with ${bracketMatches.length} rounds`);
-                
-                // Find the final match (last round, first match)
-                if (bracketMatches.length > 0) {
-                  const finalRound = bracketMatches[bracketMatches.length - 1];
-                  console.log(`Final round found with ${finalRound ? finalRound.length : 0} matches`);
-                  
-                  if (finalRound && finalRound.length > 0) {
-                    const finalMatch = finalRound[0]; // The final match
-                    console.log(`Final match:`, JSON.stringify(finalMatch));
-                    
-                    if (finalMatch && finalMatch.winnerId) {
-                      const winningParticipantId = finalMatch.winnerId;
-                      console.log(`Event ID ${eventId}: Final match winner ID is ${winningParticipantId}`);
-                      
-                      // Check if this user is the winner by username comparison
-                      const userReg = registrationByEvent[eventId];
-                      let isWinner = false;
-                      
-                      // Direct check - is this user the winner?
-                      if (userReg) {
-                        console.log(`User registration for event ${eventId}:`, userReg.username);
-                        // Compare normalized usernames for case-insensitive matching
-                        const normalizedUsername = userReg.username.toLowerCase();
-                        
-                        // Check if user is one of the participants in the final match
-                        const isParticipant1 = finalMatch.participant1Name && 
-                          finalMatch.participant1Name.toLowerCase() === normalizedUsername;
-                        const isParticipant2 = finalMatch.participant2Name && 
-                          finalMatch.participant2Name.toLowerCase() === normalizedUsername;
-                        
-                        if (isParticipant1) {
-                          console.log(`User ${userReg.username} is participant1 in final match with ID: ${finalMatch.participant1Id}`);
-                          isWinner = finalMatch.participant1Id === winningParticipantId;
-                        } else if (isParticipant2) {
-                          console.log(`User ${userReg.username} is participant2 in final match with ID: ${finalMatch.participant2Id}`);
-                          isWinner = finalMatch.participant2Id === winningParticipantId;
-                        }
-                        
-                        // If user wasn't in the final match, search other matches for their ID
-                        if (!isParticipant1 && !isParticipant2) {
-                          // Find this user's participant ID in the bracket
-                          let userParticipantId = null;
-                          
-                          // Search all rounds and matches for this username
-                          for (let r = 0; r < bracketMatches.length; r++) {
-                            const round = bracketMatches[r];
-                            for (let m = 0; m < round.length; m++) {
-                              const match = round[m];
-                              if (match.participant1Name && match.participant1Name.toLowerCase() === normalizedUsername) {
-                                userParticipantId = match.participant1Id;
-                                console.log(`Found user ${normalizedUsername} as participant1 in round ${r+1}, match ${m+1}, ID: ${userParticipantId}`);
-                                break;
-                              } else if (match.participant2Name && match.participant2Name.toLowerCase() === normalizedUsername) {
-                                userParticipantId = match.participant2Id;
-                                console.log(`Found user ${normalizedUsername} as participant2 in round ${r+1}, match ${m+1}, ID: ${userParticipantId}`);
-                                break;
-                              }
-                            }
-                            if (userParticipantId) break;
-                          }
-                          
-                          // If we have the user's participant ID, check if it matches the winner ID
-                          if (userParticipantId) {
-                            isWinner = userParticipantId === winningParticipantId;
-                            console.log(`Comparing user ID ${userParticipantId} with winner ID ${winningParticipantId}: ${isWinner}`);
-                          }
-                        }
-                      }
-                      
-                      if (isWinner) {
-                        console.log(`🏆 User ${userData.username} is a WINNER for event ${eventId}!`);
-                        winnerInfo[eventId] = true;
-                      } else {
-                        console.log(`User ${userData.username} is NOT a winner for event ${eventId}`);
-                      }
-                    } else {
-                      console.log(`No winnerId found in final match for event ${eventId}`);
-                    }
-                  } else {
-                    console.log(`No valid final match found for event ${eventId}`);
-                  }
-                } else {
-                  console.log(`No bracket rounds found for event ${eventId}`);
+      const [
+        { data: userRegistrations, error: regError },
+        { data: teamMemberships, error: teamError }
+      ] = await Promise.all([registrationsPromise, teamMembershipsPromise]);
+      
+      if (regError) console.error('Error fetching registrations:', regError);
+      if (teamError) console.error('Error fetching team memberships:', teamError);
+      
+      // If there are either registrations or team memberships, fetch the events data
+      if ((userRegistrations && userRegistrations.length > 0) || 
+          (teamMemberships && teamMemberships.length > 0)) {
+        
+        // Process and combine registrations
+        let allRegistrations = [...(userRegistrations || [])];
+        let registrationIdsForTeamLookup = [];
+        
+        // Get the team registrations if there are any team memberships
+        if (teamMemberships && teamMemberships.length > 0) {
+          const registrationIds = teamMemberships.map(member => member.registration_id);
+          registrationIdsForTeamLookup = [...registrationIds];
+          
+          const { data: teamRegistrations } = await supabase
+            .from('event_registrations')
+            .select('id, event_id, username, status')
+            .in('id', registrationIds);
+          
+          if (teamRegistrations) {
+            // Add unique team registrations
+            teamRegistrations.forEach(teamReg => {
+              const isDuplicate = allRegistrations.some(reg => reg.event_id === teamReg.event_id);
+              if (!isDuplicate) {
+                allRegistrations.push({
+                  ...teamReg,
+                  isTeamMember: true
+                });
+              } else {
+                // Update the registration to mark it as a team event when it's both a direct registration
+                // and a team member registration
+                const existingRegIndex = allRegistrations.findIndex(reg => reg.event_id === teamReg.event_id);
+                if (existingRegIndex !== -1) {
+                  allRegistrations[existingRegIndex].isTeamMember = true;
                 }
-              } catch (parseError) {
-                console.error('Error parsing bracket data:', parseError, bracketData.matches);
               }
-            }
+            });
           }
         }
         
-        // Prepare the user's achievements
-        achievements = eventsData.map(event => {
-          // Create ISO date string from separate date and time fields
-          const eventDate = new Date(`${event.date}T${event.time || '00:00:00'}`).toISOString();
+        // Get event details if we have registrations
+        if (allRegistrations.length > 0) {
+          const eventIds = allRegistrations.map(reg => reg.event_id);
           
-          const reg = registrationByEvent[event.id];
-          const regId = reg?.id;
-          const isTeamMember = reg?.isTeamMember || false;
+          const { data: eventsData } = await supabase
+            .from('events')
+            .select('id, title, game, status, date, time, team_type')
+            .in('id', eventIds);
           
-          // Get partners/team members
-          let partners = [];
+          // Determine which registrations are for team events (including duo events)
+          const teamRegistrationIds = allRegistrations
+            .filter(reg => {
+              const event = eventsData?.find(e => e.id === reg.event_id);
+              return event?.team_type === 'team' || event?.team_type === 'duo';
+            })
+            .map(reg => reg.id);
           
-          if (regId && teamMembersByRegId[regId]) {
-            // Include team members as partners
-            partners = teamMembersByRegId[regId].map(p => ({
-              username: p.username,
-              userId: p.user_id
-            }));
-          }
-          
-          // If this is a team membership (not main registrant), we need to include the main registrant
-          if (isTeamMember && reg) {
-            // Add the main registrant as a partner
-            partners.push({
-              username: reg.username,
-              userId: null // We might not have the user ID of the registrant
+          // Include team registration IDs from team memberships as well
+          if (registrationIdsForTeamLookup.length > 0) {
+            // Make sure all known team registrations are included
+            registrationIdsForTeamLookup.forEach(regId => {
+              if (!teamRegistrationIds.includes(regId)) {
+                teamRegistrationIds.push(regId);
+              }
             });
           }
           
-          const isWinnerForEvent = !!winnerInfo[event.id];
-          console.log(`Event ${event.id} (${event.title}): isWinner = ${isWinnerForEvent}, status = ${event.status}`);
+          console.log('Team registration IDs:', teamRegistrationIds);
           
-          return {
-            eventId: event.id,
-            eventTitle: event.title,
-            game: event.game || 'Gaming Tournament',
-            eventDate: eventDate,
-            teamType: event.team_type,
-            status: event.status,
-            isWinner: isWinnerForEvent,
-            isTeamMember: isTeamMember,
-            partners: partners
-          };
-        });
-      }
-    }
-
-    // Set cache headers
-    res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=60, stale-while-revalidate=300'
-    );
-    
-    // Calculate how many gaming profiles user has connected
-    const connectedProfiles = [
-      userData.discord_id,
-      userData.valorant_id,
-      userData.fortnite_name,
-      userData.battlenet_id
-    ].filter(Boolean).length;
-    
-    // Create a rich description that includes gaming profile info
-    const description = `${userData.username}'s gaming profile on Merrouch Gaming Center. ${
-      clipsCount ? `Check out their ${clipsCount} gaming highlights` : 'View their gaming profile'
-    }${
-      connectedProfiles ? ` and ${connectedProfiles} connected gaming accounts` : ''
-    }${
-      achievements.length ? `. Participated in ${achievements.length} events` : ''
-    }${
-      achievements.filter(a => a.isWinner).length ? ` and won ${achievements.filter(a => a.isWinner).length} tournaments` : ''
-    }. ${
-      latestClipTitle ? `Latest clip: "${latestClipTitle}"` : ''
-    }`;
-
-    return {
-      props: {
-        userData: {
-          ...userData,
-          clips_count: clipsCount || 0
-        },
-        achievements: achievements || [],
-        metaData: {
-          title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier`,
-          description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
-          image: profileImage,
-          url: `https://merrouchgaming.com/profile/${userData.username}`,
-          type: "profile",
-          openGraph: {
-            title: `${userData.username}'s Gaming Profile | Merrouch Gaming Center Tangier`,
-            description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
-            images: [
-              {
-                url: profileImage,
-                width: 1200,
-                height: 630,
-                alt: `${userData.username}'s Gaming Profile`
+          // Fetch partner information for team events
+          let partners = [];
+          if (teamRegistrationIds.length > 0) {
+            try {
+              // First try the direct team_members query
+              const { data: teamPartners, error: partnerError } = await supabase
+                .from('event_team_members')
+                .select('registration_id, user_id, username')
+                .in('registration_id', teamRegistrationIds)
+                .neq('user_id', userId); // Exclude the current user
+              
+              if (partnerError) {
+                console.error('Error fetching team partners:', partnerError);
+              } else {
+                partners = teamPartners || [];
+                console.log('Found partners:', partners);
               }
-            ],
-            type: "profile",
-            profile: {
-              username: userData.username
+              
+              // If no partners found through direct query, try with a broader approach
+              if (!partners || partners.length === 0) {
+                console.log('Using alternative partner lookup method for public profile');
+                
+                // Get all registrations for these events
+                const eventIds = eventsData.map(e => e.id);
+                
+                // First get all registrations for these events
+                const { data: allEventRegistrations } = await supabase
+                  .from('event_registrations')
+                  .select('id, event_id, user_id')
+                  .in('event_id', eventIds);
+                
+                if (allEventRegistrations && allEventRegistrations.length > 0) {
+                  // Then get all team members for these registrations
+                  const allRegIds = allEventRegistrations.map(reg => reg.id);
+                  
+                  const { data: allTeamMembers } = await supabase
+                    .from('event_team_members')
+                    .select('registration_id, user_id, username')
+                    .in('registration_id', allRegIds);
+                  
+                  if (allTeamMembers) {
+                    // Filter only the ones that match our target registrations
+                    partners = allTeamMembers.filter(
+                      member => 
+                        teamRegistrationIds.includes(member.registration_id) && 
+                        member.user_id !== userId
+                    );
+                    console.log('Partners found with alternative method:', partners);
+                  }
+                }
+              }
+            } catch (partnerFetchError) {
+              console.error('Error in partner lookup:', partnerFetchError);
             }
-          },
-          twitter: {
-            card: "summary_large_image",
-            site: "@merrouchgaming",
-            title: `${userData.username}'s Gaming Profile | Best Gaming Center in Tangier`,
-            description: description.substring(0, 155) + (description.length > 155 ? '...' : ''),
-            image: profileImage
-          },
-          structuredDataItems: [
-            {
-              "@context": "https://schema.org",
-              "@type": "ProfilePage",
-              "dateModified": new Date().toISOString(),
-              "headline": `${userData.username}'s Gaming Profile`,
-              "description": description,
-              "image": profileImage,
-              "url": `https://merrouchgaming.com/profile/${userData.username}`,
-              "author": {
-                "@type": "Person",
-                "name": userData.username
-              },
-              "mainEntity": {
-                "@type": "Person",
-                "name": userData.username,
-                "identifier": userData.id,
-                "url": `https://merrouchgaming.com/profile/${userData.username}`,
-                "sameAs": [
-                  userData.discord_id ? `https://discord.com/users/${userData.discord_id}` : null,
-                  userData.valorant_id ? `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(userData.valorant_id)}` : null
-                ].filter(Boolean)
-              },
-              "potentialAction": {
-                "@type": "ViewAction",
-                "target": `https://merrouchgaming.com/profile/${userData.username}`
-              },
-              "provider": {
-                "@type": "Organization",
-                "name": "Merrouch Gaming",
-                "url": "https://merrouchgaming.com"
+          }
+          
+          // If still no partners found, try the event-based lookup
+          if (!partners || partners.length === 0) {
+            console.log('Using event-based partner lookup method');
+            
+            // For each event, find all users who participated
+            for (const event of eventsData) {
+              if (event.team_type === 'team' || event.team_type === 'duo') {
+                // Get all registrations for this event
+                const { data: eventRegistrations } = await supabase
+                  .from('event_registrations')
+                  .select('id, user_id, username, event_id')
+                  .eq('event_id', event.id);
+                
+                if (eventRegistrations && eventRegistrations.length > 0) {
+                  // Find registrations that aren't this user
+                  const otherRegistrations = eventRegistrations.filter(reg => 
+                    reg.user_id !== userId
+                  );
+                  
+                  // Add them as potential partners
+                  otherRegistrations.forEach(reg => {
+                    // Create a synthetic team member entry
+                    partners.push({
+                      registration_id: reg.id,
+                      user_id: reg.user_id,
+                      username: reg.username,
+                      event_id: reg.event_id
+                    });
+                  });
+                }
               }
             }
-          ]
+            
+            console.log('Partners found with event-based method:', partners);
+          }
+          
+          if (eventsData && eventsData.length > 0) {
+            // Create achievement objects for each event
+            const achievements = eventsData.map(event => {
+              const eventDate = new Date(`${event.date}T${event.time || '00:00:00'}`).toISOString();
+              const reg = allRegistrations.find(r => r.event_id === event.id);
+              
+              // Find partners for this specific registration
+              let eventPartners = [];
+              if (reg && reg.id) {
+                // First try registration-based lookup
+                eventPartners = partners.filter(p => p.registration_id === reg.id);
+              } 
+              
+              // If no partners found with registration ID, try event ID
+              if (eventPartners.length === 0 && (event.team_type === 'team' || event.team_type === 'duo')) {
+                // Look for partners that have been associated with this event ID directly
+                eventPartners = partners.filter(p => p.event_id === event.id);
+                
+                // If still no partners, try looking at alternative registrations
+                if (eventPartners.length === 0) {
+                  const eventRegs = allRegistrations.filter(r => r.event_id === event.id && r.id);
+                  const eventRegIds = eventRegs.map(r => r.id);
+                  eventPartners = partners.filter(p => eventRegIds.includes(p.registration_id));
+                }
+              }
+              
+              return {
+                eventId: event.id,
+                eventTitle: event.title,
+                game: event.game || 'Gaming Tournament',
+                eventDate: eventDate,
+                teamType: event.team_type,
+                status: event.status,
+                isWinner: false, // We'll skip winner checking for better performance
+                isTeamMember: reg?.isTeamMember || false,
+                partners: eventPartners || []
+              };
+            });
+            
+            setUserAchievements(achievements);
+          }
         }
       }
-    };
-  } catch (error) {
-    console.error('Error in getServerSideProps:', error);
-    return {
-      notFound: true
-    };
-  }
-}
-
-const ProfilePage = ({ userData, metaData, achievements }) => {
-  const { user } = useAuth();
-  const isOwner = user?.id === userData.id;
-  const router = useRouter();
+    } catch (error) {
+      console.error('Error fetching achievements:', error);
+    } finally {
+      setLoadingAchievements(false);
+    }
+  };
 
   const handleCopy = (text, type) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -488,6 +405,39 @@ const ProfilePage = ({ userData, metaData, achievements }) => {
     });
   };
 
+  if (!mounted) {
+    return (
+      <ProtectedPageWrapper>
+        <LoadingSpinner />
+      </ProtectedPageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <ProtectedPageWrapper>
+        <div className={styles.errorContainer}>
+          <h2 className={styles.errorTitle}>Error</h2>
+          <p className={styles.errorMessage}>{error}</p>
+          <button 
+            onClick={() => router.back()}
+            className={styles.backButton}
+          >
+            Go Back
+          </button>
+        </div>
+      </ProtectedPageWrapper>
+    );
+  }
+
+  if (loadingUser) {
+    return (
+      <ProtectedPageWrapper>
+        <LoadingSpinner message={`Loading ${username}'s profile...`} />
+      </ProtectedPageWrapper>
+    );
+  }
+
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
@@ -502,8 +452,9 @@ const ProfilePage = ({ userData, metaData, achievements }) => {
             fortnite_name: userData.fortnite_name,
             battlenet_id: userData.battlenet_id
           }}
-          achievements={achievements}
+          achievements={userAchievements}
           isOwner={isOwner}
+          loadingAchievements={loadingAchievements}
         />
 
         {/* Clips Section with container */}

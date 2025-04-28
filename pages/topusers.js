@@ -51,16 +51,28 @@ export async function getServerSideProps({ res }) {
   };
 }
 
+// Loading spinner component
+const LoadingSpinner = () => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>Loading users...</p>
+  </div>
+);
+
 const TopUsers = ({ metaData }) => {
   const [topUsers, setTopUsers] = useState([]);
   const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
   const [currentMonth, setCurrentMonth] = useState('');
   const [retryCount, setRetryCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 2000; // 2 seconds
 
   const getTopUsers = useCallback(async (isRetry = false) => {
+    setIsLoading(true);
     try {
       const data = await fetchTopUsers(10);
       if (data.length === 0 && retryCount < MAX_RETRIES) {
@@ -73,10 +85,12 @@ const TopUsers = ({ metaData }) => {
       } else if (data.length === 0) {
         setError('Unable to load users at the moment. Please try again later.');
         setTopUsers([]);
+        setIsLoading(false);
       } else {
         setTopUsers(data);
         setError(null);
         setRetryCount(0);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error fetching top users:', error);
@@ -89,6 +103,7 @@ const TopUsers = ({ metaData }) => {
       } else {
         setError('Service temporarily unavailable. Please try again later.');
         setTopUsers([]);
+        setIsLoading(false);
       }
     }
   }, [retryCount]); // Add retryCount as dependency
@@ -183,27 +198,32 @@ const TopUsers = ({ metaData }) => {
           <p className={styles.counterText}>
             {`Current Month: ${currentMonth} | Time Left Until Next Month: ${timeLeft}`}
           </p>
-          {error && (
-            <p className={`${styles.error} ${error === 'Loading users...' ? styles.loading : ''}`}>
-              {error}
-            </p>
-          )}
-          {!error && topUsers.length > 0 && (
-            <div className={styles.userList}>
-              {topUsers.map((user, index) => (
-                <div key={index} className={`${styles.userItem} ${index < 3 ? styles.podium : ''}`}>
-                  <span className={styles.rank}>{getPodiumIcon(index)}</span>
-                  <input
-                    type="text"
-                    className={styles.userInput}
-                    value={user.name}
-                    readOnly
-                    style={{ textAlign: 'center' }}
-                  />
-                  <span className={styles.rewardText}>{getRewardText(index)}</span>
+          
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <>
+              {error && error !== 'Loading users...' && (
+                <p className={styles.error}>{error}</p>
+              )}
+              {!error && topUsers.length > 0 && (
+                <div className={styles.userList}>
+                  {topUsers.map((user, index) => (
+                    <div key={index} className={`${styles.userItem} ${index < 3 ? styles.podium : ''}`}>
+                      <span className={styles.rank}>{getPodiumIcon(index)}</span>
+                      <input
+                        type="text"
+                        className={styles.userInput}
+                        value={user.name}
+                        readOnly
+                        style={{ textAlign: 'center' }}
+                      />
+                      <span className={styles.rewardText}>{getRewardText(index)}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </main>
       </div>

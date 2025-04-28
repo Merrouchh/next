@@ -18,6 +18,15 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   height: var(--nav-button-height, 60px);
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scroll-behavior: smooth;
+  background: #0f0f0f;
+}
+
+.navContainer::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Bottom Navigation - Mobile Only */
@@ -69,10 +78,22 @@
   .navContainer {
     padding: 0;
     margin: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #0f0f0f;
   }
 
   .navButton {
     padding: 8px 0;
+    min-width: 80px;
+  }
+
+  .navButton .icon {
+    font-size: 18px;
+  }
+
+  .navButton .label {
+    font-size: 10px;
   }
 }
 
@@ -96,7 +117,7 @@
     flex-direction: row;
     padding: 8px 16px;
     border-radius: 8px;
-    height: calc(var(--dashboard-header-height, 70px) - 20px); /* Account for padding */
+    height: calc(var(--dashboard-header-height, 70px) - 20px);
   }
 
   .navButton .icon {
@@ -114,13 +135,12 @@
   }
 
   .navButton.active {
-    background: #FFD700;
-    color: #000000;
+    color: #FFD700;
   }
 
   .navButton.active .icon,
   .navButton.active .label {
-    color: #000000;
+    color: #FFD700;
   }
 }
 
@@ -136,6 +156,23 @@
   color: #ffffff;
   padding: 8px 0;
   height: 100%;
+  min-width: 90px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.navButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+}
+
+.navButton:active {
+  transform: scale(0.98);
 }
 
 .navButton .icon {
@@ -144,35 +181,33 @@
   justify-content: center;
   align-items: center;
   margin: 0 auto;
+  transition: color 0.2s ease;
+  pointer-events: none;
 }
 
 .navButton .label {
   font-size: 11px;
   line-height: 1;
   text-align: center;
+  transition: color 0.2s ease;
+  pointer-events: none;
 }
 
+/* Active state */
 .navButton.active {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.navButton.active .icon,
+.navButton.active .label {
   color: #FFD700;
 }
 
 /* Hover state */
 .navButton:hover {
   color: #FFD700;
-}
-
-/* Active state */
-.navButton.active {
-  background: #FFD700 !important;
-  color: #000000 !important; /* Force black text when active */
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Make sure icon and label are also black when active */
-.navButton.active .icon,
-.navButton.active .label {
-  color: #000000;
+  background: rgba(255, 215, 0, 0.05);
 }
 
 /* Icon styles */
@@ -212,99 +247,6 @@
   }
 }
 
-/* Animation for smooth transitions */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.navButton {
-  animation: slideIn 0.3s ease;
-}
-
-/* Animation for glow effect */
-@keyframes glow {
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.2); }
-  100% { filter: brightness(1); }
-}
-
-/* Desktop styles */
-@media (min-width: 769px) {
-  .dashboardHeader {
-    height: var(--dashboard-header-height, 70px);
-  }
-
-  .topNav {
-    height: 100%;
-  }
-
-  .navContainer {
-    gap: 1rem;
-  }
-
-  .navButton {
-    border-radius: 8px;
-    padding: 0.75rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .navButton .icon {
-    margin-bottom: 4px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .navButton .label {
-    text-align: center;
-  }
-
-  .navButton:hover {
-    background-color: #222222;
-    color: #FFD700;
-  }
-
-  /* Clean up the active state */
-  .navButton.active {
-    background: #FFD700;
-    color: #000000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .navButton.active .label {
-    font-weight: 600;
-  }
-}
-
-/* Remove the gradient animations and keep it simple */
-.navButton.active {
-  animation: none;
-  background: #FFD700;
-}
-
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  .navButton,
-  .icon,
-  .label,
-  .dashboardHeader,
-  .navContainer {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
 /* Add glow animation */
 @keyframes pulseGlow {
   0% {
@@ -340,12 +282,185 @@
 /* Loading placeholder to maintain space */
 .dashboardHeader:empty {
   height: var(--dashboard-header-height);
-  background: var(--dark-bg-secondary);
+  background: #0f0f0f;
   border-bottom: 1px solid var(--dark-border);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dashboardHeader {
     transition: none;
+  }
+}
+
+/* Add this at the end of the file */
+
+.dashboardHeaderPlaceholder {
+  height: 60px; /* Match dashboardHeader height */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  transition: none;
+}
+
+/* Improve transitions */
+.dashboardHeader, .navContainer, .topNav {
+  will-change: transform;
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+/* Pre-reserve space for nav items to prevent layout shift */
+.navButton {
+  min-width: 90px;
+  opacity: 1;
+}
+
+/* Desktop styles */
+@media (min-width: 769px) {
+  .dashboardHeader {
+    height: var(--dashboard-header-height, 70px);
+    background: #0f0f0f;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .topNav {
+    height: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    background: #0f0f0f;
+  }
+
+  .navContainer {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 0 10px;
+    background: #0f0f0f;
+  }
+
+  .navButton {
+    flex-direction: row;
+    padding: 0 16px;
+    height: 42px;
+    min-width: 130px;
+    border-radius: 6px;
+    position: relative;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(20, 20, 20, 0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease-out;
+  }
+  
+  /* Button highlight top border */
+  .navButton::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.1), 
+      transparent
+    );
+  }
+  
+  .navButton .icon {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    transition: all 0.2s ease-out;
+  }
+
+  .navButton .label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease-out;
+  }
+
+  .navButton:hover {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .navButton:hover .icon,
+  .navButton:hover .label {
+    color: #FFD700;
+  }
+
+  .navButton.active {
+    background: rgba(25, 25, 25, 0.95);
+    border-color: rgba(255, 215, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  }
+
+  .navButton.active::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 215, 0, 0.5), 
+      transparent
+    );
+    border-radius: 1px;
+  }
+
+  .navButton.active .icon,
+  .navButton.active .label {
+    color: #FFD700;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  }
+
+  /* Remove the previous glow effect */
+  .navButton.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 215, 0, 0.3), 
+      transparent
+    );
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .navButton,
+  .icon,
+  .label,
+  .dashboardHeader,
+  .navContainer {
+    transition: none !important;
+    animation: none !important;
   }
 } 

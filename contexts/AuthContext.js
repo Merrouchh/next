@@ -2,7 +2,6 @@ import { createContext, useState, useContext, useEffect, useCallback, useRef } f
 import { createClient } from '../utils/supabase/component';
 import { useRouter } from 'next/router';
 import { fetchGizmoId } from '../utils/api';
-import LoadingScreen from '../components/LoadingScreen';
 import { isPublicRoute, isProtectedRoute } from '../utils/routeConfig';
 
 // Error messages
@@ -1072,14 +1071,7 @@ export const AuthProvider = ({ children, onError }) => {
   }, [mounted, router]);
 
   if (shouldShowLoading()) {
-    return (
-      <div className="auth-loading-wrapper" suppressHydrationWarning>
-        <LoadingScreen 
-          type="auth" 
-          message={isLoggingOut ? "Logging out..." : "Authenticating..."} 
-        />
-      </div>
-    );
+    return children;
   }
 
   // Return the context value

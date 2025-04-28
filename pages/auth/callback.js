@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import LoadingScreen from '../../components/LoadingScreen';
+
+// Simple loading/message component to replace LoadingScreen
+const StyleWrapper = ({ message, type }) => {
+  return (
+    <div className="auth-message-container" style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      width: '100%',
+      background: '#0f1119',
+      color: '#FFD700',
+      fontSize: '1.2rem',
+      textAlign: 'center',
+      flexDirection: 'column',
+      gap: '1rem'
+    }}>
+      <div>{message || "Processing, please wait..."}</div>
+    </div>
+  );
+};
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -243,16 +263,11 @@ export default function AuthCallback() {
   
   if (error) {
     return (
-      <div className="auth-message-container">
-        <LoadingScreen 
-          message={`${error}. Redirecting...`} 
-          type="verification" 
-        />
-      </div>
+      <StyleWrapper message={`${error}. Redirecting...`} />
     );
   }
   
   return (
-    <LoadingScreen message="Processing authentication..." type="verification" />
+    <StyleWrapper message="Processing verification..." />
   );
 } 

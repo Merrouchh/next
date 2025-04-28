@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import LoadingScreen from './LoadingScreen';
 import styles from '../styles/AdminPageWrapper.module.css';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -25,9 +24,9 @@ export default function AdminPageWrapper({ children, title }) {
     }
   }, [user, isLoggedIn, loading, router]);
 
-  // Show loading screen while checking authentication
+  // Show simple loading message while checking authentication
   if (loading || !isLoggedIn || !user?.isAdmin) {
-    return <LoadingScreen message="Checking admin access..." />;
+    return <div className={styles.adminLoading}>Checking admin access...</div>;
   }
 
   // Admin menu items

@@ -27,6 +27,8 @@ html, body {
   transition: opacity 0.3s ease;
   scroll-behavior: instant;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {
@@ -101,7 +103,8 @@ button {
 
 /* Custom gaming scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  background: #0f0f0f;
 }
 
 ::-webkit-scrollbar-track {
@@ -110,14 +113,12 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #FFD700, #FFC107);
-  border-radius: 5px;
-  border: 2px solid #0f1119;
+  background: #333;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #FFC107, #FFD700);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  background: #444;
 }
 
 /* Selection style */
@@ -183,53 +184,8 @@ button {
   flex-direction: column;
 }
 
-.layout.transitioning {
-  opacity: 0;
-}
-
 .main-content {
   flex: 1;
-}
-
-/* Page transition animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-.page-transition-enter {
-  opacity: 0;
-}
-
-.page-transition-enter-active {
-  opacity: 1;
-  transition: opacity 300ms ease-in;
-}
-
-.page-transition-exit {
-  opacity: 1;
-}
-
-.page-transition-exit-active {
-  opacity: 0;
-  transition: opacity 300ms ease-out;
 }
 
 input, textarea, select {
@@ -347,52 +303,17 @@ code {
 .phone-dropdown-container li,
 .phone-dropdown-container .country,
 .phone-dropdown-container button {
-  tabindex: -1 !important;
+  /* Adding tabindex through HTML attributes instead */
+  pointer-events: auto;
 }
 
 .react-tel-input .country-list {
-  tabindex: -1 !important;
+  /* Adding tabindex through HTML attributes instead */
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .react-tel-input .selected-flag {
-  tabindex: -1 !important;
-}
-
-/* Add nav-loading class to handle initial loading state */
-body.nav-loading .nav {
-  visibility: hidden !important;
-}
-
-/* Prevent flashing of desktop logout button on mobile during page load */
-@media (max-width: 768px) {
-  body.nav-loading .logoutButton {
-    display: none !important;
-  }
-}
-
-/* Hide logo text during initial load to prevent flashing */
-body.nav-loading .logo {
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Initial loading states for mobile/desktop views */
-body.mobile-view .logo {
-  display: none !important;
-}
-
-body.desktop-view .mobileLogo {
-  display: none !important;
-}
-
-/* Dashboard header loading state */
-body.dash-nav-loading .dashboardHeader {
-  visibility: hidden !important;
-}
-
-/* Hide dashboard navigation on mobile during load */
-@media (max-width: 768px) {
-  body.dash-nav-loading .topNav {
-    display: none !important;
-  }
+  /* Adding tabindex through HTML attributes instead */
+  padding: 0 8px;
 }

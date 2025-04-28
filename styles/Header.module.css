@@ -791,3 +791,26 @@
 .yellowButton::after {
   display: none;
 }
+
+/* Add this at the end of the file */
+
+.headerPlaceholder {
+  height: 60px; /* Match header height */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  transition: none;
+}
+
+/* Ensure the mobile logo placeholder has specific dimensions */
+.logoPlaceholder {
+  display: block;
+  min-width: 150px;
+  min-height: 40px;
+}
+
+/* Make sure transitions are smoother */
+.header, .nav, .logoContainer {
+  will-change: transform;
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}

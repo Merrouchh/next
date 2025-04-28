@@ -1,22 +1,25 @@
 import Footer from './Footer';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState, useCallback } from 'react';
-import LoadingScreen from './LoadingScreen';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
 import { isAuthPage } from '../utils/routeConfig';
+import { MdFileUpload } from 'react-icons/md';
 
 const Layout = ({ children }) => {
   const router = useRouter();
-  const { loading: _authLoading, isLoggedIn: _isLoggedIn, initialized } = useAuth();
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const { initialized, user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const isHomePage = router.pathname === '/';
   const { isLoginModalOpen, closeLoginModal } = useModal();
   const isVerificationPage = isAuthPage(router.pathname);
+  const [isMobile, setIsMobile] = useState(false);
+  const [ripple, setRipple] = useState(false);
+  const [rippleStyle, setRippleStyle] = useState({});
+  const uploadButtonRef = useRef(null);
 
   const shouldHideFooter = useCallback(() => {
     if (!router?.pathname) return true;
@@ -44,31 +47,28 @@ const Layout = ({ children }) => {
     return () => setMounted(false);
   }, []);
 
-  // Handle route changes
+  // Check if device is mobile
   useEffect(() => {
-    if (!mounted) return;
-
-    const handleStart = () => setIsTransitioning(true);
-    const handleComplete = () => setIsTransitioning(false);
-    const handleError = () => setIsTransitioning(false);
-
-    router.events.on('routeChangeStart', handleStart);
-    router.events.on('routeChangeComplete', handleComplete);
-    router.events.on('routeChangeError', handleError);
-
-    return () => {
-      router.events.off('routeChangeStart', handleStart);
-      router.events.off('routeChangeComplete', handleComplete);
-      router.events.off('routeChangeError', handleError);
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
-  }, [router.events, mounted]);
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
 
   if (!mounted || !initialized) {
     return (
       <>
         <div className={styles.layoutWrapper}>
-          <div className={styles.loadingContainer}>
-            <LoadingScreen type="auth" />
+          <div>
+            {/* Placeholder for empty initial state */}
           </div>
         </div>
         <div id="modal-root" className={styles.modalRoot}></div>
@@ -92,6 +92,35 @@ const Layout = ({ children }) => {
     );
   }
 
+  // Navigate to upload page with ripple effect
+  const handleUploadClick = (e) => {
+    // Create ripple effect
+    const button = uploadButtonRef.current;
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2;
+      const x = e.clientX - rect.left - size / 2;
+      const y = e.clientY - rect.top - size / 2;
+      
+      setRippleStyle({
+        width: `${size}px`,
+        height: `${size}px`,
+        left: `${x}px`,
+        top: `${y}px`
+      });
+      
+      setRipple(true);
+      
+      // Navigate after ripple animation
+      setTimeout(() => {
+        router.push('/upload');
+        setTimeout(() => setRipple(false), 300);
+      }, 300);
+    } else {
+      router.push('/upload');
+    }
+  };
+
   return (
     <>
       <div className={styles.layoutWrapper}>
@@ -105,6 +134,21 @@ const Layout = ({ children }) => {
       <div id="modal-root" className={styles.modalRoot}>
         <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       </div>
+      
+      {/* Floating upload button for desktop logged-in users (hidden on upload page) */}
+      {user && !isMobile && router.pathname !== '/upload' && (
+        <button 
+          ref={uploadButtonRef}
+          className={styles.floatingUploadButton}
+          onClick={handleUploadClick}
+          aria-label="Upload new content"
+          title="Upload new content"
+        >
+          <MdFileUpload />
+          <span className={styles.uploadButtonText}>Upload</span>
+          {ripple && <span className={styles.ripple} style={rippleStyle} />}
+        </button>
+      )}
     </>
   );
 };

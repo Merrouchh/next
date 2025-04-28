@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/DashboardHeader.module.css';
@@ -28,38 +28,23 @@ const DashboardHeader = () => {
   const { user } = useAuth();
   const currentPath = router.pathname;
   const [isMobile, setIsMobile] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const isDragging = useRef(false);
   const navContainerRef = useRef(null);
   const isScrolling = useRef(false);
 
-  // Add mounted state to prevent layout flash
+  // Check for mobile on client-side only
   useEffect(() => {
-    // Add a class to body during initial load
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('dash-nav-loading');
-    }
-    
-    // Small delay to ensure media queries have time to evaluate
-    const timer = setTimeout(() => {
-      setMounted(true);
-      
-      // Remove the class once mounted
-      if (typeof document !== 'undefined') {
-        document.body.classList.remove('dash-nav-loading');
-      }
-    }, 50);
-    
-    return () => {
-      clearTimeout(timer);
-      if (typeof document !== 'undefined') {
-        document.body.classList.remove('dash-nav-loading');
-      }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
     };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Update the navigation groups
-  const topNavigationItems = [
+  // Navigation items configuration
+  const navigationItems = {
+    top: [
     {
       path: '/dashboard',
       label: 'Dashboard',
@@ -75,24 +60,15 @@ const DashboardHeader = () => {
       label: 'Shop',
       icon: <AiOutlineShop size={20} />
     }
-  ].map((item, _index) => ({
-    ...item,
-    key: `top-${item.path}`
-  }));
-
-  // Desktop-only navigation items
-  const desktopOnlyItems = [
+    ],
+    desktop: [
     {
       path: '/events',
       label: 'Events',
       icon: <AiOutlineCalendar size={20} />
     }
-  ].map((item, _index) => ({
-    ...item,
-    key: `desktop-${item.path}`
-  }));
-
-  const bottomNavigationItems = [
+    ],
+    bottom: [
     {
       path: '/discover',
       label: 'Discover',
@@ -108,12 +84,10 @@ const DashboardHeader = () => {
       label: 'Profile',
       icon: <AiOutlineVideoCamera size={20} />
     }
-  ].map((item, _index) => ({
-    ...item,
-    key: `bottom-${item.path}`
-  }));
+    ]
+  };
 
-  // First, update the isActive function to be more explicit about dashboard paths
+  // Helper function to check if a path is active
   const isActive = (path) => {
     if (path.startsWith('/profile/')) {
       return currentPath.startsWith('/profile/') && path === `/profile/${user?.username}`;
@@ -124,33 +98,18 @@ const DashboardHeader = () => {
     return currentPath === path;
   };
 
-  // Then update the centerActiveButton function to handle dashboard paths better
-  const centerActiveButton = useCallback(() => {
+  // Center the active button in mobile view
+  const centerActiveButton = () => {
     if (!navContainerRef.current || !isMobile) return;
     
     const container = navContainerRef.current;
-    const activeButtons = container.querySelectorAll(`.${styles.active}`);
+    const activeButton = container.querySelector(`.${styles.active}`);
     
-    if (activeButtons.length > 0) {
-      // Calculate which set of buttons to use (first, middle, or last)
-      let targetIndex;
-      if (currentPath === '/dashboard' || currentPath === '/') {
-        // For dashboard, always use the first set
-        targetIndex = 0;
-      } else {
-        // For other paths, use the middle set
-        const setSize = topNavigationItems.length + bottomNavigationItems.length;
-        targetIndex = setSize; // This will target the middle set
-      }
-
-      const targetButton = activeButtons[targetIndex];
-      
-      if (targetButton) {
+    if (activeButton) {
         const containerWidth = container.offsetWidth;
-        const buttonWidth = targetButton.offsetWidth;
-        const scrollLeft = targetButton.offsetLeft - (containerWidth / 2) + (buttonWidth / 2);
+      const buttonWidth = activeButton.offsetWidth;
+      const scrollLeft = activeButton.offsetLeft - (containerWidth / 2) + (buttonWidth / 2);
         
-        // Use requestAnimationFrame to ensure smooth scrolling
         requestAnimationFrame(() => {
           container.scrollTo({
             left: scrollLeft,
@@ -158,55 +117,37 @@ const DashboardHeader = () => {
           });
         });
       }
-    }
-  }, [isMobile, topNavigationItems.length, bottomNavigationItems.length, currentPath]);
+  };
 
-  // Add an additional useEffect specifically for initial dashboard centering
+  // Center active button on initial load and route changes
   useEffect(() => {
-    if ((currentPath === '/dashboard' || currentPath === '/') && isMobile) {
-      // Small delay to ensure DOM is ready
-      const timer = setTimeout(() => {
-        centerActiveButton();
-      }, 150);
-      
+    if (isMobile) {
+      const timer = setTimeout(centerActiveButton, 150);
       return () => clearTimeout(timer);
     }
-  }, [currentPath, isMobile, centerActiveButton]);
+  }, [currentPath, isMobile]);
 
-  // Check for mobile on client-side only
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Safe navigation function
-  const safeNavigate = useCallback(
-    (path) => {
+  // Handle navigation
+  const handleNavigation = (path) => {
       if (!isScrolling.current) {
         router.push(path);
       }
-    },
-    [router]
-  );
+  };
 
-  const handleClick = useCallback((e, item) => {
+  // Handle button click
+  const handleButtonClick = (e, path) => {
     e.preventDefault();
-    if (isDragging.current) {
-      return;
+    if (!isDragging.current) {
+      handleNavigation(path);
     }
-    safeNavigate(item.path);
-  }, [safeNavigate]);
+  };
 
-  // Touch events handling
+  // Touch events for mobile scrolling
   useEffect(() => {
     const container = navContainerRef.current;
     if (!container || !isMobile) return;
 
-    let mounted = true;
+    let isComponentMounted = true;
     let startX = 0;
     let scrollLeft = 0;
     let isDown = false;
@@ -262,35 +203,45 @@ const DashboardHeader = () => {
     container.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
-      if (mounted) {
+      if (isComponentMounted) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
         container.removeEventListener('touchend', handleTouchEnd);
         container.removeEventListener('touchcancel', handleTouchEnd);
       }
-      mounted = false;
+      isComponentMounted = false;
     };
   }, [isMobile]);
 
+  // Get the appropriate navigation items based on viewport
+  const getNavigationItems = () => {
+    if (isMobile) {
+      return navigationItems.top;
+    }
+    return [...navigationItems.top, ...navigationItems.desktop, ...navigationItems.bottom];
+  };
+
   return (
     <div className={styles.dashboardHeader}>
-      {mounted && (
         <div className={styles.topNav}>
           <div className={styles.navContainer} ref={navContainerRef}>
-            {(isMobile ? topNavigationItems : [...topNavigationItems, ...desktopOnlyItems, ...bottomNavigationItems]).map((item) => (
+          {getNavigationItems().map((item) => (
               <button
-                key={item.key}
-                data-path={item.path}
+              key={item.path}
+              type="button"
+              role="link"
+              aria-label={item.label}
                 className={`${styles.navButton} ${isActive(item.path) ? styles.active : ''}`}
-                onClick={(e) => handleClick(e, item)}
+              onClick={(e) => handleButtonClick(e, item.path)}
               >
-                <span className={styles.icon}>{item.icon}</span>
+              <span className={styles.icon} aria-hidden="true">
+                {item.icon}
+              </span>
                 <span className={styles.label}>{item.label}</span>
               </button>
             ))}
           </div>
         </div>
-      )}
     </div>
   );
 };

@@ -222,17 +222,33 @@ const EventAchievements = ({ achievements }) => {
                   <div style={{ fontSize: '14px', color: '#888', marginTop: '3px' }}>
                     {achievement.game || "Gaming Event"}
                     
-                    {achievement.teamType !== 'solo' && achievement.partners && achievement.partners.length > 0 && (
-                      <span style={{ color: '#777', fontSize: '13px', marginLeft: '8px' }}>
-                        • With:{' '}
-                        {achievement.partners.map((partner, index) => (
-                          <React.Fragment key={partner.userId || index}>
-                            <span style={{ color: '#FFD700' }}>
-                              {partner.username}
-                            </span>
-                            {index < achievement.partners.length - 1 ? ', ' : ''}
-                          </React.Fragment>
-                        ))}
+                    {/* Display partners for both team and duo events */}
+                    {(achievement.teamType === 'team' || achievement.teamType === 'duo') && (
+                      <span style={{ 
+                        color: '#aaa', 
+                        fontSize: '13px', 
+                        marginLeft: '8px', 
+                        display: 'inline-block', 
+                        marginTop: '2px',
+                        background: 'rgba(255, 215, 0, 0.08)',
+                        padding: '2px 6px',
+                        borderRadius: '4px'
+                      }}>
+                        {achievement.partners && achievement.partners.length > 0 ? (
+                          <>
+                            • Partner{achievement.partners.length > 1 ? 's' : ''}:{' '}
+                            {achievement.partners.map((partner, index) => (
+                              <React.Fragment key={partner.userId || index}>
+                                <span style={{ color: '#FFD700', fontWeight: 600 }}>
+                                  {partner.username || `Player ${index + 1}`}
+                                </span>
+                                {index < achievement.partners.length - 1 ? ', ' : ''}
+                              </React.Fragment>
+                            ))}
+                          </>
+                        ) : (
+                          <> • <span style={{ fontStyle: 'italic', color: '#999' }}>Solo participant</span></>
+                        )}
                       </span>
                     )}
                   </div>

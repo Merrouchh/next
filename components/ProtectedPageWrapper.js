@@ -1,20 +1,17 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import LoadingScreen from './LoadingScreen';
 import { getRouteConfig, isAuthPage, requiresAdmin } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import DashboardHeader from './DashboardHeader';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import LoadingSpinner from './LoadingSpinner';
 import { useEffect } from 'react';
 import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
-import { AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineCalendar } from 'react-icons/ai';
 import { toast } from 'react-hot-toast';
 
 const ProtectedPageWrapper = ({ children }) => {
-  const { user, loading, initialized } = useAuth();
+  const { user, initialized } = useAuth();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isLoginModalOpen, openLoginModal } = useModal();
@@ -55,11 +52,6 @@ const ProtectedPageWrapper = ({ children }) => {
       return;
     }
   }, [initialized, user, router, routeConfig.requireAuth, router.pathname, isVerificationPage, isAdminRequired]);
-
-  // Show loading spinner during authentication check for protected routes
-  if (loading && routeConfig.requireAuth) {
-    return <LoadingSpinner />;
-  }
 
   // Don't render protected content if user is not authenticated
   if (!user && routeConfig.requireAuth) {

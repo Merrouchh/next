@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
-import LoadingScreen from '../components/LoadingScreen';
 import UpcomingMatches from '../components/UpcomingMatches';
 import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
@@ -192,6 +191,16 @@ const SessionRefreshButton = () => {
     </button>
   );
 };
+
+// Loading spinner component
+const LoadingSpinner = () => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>Loading dashboard...</p>
+  </div>
+);
 
 // Add a DebtCard component to display debt info with payment recommendations
 const DebtCard = ({ debtAmount, hasTime }) => {
@@ -440,35 +449,33 @@ const Dashboard = ({ _initialClips, metaData }) => {
   if (authLoading || !pageState.data) {
     return (
       <ProtectedPageWrapper>
-        <div className={styles.loadingState}>
-          {pageState.error ? (
-            <div className={styles.errorMessage}>
-              <p>{pageState.error}</p>
-              <div className={styles.contactInfo}>
-                <p>You can reach us on:</p>
-                <a 
-                  href="https://wa.me/212656053641" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.whatsappLink}
-                >
-                  WhatsApp: +212 656-053641
-                </a>
-              </div>
-              <div className={styles.retryActions}>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className={styles.retryButton}
-                >
-                  <AiOutlineReload /> Refresh Page
-                </button>
-                <SessionRefreshButton />
-              </div>
+        {pageState.error ? (
+          <div className={styles.errorMessage}>
+            <p>{pageState.error}</p>
+            <div className={styles.contactInfo}>
+              <p>You can reach us on:</p>
+              <a 
+                href="https://wa.me/212656053641" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.whatsappLink}
+              >
+                WhatsApp: +212 656-053641
+              </a>
             </div>
-          ) : (
-            <LoadingScreen message="Loading dashboard..." type="default" />
-          )}
-        </div>
+            <div className={styles.retryActions}>
+              <button 
+                onClick={() => window.location.reload()}
+                className={styles.retryButton}
+              >
+                <AiOutlineReload /> Refresh Page
+              </button>
+              <SessionRefreshButton />
+            </div>
+          </div>
+        ) : (
+          <LoadingSpinner />
+        )}
       </ProtectedPageWrapper>
     );
   }

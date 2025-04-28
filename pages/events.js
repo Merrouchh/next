@@ -132,6 +132,16 @@ export async function getServerSideProps({ res }) {
   };
 }
 
+// Add LoadingSpinner component
+const LoadingSpinner = () => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <div className={styles.spinnerInner}></div>
+    </div>
+    <p className={styles.loadingText}>Loading events...</p>
+  </div>
+);
+
 export default function Events({ metaData }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -434,10 +444,7 @@ export default function Events({ metaData }) {
 
         {/* Events grid with filtered events */}
         {loading ? (
-          <div className={styles.loadingContainer}>
-            <div className={styles.loader}></div>
-            <p>Loading events...</p>
-          </div>
+          <LoadingSpinner />
         ) : filteredEvents.length === 0 ? (
           <div className={styles.emptyContainer}>
             <div className={styles.emptyIcon}>🎮</div>

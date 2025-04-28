@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import LoadingScreen from '../components/LoadingScreen';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 
@@ -169,7 +168,32 @@ export default function MagicLogin() {
           </button>
         </div>
       ) : (
-        <LoadingScreen message={status} type="verification" />
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1rem',
+          padding: '2rem',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ color: '#FFD700', marginBottom: '1rem' }}>Logging In</h2>
+          <p>{status}</p>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid rgba(255, 215, 0, 0.1)',
+            borderLeft: '4px solid #FFD700',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginTop: '1rem'
+          }}></div>
+          <style jsx>{`
+            @keyframes spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );

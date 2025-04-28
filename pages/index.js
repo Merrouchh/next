@@ -12,7 +12,6 @@ import dynamic from 'next/dynamic';
 import Head from 'next/head';
 
 // Components
-import LoadingScreen from '../components/LoadingScreen';
 import AccountPromptModal from '../components/AccountPromptModal';
 import LoginModal from '../components/LoginModal';
 import NumberDisplay from '../components/NumberDisplay';
@@ -157,10 +156,10 @@ const Home = ({ metaData }) => {
     setIsLoginModalOpen(true);
   };
 
-  // Simplified loading states
-  if (loading) return <LoadingScreen message="Loading..." type="default" />;
-  if (isVerifying) return <LoadingScreen message={processingMagicLink ? "Processing magic link login..." : "Verifying email..."} type="verification" />;
-  if (user && !hasAuthTokens()) return <LoadingScreen message="Redirecting..." type="auth" />;
+  // Simplified loading states with divs instead of LoadingScreen
+  if (loading) return <div className={styles.simpleLoadingWrapper}>Loading...</div>;
+  if (isVerifying) return <div className={styles.simpleLoadingWrapper}>{processingMagicLink ? "Processing magic link login..." : "Verifying email..."}</div>;
+  if (user && !hasAuthTokens()) return <div className={styles.simpleLoadingWrapper}>Redirecting...</div>;
 
   return (
     <>
