@@ -67,21 +67,46 @@ export async function getServerSideProps({ req, res, params }) {
     // Fetch the user's latest public clip for the thumbnail
     const { data: latestClip } = await supabase
       .from('clips')
-      .select('id, title, thumbnail_path, cloudflare_uid, game')
+      .select('id, title, thumbnail_path, cloudflare_uid, game, views_count, likes_count')
       .eq('user_id', userData.id)
       .eq('visibility', 'public')
       .order('uploaded_at', { ascending: false })
       .limit(1)
       .single();
 
+    // Count user's event participations
+    const { count: eventsCount } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userData.id);
+
     // Get the thumbnail URL from the latest clip or use default
     const profileImage = latestClip?.cloudflare_uid 
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : latestClip?.thumbnail_path || "https://merrouchgaming.com/top.jpg";
 
-    // Create a more personalized description
-    const gameInfo = latestClip?.game ? ` Check out their latest ${latestClip.game} gameplay.` : '';
-    const userDescription = `${normalizedUsername}'s gaming profile with ${clipsCount || 0} public clips.${gameInfo} View achievements and gaming statistics at Merrouch Gaming Center Tangier.`;
+    // Create a more detailed and personalized description
+    let userDescription = `${normalizedUsername}'s gaming profile at Merrouch Gaming Center`;
+    
+    if (clipsCount) {
+      userDescription += ` featuring ${clipsCount} public gaming ${clipsCount === 1 ? 'clip' : 'clips'}`;
+    }
+    
+    if (eventsCount) {
+      userDescription += ` and participation in ${eventsCount} ${eventsCount === 1 ? 'event' : 'events'}`;
+    }
+    
+    if (latestClip?.title) {
+      userDescription += `. Latest clip: "${latestClip.title}"`;
+      if (latestClip.game) {
+        userDescription += ` in ${latestClip.game}`;
+      }
+      if (latestClip.views_count) {
+        userDescription += ` with ${latestClip.views_count} ${latestClip.views_count === 1 ? 'view' : 'views'}`;
+      }
+    }
+    
+    userDescription += `. Check out their gaming achievements and statistics!`;
 
     return {
       props: {
