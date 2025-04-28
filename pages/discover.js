@@ -41,8 +41,19 @@ export async function getServerSideProps({ req, res }) {
       .select('id', { count: 'exact' })
       .eq('visibility', 'public');
 
-    // Use a default preview image instead of loading initial clips
-    const previewImage = 'https://merrouchgaming.com/top.jpg';
+    // Fetch the most recent public clip for preview image
+    const { data: latestClip } = await supabase
+      .from('clips')
+      .select('thumbnail_path, cloudflare_uid')
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Get the thumbnail URL from the latest clip or use default
+    const previewImage = latestClip?.cloudflare_uid 
+      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+      : latestClip?.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
 
     // Set cache headers
     res.setHeader(

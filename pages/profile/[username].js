@@ -25,6 +25,7 @@ const LoadingSpinner = ({ message = "Loading profile..." }) => (
 export async function getServerSideProps({ req, res, params }) {
   const { username } = params;
   const normalizedUsername = username.toLowerCase();
+  const supabase = createClient({ req, res });
 
   // Set cache headers
   res.setHeader(
@@ -32,41 +33,106 @@ export async function getServerSideProps({ req, res, params }) {
     'public, s-maxage=60, stale-while-revalidate=300'
   );
 
-  return {
-    props: {
-      username: normalizedUsername,
-      metaData: {
-        title: `Gaming Profile | Merrouch Gaming Center Tangier`,
-        description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
-        image: "https://merrouchgaming.com/top.jpg",
-        url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
-        type: "profile",
-        openGraph: {
-          title: `Gaming Profile | Merrouch Gaming Center Tangier`,
-          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
-          images: [
-            {
-              url: "https://merrouchgaming.com/top.jpg",
-              width: 1200,
-              height: 630,
-              alt: "Gaming Profile"
-            }
-          ],
-          type: "profile",
-          profile: {
-            username: normalizedUsername
+  try {
+    // Fetch user data
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, username, gizmo_id')
+      .eq('username', normalizedUsername)
+      .single();
+
+    if (userError || !userData) {
+      console.error('User not found:', userError);
+      return {
+        props: {
+          username: normalizedUsername,
+          metaData: {
+            title: `Gaming Profile | Merrouch Gaming Center Tangier`,
+            description: "This user profile could not be found.",
+            image: "https://merrouchgaming.com/top.jpg",
+            url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
+            type: "profile"
           }
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: `Gaming Profile | Best Gaming Center in Tangier`,
-          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
-          image: "https://merrouchgaming.com/top.jpg"
+        }
+      };
+    }
+
+    // Get clips count and fetch the latest clip for the preview image
+    const { count: clipsCount } = await supabase
+      .from('clips')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userData.id)
+      .eq('visibility', 'public');
+
+    // Fetch the user's latest public clip for the thumbnail
+    const { data: latestClip } = await supabase
+      .from('clips')
+      .select('id, title, thumbnail_path, cloudflare_uid, game')
+      .eq('user_id', userData.id)
+      .eq('visibility', 'public')
+      .order('uploaded_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Get the thumbnail URL from the latest clip or use default
+    const profileImage = latestClip?.cloudflare_uid 
+      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+      : latestClip?.thumbnail_path || "https://merrouchgaming.com/top.jpg";
+
+    // Create a more personalized description
+    const gameInfo = latestClip?.game ? ` Check out their latest ${latestClip.game} gameplay.` : '';
+    const userDescription = `${normalizedUsername}'s gaming profile with ${clipsCount || 0} public clips.${gameInfo} View achievements and gaming statistics at Merrouch Gaming Center Tangier.`;
+
+    return {
+      props: {
+        username: normalizedUsername,
+        metaData: {
+          title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
+          description: userDescription,
+          image: profileImage,
+          url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
+          type: "profile",
+          openGraph: {
+            title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
+            description: userDescription,
+            images: [
+              {
+                url: profileImage,
+                width: 1200,
+                height: 630,
+                alt: `${normalizedUsername}'s Gaming Profile`
+              }
+            ],
+            type: "profile",
+            profile: {
+              username: normalizedUsername
+            }
+          },
+          twitter: {
+            card: "summary_large_image",
+            site: "@merrouchgaming",
+            title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
+            description: userDescription,
+            image: profileImage
+          }
         }
       }
-    }
-  };
+    };
+  } catch (error) {
+    console.error('Error in getServerSideProps:', error);
+    return {
+      props: {
+        username: normalizedUsername,
+        metaData: {
+          title: `Gaming Profile | Merrouch Gaming Center Tangier`,
+          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
+          image: "https://merrouchgaming.com/top.jpg",
+          url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
+          type: "profile"
+        }
+      }
+    };
+  }
 }
 
 const ProfilePage = ({ username, metaData }) => {

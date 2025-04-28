@@ -323,9 +323,7 @@ const nextConfig = {
 
   // Development features
   ...(process.env.NODE_ENV === 'production' && {
-    devIndicators: {
-      buildActivity: true,
-    }
+    // Remove deprecated config
   })
 };
 
