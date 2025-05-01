@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { createPortal } from 'react-dom';
-import styles from '../styles/Header.module.css';
+import styles from '../styles/MobileHeader.module.css';
 
 const MobileMenu = memo(({ isOpen, children }) => {
   if (typeof window === 'undefined') return null;

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdVisibility, MdPerson, MdExpandMore, 
   MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync, MdComment } from 'react-icons/md';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
 import VideoPlayer from './VideoPlayer';
 import { useLikes } from '../hooks/useLikes';
@@ -15,8 +16,6 @@ import CommentsSection from './CommentsSection';
 import CommentModal from './CommentModal';
 import { fetchCommentsByClipId } from '../utils/supabase/comments';
 import Link from 'next/link';
-import React from 'react';
-import LikeButton from './LikeButton';
 
 // Helper functions for processing status display
 function getStatusLabel(status) {
@@ -143,6 +142,10 @@ const ClipCard = ({
   const subscriptionRef = useRef(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   
+  // Add state for heart animation
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState([]);
+  
   // Add state for comments 
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [commentsCount, setCommentsCount] = useState(0);
@@ -207,15 +210,12 @@ const ClipCard = ({
     }
   }, [clipData.id, supabase, onClipUpdate, isProcessing]);
 
-  // Get like functionality from the hook
   const {
     liked,
     likesCount,
     isUpdatingLike,
     likesList,
-    handleLike,
-    setLiked,        // Correctly destructure this from useLikes
-    fetchLikes
+    handleLike
   } = useLikes(clipData.id, clipData.likes_count || 0, user);
 
   const isOwner = user?.id === clipData.user_id;
@@ -440,6 +440,43 @@ const ClipCard = ({
     }, 200);
   };
 
+  // Enhanced like handler with multiple floating hearts animation
+  const handleLikeWithAnimation = () => {
+    // Only animate if the user is logged in and not already liking/unliking
+    if (!user || isUpdatingLike) return;
+    
+    // If not already liked, show the animation
+    if (!liked) {
+      setIsHeartAnimating(true);
+      
+      // Create 3-5 random floating hearts
+      const numHearts = Math.floor(Math.random() * 3) + 3; // 3-5 hearts
+      const newHearts = [];
+      
+      for (let i = 0; i < numHearts; i++) {
+        // Create random positions and delays for each heart
+        newHearts.push({
+          id: `heart-${Date.now()}-${i}`,
+          left: Math.random() * 40 - 20, // -20px to +20px from center
+          delay: Math.random() * 0.3, // 0 to 0.3s delay
+          scale: 0.8 + Math.random() * 0.4, // 0.8 to 1.2 scale
+          rotation: (Math.random() * 40) - 20 // -20 to +20 degrees
+        });
+      }
+      
+      setFloatingHearts(newHearts);
+      
+      // Clear animation state after animation completes
+      setTimeout(() => {
+        setIsHeartAnimating(false);
+        setFloatingHearts([]);
+      }, 1200);
+    }
+    
+    // Call the original like handler
+    handleLike();
+  };
+
   // If clip is deleted or made private (on discover page), don't render anything
   if (!clipData) return null;
   
@@ -588,14 +625,43 @@ const ClipCard = ({
           )}
 
           <div className={styles.actionGroup}>
-            <LikeButton 
-              liked={liked}
-              likesCount={likesCount}
-              isUpdatingLike={isUpdatingLike}
-              onLike={() => handleLike()}
-              user={user}
-              showLikesModal={() => setShowLikesModal(true)}
-            />
+            <div className={styles.likeContainer}>
+              <button 
+                className={`${styles.statButton} ${liked ? styles.liked : ''} ${isHeartAnimating ? styles.heartAnimating : ''}`}
+                onClick={handleLikeWithAnimation}
+                disabled={!user || isUpdatingLike}
+                aria-label={liked ? "Unlike" : "Like"}
+              >
+                {liked ? <FaHeart className={styles.likeIcon} /> : <FaRegHeart />}
+                <span>{likesCount}</span>
+              </button>
+              
+              {/* Multiple floating hearts */}
+              {floatingHearts.length > 0 && (
+                <div className={styles.floatingHeartsContainer}>
+                  {floatingHearts.map(heart => (
+                    <FaHeart 
+                      key={heart.id}
+                      className={styles.floatingHeart}
+                      style={{
+                        left: `calc(50% + ${heart.left}px)`,
+                        animationDelay: `${heart.delay}s`,
+                        transform: `scale(${heart.scale}) rotate(${heart.rotation}deg)`
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {likesCount > 0 && (
+                <button 
+                  className={styles.showLikesButton}
+                  onClick={() => setShowLikesModal(true)}
+                >
+                  View {likesCount > 1 ? 'likes' : 'like'}
+                </button>
+              )}
+            </div>
 
             <button
               className={`${styles.actionButton}`}
@@ -607,7 +673,7 @@ const ClipCard = ({
                 <span className={styles.inlineCount}>{commentsCount}</span>
               )}
             </button>
-
+            
             <button
               className={styles.actionButton}
               onClick={() => setShowShareModal(true)}
@@ -660,12 +726,6 @@ const ClipCard = ({
             onClose={() => setShowTitleModal(false)}
             title={clipData.title || 'Untitled Clip'}
           />
-        </div>
-      </div>
-      
-      {showLikesModal && (
-        <div className={styles.likesModalWrapper}>
-          <div className={styles.likesModalOverlay} onClick={() => setShowLikesModal(false)}></div>
           <LikesModal
             isOpen={showLikesModal}
             onClose={() => setShowLikesModal(false)}
@@ -673,17 +733,9 @@ const ClipCard = ({
             isLoadingLikes={isUpdatingLike}
           />
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-// Wrap the component with React.memo to prevent unnecessary re-renders
-export default React.memo(ClipCard, (prevProps, nextProps) => {
-  // Only re-render if the clip, isFullWidth, or onClipUpdate have changed
-  return (
-    prevProps.clip?.id === nextProps.clip?.id &&
-    prevProps.isFullWidth === nextProps.isFullWidth &&
-    prevProps.onClipUpdate === nextProps.onClipUpdate
-  );
-});
+export default ClipCard;

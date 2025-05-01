@@ -1,46 +1,131 @@
-.profileMain {
+.profileContainer {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 20px;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
+  color: var(--text-color, #fff);
 }
 
 .profileHeader {
   position: relative;
   z-index: 1;
   width: 100%;
-  background: var(--primary-black);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid var(--transparent-light);
+  background: rgba(20, 20, 20, 0.95);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.profileHeader:hover {
+  /* Remove hover effects */
+}
+
+.profileTitle {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  color: #FFD700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Game Accounts Section */
+.gamingProfiles {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.gamingProfiles:hover {
+  /* Remove hover effects */
+}
+
+.profilesHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.headerIcon {
+  color: #FFD700;
+  font-size: 1.5rem;
+}
+
+.profilesHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Clips Section */
+.clipsSection {
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.clipsSection:hover {
+  /* Remove hover effects */
+}
+
+.clipsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.clipsHeader h2 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 1.5rem;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .clipsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.clipCard {
   position: relative;
-  min-height: 300px;
-}
-
-/* Profile page clip cards */
-/* .profileClipsGrid { ... } */
-
-/* Ensure hover effects have room */
-.clipsGrid > * {
   width: 100%;
-  min-width: 0;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.clipsGrid::-webkit-scrollbar {
-  display: none;
+.clipCard:hover {
+  /* Remove hover effects */
 }
 
 .clipWrapper {
@@ -48,24 +133,12 @@
   height: 100%;
   min-width: 0;
   opacity: 1;
-  transition: opacity 0.3s ease;
   transform: translateZ(0);
   will-change: transform;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .clipWrapper:hover {
-  transform: translateY(-2px);
+  /* Remove hover effects */
 }
 
 .clipWrapper > div {
@@ -133,6 +206,16 @@
     gap: 15px;
     max-width: 100%; /* Ensure full width on mobile */
   }
+  
+  .clipWrapper {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    transform: translateZ(0);
+    will-change: transform;
+  }
 }
 
 /* Tablet styles */
@@ -151,59 +234,10 @@
   }
 }
 
-.profileTop {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-}
-
-.profileInfo {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.profileDetails {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.profileDetails h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: #fff;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
-  max-width: 100%;
-}
-
 .profileIcon {
   font-size: 1.2rem;
   min-width: 1.2rem;
   color: #FFD700;
-}
-
-.profileImageContainer {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--primary-black-light);
-  border: 2px solid var(--primary-yellow);
-}
-
-.profileImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .profileImagePlaceholder {
@@ -230,20 +264,6 @@
   border-radius: 0 8px 8px 0;
 }
 
-.clipCard {
-  position: relative;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
-
-.clipCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
 .clipContainer {
   cursor: pointer;
   display: flex;
@@ -253,14 +273,15 @@
 }
 
 .clipHeader {
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem 1.5rem;
+  background: rgba(20, 20, 20, 0.95);
   width: 100%;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 }
 
 .clipHeader h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,21 +298,22 @@
 }
 
 .clipInfo {
-  padding: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(26, 26, 26, 0.95);
 }
 
 .clipInfo h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: #fff;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .clipTitle {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
+  color: #fff;
+  margin: 0 0 0.5rem 0;
 }
 
 .clipStats {
@@ -346,12 +368,21 @@
 }
 
 .gameTag {
-  display: inline-block;
-  background: rgba(255, 215, 0, 0.1);
-  color: #FFD700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 15px;
+  color: #FFD700;
   font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.gameTag:hover {
+  background: rgba(255, 215, 0, 0.2);
+  transform: translateY(-1px);
 }
 
 .deleteButton {
@@ -363,12 +394,12 @@
 }
 
 .noClips {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  color: #888;
+  color: #888 !important;
+  font-size: 0.9rem !important;
+  font-style: italic;
+  font-weight: normal !important;
+  margin: 0;
+  padding: 0;
 }
 
 /* Loading Animation */
@@ -474,33 +505,6 @@
   .loader {
     padding: 40px 20px;
   }
-}
-
-.gamingProfiles {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
-.profilesHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.headerIcon {
-  color: #FFD700;
-  font-size: 1.2rem;
-}
-
-.profilesHeader h3 {
-  margin: 0;
-  font-size: 1rem;
-  flex: 1;
 }
 
 .editButton {
@@ -1077,47 +1081,10 @@
   color: #FFD700;
 }
 
-.statValue {
-  font-size: 0.9rem;
-  color: #fff;
-}
-
 .statValue:empty::after {
   content: 'No clips shared yet';
   color: #888;
   font-style: italic;
-}
-
-.profileStats {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-
-.statItem {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.statItem span {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #FFD700;
-}
-
-.statItem label {
-  font-size: 0.9rem;
-  color: #888;
-}
-
-.noClips {
-  color: #888 !important;
-  font-size: 0.9rem !important;
-  font-style: italic;
-  font-weight: normal !important;
-  margin: 0;
-  padding: 0;
 }
 
 .clipThumbnail {
@@ -1156,27 +1123,22 @@
 
 .noClipsContainer {
   text-align: center;
-  padding: 2rem 1rem;
-  color: #888;
-  min-height: auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  grid-column: 1 / -1;
+  padding: 3rem 1.5rem;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  margin: 1.5rem 0;
 }
 
 .noClipsMessage {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  font-size: 1.2rem;
+  color: #FFD700;
+  margin-bottom: 1rem;
 }
 
 .noClipsSubtext {
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
-  opacity: 0.8;
-  text-align: center;
 }
 
 .clipsLoading {
@@ -1274,378 +1236,198 @@
 }
 
 .clipsSection {
-  position: relative;
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
   width: 100%;
-  min-height: 300px;
+  position: relative;
 }
 
-/* Mobile Filter Styles - New Creative Design */
-@media (max-width: 768px) {
-  .gameFilters {
-    padding: 0;
-    margin: 0 0 16px 0;
-    position: relative;
-    border: none;
-    background: transparent;
-    z-index: 100;
-  }
-  
-  .mobileFilterHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 15px;
-    background: linear-gradient(90deg, #0e0e0e 0%, #1a1a1a 100%);
-    border: 1px solid #222;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-height: 50px;
-    gap: 15px;
-  }
-  
-  .mobileFilterHeader:active {
-    transform: scale(0.98);
-  }
-  
-  .filterLabel {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    overflow: hidden;
-  }
-  
-  .filterIcon {
-    color: #FFD700;
-    font-size: 14px;
-    opacity: 0.9;
-  }
-  
-  .clearFilterBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border: none;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    padding: 0;
-    font-size: 10px;
-    cursor: pointer;
-    margin-left: 8px;
-    transition: all 0.2s ease;
-  }
-  
-  .clearFilterBtn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #FFD700;
-  }
-  
-  .dropdownArrow {
-    color: #FFD700;
-    font-size: 12px;
-    transition: transform 0.3s ease;
-    margin-left: 8px;
-  }
-  
-  .dropdownArrow.rotated {
-    transform: rotate(180deg);
-  }
-  
-  .mobileFilterOptions {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    right: 0;
-    background: #0e0e0e;
-    border: 1px solid #222;
-    border-radius: 10px;
-    overflow: hidden;
-    transition: max-height 0.3s ease, opacity 0.3s ease;
-    opacity: 0;
-    max-height: 0;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    z-index: 101;
-  }
-  
-  .expanded .mobileFilterOptions {
-    opacity: 1;
-  }
-  
-  .mobileFilterOption {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 12px 15px;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    color: #fff;
-    text-align: left;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .mobileFilterOption:last-child {
-    border-bottom: none;
-  }
-  
-  .mobileFilterOption:active {
-    transform: translateX(3px);
-  }
-  
-  .mobileFilterOption.active {
-    background: rgba(255, 215, 0, 0.1);
-  }
-  
-  .mobileFilterOption.active .optionText {
-    color: #FFD700;
-    font-weight: 500;
-  }
-  
-  .optionText {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 80%;
-  }
-  
-  .optionCount {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 12px;
-    color: #ccc;
-    min-width: 30px;
-    text-align: center;
-  }
-  
-  .mobileFilterOption.active .optionCount {
-    background: rgba(255, 215, 0, 0.2);
-    color: #FFD700;
-  }
+.clipsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 }
 
-.visibilityCount {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-left: 0.5rem;
-}
-
-.gameFilterButton {
+.clipsHeader h2 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.filtering {
-  opacity: 0.5;
-  pointer-events: none;
+.clipsHeader h2 svg {
+  font-size: 1.2rem;
 }
 
-.filterLoading {
+.clipsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.clipCard {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.clipCard:hover {
+  /* Remove hover effects */
+}
+
+.clipThumbnail {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+}
+
+.clipThumbnail img {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.clipInfo {
+  padding: 1rem;
+}
+
+.clipTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.clipMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.clipStats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.statBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.gameTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 15px;
+  color: #FFD700;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.gameTag:hover {
+  /* Remove hover effects */
+}
+
+/* Loading States */
+.loading {
+  animation: shimmer 1.5s infinite;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
 }
 
 .spinner {
-  border: 3px solid rgba(255, 215, 0, 0.1);
-  border-top: 3px solid #FFD700;
-  border-radius: 50%;
   width: 40px;
   height: 40px;
+  border: 3px solid rgba(255, 215, 0, 0.1);
+  border-top-color: #FFD700;
+  border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }
 
-.filterToggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 12px 15px;
-  margin: 0;
-  background: #0e0e0e;
-  border: 1px solid #222;
-  border-radius: 8px;
-  color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Empty States */
+.noContent {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-.filterToggle:hover {
-  border-color: rgba(255, 215, 0, 0.5);
+.noContent h3 {
   color: #FFD700;
+  margin-bottom: 0.5rem;
 }
 
-.filterOptions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  justify-content: center;
-}
-
-@media (max-width: 768px) {
-  .gameFilters {
-    padding: 0;
-    margin: 0 0 15px 0;
-    position: relative;
-    border: none;
-    background: transparent;
-  }
-  
-  .gameFilters.expanded {
-    z-index: 100;
-  }
-  
-  .filterOptions {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: #0e0e0e;
-    border: 1px solid #222;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-    padding: 8px 0;
-    z-index: 101;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  
-  .expanded .filterOptions {
-    display: block;
-  }
-  
-  .gameFilterButton {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 12px 15px;
-    border: none;
-    border-radius: 0;
-    border-bottom: 1px solid #222;
-    background: transparent;
-    font-size: 0.9rem;
-    margin: 0;
-  }
-  
-  .gameFilterButton:first-child {
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-  }
-  
-  .gameFilterButton:last-child {
-    border-bottom: none;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
-  }
-  
-  .gameFilterButton.active {
-    background-color: rgba(255, 215, 0, 0.1);
-    color: #FFD700;
-  }
-}
-
-.desktopFilters {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+.noContent p {
   margin: 0;
-  padding: 1.5rem;
-  background: #0e0e0e;
-  border-radius: 0;
-  border-top: 1px solid #222;
-  border-bottom: 1px solid #222;
-  justify-content: center;
+  font-size: 0.9rem;
 }
 
-.filterToggle {
-  display: flex;
-  align-items: center;
-  background: #0e0e0e;
-  border: 1px solid #222;
-  border-radius: 8px;
-  color: #fff;
-  font-weight: 500;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 12px 15px;
-  width: 100%;
-  margin-bottom: 15px;
-}
-
-.filterToggle:hover {
-  border-color: rgba(255, 215, 0, 0.5);
-  color: #FFD700;
-}
-
-.filterOptions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #0e0e0e;
-  border: 1px solid #222;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  padding: 8px 0;
-  z-index: 101;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .gameFilters {
-    padding: 0;
-    margin: 0 0 15px 0;
-    position: relative;
-    border: none;
-    background: transparent;
-    z-index: 100;
+  .clipsSection {
+    padding: 1rem;
+    margin: 0 auto 1.5rem;
+    border-radius: 6px;
   }
-  
-  .gameFilterButton {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 12px 15px;
-    border: none;
-    border-radius: 0;
-    border-bottom: 1px solid #222;
-    background: transparent;
-    font-size: 0.9rem;
-    margin: 0;
+
+  .clipsGrid {
+    grid-template-columns: 1fr;
   }
-  
-  .gameFilterButton:last-child {
-    border-bottom: none;
-  }
-  
-  .gameFilterButton.active {
-    background-color: rgba(255, 215, 0, 0.1);
-    color: #FFD700;
+
+  .clipCard {
+    max-width: 100%;
   }
 }
 
@@ -1671,20 +1453,22 @@
 }
 
 .filterButton {
-  background: #222;
-  color: #ccc;
-  border: 1px solid #333;
-  border-radius: 30px;
-  padding: 10px 20px;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 20px;
+  color: #FFD700;
   font-size: 0.9rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.filterButton:hover {
-  background: #333;
-  color: #fff;
+.filterButton:hover,
+.filterButton.active {
+  background: rgba(255, 215, 0, 0.2);
+  /* Keep color change but remove transform */
 }
 
 .filterActive {
@@ -1842,42 +1626,57 @@
 .dashboardSectionHeader {
   display: flex;
   align-items: center;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  width: 100%;
   justify-content: space-between;
-  margin-bottom: 20px;
+}
+
+.dashboardSectionIcon {
+  color: #FFD700;
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
 }
 
 .dashboardSectionTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  color: #FFD700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 @media (max-width: 768px) {
   .profileTop {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    gap: 1rem;
   }
-
+  
   .profileInfo {
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    gap: 1rem;
   }
-
+  
   .profileDetails {
-    width: 100%;
     align-items: center;
+    text-align: center;
   }
-
+  
   .profileDetails h1 {
     font-size: 1.5rem;
-    line-height: 1.3;
-    padding: 0 10px;
   }
-
+  
   .profileStats {
     justify-content: center;
+  }
+  
+  .clipsSection {
+    padding: 1rem;
+    margin: 0 auto 1.5rem;
+    border-radius: 6px;
   }
 }
 
@@ -1950,14 +1749,14 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  width: 100%;
+  padding: 3rem 1.5rem;
 }
 
 .spinner {
   width: 60px;
   height: 60px;
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .spinnerInner {
@@ -1986,9 +1785,8 @@
 
 .loadingText {
   color: #FFD700;
-  font-size: 18px;
+  font-size: 1.1rem;
   font-weight: 500;
-  text-align: center;
   animation: pulse 1.5s infinite;
 }
 
@@ -2060,4 +1858,265 @@
     padding: 0.7rem 1.2rem;
     font-size: 0.9rem;
   }
+}
+
+.clipsSectionContent {
+  padding: 0.5rem 0;
+}
+
+/* Filter Section */
+.filterSection {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.filterHeader h3 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.filterButton {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 20px;
+  color: #FFD700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterButton:hover,
+.filterButton.active {
+  background: rgba(255, 215, 0, 0.2);
+  /* Keep color change but remove transform */
+}
+
+.filterButton.active {
+  background: #FFD700;
+  color: #000;
+}
+
+/* Achievement Section */
+.achievementSection {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.achievementHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.achievementHeader h2 {
+  color: #FFD700;
+  margin: 0;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.achievementGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.achievementCard {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.achievementCard:hover {
+  /* Remove hover effects */
+}
+
+.achievementIcon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.75rem;
+  color: #FFD700;
+}
+
+.achievementTitle {
+  color: #FFD700;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.achievementDescription {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Loading States */
+.loadingCard {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .filterSection,
+  .achievementSection {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .filterOptions {
+    justify-content: center;
+  }
+
+  .filterButton {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .achievementGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .achievementCard {
+    max-width: 100%;
+  }
+}
+
+/* Error States */
+.errorState {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #ff4444;
+  margin: 1rem 0;
+}
+
+.errorState h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.errorState p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.retryButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  border-radius: 4px;
+  color: #ff4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background: rgba(255, 68, 68, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Scrollbar Styling */
+.profileContainer {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.5) rgba(0, 0, 0, 0.2);
+}
+
+.profileContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profileContainer::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.profileContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.5);
+  border-radius: 4px;
+}
+
+.profileContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.7);
+}
+
+/* Center alignment helpers */
+.centeredContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 2rem auto;
+  text-align: center;
+  min-height: 200px;
+  grid-column: 1 / -1; /* Span all columns in grid */
+}
+
+.centeredLoading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.noClipsContainer {
+  width: 100%;
+  text-align: center;
+  padding: 2rem;
 }

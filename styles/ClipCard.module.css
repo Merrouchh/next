@@ -6,10 +6,12 @@
   overflow: hidden;
   border: 1px solid var(--border-primary);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   min-width: 0; /* Prevent overflow */
+  max-width: 100%; /* Ensure container doesn't exceed parent width */
+  box-sizing: border-box; /* Add this to ensure padding is included in width */
+  margin: 0; /* Remove auto margin */
 }
 
 .clipContainer.fullWidth {
@@ -17,9 +19,7 @@
 }
 
 .clipContainer:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(230, 207, 0, 0.1);
-  border-color: rgba(230, 207, 0, 0.2);
+  /* Remove hover effects */
 }
 
 .clipHeader {
@@ -154,16 +154,108 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .title {
+  .clipContainer {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .videoWrapper {
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 16/9;
+    position: relative;
+    height: auto !important; /* Force height auto */
+    box-sizing: border-box;
+  }
+
+  .videoWrapper video {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    box-sizing: border-box;
+  }
+
+  /* iOS specific fixes for iPhone */
+  @supports (-webkit-touch-callout: none) {
+    .clipContainer {
+      width: 100%; /* Remove calc to avoid issues */
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .videoWrapper {
+      width: 100%;
+      padding-top: 56.25%; /* Use padding-top for aspect ratio */
+      height: 0 !important; /* Force height 0 with padding-top for aspect ratio */
+      box-sizing: border-box;
+    }
+    
+    .videoWrapper video,
+    .videoWrapper :global(.vds-player),
+    .videoWrapper :global(.vds-video-layout) {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
+  }
+
+  .clipHeader {
+    padding: 8px 12px;
+  }
+
+  .clipTitle {
     font-size: 0.9rem;
-    padding: 4px 8px;
+    padding: 8px 12px;
+  }
+
+  .clipStats {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .actionButtons {
+    gap: 8px;
+  }
+
+  .actionButton {
+    padding: 6px;
   }
 }
 
 @media (max-width: 480px) {
-  .title {
+  .clipContainer {
+    border-radius: 6px;
+  }
+
+  .clipHeader {
+    padding: 6px 10px;
+  }
+
+  .clipTitle {
     font-size: 0.85rem;
-    padding: 3px 6px;
+    padding: 6px 10px;
+  }
+
+  .clipStats {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+
+  .actionButtons {
+    gap: 6px;
+  }
+
+  .actionButton {
+    padding: 4px;
   }
 }
 
@@ -261,22 +353,17 @@
   overflow: hidden;
   flex-shrink: 0;
   margin-top: auto; /* Push video down */
+  max-width: 100%; /* Ensure it doesn't exceed container */
+  box-sizing: border-box;
 }
 
 /* Video player styles */
 .videoWrapper :global(.vds-player) {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100% !important; /* Add max-width constraint */
   background-color: var(--background-primary);
   font-family: var(--font-inter);
-}
-
-.videoWrapper :global(.vds-video-layout) {
-  --video-bg: var(--background-primary);
-  --video-border-radius: var(--video-controls-border-radius);
-  --video-border: 1px solid var(--border-primary);
-  border-radius: var(--video-controls-border-radius);
-  overflow: hidden;
 }
 
 /* Video element */
@@ -285,8 +372,8 @@
   height: 100% !important;
   object-fit: contain !important;
   background: var(--background-primary);
+  max-width: 100% !important; /* Ensure video doesn't exceed container */
 }
-
 
 /* Stats and actions section */
 .clipStats {
@@ -380,10 +467,10 @@
 }
 
 .likeContainer {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative; /* For absolute positioning of floating hearts */
 }
 
 .likeButton {
@@ -503,26 +590,6 @@
   pointer-events: none;
 }
 
-/* Even smaller screens */
-@media (max-width: 480px) {
-  .clipContainer {
-    border-radius: 6px;
-  }
-
-  .clipHeader {
-    padding: 10px 12px;
-  }
-
-  .gameTag {
-    font-size: 0.8rem;
-    padding: 4px 8px;
-  }
-
-  .userLink {
-    font-size: 0.85rem;
-  }
-}
-
 /* Make sure all content fits */
 .clipContainer > * {
   max-width: 100%;
@@ -638,9 +705,7 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-  border-color: var(--accent-primary, #FFD700);
+  /* Remove hover effects */
 }
 
 .cardHeader {
@@ -761,7 +826,6 @@
 }
 
 .likeContainer {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -785,15 +849,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  color: var(--text-secondary, #999);
+  font-size: 0.9rem;
   background: none;
   border: none;
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  font-size: 0.9rem;
-  border-radius: 4px;
+  padding: 6px 10px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  position: relative;
+  transition: all 0.2s ease;
+  border-radius: 8px;
 }
 
 .statButton:hover:not(:disabled) {
@@ -806,46 +869,23 @@
   cursor: not-allowed;
 }
 
-/* Enhanced liked state transitions */
+/* Enhanced liked button styling */
 .statButton.liked {
-  color: #FFD700;
-  transition: color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  color: var(--accent-primary, #FFD700);
 }
 
-/* New styles for heart icons with smoother transitions */
+/* New styles for heart icons */
 .statButton svg {
   font-size: 1.1rem;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
-              color 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Smoother hover effect */
 .statButton:hover:not(:disabled) svg {
   transform: scale(1.2);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Heartbeat animation - smoother with better timing function */
-.statButton.heartAnimating svg {
-  animation: heartBeat 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
-  color: #FFD700;
-}
-
-/* Heart beat animation on click - improved */
-@keyframes heartBeat {
-  0% { transform: scale(1); }
-  15% { transform: scale(1.3); }
-  30% { transform: scale(0.95); }
-  45% { transform: scale(1.2); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* Heart pulse animation for liked state */
-@keyframes heartPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1); }
+.statButton.liked svg {
+  animation: heartPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .gameTag {
@@ -944,7 +984,6 @@
   border-radius: 4px;
   font-weight: 500;
   opacity: 0.8;
-  z-index: 1;
 }
 
 .showLikesButton:hover {
@@ -1540,55 +1579,65 @@
 } */
 
 .statButton.heartAnimating svg {
-  animation: heartBeat 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
-  color: #FFD700;
+  animation: heartBeat 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
-/* Floating hearts container - positioned in the component inline styles now */
+/* Floating hearts container */
 .floatingHeartsContainer {
   position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
   pointer-events: none;
   overflow: visible;
-  z-index: 20;
 }
 
 /* Floating heart icon */
 .floatingHeart {
   position: absolute;
-  top: 0;
-  left: 0;
-  color: #FFD700; /* Brighter yellow */
-  font-size: 1.6rem; /* Larger size */
-  animation: floatHeartAway 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; /* Smoother easing */
+  top: -15px;
+  color: var(--accent-primary, #FFD700);
+  font-size: 1.4rem;
+  animation: floatHeartAway 1.2s ease-out forwards;
   opacity: 0;
   pointer-events: none;
-  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.7)); /* Stronger glow */
-  z-index: 20;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); /* Add text shadow for more glow */
-  transform-origin: center bottom; /* Make hearts float from bottom center */
-  will-change: transform, opacity; /* Performance optimization */
+  filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
 }
 
-/* Smoother heart animation with more subtle keyframes */
+/* Heart beat animation on click */
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+  30% { transform: scale(0.95); }
+  45% { transform: scale(1.2); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Heart pulse animation for liked state */
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* Floating heart animation */
 @keyframes floatHeartAway {
   0% {
     opacity: 0;
-    transform: translateY(0) scale(0.8);
+    transform: translateY(0);
   }
-  5% {
-    opacity: 0.5;
-    transform: translateY(-3px) scale(0.9);
-  }
-  15% {
+  10% {
     opacity: 1;
-    transform: translateY(-8px) scale(1);
   }
   60% {
-    opacity: 0.7;
-    transform: translateY(-40px) scale(0.95);
+    opacity: 0.8;
+    transform: translateY(-40px);
   }
   100% {
     opacity: 0;
-    transform: translateY(-60px) scale(0.8);
+    transform: translateY(-60px);
   }
 } 

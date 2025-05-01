@@ -128,7 +128,11 @@ const Layout = ({ children }) => {
           <main className={styles.mainContent}>
             {children}
           </main>
-          {!shouldHideFooter() && <Footer />}
+          {!shouldHideFooter() && (
+            <footer className={styles.stickyFooter}>
+              <Footer />
+            </footer>
+          )}
         </div>
       </div>
       <div id="modal-root" className={styles.modalRoot}>

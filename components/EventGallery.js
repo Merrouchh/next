@@ -487,7 +487,7 @@ const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption
 });
 
 // Main component
-const EventGallery = ({ eventId }) => {
+const EventGallery = ({ eventId, hideTitle = false }) => {
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -881,7 +881,7 @@ const EventGallery = ({ eventId }) => {
 
   return (
     <div 
-      className={styles.galleryContainer}
+      className={`${styles.galleryContainer} ${hideTitle ? styles.noTitleSpacing : ''}`}
       itemScope
       itemType="http://schema.org/ImageGallery"
     >
@@ -889,14 +889,18 @@ const EventGallery = ({ eventId }) => {
       <meta itemProp="creator" content="Merrouch Gaming Center" />
       <meta itemProp="datePublished" content={new Date().toISOString().split('T')[0]} />
       
+      {!hideTitle && (
+        <div className={styles.galleryHeader}>
+          <h2 className={styles.galleryTitle}>
+            <FaImage className={styles.galleryIcon} /> Event Gallery
+          </h2>
+        </div>
+      )}
+      
       {/* Hide section completely if not loaded yet */}
       {!hasInitialCount ? null : (
         <React.Fragment>
-          <h2 className={styles.galleryTitle}>
-            <FaImage className={styles.galleryIcon} />
-            Event Gallery
-          </h2>
-          <hr className={styles.galleryHorizontalRule} />
+          {!hideTitle && <hr className={styles.galleryHorizontalRule} />}
           
           {/* Admin controls - only shown to admins */}
           {isAdmin && (

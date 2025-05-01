@@ -449,33 +449,33 @@ const Dashboard = ({ _initialClips, metaData }) => {
   if (authLoading || !pageState.data) {
     return (
       <ProtectedPageWrapper>
-        {pageState.error ? (
-          <div className={styles.errorMessage}>
-            <p>{pageState.error}</p>
-            <div className={styles.contactInfo}>
-              <p>You can reach us on:</p>
-              <a 
-                href="https://wa.me/212656053641" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={styles.whatsappLink}
-              >
-                WhatsApp: +212 656-053641
-              </a>
+          {pageState.error ? (
+            <div className={styles.errorMessage}>
+              <p>{pageState.error}</p>
+              <div className={styles.contactInfo}>
+                <p>You can reach us on:</p>
+                <a 
+                  href="https://wa.me/212656053641" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.whatsappLink}
+                >
+                  WhatsApp: +212 656-053641
+                </a>
+              </div>
+              <div className={styles.retryActions}>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className={styles.retryButton}
+                >
+                  <AiOutlineReload /> Refresh Page
+                </button>
+                <SessionRefreshButton />
+              </div>
             </div>
-            <div className={styles.retryActions}>
-              <button 
-                onClick={() => window.location.reload()}
-                className={styles.retryButton}
-              >
-                <AiOutlineReload /> Refresh Page
-              </button>
-              <SessionRefreshButton />
-            </div>
-          </div>
-        ) : (
+          ) : (
           <LoadingSpinner />
-        )}
+          )}
       </ProtectedPageWrapper>
     );
   }

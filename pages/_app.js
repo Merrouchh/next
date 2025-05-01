@@ -3,7 +3,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import '../styles/globals.css';
-import { Inter, Orbitron } from 'next/font/google';
+import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import { Toaster } from 'react-hot-toast';
@@ -56,6 +56,18 @@ const inter = Inter({
 const orbitron = Orbitron({
   subsets: ['latin'],
   variable: '--font-orbitron',
+});
+
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-rajdhani',
+});
+
+const zenDots = Zen_Dots({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-zen-dots',
 });
 
 // Add error handler for lock failures and auth errors
@@ -224,7 +236,7 @@ function MyApp({ Component, pageProps }) {
                   }}
                 />
                 <Layout>
-                  <main className={`${inter.variable} ${orbitron.variable}`} suppressHydrationWarning>
+                  <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
                     <Component {...pageProps} />
                   </main>
                 </Layout>
@@ -255,7 +267,7 @@ function MyApp({ Component, pageProps }) {
             <ModalProvider>
               <Toaster />
               <Layout>
-                <main className={`${inter.variable} ${orbitron.variable}`}>
+                <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
                   <Component {...pageProps} />
                 </main>
               </Layout>

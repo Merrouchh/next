@@ -1,0 +1,134 @@
+/* Desktop dashboard header */
+.dashboardHeader {
+  position: sticky;
+  top: var(--header-height, 70px);
+  width: 100%;
+  height: var(--dashboard-height, 70px);
+  z-index: 999;
+  background: #0f0f0f;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  transition: opacity 0.2s ease;
+}
+
+.desktopNavContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #0f0f0f;
+  padding: 0 1rem;
+}
+
+.navButton {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 0 15px;
+  height: 100%;
+  min-width: auto;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.navButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);
+}
+
+.navButton:active {
+  transform: scale(0.98);
+}
+
+.navButton .icon {
+  font-size: 18px;
+  margin-right: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+.navButton .label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  transition: color 0.2s ease;
+  pointer-events: none;
+}
+
+/* Active state */
+.navButton.active {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.navButton.active .icon,
+.navButton.active .label {
+  color: #FFD700;
+}
+
+.navButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: #FFD700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* Hover state */
+.navButton:hover {
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.navButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #FFD700;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: -1;
+}
+
+.navButton:hover::before {
+  opacity: 0.03;
+}
+
+/* Loading state styles */
+.dashboardHeader:empty {
+  height: var(--dashboard-header-height);
+  background: #0f0f0f;
+  border-bottom: 1px solid var(--dark-border);
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .navButton,
+  .icon,
+  .label,
+  .dashboardHeader {
+    transition: none !important;
+    animation: none !important;
+  }
+} 

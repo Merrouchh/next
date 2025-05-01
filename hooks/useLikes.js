@@ -64,24 +64,10 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
   }, [clipId]);
 
   const handleLike = useCallback(async () => {
-    if (!currentUser?.id || !clipId) return Promise.reject('No user or clip ID');
-    if (isUpdatingLike) return Promise.reject('Already updating');
+    if (!currentUser?.id || !clipId || isUpdatingLike) return false;
 
     setIsUpdatingLike(true);
     const supabase = createClient();
-    const newLikedState = !liked;
-    
-    // Store the current count for potential rollback
-    const prevCount = likesCount;
-    
-    // Optimistically update the count
-    if (!liked) {
-      // Liking - increment count
-      setLikesCount(prev => prev + 1);
-    } else {
-      // Unliking - decrement count
-      setLikesCount(prev => Math.max(0, prev - 1));
-    }
 
     try {
       if (liked) {
@@ -107,22 +93,15 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
         if (error) throw error;
       }
 
-      // Update the liked state
-      setLiked(newLikedState);
-      
-      // Fetch updated likes in the background without blocking
-      fetchLikes().catch(err => console.error('Error fetching likes after update:', err));
-      
-      return Promise.resolve(true);
+      setLiked(!liked);
+      await fetchLikes(); // Refresh likes
+      return true;
     } catch (error) {
-      console.error('Error updating like status:', error);
-      // Revert the optimistic count update on error
-      setLikesCount(prevCount);
-      return Promise.reject(error);
+      return false;
     } finally {
       setIsUpdatingLike(false);
     }
-  }, [clipId, currentUser?.id, liked, isUpdatingLike, fetchLikes, likesCount]);
+  }, [clipId, currentUser?.id, liked, isUpdatingLike, fetchLikes]);
 
   useEffect(() => {
     const checkInitialLikeStatus = async () => {

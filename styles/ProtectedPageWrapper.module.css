@@ -29,40 +29,46 @@
   z-index: 1;
 }
 
+/* Fixed headers container and elements */
+.fixedHeadersContainer {
+  position: relative;
+  width: 100%;
+  z-index: 1000;
+}
+
+.fixedHeader {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: var(--background-secondary);
+}
+
 .contentWrapper {
-  min-height: 100vh;
-  padding-top: var(--header-height);
+  flex: 1;
+  min-height: calc(100vh - var(--header-height));
+  padding-top: var(--header-height); /* Default padding for main header */
 }
 
-/* When search header is present */
-.contentWrapper[data-has-search="true"] {
-  padding-top: calc(var(--header-height) + var(--search-header-height));
-}
-
-/* When only dashboard header is present */
+/* When dashboard header is present */
 .contentWrapper[data-has-dashboard="true"] {
   padding-top: calc(var(--header-height) + var(--dashboard-height));
 }
 
 /* When both dashboard and search headers are present */
 .contentWrapper[data-has-search="true"][data-has-dashboard="true"] {
-  padding-top: calc(var(--header-height) + var(--dashboard-height) + var(--search-header-height));
+  padding-top: calc(var(--header-height) + var(--dashboard-height) + var(--search-height));
 }
 
-/* Fixed Headers */
-.headerWrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  height: var(--header-height);
+/* When only search header is present (no dashboard) */
+.contentWrapper[data-has-search="true"]:not([data-has-dashboard="true"]) {
+  padding-top: calc(var(--header-height) + var(--search-height));
 }
 
+/* Dashboard Header */
 .dashboardWrapper {
-  position: fixed;
+  position: sticky;
   top: var(--header-height);
   left: 0;
   right: 0;
@@ -70,20 +76,18 @@
   background: var(--background-secondary);
   border-bottom: 1px solid var(--border-primary);
   height: var(--dashboard-height);
-  margin-top: -1px;
 }
 
 /* Search header */
 .userSearchWrapper {
-  position: fixed;
+  position: sticky;
   top: var(--header-height);
   left: 0;
   right: 0;
   z-index: 998;
   background: var(--background-secondary);
   border-bottom: 1px solid var(--border-primary);
-  height: var(--search-header-height);
-  margin-top: -1px;
+  height: var(--search-height);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -121,6 +125,11 @@
   .mainContent[data-has-nav="true"] {
     padding-bottom: var(--content-padding);
   }
+
+  /* Ensure we hide desktop header elements in mobile view */
+  .fixedHeader :global(.desktopOnly) {
+    display: none !important;
+  }
 }
 
 /* Desktop Adjustments */
@@ -130,6 +139,11 @@
     --dashboard-height: 70px;
     --search-height: 60px;
     --content-padding: 1.5rem;
+  }
+
+  /* Ensure we hide mobile header elements in desktop view */
+  .fixedHeader :global(.mobileOnly) {
+    display: none !important;
   }
 }
 
@@ -180,6 +194,35 @@
   -webkit-backdrop-filter: blur(5px);
 }
 
+/* Login Required Page */
+.loginRequired {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.loginButton {
+  background: var(--accent-primary);
+  color: #000;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loginButton:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-accent);
+}
+
 @media (min-width: 769px) {
   .mainContent {
     padding-bottom: 1rem;
@@ -190,4 +233,9 @@
   .mainContent.hasBottomNav {
     padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* Positioning class for UserSearch when dashboard is present */
+.withDashboardHeader {
+  top: calc(var(--header-height) + var(--dashboard-height));
 } 

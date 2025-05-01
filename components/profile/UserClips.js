@@ -6,7 +6,7 @@ import { FaFilter, FaTimes } from 'react-icons/fa';
 
 // LoadingSpinner component
 const LoadingSpinner = ({ message = "Loading clips..." }) => (
-  <div className={styles.loadingContainer}>
+  <div className={`${styles.loadingContainer} ${styles.centeredLoading}`}>
     <div className={styles.spinner}>
       <div className={styles.spinnerInner}></div>
     </div>
@@ -191,26 +191,30 @@ const UserClips = ({ userId, isOwner }) => {
 
   if (loading) {
     return (
-      <div className={styles.clipsSection}>
+      <div className={styles.clipsSectionContent}>
         {games.length > 0 && renderFilters()}
-        <LoadingSpinner />
+        <div className={styles.centeredContainer}>
+          <LoadingSpinner />
+        </div>
       </div>
     );
   }
 
   if (error) {
-    return <div className={styles.clipsError}>{error}</div>;
+    return <div className={`${styles.clipsError} ${styles.centeredContainer}`}>{error}</div>;
   }
 
   return (
-    <div className={styles.clipsSection}>
+    <div className={styles.clipsSectionContent}>
       {games.length > 0 && renderFilters()}
 
       <div className={`${styles.clipsGrid} ${isFiltering ? styles.filtering : ''}`}>
         {isFiltering ? (
-          <LoadingSpinner message="Filtering clips..." />
+          <div className={styles.centeredContainer}>
+            <LoadingSpinner message="Filtering clips..." />
+          </div>
         ) : filteredClips.length === 0 ? (
-          <div className={styles.noClipsContainer}>
+          <div className={`${styles.noClipsContainer} ${styles.centeredContainer}`}>
             <p className={styles.noClipsMessage}>
               {selectedGame 
                 ? `No clips found for ${selectedGame}`
@@ -227,11 +231,12 @@ const UserClips = ({ userId, isOwner }) => {
           </div>
         ) : (
           filteredClips.map((clip) => (
-            <ClipCard 
-              key={clip.id} 
-              clip={clip}
-              onClipUpdate={handleClipUpdate}
-            />
+            <div key={clip.id} className={styles.clipWrapper}>
+              <ClipCard 
+                clip={clip}
+                onClipUpdate={handleClipUpdate}
+              />
+            </div>
           ))
         )}
       </div>

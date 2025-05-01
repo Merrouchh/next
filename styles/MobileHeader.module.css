@@ -1,0 +1,352 @@
+.headerWrapper {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 999;
+  background: rgba(15, 15, 25, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  background: #141414;
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  height: 60px;
+  z-index: 1002;
+  box-sizing: border-box;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+  border-bottom: 1px solid #2a2a2a;
+  width: 100%;
+  position: relative;
+}
+
+.sticky {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logoContainer {
+  flex-grow: 1;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+}
+
+.mobileLogo {
+  height: 40px;
+  width: auto !important;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  max-height: 50px;
+  transition: transform 0.2s ease;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1002;
+}
+
+.hamburger:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.bar {
+  width: 24px;
+  height: 2px;
+  background: #FFD700;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.hamburger.open .bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+  background: #FFD700;
+}
+
+.hamburger.open .bar:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open .bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+  background: #FFD700;
+}
+
+.goBackButton {
+  display: inline-block;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #FFD700;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.goBackButton:hover {
+  color: #FFC000;
+}
+
+.mobileMenuPortal {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(20, 20, 20, 0.97);
+  backdrop-filter: blur(10px);
+  z-index: 1001;
+  padding: 1rem;
+  overflow-y: auto;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  border-top: 1px solid #2a2a2a;
+  display: none;
+  pointer-events: none;
+}
+
+.mobileMenuPortal.open {
+  transform: translateY(0);
+  display: block;
+  pointer-events: auto;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 1rem;
+  gap: 1rem;
+  background-color: transparent;
+  border-top: none;
+}
+
+.nav.open {
+  display: flex;
+  background-color: transparent;
+  border-top: none;
+}
+
+.loginButton,
+.logoutButton,
+.eventsButton,
+.clipsButton,
+.adminButton {
+  font-family: 'Poppins', 'Montserrat', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.6rem 1.25rem;
+  height: 38px;
+  border-radius: 5px;
+  width: 100%;
+  margin: 5px 0;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+}
+
+.buttonIcon {
+  margin-right: 8px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFD700;
+}
+
+.eventsButton {
+  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
+  color: #ffffff;
+  border: 1px solid #333333;
+  font-weight: 600;
+}
+
+.eventsButton:hover {
+  background: linear-gradient(135deg, #333333, #222222);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-color: #FFD700;
+}
+
+.clipsButton {
+  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
+  color: #ffffff;
+  border: 1px solid #333333;
+  font-weight: 600;
+}
+
+.clipsButton:hover {
+  background: linear-gradient(135deg, #333333, #222222);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border-color: #FFD700;
+}
+
+.usernameBox {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #FFD700;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.adminBadge {
+  background: rgba(20, 20, 20, 0.8);
+  color: #FFD700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.logoutButton {
+  width: 100%;
+  height: 48px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #ffffff;
+  border: 1px solid #c0392b;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.logoutButton::after {
+  display: none;
+}
+
+.logoutButton:hover {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  transform: none;
+  box-shadow: none;
+  border-color: #c0392b;
+}
+
+.mobileNavLinks {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 1rem;
+  gap: 0.7rem;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
+  color: #ffffff;
+  border: 1px solid #333333;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+  transition: all 0.3s ease;
+  height: 48px;
+  font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFD700;
+}
+
+.label {
+  flex: 1;
+}
+
+.navButton:hover {
+  background: linear-gradient(135deg, #333333, #222222);
+  border-color: #FFD700;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.navButton.active {
+  background: linear-gradient(135deg, #333333, #1a1a1a);
+  color: #FFD700;
+  border-color: #FFD700;
+}
+
+.navButton.active .icon {
+  color: #FFD700;
+}
+
+.yellowButton {
+  background: linear-gradient(135deg, #FFD700, #FFC000) !important;
+  color: #000 !important;
+  border: 1px solid #FFD700 !important;
+  font-weight: 600;
+}
+
+/* Animation for menu items */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav.open > * {
+  animation: slideIn 0.3s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav {
+    transition: none;
+  }
+} 

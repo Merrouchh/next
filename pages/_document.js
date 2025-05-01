@@ -33,10 +33,7 @@ class MyDocument extends Document {
             href="https://fonts.gstatic.com" 
             crossOrigin="anonymous"
           />
-          <link 
-            href="https://fonts.googleapis.com/css2?family=Zen+Dots&display=swap" 
-            rel="stylesheet"
-          />
+          {/* Removed Zen Dots link - now loaded with next/font in _app.js */}
           
           {/* PWA */}
           <link rel="manifest" href="/manifest.json" />

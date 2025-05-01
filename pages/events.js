@@ -350,6 +350,11 @@ export default function Events({ metaData }) {
       <DynamicMeta {...metaData} />
 
       <div className={styles.container}>
+        {/* Page heading (h1) */}
+        <header className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Gaming Events & Tournaments</h1>
+        </header>
+        
         {/* Browse Events section with search and filters */}
         <div className={styles.eventsHeader}>
           <h2 className={styles.sectionTitle}>Browse Events</h2>

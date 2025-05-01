@@ -7,11 +7,19 @@
   box-shadow: none;
   contain: content; /* Add content containment for better performance */
   width: 100%;
+  max-width: 100vw; /* Ensure it never exceeds viewport width */
   padding: 1.5rem 1.5rem 0.75rem; /* Reduced bottom padding from 1.5rem to 0.75rem */
   min-height: 200px; /* Ensure minimum height even when empty */
   display: flex;
   flex-direction: column;
   overflow: hidden; /* Prevent horizontal scrolling on mobile */
+  box-sizing: border-box; /* Ensure padding doesn't add to width */
+}
+
+/* Add spacing when title is hidden */
+.noTitleSpacing {
+  margin-top: 1rem;
+  padding-top: 0;
 }
 
 .galleryTitle {
@@ -110,6 +118,8 @@
   grid-auto-rows: 1fr; /* Ensure equal height rows */
   padding: 0.5rem; /* Added padding around entire grid */
   max-width: 100%; /* Ensure grid doesn't overflow container */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  box-sizing: border-box; /* Ensure padding doesn't add to width */
 }
 
 @supports (aspect-ratio: 1 / 1) {
@@ -886,4 +896,12 @@
 .imagePlaceholder p {
   margin-top: 0.5rem;
   font-size: 0.9rem;
+}
+
+/* When gallery is in a container, update the styles */
+.galleryContainer.noTitleSpacing {
+  margin-top: 0;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
 } 

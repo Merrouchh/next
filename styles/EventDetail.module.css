@@ -2,6 +2,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .backLink {
@@ -69,6 +72,36 @@
   border: none;
   position: relative;
   transition: all 0.3s ease;
+  margin-bottom: 2.5rem;
+}
+
+/* Add styled section titles for Event Details */
+.sectionHeading {
+  font-size: 1.5rem;
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sectionHeading::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background-color: #FFD700;
+}
+
+.sectionHeading svg {
+  color: #FFD700;
 }
 
 /* Add shine effect to event detail */
@@ -335,7 +368,11 @@
 
 .eventContent {
   padding: 1.5rem;
-  margin-top: 2rem;
+  margin-top: 1rem;
+}
+
+.eventDescriptionSection {
+  margin-bottom: 2.5rem;
 }
 
 .eventDescription {
@@ -346,6 +383,22 @@
 
 .eventDescription p {
   margin-bottom: 1rem;
+}
+
+.registrationSection {
+  margin-bottom: 2.5rem;
+  padding-top: 1rem;
+  position: relative;
+}
+
+.registrationSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.2) 50%, rgba(255, 215, 0, 0.05) 100%);
 }
 
 .eventActions {
@@ -1317,6 +1370,8 @@
   font-family: 'Orbitron', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .sectionIcon {
@@ -1854,10 +1909,20 @@
 
 /* Gallery Container Styles */
 .galleryContainer {
-  margin: 0.75rem 0 0.5rem;
-  border-top: 1px solid #303030;
-  padding-top: 1rem;
+  margin: 3rem 0 1.5rem;
+  padding-top: 2rem;
   contain: content;
+  position: relative;
+}
+
+.galleryContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.3) 50%, rgba(255, 215, 0, 0.05) 100%);
 }
 
 .galleryWrapper {
@@ -1873,13 +1938,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .galleryTitle {
   font-size: 1.5rem;
   margin: 0;
-  color: #f1f1f1;
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.galleryTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background-color: #FFD700;
 }
 
 .galleryLoadingContainer {
@@ -2026,4 +2106,74 @@
     transform: scaleX(0.1);
     opacity: 0.3;
   }
+}
+
+.gallerySection {
+  margin-top: 3rem;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
+  border: none;
+  position: relative;
+  transition: all 0.3s ease;
+  padding: 1.5rem;
+}
+
+/* Add the same shine effect to the gallery section */
+.gallerySection::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.3;
+  animation: shineEffect 8s infinite linear;
+}
+
+/* Add subtle glow to gallery section */
+.gallerySection::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(98, 0, 234, 0.05) 0%, rgba(55, 0, 179, 0.08) 100%);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Improve the gallery title alignment */
+.gallerySection .sectionHeading {
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 5;
+}
+
+/* Adjust the gallery container to work within the new container */
+.gallerySection .galleryContainer {
+  position: relative;
+  z-index: 5;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+}
+
+.gallerySection .galleryContainer::before {
+  display: none;
 } 

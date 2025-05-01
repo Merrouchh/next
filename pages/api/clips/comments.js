@@ -1,4 +1,4 @@
-import createServerSupabaseClient from '../../../utils/supabase/api';
+import { createServerSupabaseClient } from '../../../utils/supabase/server-props';
 
 /**
  * API route for handling video clip comments

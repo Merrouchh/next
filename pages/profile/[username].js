@@ -79,15 +79,15 @@ export async function getServerSideProps({ req, res, params }) {
       .from('event_registrations')
       .select('id', { count: 'exact' })
       .eq('user_id', userData.id);
-
+    
     // Get the thumbnail URL from the latest clip or use default
     const profileImage = latestClip?.cloudflare_uid 
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : latestClip?.thumbnail_path || "https://merrouchgaming.com/top.jpg";
-
+        
     // Create a more detailed and personalized description
     let userDescription = `${normalizedUsername}'s gaming profile at Merrouch Gaming Center`;
-    
+        
     if (clipsCount) {
       userDescription += ` featuring ${clipsCount} public gaming ${clipsCount === 1 ? 'clip' : 'clips'}`;
     }
@@ -100,7 +100,7 @@ export async function getServerSideProps({ req, res, params }) {
       userDescription += `. Latest clip: "${latestClip.title}"`;
       if (latestClip.game) {
         userDescription += ` in ${latestClip.game}`;
-      }
+                      }
       if (latestClip.views_count) {
         userDescription += ` with ${latestClip.views_count} ${latestClip.views_count === 1 ? 'view' : 'views'}`;
       }
@@ -173,12 +173,22 @@ const ProfilePage = ({ username, metaData }) => {
   // Determine if current user is profile owner after userData loads
   const isOwner = user?.id && userData?.id ? user.id === userData.id : false;
 
+  // Reset states when username changes
+  useEffect(() => {
+    setUserAchievements([]);
+    setLoadingAchievements(true);
+    setUserData(null);
+    setLoadingUser(true);
+    setError(null);
+  }, [username]);
+
   // Fetch the user data on client side
   useEffect(() => {
     setMounted(true);
     
     const fetchUserData = async () => {
       try {
+        console.log(`Fetching data for user: ${username}`);
         // Fetch user data
         const { data: userData, error: userError } = await supabase
           .from('users')
@@ -533,8 +543,16 @@ const ProfilePage = ({ username, metaData }) => {
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
       
-      <main className={styles.profileMain}>
+      <main className={styles.profileContainer}>
+        <header className={styles.profileHeader}>
+          <h1 className={styles.profileTitle}>
+            {isOwner ? 'YOUR GAMING PROFILE' : `${username}'s GAMING PROFILE`}
+          </h1>
+        </header>
+        
+        {/* Profile Dashboard (Game Accounts & Events) - add key to force re-render */}
         <ProfileDashboard 
+          key={`profile-${username}`}
           user={userData}
           profiles={{
             user_id: userData.id,
@@ -548,22 +566,19 @@ const ProfilePage = ({ username, metaData }) => {
           loadingAchievements={loadingAchievements}
         />
 
-        {/* Clips Section with container */}
-        <div className="dashboard-section">
-          <div 
-            className="dashboard-section-header"
-            style={{ cursor: 'default', border: 'none', width: '100%', justifyContent: 'space-between' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <FaVideo className="dashboard-section-icon" />
-              <h3 className="dashboard-section-title">Clips ({userData.clips_count || 0})</h3>
-            </div>
+        {/* Clips Section - add key to force re-render */}
+        <section className={styles.clipsSection}>
+          <div className={styles.clipsHeader}>
+            <h2>
+              <FaVideo style={{ marginRight: '10px' }} />
+              CLIPS ({userData.clips_count || 0})
+            </h2>
             {isOwner && <UploadButton isCompact={true} />}
           </div>
-          <div>
-            <UserClips userId={userData.id} isOwner={isOwner} />
+          <div className={styles.clipsSectionContent}>
+            <UserClips key={`clips-${username}`} userId={userData.id} isOwner={isOwner} />
           </div>
-        </div>
+        </section>
       </main>
     </ProtectedPageWrapper>
   );

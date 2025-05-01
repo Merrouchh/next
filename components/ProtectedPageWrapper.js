@@ -3,12 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { getRouteConfig, isAuthPage, requiresAdmin } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
+import MobileHeader from './MobileHeader';
 import DashboardHeader from './DashboardHeader';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useEffect } from 'react';
 import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
+import userSearchStyles from '../styles/UserSearch.module.css';
 
 const ProtectedPageWrapper = ({ children }) => {
   const { user, initialized } = useAuth();
@@ -81,28 +83,44 @@ const ProtectedPageWrapper = ({ children }) => {
 
   return (
     <div className={styles.wrapper} suppressHydrationWarning>
+      {/* Fixed header section */}
+      <div className={styles.fixedHeadersContainer}>
+        {/* Header - uses static rendering approach to prevent flashing */}
+        <div className={styles.fixedHeader} style={{ zIndex: 'var(--header-z-index)' }}>
+          {isMobile ? <MobileHeader /> : <Header />}
+        </div>
+        
+        {/* Dashboard navigation (if needed) */}
+        {showDashboardHeader && (
+          <div className={styles.fixedHeader} style={{ 
+            top: 'var(--header-height)', 
+            zIndex: 'var(--dashboard-header-z-index)' 
+          }}>
+            <DashboardHeader />
+          </div>
+        )}
+        
+        {/* User search navigation (if needed) */}
+        {hasSearchHeader && (
+          <div className={styles.fixedHeader} style={{ 
+            top: showDashboardHeader 
+              ? 'calc(var(--header-height) + var(--dashboard-header-height))' 
+              : 'var(--header-height)',
+            zIndex: 'var(--search-header-z-index)'
+          }}>
+            <UserSearch 
+              className={showDashboardHeader ? userSearchStyles.withDashboardHeader : ''}
+            />
+          </div>
+        )}
+      </div>
+      
       <div 
         className={styles.contentWrapper}
         data-has-search={hasSearchHeader}
         data-has-dashboard={showDashboardHeader}
         data-is-admin={isAdminRequired}
       >
-        <div className={styles.headerWrapper}>
-          <Header />
-        </div>
-        
-        {showDashboardHeader && (
-          <div className={styles.dashboardWrapper}>
-            <DashboardHeader />
-          </div>
-        )}
-
-        {hasSearchHeader && (
-          <div className={`${styles.userSearchWrapper} ${showDashboardHeader ? styles.withDashboard : ''}`}>
-            <UserSearch />
-          </div>
-        )}
-        
         <main 
           className={styles.mainContent}
           data-has-nav={hasNavigation}

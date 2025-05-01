@@ -382,37 +382,45 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
       <main className={styles.discoverMain}>
-        <div className={styles.feedContainer}>
-          {initialLoad ? (
-            <LoadingSpinner message="Loading clips..." />
-          ) : clips.length > 0 ? (
-            <>
-              {clips.map(clip => (
-                <ClipCard
-                  key={clip.id}
-                  clip={clip}
-                />
-              ))}
-              
-              {/* Loading more indicator / End message */}
-              <div className={styles.loadingMore} ref={loaderRef}>
-                {isLoading ? (
-                  <LoadingSpinner message="Loading more clips..." />
-                ) : !hasMore ? (
-                  <div className={styles.endMessage}>
-                    <span className={styles.endIcon}>🎮</span>
-                    <p>You've seen all the clips!</p>
-                    <p className={styles.endSubtext}>Check back later for more gaming moments</p>
-                  </div>
-                ) : null}
+        <header className={styles.discoverHeader}>
+          <h1 className={styles.discoverTitle}>Gaming Highlights</h1>
+          <p className={styles.discoverSubtitle}>Discover amazing gaming moments from our community</p>
+        </header>
+        
+        <section className={styles.clipsSection}>
+          <h2 className={styles.sectionTitle}>Latest Clips</h2>
+          <div className={styles.feedContainer}>
+            {initialLoad ? (
+              <LoadingSpinner message="Loading clips..." />
+            ) : clips.length > 0 ? (
+              <>
+                {clips.map(clip => (
+                  <ClipCard
+                    key={clip.id}
+                    clip={clip}
+                  />
+                ))}
+                
+                {/* Loading more indicator / End message */}
+                <div className={styles.loadingMore} ref={loaderRef}>
+                  {isLoading ? (
+                    <LoadingSpinner message="Loading more clips..." />
+                  ) : !hasMore ? (
+                    <div className={styles.endMessage}>
+                      <span className={styles.endIcon}>🎮</span>
+                      <p>You've seen all the clips!</p>
+                      <p className={styles.endSubtext}>Check back later for more gaming moments</p>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className={styles.noClips}>
+                No clips available at the moment
               </div>
-            </>
-          ) : (
-            <div className={styles.noClips}>
-              No clips available at the moment
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </section>
       </main>
     </ProtectedPageWrapper>
   );

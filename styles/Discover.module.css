@@ -214,6 +214,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding-bottom: 100px;
+  width: 100%;
 }
 
 .clipWrapper {
@@ -222,6 +223,8 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .clipContainer {
@@ -233,6 +236,8 @@
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
   overflow: hidden;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .clipContainer:hover {
@@ -680,3 +685,42 @@
     transform: translateY(0);
   }
 }
+.discoverHeader {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+}
+
+.discoverTitle {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.5rem;
+  color: #FFD700;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.discoverSubtitle {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+  margin-top: 0;
+}
+
+.sectionTitle {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  color: #FFD700;
+  text-align: center;
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.clipsSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+

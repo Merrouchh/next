@@ -185,12 +185,16 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
     <div className="dashboard-container">
       <style jsx global>{`
         .dashboard-section {
-          background-color: #0e0e0e;
-          border-radius: 8px;
-          margin: 0 0 12px;
+          background: rgba(20, 20, 20, 0.95);
+          border-radius: 10px;
+          margin: 0 0 2rem;
           overflow: hidden;
-          border: 1px solid #222;
-          transition: margin 0.3s ease;
+          border: 1px solid rgba(255, 215, 0, 0.2);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dashboard-section:hover {
+          /* Remove hover effects */
         }
         
         @keyframes spin {
@@ -198,40 +202,37 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           100% { transform: rotate(360deg); }
         }
         
-        .dashboard-section.expanded {
-          margin-bottom: 12px;
-        }
-        
         .dashboard-section-header {
           display: flex;
           align-items: center;
           justify-content: flex-start;
-          padding: 14px 15px;
+          padding: 1.5rem;
           position: relative;
-          background-color: #0e0e0e;
-          border-bottom: 1px solid transparent;
+          background: transparent;
+          border-bottom: 1px solid rgba(255, 215, 0, 0.2);
           text-align: left;
         }
         
         .dashboard-section-title {
           margin: 0;
           font-weight: 700;
-          letter-spacing: 0.5px;
+          letter-spacing: 1px;
           text-transform: uppercase;
-          font-size: 16px;
-          color: #fff;
+          font-size: 1.2rem;
+          color: #FFD700;
           text-align: left;
+          font-family: 'Orbitron', sans-serif;
         }
         
         .dashboard-section-icon {
           color: #FFD700;
-          font-size: 22px;
+          font-size: 1.5rem;
           margin-right: 12px;
         }
         
         .dashboard-section-actions {
           position: absolute;
-          right: 15px;
+          right: 1.5rem;
           display: flex;
           align-items: center;
         }
@@ -240,7 +241,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
           color: #FFD700;
           display: flex;
           align-items: center;
-          font-size: 14px;
+          font-size: 1rem;
           transition: transform 0.3s ease;
         }
         
@@ -267,25 +268,30 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         .user-profile-section {
           display: flex;
           flex-direction: column;
-          padding: 20px;
+          padding: 2rem;
           align-items: center;
           justify-content: center;
-          background-color: #0e0e0e;
-          border-radius: 8px;
-          margin-bottom: 12px;
-          border: 1px solid #222;
+          background: rgba(20, 20, 20, 0.95);
+          border-radius: 10px;
+          margin-bottom: 2rem;
+          border: 1px solid rgba(255, 215, 0, 0.2);
           text-align: center;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .user-profile-section:hover {
+          /* Remove hover effects */
         }
         
         .user-avatar {
           position: relative;
-          width: 100px;
-          height: 100px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           overflow: hidden;
-          border: 2px solid #FFD700;
-          box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
-          margin: 0 auto 15px;
+          border: 3px solid #FFD700;
+          box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+          margin: 0 auto 1.5rem;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -317,11 +323,12 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         }
         
         .user-name {
-          font-size: 28px;
+          font-family: 'Orbitron', sans-serif;
+          font-size: 2rem;
           font-weight: 700;
           margin: 0 0 10px;
-          color: #fff;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          color: #FFD700;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
           word-break: break-word;
           overflow-wrap: break-word;
           max-width: 100%;
@@ -331,67 +338,68 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         
         .user-stats {
           display: flex;
-          gap: 15px;
-          margin-top: 5px;
+          gap: 1.5rem;
+          margin-top: 1rem;
         }
         
         .stat-item {
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 0.5rem;
         }
         
         .stat-value {
           font-weight: 600;
           color: #FFD700;
+          font-size: 1.2rem;
         }
         
         .stat-label {
-          color: #888;
-          font-size: 14px;
+          color: #ccc;
+          font-size: 0.9rem;
         }
         
         .gaming-profile-grid {
           display: grid;
           gap: 1px;
-          background-color: #111;
+          background-color: rgba(20, 20, 20, 0.5);
         }
         
         .gaming-profile-item {
           display: flex;
           align-items: center;
-          padding: 12px 15px;
-          background-color: #0e0e0e;
+          padding: 1rem 1.5rem;
+          background-color: rgba(26, 26, 26, 0.95);
           cursor: pointer;
+          border-bottom: 1px solid rgba(255, 215, 0, 0.1);
         }
         
         .gaming-profile-item:hover {
-          background-color: #171717;
+          background-color: rgba(30, 30, 30, 0.95);
+          /* Keep background change but remove transform */
         }
         
         .gaming-profile-icon {
-          color: #8A2BE2;
-          font-size: 18px;
-          margin-right: 12px;
+          color: #FFD700;
+          font-size: 1.2rem;
+          margin-right: 1rem;
           flex-shrink: 0;
-          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
-          transition: all 0.2s ease;
+          filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
         }
         
         .gaming-profile-item:hover .gaming-profile-icon {
-          color: #9D4EDD;
-          filter: drop-shadow(0 0 5px rgba(138, 43, 226, 0.8));
+          /* Remove glow and transform effects */
         }
         
         .gaming-profile-text {
           flex: 1;
           color: #fff;
-          font-size: 14px;
+          font-size: 0.9rem;
         }
         
         .gaming-profile-copy {
-          color: #555;
-          margin-left: 10px;
+          color: rgba(255, 255, 255, 0.4);
+          margin-left: 0.75rem;
         }
         
         .gaming-profile-item:hover .gaming-profile-copy {
@@ -399,23 +407,39 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         }
         
         .no-profiles-message {
-          padding: 20px;
+          padding: 1.5rem;
           text-align: center;
-          color: #666;
-          font-size: 14px;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.9rem;
         }
         
         .gaming-profile-input {
           display: flex;
           align-items: center;
-          padding: 12px 15px;
-          background-color: #0e0e0e;
-          border-bottom: 1px solid #222;
+          padding: 1rem 1.5rem;
+          background-color: rgba(26, 26, 26, 0.95);
+          border-bottom: 1px solid rgba(255, 215, 0, 0.1);
         }
         
         .gaming-profile-input .gaming-profile-icon {
-          color: #8A2BE2;
-          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
+          color: #FFD700;
+          filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+        }
+        
+        .gaming-profile-input input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #fff;
+          font-size: 0.9rem;
+          padding: 0.5rem;
+          border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          transition: all 0.2s ease;
+        }
+        
+        .gaming-profile-input input:focus {
+          border-color: #FFD700;
         }
         
         .valorant-input-group {
@@ -458,26 +482,31 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         .event-item {
           display: flex;
           align-items: center;
-          padding: 12px 15px;
-          border-bottom: 1px solid #222;
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid rgba(255, 215, 0, 0.1);
           color: #fff;
+          background-color: rgba(26, 26, 26, 0.95);
+        }
+        
+        .event-item:hover {
+          background-color: rgba(30, 30, 30, 0.95);
+          /* Remove transform effect */
         }
         
         .event-icon {
-          margin-right: 12px;
+          margin-right: 1rem;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 24px;
           height: 24px;
           flex-shrink: 0;
-          color: #8A2BE2;
-          filter: drop-shadow(0 0 3px rgba(138, 43, 226, 0.5));
+          color: #FFD700;
+          filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
         }
         
         .event-item:hover .event-icon {
-          color: #9D4EDD;
-          filter: drop-shadow(0 0 5px rgba(138, 43, 226, 0.8));
+          /* Remove effects */
         }
         
         .event-details {
@@ -492,7 +521,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         
         .event-title {
           margin: 0;
-          font-size: 15px;
+          font-size: 1rem;
           font-weight: 600;
           color: #fff;
           overflow: hidden;
@@ -502,26 +531,26 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         
         .winner-badge {
           background-color: #FFD700;
-          color: #111;
-          font-size: 10px;
-          padding: 1px 5px;
+          color: #000;
+          font-size: 0.7rem;
+          padding: 0.1rem 0.5rem;
           border-radius: 3px;
-          margin-left: 8px;
+          margin-left: 0.5rem;
           font-weight: 700;
           letter-spacing: 0.2px;
           text-transform: uppercase;
         }
         
         .event-meta {
-          font-size: 14px;
-          color: #888;
-          margin-top: 3px;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-top: 0.25rem;
         }
         
         .event-date {
-          font-size: 13px;
-          color: #9D4EDD;
-          margin-left: 10px;
+          font-size: 0.8rem;
+          color: #FFD700;
+          margin-left: 0.75rem;
           text-align: right;
           flex-shrink: 0;
         }
@@ -562,41 +591,43 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         }
         
         .edit-button {
-          background-color: rgba(255, 215, 0, 0.1);
+          background: rgba(255, 215, 0, 0.1);
           color: #FFD700;
           border: 1px solid rgba(255, 215, 0, 0.3);
-          padding: 3px 10px;
+          padding: 0.5rem 1rem;
           border-radius: 4px;
-          font-size: 12px;
+          font-size: 0.9rem;
           cursor: pointer;
-          margin-right: 10px;
+          margin-right: 0.75rem;
         }
         
         .edit-button:hover {
-          background-color: rgba(255, 215, 0, 0.2);
+          background: rgba(255, 215, 0, 0.2);
+          /* Remove transform */
         }
         
         .save-button {
-          background-color: #FFD700;
-          color: #111;
+          background: #FFD700;
+          color: #000;
           border: none;
-          padding: 3px 10px;
+          padding: 0.5rem 1rem;
           border-radius: 4px;
-          font-size: 12px;
+          font-size: 0.9rem;
           cursor: pointer;
-          margin-right: 10px;
+          margin-right: 0.75rem;
           font-weight: 600;
         }
         
         .save-button:hover {
-          background-color: #ffc800;
+          background: #f8cb00;
+          /* Remove transform */
         }
         
         .no-events-message {
-          padding: 20px;
+          padding: 1.5rem;
           text-align: center;
-          color: #666;
-          font-size: 14px;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.9rem;
         }
         
         .external-link-icon {

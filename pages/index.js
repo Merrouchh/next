@@ -180,54 +180,57 @@ const Home = ({ metaData }) => {
           />
 
           {/* Cards Section */}
-          <div className={styles.cardContainer}>
-            {/* Highlights Card */}
-            <div className={styles.cardHighlight}>
-              <div 
-                className={styles.highlightContent}
-                onClick={() => router.push('/discover')}
-              >
-                <div className={styles.highlightIcon}>
-                  <MdExplore size={24} />
-                </div>
-                <h2>GAMING HIGHLIGHTS</h2>
-                <p>Watch amazing moments from our community</p>
-              </div>
-              <div className={styles.contactInfo}>
-                <a 
-                  href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1?entry=ttu&g_ep=EgoyMDI1MDExMC4wIKXMDSoASAFQAw%3D%3D"
-                  target="_blank"
-                  rel="noopener noreferrer" 
-                  className={styles.contactItem}
+          <section className={styles.cardsSection}>
+            <h2 className={styles.sectionTitle}>Our Services</h2>
+            <div className={styles.cardContainer}>
+              {/* Highlights Card */}
+              <div className={styles.cardHighlight}>
+                <div 
+                  className={styles.highlightContent}
+                  onClick={() => router.push('/discover')}
                 >
-                  <AiOutlineEnvironment />&nbsp;
-                  Avenue Abi Elhassan Chadili, Tangier
-                </a>
-                <div className={styles.contactItem}>
-                  <AiOutlinePhone />&nbsp;
-                  <NumberDisplay number="0531098983" />
+                  <div className={styles.highlightIcon}>
+                    <MdExplore size={24} />
+                  </div>
+                  <h3>GAMING HIGHLIGHTS</h3>
+                  <p>Watch amazing moments from our community</p>
                 </div>
-                <div className={styles.contactItem}>
-                  <AiOutlineInstagram />&nbsp;
+                <div className={styles.contactInfo}>
                   <a 
-                    href="https://instagram.com/merrouchgaming" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className={styles.socialLink}
+                    href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1?entry=ttu&g_ep=EgoyMDI1MDExMC4wIKXMDSoASAFQAw%3D%3D"
+                    target="_blank"
+                    rel="noopener noreferrer" 
+                    className={styles.contactItem}
                   >
-                    @merrouchgaming
+                    <AiOutlineEnvironment />&nbsp;
+                    Avenue Abi Elhassan Chadili, Tangier
                   </a>
+                  <div className={styles.contactItem}>
+                    <AiOutlinePhone />&nbsp;
+                    <NumberDisplay number="0531098983" />
+                  </div>
+                  <div className={styles.contactItem}>
+                    <AiOutlineInstagram />&nbsp;
+                    <a 
+                      href="https://instagram.com/merrouchgaming" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={styles.socialLink}
+                    >
+                      @merrouchgaming
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Map Card */}
+              <div className={styles.cardMap}>
+                <div className={styles.mapWrapper}>
+                  <DarkModeMap />
                 </div>
               </div>
             </div>
-
-            {/* Map Card */}
-            <div className={styles.cardMap}>
-              <div className={styles.mapWrapper}>
-                <DarkModeMap />
-              </div>
-            </div>
-          </div>
+          </section>
 
           {/* Packages Section */}
           <section className={styles.packages}>
