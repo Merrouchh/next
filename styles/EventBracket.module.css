@@ -734,3 +734,13 @@
   font-weight: 500;
   color: var(--text-secondary);
 } 
+
+/* Team name styles for bracket display */
+.teamName {
+  color: #FFD700;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+  display: inline-block;
+} 

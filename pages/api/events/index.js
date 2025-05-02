@@ -150,6 +150,7 @@ async function createEvent(req, res, supabase, user) {
           image,
           registration_limit: parsedLimit,
           team_type: team_type || 'solo', // Default to 'solo' if not provided
+          phone_verification_required: req.body.phone_verification_required !== false, // Default to true if not provided
           created_at: new Date().toISOString()
         }
       ])

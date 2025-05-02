@@ -661,7 +661,8 @@ export default function EventRegistrations() {
                         >
                           <div className={styles.teamIndicator}>
                             <span style={{ backgroundColor: teamColor }} className={styles.teamColorDot}></span>
-                            Team {index + 1}
+                            {/* Display team name if available, otherwise use default "Team X" */}
+                            {registration.team_name ? registration.team_name : `Team ${index + 1}`}
                           </div>
                           
                           {/* Main Registrant Row */}
@@ -793,7 +794,8 @@ export default function EventRegistrations() {
                           }}
                         >
                           <div className={styles.teamIndicator} style={{ backgroundColor: teamColor }}>
-                            Team {index + 1}
+                            {/* Display team name if available, otherwise use default "Team X" */}
+                            {registration.team_name ? registration.team_name : `Team ${index + 1}`}
                           </div>
                           
                           {/* Main Registrant Row */}

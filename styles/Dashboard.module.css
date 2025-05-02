@@ -1483,3 +1483,10 @@
   100% { opacity: 0.6; }
 }
 
+/* Center wrapper for recharge button under no time message */
+.noTimeButtonWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+

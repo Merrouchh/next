@@ -425,7 +425,6 @@
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  text-align: center;
   text-decoration: none;
   border: none;
 }
@@ -920,15 +919,16 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000; /* Increased z-index to ensure it's above other elements */
   padding: 1rem;
+  backdrop-filter: blur(4px);
 }
 
-.teamModal {
+.modal {
   background-color: #1a1a1a;
   border-radius: 8px;
   width: 100%;
@@ -936,8 +936,11 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   animation: modalFadeIn 0.3s ease;
+  border: 1px solid #333;
+  overflow: hidden;
+  position: relative; /* Ensure proper stacking context */
 }
 
 @keyframes modalFadeIn {
@@ -957,12 +960,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #222;
 }
 
 .modalHeader h3 {
   margin: 0;
   font-size: 1.25rem;
   color: #FFD700;
+  font-weight: 600;
 }
 
 .closeButton {
@@ -976,32 +981,34 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 
 .closeButton:hover {
   color: #FFD700;
+  background-color: rgba(255, 215, 0, 0.1);
+}
+
+.modalBody {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  max-height: 50vh;
 }
 
 .searchContainer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 0;
   position: relative;
-  border-bottom: 1px solid #2a2a2a;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #6c757d;
+  margin-bottom: 1rem;
 }
 
 .searchInput {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  padding: 0.75rem 1rem;
   border-radius: 4px;
   border: 1px solid #2a2a2a;
-  background-color: #121212;
+  background-color: #282828;
   color: #e0e0e0;
   font-size: 1rem;
   transition: all 0.2s;
@@ -1013,85 +1020,18 @@
   box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
 }
 
-.modalInfo {
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #2a2a2a;
-  background-color: rgba(255, 215, 0, 0.05);
-}
-
-.modalInfo p {
-  margin: 0;
-  color: #b0b0b0;
-  font-size: 0.9rem;
-}
-
-.modalInfo strong {
-  color: #FFD700;
-}
-
-.modalContent {
-  padding: 1.5rem;
-  overflow-y: auto;
-  max-height: 50vh;
-}
-
 .noResults {
   text-align: center;
   color: #b0b0b0;
   padding: 2rem 0;
+  font-style: italic;
 }
 
-.modalFooter {
-  padding: 1.25rem 1.5rem;
-  border-top: 1px solid #2a2a2a;
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.cancelButton {
-  padding: 0.75rem 1.5rem;
-  background-color: transparent;
-  color: #e0e0e0;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancelButton:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.confirmButton {
-  padding: 0.75rem 1.5rem;
-  background-color: #FFD700;
-  color: #121212;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.confirmButton:hover:not(:disabled) {
-  background-color: #FFD700;
-  color: #121212;
-}
-
-.confirmButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Team Member List in Modal */
 .teamMembersList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .teamMember {
@@ -1101,7 +1041,6 @@
   border-radius: 4px;
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   transition: all 0.2s ease;
   color: #e0e0e0;
@@ -1118,237 +1057,16 @@
   font-weight: 500;
 }
 
-.checkmark {
-  color: #FFD700;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.addIcon {
-  color: #6c757d;
-  transition: color 0.2s;
-  font-size: 1.2rem;
-}
-
-.teamMember:hover .addIcon {
-  color: #FFD700;
-}
-
-/* Mobile-friendly Modal Styles */
-@media (max-width: 767px) {
-  .modalOverlay {
-    padding: 0;
-  }
-
-  .teamModal {
-    max-width: 100%;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    margin: 0;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-  
-  .mobileModal {
-    width: 100%;
-    height: 100vh;
-    border-radius: 0;
-    animation: none;
-    transition: transform 0.3s ease;
-    transform: translateY(0);
-  }
-  
-  .modalHeader {
-    padding: 1rem;
-  }
-  
-  .modalHeader h3 {
-    font-size: 1.1rem;
-  }
-  
-  .closeButton {
-    font-size: 1.5rem;
-    padding: 0.5rem;
-    width: 44px;
-    height: 44px;
-  }
-  
-  .searchContainer {
-    padding: 0.75rem 1rem;
-    position: sticky;
-    top: 0;
-    background-color: #1a1a1a;
-    z-index: 5;
-  }
-  
-  .searchInput {
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    font-size: 1rem;
-    height: 45px;
-    border-radius: 8px;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  
-  .searchIcon {
-    left: 0.75rem;
-    font-size: 1.2rem;
-  }
-  
-  .modalContent {
-    max-height: calc(100vh - 180px);
-    padding: 1rem;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .teamMembersList {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .teamMember {
-    padding: 1rem;
-    font-size: 1rem;
-    min-height: 60px;
-    border-radius: 8px;
-    touch-action: manipulation;
-  }
-  
-  .teamMember:active {
-    background-color: rgba(255, 215, 0, 0.05);
-  }
-  
-  .checkmark, .addIcon {
-    font-size: 1.5rem;
-    padding: 0.25rem;
-  }
-  
-  .modalFooter {
-    padding: 1rem;
-    gap: 0.75rem;
-    position: sticky;
-    bottom: 0;
-    background-color: #1a1a1a;
-    z-index: 5;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  .cancelButton, .confirmButton {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    min-height: 50px;
-    flex: 1;
-    border-radius: 8px;
-  }
-  
-  /* Mobile Team Member Display */
-  .teamMemberDisplay {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    border-radius: 6px;
-  }
-  
-  .teamMemberDisplay h3 {
-    font-size: 1.1rem;
-  }
-  
-  .teamMemberDisplay h4 {
-    font-size: 0.95rem;
-  }
-  
-  .teamRegisteredBy {
-    padding: 0.6rem;
-  }
-  
-  .teamRegisteredBy p {
-    font-size: 0.9rem;
-  }
-}
-
-/* Cancel Modal Styles */
-.cancelModal {
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 500px;
+.modalActions {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #2a2a2a;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  animation: modalFadeIn 0.3s ease;
+  gap: 1rem;
+  background-color: #1a1a1a;
 }
 
-.cancelWarning {
-  text-align: center;
-  padding: 1rem;
-}
-
-.cancelWarning p {
-  margin-bottom: 1rem;
-  color: #e0e0e0;
-  font-size: 1.1rem;
-}
-
-.cancelWarning p:last-child {
-  margin-bottom: 0;
-}
-
-.teamWarning {
-  background-color: rgba(220, 53, 69, 0.1);
-  border-left: 3px solid #dc3545;
-  padding: 0.75rem;
-  border-radius: 4px;
-  text-align: left;
-  color: #e0e0e0;
-}
-
-.teamWarning strong {
-  color: #dc3545;
-}
-
-.secondaryButton {
-  padding: 0.75rem 1.5rem;
-  background-color: transparent;
-  color: #e0e0e0;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.secondaryButton:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.confirmCancelButton {
-  padding: 0.75rem 1.5rem;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.confirmCancelButton:hover {
-  background-color: #c82333;
-}
-
-.confirmCancelButton::before {
-  content: "✕";
-  font-weight: bold;
-}
+/* Rest of the CSS remains the same */
 
 /* Bracket section styles */
 .bracketSection {
@@ -1851,7 +1569,8 @@
 }
 
 .championsContainer .bracketWinner {
-  width: auto;
+  width: 100%;
+  max-width: 600px; /* Increased width here for better appearance */
   display: inline-flex;
   margin: 0 auto;
   padding: 0.75rem 2rem;
@@ -2176,4 +1895,258 @@
 
 .gallerySection .galleryContainer::before {
   display: none;
+}
+
+/* Team name input styles */
+.teamNameInput {
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.teamNameInput label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.teamNameInput input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #282828;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.teamNameInput input:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
+}
+
+.teamNameInput small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #b0b0b0;
+  font-size: 0.8rem;
+}
+
+/* Team name display */
+.teamNameDisplay {
+  margin-bottom: 1rem;
+  background-color: rgba(255, 215, 0, 0.1);
+  border-radius: 4px;
+  padding: 0.75rem;
+  border-left: 3px solid #FFD700;
+}
+
+.teamName {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #FFD700;
+  word-break: break-word;
+}
+
+/* After .modalActions styling */
+
+.selectedMembers {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.selectedMembers h4 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #FFD700;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.selectedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.selectedMember {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 215, 0, 0.1);
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  font-size: 0.9rem;
+}
+
+.removeMember {
+  margin-left: 0.5rem;
+  background: none;
+  border: none;
+  color: #b0b0b0;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeMember:hover {
+  color: #FFD700;
+}
+
+.notesContainer {
+  margin-bottom: 1rem;
+}
+
+.notesContainer label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.notesInput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #282828;
+  color: #fff;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.notesInput:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
+}
+
+/* Fix for memberAvatar which was missing */
+.memberAvatar {
+  width: 32px;
+  height: 32px;
+  background-color: #333;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-right: 0.75rem;
+  color: #FFD700;
+}
+
+.memberName {
+  flex: 1;
+}
+
+/* Mobile-friendly Modal Styles */
+@media (max-width: 767px) {
+  .modalOverlay {
+    padding: 0;
+  }
+
+  .modal {
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .modalHeader {
+    padding: 1rem;
+  }
+  
+  .modalBody {
+    max-height: calc(100vh - 240px);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .modalActions {
+    padding: 1rem;
+    position: sticky;
+    bottom: 0;
+    background-color: #1a1a1a;
+    z-index: 5;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .teamMembersList {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* modalBackdrop for cancellation modal */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+/* Add these after the modalBackdrop styles */
+
+.cancelWarning {
+  text-align: center;
+  padding: 1rem;
+}
+
+.cancelWarning p {
+  margin-bottom: 1rem;
+  color: #e0e0e0;
+  font-size: 1.1rem;
+}
+
+.teamWarning {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-left: 3px solid #dc3545;
+  padding: 0.75rem;
+  border-radius: 4px;
+  text-align: left;
+  margin-top: 1rem;
+  color: #e0e0e0;
+}
+
+.teamWarning strong {
+  color: #dc3545;
+}
+
+.deleteButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.deleteButton:hover {
+  background-color: #c82333;
 } 

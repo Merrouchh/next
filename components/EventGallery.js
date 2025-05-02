@@ -865,7 +865,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
 
   // Render placeholders while loading
   const renderPlaceholders = () => {
-    if (!hasInitialCount || imageCount === 0) return null;
+    // Always allow placeholder rendering (empty gallery message shows later)
     
     const placeholders = [];
     for (let i = 0; i < imageCount; i++) {
@@ -874,14 +874,9 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     return placeholders;
   };
 
-  // If there are no images and user is not admin, don't show anything
-  if (imageCount === 0 && !isAdmin && !isLoading && hasInitialCount) {
-    return null;
-  }
-
   return (
     <div 
-      className={`${styles.galleryContainer} ${hideTitle ? styles.noTitleSpacing : ''}`}
+      className={`${styles.galleryContainer} ${hideTitle ? styles.noTitleSpacing : ''}`} 
       itemScope
       itemType="http://schema.org/ImageGallery"
     >
@@ -899,9 +894,8 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       
       {/* Hide section completely if not loaded yet */}
       {!hasInitialCount ? null : (
-        <React.Fragment>
-          {!hideTitle && <hr className={styles.galleryHorizontalRule} />}
-          
+        <>
+          {!hideTitle && <hr className={styles.galleryHorizontalRule} />}            
           {/* Admin controls - only shown to admins */}
           {isAdmin && (
             <div className={styles.adminControls}>
@@ -922,7 +916,6 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
               <p>Loading gallery...</p>
             </div>
           ) : images.length === 0 ? (
-            // Empty gallery state
             <div className={styles.emptyGallery}>
               {hasInitialCount ? (
                 <>
@@ -934,17 +927,14 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
               )}
             </div>
           ) : (
-            // Gallery grid display
             <div 
               className={styles.galleryGrid}
               role="list"
               aria-label="Event gallery images"
             >
-              {/* Show placeholder grid during the initial loading */}
               {isLoading && hasInitialCount ? (
                 renderPlaceholders()
               ) : (
-                /* Show actual images when loaded */
                 images.map((image, index) => (
                   <GalleryThumbnail
                     key={image.id}
@@ -954,11 +944,11 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
                     isAdmin={isAdmin}
                   />
                 ))
-                  )}
-                </div>
+              )}
+            </div>
           )}
           
-          {/* Upload Modal - rendered as portal at the document body level */}
+          {/* Upload Modal */}
           <UploadModal
             isOpen={isModalOpen}
             onClose={closeModal}
@@ -973,7 +963,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
             isUploading={isUploading}
           />
           
-          {/* Slideshow Modal - rendered as portal at the document body level */}
+          {/* Slideshow Modal */}
           <SlideshowModal 
             isOpen={slideshowOpen}
             onClose={closeSlideshow}
@@ -982,10 +972,10 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
             onNext={showNextSlide}
             onPrevious={showPreviousSlide}
           />
-        </React.Fragment>
+        </>
       )}
     </div>
   );
 };
 
-export default React.memo(EventGallery); 
+export default React.memo(EventGallery);

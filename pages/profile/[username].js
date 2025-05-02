@@ -1,13 +1,11 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
-import toast from 'react-hot-toast';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import DynamicMeta from '../../components/DynamicMeta';
 import styles from '../../styles/Profile.module.css';
 import { createClient } from '../../utils/supabase/server-props';
 import ProfileDashboard from '../../components/profile/ProfileDashboard';
 import UploadButton from '../../components/profile/UploadButton';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 import UserClips from '../../components/profile/UserClips';
 import { FaVideo } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
@@ -188,7 +186,6 @@ const ProfilePage = ({ username, metaData }) => {
     
     const fetchUserData = async () => {
       try {
-        console.log(`Fetching data for user: ${username}`);
         // Fetch user data
         const { data: userData, error: userError } = await supabase
           .from('users')
@@ -248,7 +245,6 @@ const ProfilePage = ({ username, metaData }) => {
     // For Next.js, we'd typically use a meta data component
     // This is left as a placeholder as this would normally
     // be handled by Next.js head management
-    console.log('Updated meta data with user info');
   };
 
   // Fetch achievements 
@@ -340,8 +336,6 @@ const ProfilePage = ({ username, metaData }) => {
             });
           }
           
-          console.log('Team registration IDs:', teamRegistrationIds);
-          
           // Fetch partner information for team events
           let partners = [];
           if (teamRegistrationIds.length > 0) {
@@ -357,13 +351,33 @@ const ProfilePage = ({ username, metaData }) => {
                 console.error('Error fetching team partners:', partnerError);
               } else {
                 partners = teamPartners || [];
-                console.log('Found partners:', partners);
+              }
+              
+              // If we're viewing a team member's profile, also fetch and include team leaders (creators)
+              if (teamRegistrationIds.length > 0) {
+                // Get the registration owners (team leaders) for these registrations
+                const { data: registrationOwners } = await supabase
+                  .from('event_registrations')
+                  .select('id, user_id, username, event_id')
+                  .in('id', teamRegistrationIds)
+                  .neq('user_id', userId); // Exclude the current user
+                
+                if (registrationOwners && registrationOwners.length > 0) {
+                  // Format them as "partners" and add to the partners list
+                  registrationOwners.forEach(owner => {
+                    partners.push({
+                      registration_id: owner.id,
+                      user_id: owner.user_id,
+                      username: owner.username,
+                      event_id: owner.event_id,
+                      isTeamLeader: true
+                    });
+                  });
+                }
               }
               
               // If no partners found through direct query, try with a broader approach
               if (!partners || partners.length === 0) {
-                console.log('Using alternative partner lookup method for public profile');
-                
                 // Get all registrations for these events
                 const eventIds = eventsData.map(e => e.id);
                 
@@ -389,7 +403,6 @@ const ProfilePage = ({ username, metaData }) => {
                         teamRegistrationIds.includes(member.registration_id) && 
                         member.user_id !== userId
                     );
-                    console.log('Partners found with alternative method:', partners);
                   }
                 }
               }
@@ -430,13 +443,11 @@ const ProfilePage = ({ username, metaData }) => {
                 }
               }
             }
-            
-            console.log('Partners found with event-based method:', partners);
           }
           
           if (eventsData && eventsData.length > 0) {
             // Create achievement objects for each event
-            const achievements = eventsData.map(event => {
+            const rawAchievements = eventsData.map(event => {
               const eventDate = new Date(`${event.date}T${event.time || '00:00:00'}`).toISOString();
               const reg = allRegistrations.find(r => r.event_id === event.id);
               
@@ -460,50 +471,57 @@ const ProfilePage = ({ username, metaData }) => {
                 }
               }
               
+              const isWinnerPlaceholder = false; // placeholder until bracket API
               return {
                 eventId: event.id,
                 eventTitle: event.title,
                 game: event.game || 'Gaming Tournament',
-                eventDate: eventDate,
+                eventDate,
                 teamType: event.team_type,
                 status: event.status,
-                isWinner: false, // We'll skip winner checking for better performance
+                isWinner: isWinnerPlaceholder,
                 isTeamMember: reg?.isTeamMember || false,
                 partners: eventPartners || []
               };
             });
             
-            setUserAchievements(achievements);
+            // Wrap critical fetch logic in try-catch to ensure we display at least raw achievements on error
+            try {
+              // Enrich achievements by fetching bracket API to mark winners
+              const enrichedAchievements = await Promise.all(
+                rawAchievements.map(async ach => {
+                  try {
+                    const res = await fetch(`/api/events/${ach.eventId}/bracket`);
+                    if (!res.ok) return ach;
+                    const br = await res.json();
+                    const matches = br.bracket;
+                    const final = Array.isArray(matches) && matches.length > 0 ? matches[matches.length - 1] : null;
+                    const winnerId = final && final[0]?.winnerId;
+                    const regId = allRegistrations.find(r => r.event_id === ach.eventId)?.id;
+                    const isWinner = regId != null && winnerId != null && String(winnerId) === String(regId);
+                    return { ...ach, isWinner };
+                  } catch (error) {
+                    console.error(`Error fetching bracket for event ${ach.eventId}:`, error);
+                    return ach;
+                  }
+                })
+              );
+              
+              setUserAchievements(enrichedAchievements);
+            } catch (enrichError) {
+              console.error('Failed to enhance achievements with bracket data:', enrichError);
+              // Fallback to raw achievements without bracket winner data
+              setUserAchievements(rawAchievements);
+            }
           }
         }
       }
     } catch (error) {
       console.error('Error fetching achievements:', error);
+      setUserAchievements([]);
     } finally {
       setLoadingAchievements(false);
     }
-  };
-
-  const handleCopy = (text, type) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${type} copied to clipboard!`, {
-        position: 'top-right',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #FFD700',
-        },
-        iconTheme: {
-          primary: '#FFD700',
-          secondary: '#333',
-        },
-        duration: 2000,
-      });
-    }).catch(() => {
-      toast.error('Failed to copy text', {
-        position: 'top-right'
-      });
-    });
   };
 
   if (!mounted) {

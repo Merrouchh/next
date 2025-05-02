@@ -757,12 +757,14 @@ const Dashboard = ({ _initialClips, metaData }) => {
                   <p className={styles.noTimeMessage}>
                     Your account needs to be recharged to continue gaming.
                   </p>
-                  <button 
-                    className={sharedStyles.primaryButton}
-                    onClick={() => router.push('/shop')}
-                  >
-                    <span>Recharge Now</span>
-                  </button>
+                  <div className={styles.noTimeButtonWrapper}>
+                    <button 
+                      className={sharedStyles.primaryButton}
+                      onClick={() => router.push('/shop')}
+                    >
+                      Recharge Now
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

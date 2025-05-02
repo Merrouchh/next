@@ -116,7 +116,8 @@ async function getBracket(req, res, supabase, eventId) {
           id,
           user_id,
           username
-        )
+        ),
+        team_name
       `)
       .eq('event_id', eventId)
       .eq('status', 'registered');
@@ -134,7 +135,8 @@ async function getBracket(req, res, supabase, eventId) {
         return {
           id: reg.id.toString(),
           name: reg.username,
-          userId: reg.user_id
+          userId: reg.user_id,
+          team_name: reg.team_name || null
         };
       } else {
         // For duo or team, include team members
@@ -149,7 +151,8 @@ async function getBracket(req, res, supabase, eventId) {
             id: member.id.toString(),
             name: member.username,
             userId: member.user_id
-          }))
+          })),
+          team_name: reg.team_name || null
         };
       }
     });
@@ -161,7 +164,8 @@ async function getBracket(req, res, supabase, eventId) {
       bracket: bracketData.matches,
       participants,
       eventType: event.team_type,
-      isDuo: event.team_type === 'duo'  // Explicitly add an isDuo flag
+      isDuo: event.team_type === 'duo',  // Explicitly add an isDuo flag
+      created_at: bracketData.created_at
     });
   } catch (error) {
     console.error('Error in getBracket:', error);
@@ -214,21 +218,17 @@ async function generateBracket(req, res, supabase, eventId, user) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    // Get registrations for this event with both confirmed and registered statuses
+    // Fetch registrations for this event
     const { data: registrations, error: regError } = await supabase
       .from('event_registrations')
       .select(`
         id, 
-        username, 
         user_id, 
-        event_team_members (
-          id,
           username,
-          user_id
-        )
+        team_name
       `)
       .eq('event_id', eventId)
-      .in('status', ['confirmed', 'registered']);
+      .order('registration_date');
 
     if (regError) {
       console.error('Error fetching registrations:', regError);
@@ -254,7 +254,8 @@ async function generateBracket(req, res, supabase, eventId, user) {
       const testParticipants = testUsers.map(user => ({
         id: user.id.toString(),
         username: user.username,
-        user_id: user.id
+        user_id: user.id,
+        team_name: null
       }));
       
       // Use test participants instead of registrations
@@ -263,6 +264,17 @@ async function generateBracket(req, res, supabase, eventId, user) {
 
     // Shuffle participants for random seeding
     const shuffledParticipants = shuffleArray([...registrations]);
+    
+    // Format participants for consistent structure
+    const participants = shuffledParticipants.map(reg => {
+      // Support both normal registrations and test participants
+      return {
+        id: reg.id.toString(),
+        name: reg.username,
+        userId: reg.user_id || reg.id,
+        team_name: reg.team_name || null
+      };
+    });
     
     // Generate bracket structure based on registration_limit or actual participants
     const bracketSize = event.registration_limit || registrations.length;
@@ -284,12 +296,11 @@ async function generateBracket(req, res, supabase, eventId, user) {
     // Save bracket to database
     const { data: savedBracket, error: saveError } = await supabase
       .from('event_brackets')
-      .insert([
-        {
+      .insert({
           event_id: eventId,
-          matches: bracketData
-        }
-      ])
+        matches: bracketData,
+        created_at: new Date().toISOString()
+      })
       .select()
       .single();
 
@@ -297,34 +308,6 @@ async function generateBracket(req, res, supabase, eventId, user) {
       console.error('Error saving bracket:', saveError);
       return res.status(500).json({ error: 'Failed to save bracket' });
     }
-
-    // Format participants for response
-    const participants = registrations.map(reg => {
-      console.log(`Processing registration for ${reg.username}, team_type: ${event.team_type}`);
-      
-      if (event.team_type === 'solo') {
-        return {
-          id: reg.id.toString(),
-          name: reg.username,
-          userId: reg.user_id
-        };
-      } else {
-        // For duo or team, include team members
-        const teamMembers = reg.event_team_members || [];
-        console.log(`Found ${teamMembers.length} team members for ${reg.username}:`, teamMembers);
-        
-        return {
-          id: reg.id.toString(),
-          name: reg.username, // Team captain/name
-          userId: reg.user_id,
-          members: teamMembers.map(member => ({
-            id: member.id.toString(),
-            name: member.username,
-            userId: member.user_id
-          }))
-        };
-      }
-    });
 
     return res.status(201).json({
       bracket: bracketData,
@@ -447,7 +430,8 @@ async function updateBracket(req, res, supabase, eventId, user) {
           id,
           user_id,
           username
-        )
+        ),
+        team_name
       `)
       .eq('event_id', eventId)
       .in('status', ['confirmed', 'registered']);
@@ -466,7 +450,8 @@ async function updateBracket(req, res, supabase, eventId, user) {
         id: member.id.toString(),
         username: member.username,
         userId: member.user_id
-      }))
+      })),
+      team_name: reg.team_name || null
     })) : [];
 
     return res.status(200).json({ 

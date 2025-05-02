@@ -11,6 +11,7 @@ import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import EventGallery from '../../components/EventGallery';
 import React from 'react';
 import DynamicMeta from '../../components/DynamicMeta';
+import TournamentWinner from '../../components/shared/TournamentWinner';
 
 // Format date for display - moved to a utility function outside component
 const formatDate = (dateString) => {
@@ -345,6 +346,7 @@ export default function EventDetail({ metaData }) {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [registrationNotes, setRegistrationNotes] = useState('');
   const searchInputRef = useRef(null);
   const router = useRouter();
   const { id } = router.query;
@@ -356,6 +358,7 @@ export default function EventDetail({ metaData }) {
   const eventId = useRef(null);
   // Remove debug info display flag - set to false by default
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [teamName, setTeamName] = useState('');
 
   // Store event ID in ref to prevent re-renders
   if (event && event.id !== eventId.current) {
@@ -839,9 +842,72 @@ export default function EventDetail({ metaData }) {
   };
   
   // Confirm cancellation
-  const confirmCancellation = () => {
+  const confirmCancellation = async () => {
     closeCancelModal();
-    handleRegistration();
+    
+    setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      // Get the session for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        toast.error('Authentication token not available');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+      
+      // Cancel registration
+      const response = await fetch('/api/events/register', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ eventId: id })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Display specific error message from API if available
+        toast.error(data.message || 'Failed to cancel registration');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+      
+      toast.success(data.message || 'Registration cancelled successfully');
+      
+      // Immediately update local state
+      setRegistrationStatus(prev => ({
+        ...prev,
+        isRegistered: false,
+        registeredCount: Math.max(0, prev.registeredCount - 1),
+        teamMembers: []
+      }));
+      
+      // Refresh the data to ensure consistency
+      fetchLatestCount();
+      
+      // Force a complete refresh of the event data including registration status
+      if (accessToken) {
+        setTimeout(async () => {
+          try {
+            // This delayed refresh ensures we get the latest state from the server
+            await fetchRegistrationStatus(accessToken);
+            console.log("Forced refresh after unregistration completed");
+          } catch (error) {
+            console.error("Error in forced refresh:", error);
+          }
+        }, 1000); // Small delay to ensure server has time to process
+      }
+    } catch (error) {
+      console.error('Error canceling registration:', error);
+      toast.error(error.message || 'An error occurred');
+    } finally {
+      setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+    }
   };
   
   // Handle registration button click
@@ -881,10 +947,63 @@ export default function EventDetail({ metaData }) {
       return;
     }
     
+    // For team events, ensure team name is provided
+    if (teamType === 'team' && (!teamName || teamName.trim() === '')) {
+      toast.error('Please provide a name for your team');
+      return;
+    }
+    
     // Close the modal and proceed with registration
     closeTeamModal();
     handleRegistration();
   };
+  
+  // Handle team member selection
+  const handleTeamMemberSelection = (member) => {
+    // Check if member is already selected
+    const isSelected = selectedTeamMembers.some(m => m.userId === member.id);
+    
+    if (isSelected) {
+      // Remove member
+      setSelectedTeamMembers(prev => prev.filter(m => m.userId !== member.id));
+      
+      // For duo events, clear out the auto-generated team name if we removed the partner
+      if (teamType === 'duo' && teamName.includes(' & ')) {
+        setTeamName('');
+      }
+    } else {
+      // Add member
+      if (teamType === 'duo' && selectedTeamMembers.length >= 1) {
+        // For duo events, replace the existing selection
+        setSelectedTeamMembers([{ userId: member.id, username: member.username }]);
+        
+        // Auto-generate team name for duo events - "User1 & User2"
+        if (user) {
+          const userName = user.username || user.email?.split('@')[0] || 'You';
+          setTeamName(`${userName} & ${member.username}`);
+        }
+      } else if (teamType === 'duo' && selectedTeamMembers.length === 0) {
+        // For duo events, add the first partner and generate team name
+        setSelectedTeamMembers([{ userId: member.id, username: member.username }]);
+        
+        // Auto-generate team name for duo events - "User1 & User2"
+        if (user) {
+          const userName = user.username || user.email?.split('@')[0] || 'You';
+          setTeamName(`${userName} & ${member.username}`);
+        }
+      } else {
+        // For team events, add to the selection
+        setSelectedTeamMembers(prev => [...prev, { userId: member.id, username: member.username }]);
+      }
+    }
+  };
+  
+  // Reset team name whenever the modal is closed
+  useEffect(() => {
+    if (!isTeamModalOpen) {
+      setTeamName('');
+    }
+  }, [isTeamModalOpen]);
   
   // Handle registration
   const handleRegistration = async () => {
@@ -898,72 +1017,26 @@ export default function EventDetail({ metaData }) {
       const accessToken = sessionData?.session?.access_token;
       
       if (!accessToken) {
-        throw new Error('Authentication token not available');
+        toast.error('Authentication token not available');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        return;
       }
       
-      if (registrationStatus.isRegistered) {
-        // We only allow cancellation for upcoming events
-        // This check is redundant now since the button isn't shown, but we'll keep it as a safety measure
-        if (event && event.status !== 'Upcoming') {
-          toast.error('Cannot cancel registration once the event has started');
+      // For duo or team events, validate team selection and team name
+      if ((teamType === 'duo' || teamType === 'team') && (!selectedTeamMembers || selectedTeamMembers.length === 0)) {
+        toast.error(`Please select at least one team member for this ${teamType} event`);
           setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
           return;
         }
         
-        // Cancel registration
-        const response = await fetch('/api/events/register', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({ eventId: id })
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          // Display specific error message from API if available
-          throw new Error(data.message || 'Failed to cancel registration');
-        }
-        
-        toast.success(data.message || 'Registration cancelled successfully');
-        
-        // Immediately update local state
-        setRegistrationStatus(prev => ({
-          ...prev,
-          isRegistered: false,
-          registeredCount: Math.max(0, prev.registeredCount - 1),
-          teamMembers: []
-        }));
-        
-        // Refresh the data to ensure consistency
-        fetchLatestCount();
-        
-        // Force a complete refresh of the event data including registration status
-        if (accessToken) {
-          setTimeout(async () => {
-            try {
-              // This delayed refresh ensures we get the latest state from the server
-              await fetchRegistrationStatus(accessToken);
-              console.log("Forced refresh after unregistration completed");
-            } catch (error) {
-              console.error("Error in forced refresh:", error);
-            }
-          }, 1000); // Small delay to ensure server has time to process
-        }
-        
-        setSelectedTeamMembers([]);
-      } else {
-        // Check if registration is full before registering
-        if (registrationStatus.registrationLimit !== null && 
-            registrationStatus.registeredCount >= registrationStatus.registrationLimit) {
-          toast.error('This event has reached its registration limit.');
+      // Validate team name for team events only (duo teams can have optional names)
+      if (teamType === 'team' && (!teamName || teamName.trim() === '')) {
+        toast.error('Please provide a name for your team');
           setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
           return;
         }
         
-        // Register for event
+      // Prepare API call
         const response = await fetch('/api/events/register', {
           method: 'POST',
           headers: {
@@ -972,62 +1045,40 @@ export default function EventDetail({ metaData }) {
           },
           body: JSON.stringify({ 
             eventId: id,
-            teamMembers: selectedTeamMembers
+          teamMembers: selectedTeamMembers,
+          notes: registrationNotes,
+          teamName: teamName.trim() || (teamType === 'duo' && selectedTeamMembers.length === 1 ? 
+            `${user.username || 'You'} & ${selectedTeamMembers[0].username}` : '') // Auto-generate team name for duo events if not provided
           })
         });
         
-        // Parse response data first to get any error messages
         const data = await response.json();
         
-        // Check if response was successful
         if (!response.ok) {
-          // Extract the specific error message, especially for team member errors
-          if (data.message && data.message.includes('team members are already registered')) {
-            // Make the error message more user-friendly
-            toast.error(data.message, { duration: 5000 });
-          } else if (data.message && data.message.includes('currently involved in another registration process')) {
-            // Show a more helpful message for concurrency issues
-            toast.error('This user is currently being registered by someone else. Please try again in a few moments.', 
-              { duration: 5000 });
-          } else {
-            // Generic error
-            toast.error(data.message || 'Failed to register for event');
-          }
+        // Display error as toast instead of throwing an error
+        toast.error(data.message || 'Registration failed');
           setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
           return;
         }
         
         // Success!
         toast.success(data.message || 'Registered for event successfully');
+      
+      // Reset form fields
+      setSelectedTeamMembers([]);
+      setRegistrationNotes('');
+      setTeamName('');
+      
+      // Close the modal
+      closeTeamModal();
         
         // Refresh registration status to get team members
         await fetchRegistrationStatus(accessToken);
-      }
     } catch (error) {
       console.error('Error handling registration:', error);
       toast.error(error.message || 'An error occurred');
     } finally {
       setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-  
-  // Handle team member selection
-  const handleTeamMemberSelection = (member) => {
-    // Check if member is already selected
-    const isSelected = selectedTeamMembers.some(m => m.userId === member.id);
-    
-    if (isSelected) {
-      // Remove member
-      setSelectedTeamMembers(prev => prev.filter(m => m.userId !== member.id));
-    } else {
-      // Add member
-      if (teamType === 'duo' && selectedTeamMembers.length >= 1) {
-        // For duo events, replace the existing selection
-        setSelectedTeamMembers([{ userId: member.id, username: member.username }]);
-      } else {
-        // For team events, add to the selection
-        setSelectedTeamMembers(prev => [...prev, { userId: member.id, username: member.username }]);
-      }
     }
   };
   
@@ -1375,25 +1426,11 @@ export default function EventDetail({ metaData }) {
                           
                           return winner && (
                             <div className={styles.championsContainer}>
-                              <div className={styles.bracketWinner}>
-                                <FaTrophy className={styles.trophyIcon} />
-                                {event.team_type === 'duo' ? (
-                                  <span>
-                                    Champions: {winner.name}
-                                    {winner.members && winner.members.length > 0 && (
-                                      <span className={styles.winnerPartner}> & {winner.members[0]?.name}</span>
-                                    )}
-                                  </span>
-                                ) : (
-                                  <span>Champion: {winner.name}</span>
-                                )}
-                              </div>
-                              <Link 
-                                href={`/events/${id}/bracket`} 
-                                className={styles.tournamentBracketButton}
-                              >
-                                <FaSitemap className={styles.bracketIcon} /> View Tournament Bracket
-                              </Link>
+                              <TournamentWinner 
+                                winner={winner} 
+                                teamType={event.team_type} 
+                                eventId={id} 
+                              />
                             </div>
                           );
                         })()}
@@ -1582,10 +1619,125 @@ export default function EventDetail({ metaData }) {
         
         {/* Team selection modal - no change needed here */}
         {isTeamModalOpen && (
-          <div className={styles.modalBackdrop} onClick={closeTeamModal}>
-            <div className={styles.teamModal} onClick={e => e.stopPropagation()}>
-              <h3 className={styles.modalTitle}>Select Team Members</h3>
-              {/* ... rest of modal content ... */}
+          <div className={styles.modalOverlay}>
+            <div className={styles.modal}>
+              <div className={styles.modalHeader}>
+                <h3>{teamType === 'duo' ? 'Select Your Partner' : 'Select Your Team'}</h3>
+                <button className={styles.closeButton} onClick={closeTeamModal}>
+                  ×
+                </button>
+            </div>
+              <div className={styles.modalBody}>
+                {/* Search input - existing code */}
+                <div className={styles.searchContainer}>
+                  <input
+                    type="text"
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search for teammates..."
+                    className={styles.searchInput}
+                  />
+                </div>
+                
+                {/* Team members list - existing code */}
+                {filteredTeamMembers.length === 0 ? (
+                  <div className={styles.noResults}>No teammates found</div>
+                ) : (
+                  <div className={styles.teamMembersList}>
+                    {filteredTeamMembers.map(member => (
+                      <div 
+                        key={member.id}
+                        className={`${styles.teamMember} ${
+                          selectedTeamMembers.some(m => m.userId === member.id) 
+                            ? styles.selected 
+                            : ''
+                        }`}
+                        onClick={() => handleTeamMemberSelection(member)}
+                      >
+                        <div className={styles.memberAvatar}>
+                          {member.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className={styles.memberName}>{member.username}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Modal actions - existing code */}
+              <div className={styles.modalActions}>
+                {/* Display the selected team members */}
+                {selectedTeamMembers.length > 0 && (
+                  <div className={styles.selectedMembers}>
+                    <h4>Selected {teamType === 'duo' ? 'Partner' : 'Team Members'}</h4>
+                    <div className={styles.selectedList}>
+                      {selectedTeamMembers.map(member => (
+                        <div key={member.userId} className={styles.selectedMember}>
+                          <span>{member.username}</span>
+                          <button 
+                            className={styles.removeMember}
+                            onClick={() => handleTeamMemberSelection({ id: member.userId, username: member.username })}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Team Name Input - moved to appear after team members are selected */}
+                {selectedTeamMembers.length > 0 && (
+                  <div className={styles.teamNameInput}>
+                    <label htmlFor="teamName">
+                      Team Name{teamType === 'duo' ? ' (Optional)' : ''}:
+                    </label>
+                    <input
+                      type="text"
+                      id="teamName"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      placeholder={teamType === 'duo' ? 
+                        "Enter team name (or use auto-generated)" : 
+                        "Enter your team name"}
+                      maxLength={30}
+                      required={teamType === 'team'}
+                    />
+                    <small>
+                      {teamType === 'duo' ? 
+                        "Optional: We'll auto-generate a name from both usernames if left empty" : 
+                        "This name will appear in the tournament bracket"}
+                    </small>
+                  </div>
+                )}
+                
+                {/* Notes input - existing code */}
+                <div className={styles.notesContainer}>
+                  <label htmlFor="registrationNotes">Notes (optional):</label>
+                  <textarea
+                    id="registrationNotes"
+                    value={registrationNotes}
+                    onChange={(e) => setRegistrationNotes(e.target.value)}
+                    placeholder="Any additional information..."
+                    className={styles.notesInput}
+                    maxLength={500}
+                  />
+                </div>
+                
+                <button 
+                  className={styles.registerButton}
+                  onClick={completeRegistration}
+                  disabled={
+                    registrationStatus.isLoading || 
+                    (teamType === 'duo' && selectedTeamMembers.length === 0) ||
+                    (teamType === 'team' && selectedTeamMembers.length === 0) ||
+                    (teamType === 'team' && !teamName.trim())
+                  }
+                >
+                  Complete Registration
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1593,9 +1745,37 @@ export default function EventDetail({ metaData }) {
         {/* Cancellation confirmation modal */}
         {isCancelModalOpen && (
           <div className={styles.modalBackdrop} onClick={closeCancelModal}>
-            <div className={styles.confirmModal} onClick={e => e.stopPropagation()}>
-              <h3 className={styles.modalTitle}>Cancel Registration?</h3>
-              {/* ... rest of modal content ... */}
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>Cancel Registration?</h3>
+                <button className={styles.closeButton} onClick={closeCancelModal}>
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <div className={styles.cancelWarning}>
+                  <p>Are you sure you want to cancel your registration for this event?</p>
+                  {teamType !== 'solo' && registrationStatus.teamMembers.length > 0 && (
+                    <div className={styles.teamWarning}>
+                      <p><strong>Warning:</strong> This will remove your entire team from the event.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={closeCancelModal}
+                >
+                  No, Keep Registration
+                </button>
+                <button 
+                  className={styles.deleteButton}
+                  onClick={confirmCancellation}
+                >
+                  Yes, Cancel Registration
+                </button>
+              </div>
             </div>
           </div>
         )}

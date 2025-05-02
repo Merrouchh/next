@@ -66,7 +66,8 @@ export const validateUserCredentials = async (username, password) => {
 
     if (!response.ok) {
       console.error('HTTP status:', response.status);
-      throw new Error(`HTTP status ${response.status}`);
+      // Swallow HTTP errors by returning invalid response
+      return { isValid: false };
     }
 
     const data = await response.json();

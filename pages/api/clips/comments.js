@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '../../../utils/supabase/server-props';
+import { createClient } from '../../../utils/supabase/server-props';
 
 /**
  * API route for handling video clip comments
@@ -10,7 +10,7 @@ import { createServerSupabaseClient } from '../../../utils/supabase/server-props
  */
 export default async function handler(req, res) {
   // Create Supabase client with admin privileges
-  const supabase = createServerSupabaseClient({ req, res });
+  const supabase = createClient({ req, res });
 
   // Get user session for authentication
   const {

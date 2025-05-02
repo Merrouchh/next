@@ -124,9 +124,9 @@ async function getPublicRegistrationStatus(req, res, supabase, eventId) {
 
 // Register for an event
 async function registerForEvent(req, res, supabase, user) {
-  const { eventId, notes, teamMembers } = req.body;
+  const { eventId, notes, teamMembers, teamName } = req.body;
   
-  console.log("Register for event called:", { eventId, teamMembers });
+  console.log("Register for event called:", { eventId, teamMembers, teamName });
   
   if (!eventId) {
     return res.status(400).json({ message: 'Event ID is required' });
@@ -166,6 +166,9 @@ async function registerForEvent(req, res, supabase, user) {
     }
     
     console.log(`Event data:`, eventData);
+    
+    // Ensure team_type is consistently formatted
+    const teamType = eventData.team_type ? eventData.team_type.trim().toLowerCase() : 'solo';
     
     // Check if phone verification is required for this event
     // Since the column might not exist yet, default to false to avoid blocking registrations
@@ -219,17 +222,33 @@ async function registerForEvent(req, res, supabase, user) {
       return res.status(400).json({ message: 'You are already registered for this event' });
     }
     
+    // Validate team name for team events
+    if (teamType !== 'solo') {
+      if (!teamName || teamName.trim() === '') {
+        return res.status(400).json({ 
+          message: `This is a ${teamType} event. You must provide a team name.` 
+        });
+      }
+      
+      // Validate team name length
+      if (teamName.trim().length > 30) {
+        return res.status(400).json({ 
+          message: 'Team name must be 30 characters or less.' 
+        });
+      }
+    }
+    
     // Validate team members if this is a team event
-    if (eventData.team_type !== 'solo') {
+    if (teamType !== 'solo') {
       // Check if team members are provided for duo/team events
       if (!teamMembers || !Array.isArray(teamMembers) || teamMembers.length === 0) {
         return res.status(400).json({ 
-          message: `This is a ${eventData.team_type} event. You must select team members.` 
+          message: `This is a ${teamType} event. You must select team members.` 
         });
       }
       
       // For duo events, exactly one team member is required
-      if (eventData.team_type === 'duo' && teamMembers.length !== 1) {
+      if (teamType === 'duo' && teamMembers.length !== 1) {
         return res.status(400).json({ 
           message: 'For duo events, you must select exactly one team member.' 
         });
@@ -299,7 +318,7 @@ async function registerForEvent(req, res, supabase, user) {
         
         // For duo events, check if the partner is trying to register the current user
         // This prevents the race condition where both users try to register each other
-        if (eventData.team_type === 'duo') {
+        if (teamType === 'duo') {
           const partnerId = teamMembers[0].userId;
           
           // Check for pending registrations involving this partner
@@ -342,7 +361,7 @@ async function registerForEvent(req, res, supabase, user) {
           }
         }
         
-        // Register user for the event
+        // Register user for the event with team name
         const { data: registration, error: regError } = await supabase
           .from('event_registrations')
           .insert([
@@ -350,7 +369,8 @@ async function registerForEvent(req, res, supabase, user) {
               event_id: eventId,
               user_id: userId,
               username: username,
-              notes: notes || null
+              notes: notes || null,
+              team_name: teamType !== 'solo' ? teamName.trim() : null
             }
           ])
           .select()
@@ -366,7 +386,7 @@ async function registerForEvent(req, res, supabase, user) {
         }
         
         // Add team members if this is a team event
-        if (eventData.team_type !== 'solo' && teamMembers && teamMembers.length > 0) {
+        if (teamType !== 'solo' && teamMembers && teamMembers.length > 0) {
           console.log(`Adding ${teamMembers.length} team members for event ${eventId}`);
           console.log(`Team members:`, teamMembers);
           
@@ -400,7 +420,7 @@ async function registerForEvent(req, res, supabase, user) {
           }
           
           // For duo events, add partner info to notes instead of creating a separate registration
-          if (eventData.team_type === 'duo') {
+          if (teamType === 'duo') {
             const partner = teamMembers[0];
             
             // Check if the partner is already registered (double-check)
@@ -457,7 +477,7 @@ async function registerForEvent(req, res, supabase, user) {
         }
         
         // Clean up any registration locks
-        if (eventData.team_type === 'duo') {
+        if (teamType === 'duo') {
           try {
             await supabase
               .from('event_registration_locks')
@@ -710,14 +730,14 @@ async function getRegistrationStatus(req, res, supabase, user) {
     console.log(`Event team type: ${eventData.team_type}`);
     
     // Check if user is registered for this event
-    const { data: registration, error: regError } = await supabase
+    const { data: registrationData, error: registrationError } = await supabase
       .from('event_registrations')
-      .select('id, notes')
+      .select('id, user_id, registration_date, username, notes, team_name')
       .eq('event_id', eventId)
       .eq('user_id', userId)
       .single();
     
-    let isRegistered = !!registration;
+    let isRegistered = !!registrationData;
     console.log(`User is registered: ${isRegistered}`);
     
     // Get team members if this is a team event and the user is registered
@@ -734,7 +754,7 @@ async function getRegistrationStatus(req, res, supabase, user) {
         const { data: members, error: membersError } = await supabase
           .from('event_team_members')
           .select('user_id, username')
-          .eq('registration_id', registration?.id);
+          .eq('registration_id', registrationData?.id);
         
         if (!membersError && members) {
           teamMembers = members;
@@ -743,15 +763,15 @@ async function getRegistrationStatus(req, res, supabase, user) {
         }
         
         // Check if this user was registered by someone else (for duo events)
-        if (eventData.team_type === 'duo' && registration?.notes) {
-          console.log(`Registration notes for user ${userId}: "${registration.notes}"`);
+        if (eventData.team_type === 'duo' && registrationData?.notes) {
+          console.log(`Registration notes for user ${userId}: "${registrationData.notes}"`);
           
-          if (registration.notes.startsWith('Auto-registered as partner of ')) {
-            registeredBy = registration.notes.replace('Auto-registered as partner of ', '');
+          if (registrationData.notes.startsWith('Auto-registered as partner of ')) {
+            registeredBy = registrationData.notes.replace('Auto-registered as partner of ', '');
             console.log(`User ${userId} was registered by ${registeredBy} for event ${eventId}`);
           }
           // Check for the new format of duo partner notes
-          else if (registration.notes.includes('Duo partner:')) {
+          else if (registrationData.notes.includes('Duo partner:')) {
             // This user is the main registrant, so no registeredBy needed
             console.log(`User ${userId} is the main registrant with duo partner note`);
           }
@@ -868,11 +888,11 @@ async function getRegistrationStatus(req, res, supabase, user) {
     
     return res.status(200).json({
       isRegistered,
-      registration: registration || null,
-      event: eventData,
+      registeredBy,
       teamMembers,
       availableTeamMembers,
-      registeredBy
+      event: eventData,
+      teamName: registrationData?.team_name || null
     });
   } catch (error) {
     console.error('Error getting registration status:', error);

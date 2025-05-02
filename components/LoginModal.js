@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const { login, userExists, createUser } = useAuth();
-  const [step, setStep] = useState('INITIAL'); // INITIAL -> VALIDATE -> CREATE -> LOGIN
+  const [step, setStep] = useState('LOGIN'); // Always start with the login form
   const [formData, setFormData] = useState({
     username: '',
     gizmoPassword: '',
@@ -37,7 +37,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     });
     setValidatedGizmoData(null);
     setError('');
-    setStep('INITIAL');
+    setStep('LOGIN');
     setIsLoading(false);
   };
 
@@ -52,20 +52,39 @@ const LoginModal = ({ isOpen, onClose }) => {
     setError('');
     
     // Reset specific fields based on step
-    if (newStep === 'INITIAL') {
-      resetModal();
-    } else if (newStep === 'LOGIN') {
+    if (newStep === 'LOGIN') {
       setFormData(prev => ({
         ...prev,
+        username: '',
         password: '',
-        email: ''
+        email: '',
+        confirmPassword: ''
       }));
+      // Reset validations
+      setValidation({
+        email: { isValid: false, message: '' },
+        password: { isValid: false, message: '' },
+        confirmPassword: { isValid: false, message: '' }
+      });
     } else if (newStep === 'VALIDATE') {
       setFormData(prev => ({
         ...prev,
+        username: '',
         gizmoPassword: ''
       }));
       setValidatedGizmoData(null);
+    } else if (newStep === 'CREATE') {
+      setFormData(prev => ({
+        ...prev,
+        email: '',
+        password: '',
+        confirmPassword: ''
+      }));
+      setValidation({
+        email: { isValid: false, message: '' },
+        password: { isValid: false, message: '' },
+        confirmPassword: { isValid: false, message: '' }
+      });
     }
     
     setStep(newStep);
@@ -80,7 +99,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       </p>
       <div className={styles.buttonGroup}>
         <button 
-          onClick={() => setStep('LOGIN')}
+          onClick={() => handleStepChange('LOGIN')}
           className={`${styles.actionButton} ${styles.loginButton}`}
         >
           <AiOutlineUser className={styles.buttonIcon} />
@@ -90,7 +109,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           <span>or</span>
         </div>
         <button 
-          onClick={() => setStep('VALIDATE')}
+          onClick={() => handleStepChange('VALIDATE')}
           className={`${styles.actionButton} ${styles.createButton}`}
         >
           <AiOutlineUser className={styles.buttonIcon} />
@@ -164,10 +183,11 @@ const LoginModal = ({ isOpen, onClose }) => {
         </button>
         <button 
           type="button" 
-          className={styles.backButton}
-          onClick={() => handleStepChange('INITIAL')}
+          className={`${styles.actionButton} ${styles.createButton}`}
+          onClick={() => handleStepChange('VALIDATE')}
         >
-          Back
+          <AiOutlineUser className={styles.buttonIcon} />
+          Link Merrouch Account
         </button>
       </form>
     </div>
@@ -183,10 +203,17 @@ const LoginModal = ({ isOpen, onClose }) => {
       // Trim the username before validation
       const trimmedUsername = formData.username.trim().toLowerCase();
       
-      const response = await validateUserCredentials(
-        trimmedUsername, 
-        formData.gizmoPassword
-      );
+      let response;
+      try {
+        response = await validateUserCredentials(
+          trimmedUsername, 
+          formData.gizmoPassword
+        );
+      } catch (vErr) {
+        console.error('validateUserCredentials threw:', vErr);
+        setError('Error validating credentials. Please try again.');
+        return;
+      }
 
       console.log('Validation response:', response);
 
@@ -212,7 +239,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               This gaming account is already linked to an existing account.
               <button onClick={() => {
                 setError('');
-                setStep('LOGIN');
+                handleStepChange('LOGIN');
               }}>
                 Go to Login
               </button>
@@ -233,7 +260,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           username: trimmedUsername
         });
         
-        setStep('CREATE');
+        handleStepChange('CREATE');
       } else {
         setError('Invalid gaming account credentials');
       }
@@ -257,7 +284,7 @@ const LoginModal = ({ isOpen, onClose }) => {
             placeholder="Merrouch Username"
             value={formData.username}
             onChange={(e) => setFormData({...formData, username: e.target.value.toLowerCase()})}
-            pattern="[a-z0-9._%+-]+"
+            pattern="[a-z0-9._%+\-]+"
             title="Username must be lowercase letters, numbers, or special characters (._%+-)"
           />
         </div>
@@ -283,9 +310,9 @@ const LoginModal = ({ isOpen, onClose }) => {
         <button 
           type="button" 
           className={styles.backButton}
-          onClick={() => handleStepChange('INITIAL')}
+          onClick={() => handleStepChange('LOGIN')}
         >
-          Back
+          Back to Login
         </button>
       </form>
     </div>
@@ -303,16 +330,21 @@ const LoginModal = ({ isOpen, onClose }) => {
       return { isValid: false, message: 'Please enter a valid email address' };
     }
 
-    // Check if email exists in database
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('users')
-      .select('email')
-      .eq('email', email.toLowerCase())
-      .single();
-
-    if (data) {
-      return { isValid: false, message: 'Email already exists' };
+    try {
+      const supabase = createClient();
+      const { data, error: queryError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .single();
+      if (queryError) throw queryError;
+      if (data) {
+        return { isValid: false, message: 'Email already exists' };
+      }
+    } catch (err) {
+      console.error('validateEmail error (treated as available):', err);
+      // On error, assume email is available to avoid blocking user
+      return { isValid: true, message: '' };
     }
 
     return { isValid: true, message: 'Email is available' };
@@ -322,9 +354,18 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleEmailChange = async (e) => {
     const email = e.target.value;
     setFormData(prev => ({ ...prev, email }));
-    // Run validation against the trimmed email
-    const emailValidation = await validateEmail(email.trim());
-    setValidation(prev => ({ ...prev, email: emailValidation }));
+    // Run validation against the trimmed email with error handling
+    try {
+      const emailValidation = await validateEmail(email.trim());
+      setValidation(prev => ({ ...prev, email: emailValidation }));
+    } catch (err) {
+      console.error('handleEmailChange caught unexpected error:', err);
+      // Do not block user on unexpected errors
+      setValidation(prev => ({
+        ...prev,
+        email: { isValid: true, message: '' }
+      }));
+    }
   };
 
   // Add password validation
@@ -414,7 +455,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       });
 
       if (success) {
-        setStep('SUCCESS');
+        handleStepChange('SUCCESS');
         setTimeout(() => {
           handleClose();
         }, 2000);
@@ -510,7 +551,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         <button 
           type="button" 
           className={styles.backButton}
-          onClick={() => setStep('VALIDATE')}
+          onClick={() => handleStepChange('VALIDATE')}
         >
           Back
         </button>
@@ -520,23 +561,6 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   // Success step
   const renderSuccessStep = () => {
-    // Show success toast notification
-    React.useEffect(() => {
-      toast.success('Account created successfully!', {
-        position: 'top-right',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #FFD700',
-        },
-        iconTheme: {
-          primary: '#FFD700',
-          secondary: '#333',
-        },
-        duration: 5000
-      });
-    }, []);
-    
     return (
       <div className={styles.stepContainer}>
         <div className={styles.successIconContainer}>
@@ -558,8 +582,6 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   const renderStep = () => {
     switch (step) {
-      case 'INITIAL':
-        return renderInitialStep();
       case 'LOGIN':
         return renderLoginStep();
       case 'VALIDATE':
@@ -569,9 +591,28 @@ const LoginModal = ({ isOpen, onClose }) => {
       case 'SUCCESS':
         return renderSuccessStep();
       default:
-        return null;
+        return renderLoginStep();
     }
   };
+
+  // Add effect: show toast when entering SUCCESS
+  React.useEffect(() => {
+    if (step === 'SUCCESS') {
+      toast.success('Account created successfully!', {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+        duration: 5000
+      });
+    }
+  }, [step]);
 
   if (!isOpen) return null;
 
