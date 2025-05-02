@@ -141,7 +141,7 @@
 /* Fullscreen mode */
 .fullscreen {
   background-color: #111;
-  padding: 0;
+  padding: 20px;
   height: 100vh;
   width: 100vw;
   display: flex;
@@ -155,13 +155,23 @@
 }
 
 .fullscreen .bracketScrollContainer {
-  height: 100vh;
-  max-height: 100vh;
+  height: calc(100vh - 120px); /* Leave room for control bar */
+  max-height: calc(100vh - 120px);
   overflow: auto;
   border: none;
   box-shadow: none;
-  padding: 50px;
   border-radius: 0;
+}
+
+.fullscreen .bracketControlBar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  min-width: 320px;
+  margin-top: 0;
+  z-index: 10000;
 }
 
 /* Hide UI elements in fullscreen mode */
@@ -239,9 +249,14 @@
   font-family: 'Orbitron', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
-  position: absolute;
-  top: -40px;
+  position: relative;
+  top: 0;
   width: 100%;
+  padding: 5px 0;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  z-index: 2;
 }
 
 .matches {
@@ -249,7 +264,7 @@
   flex-direction: column;
   position: relative;
   align-items: center; /* Center matches horizontally within round */
-  margin-top: 40px; /* Add space for the header */
+  margin-top: 10px; /* Reduce margin-top since header is now in normal flow */
 }
 
 .match {
@@ -809,11 +824,25 @@
   letter-spacing: 0.5px;
 }
 
-/* Zoom controls */
-.zoomControls {
-  position: fixed;
-  left: 20px;
+/* Controls container to keep controls fixed within the bracket container */
+.controlsContainer {
+  position: absolute;
   bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.controlsContainer > * {
+  pointer-events: auto; /* Re-enable pointer events for children */
+}
+
+/* Update zoom controls for new container */
+.zoomControls {
+  position: static; /* Reset position to work with container */
+  margin: 0 20px; /* Add margin instead of absolute positioning */
   display: flex;
   gap: 10px;
   z-index: 100;
@@ -880,11 +909,14 @@
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
+  .controlsContainer {
+    bottom: 10px;
+  }
+  
   .zoomControls {
     padding: 5px;
-    bottom: 10px;
-    right: 10px;
     gap: 5px;
+    margin: 0 10px;
   }
   
   .zoomButton {
@@ -1302,4 +1334,112 @@
   /* Adjusted to allow wider display */
   width: 100%;
   max-width: 600px;
+}
+
+/* Mobile controls styling inside the bracket container */
+.mobileControlsInside {
+  margin-left: auto; /* Push to right side */
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  border-radius: 30px;
+  padding: 5px 10px;
+  z-index: 100;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Bracket Control Bar - Fixed at the bottom */
+.bracketControlBar {
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px 0;
+  background-color: rgba(25, 25, 30, 0.85);
+  border-radius: 8px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Desktop controls layout */
+.desktopControls {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 500px;
+  padding: 0 20px;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile controls layout */
+.mobileControls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  padding: 0 15px;
+}
+
+/* Control buttons styling */
+.controlButton {
+  background-color: rgba(35, 35, 40, 0.9);
+  color: #e0e0e0;
+  border: 1px solid #444;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.controlButton:hover {
+  background-color: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  transform: translateY(-2px);
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.controlButton:active {
+  transform: translateY(0);
+  background-color: rgba(255, 215, 0, 0.3);
+}
+
+/* Zoom level display */
+.zoomLevel {
+  color: #FFD700;
+  font-size: 1rem;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .bracketControlBar {
+    padding: 8px 0;
+  }
+  
+  .controlButton {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .mobileControls {
+    gap: 10px;
+  }
 }
