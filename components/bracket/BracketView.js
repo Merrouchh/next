@@ -26,6 +26,7 @@ const BracketView = ({
   const bracketWrapperRef = useRef(null);
   const isDuoEvent = eventType === 'duo';
   const [disableMatchInteraction, setDisableMatchInteraction] = useState(true);
+  const [pinchDistance, setPinchDistance] = useState(null);
 
   // Enhance the effect that detects touch devices
   useEffect(() => {
@@ -69,7 +70,15 @@ const BracketView = ({
     }
   };
 
-  // Enhance the toggleFullscreen function with better mobile support
+  // Function to calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) + 
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+    );
+  };
+
+  // Updated toggleFullscreen function with better mobile support
   const toggleFullscreen = () => {
     try {
       const container = document.querySelector(`.${styles.bracketContainer}`);
@@ -82,6 +91,8 @@ const BracketView = ({
         document.mozFullScreenElement ||
         document.msFullscreenElement
       );
+
+      console.log("Toggle fullscreen called. Current state:", isCurrentlyFullscreen);
 
       if (!isCurrentlyFullscreen) {
         // Try to enter fullscreen
@@ -123,6 +134,7 @@ const BracketView = ({
 
   // Update the fullscreen change event listener
   useEffect(() => {
+    // Handle fullscreen change
     const handleFullscreenChange = () => {
       const isInFullscreen = !!(
         document.fullscreenElement ||
@@ -135,11 +147,33 @@ const BracketView = ({
       console.log("Fullscreen state changed:", isInFullscreen);
     };
 
+    // Add a listener for visibility change to handle mobile browsers' inconsistent fullscreen behavior
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isTouchDevice) {
+        // When we come back to the app, check actual fullscreen state and sync it
+        setTimeout(() => {
+          const isInFullscreen = !!(
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement
+          );
+          
+          // If our state doesn't match reality, update it
+          if (isInFullscreen !== isFullscreen) {
+            console.log("Syncing fullscreen state on visibility change:", isInFullscreen);
+            setIsFullscreen(isInFullscreen);
+          }
+        }, 300);
+      }
+    };
+
     // Add event listeners for all browser variants
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       // Clean up event listeners
@@ -147,8 +181,9 @@ const BracketView = ({
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [isFullscreen, isTouchDevice]);
 
   // Mouse and touch event handlers for dragging
   const handleDragStart = (e) => {
@@ -156,6 +191,18 @@ const BracketView = ({
     if (e.target.closest(`.${styles.match}`) || 
         e.target.closest('button') ||
         e.target.tagName === 'A') {
+      return;
+    }
+
+    // Check if it's a pinch gesture (multiple touches)
+    if (e.touches && e.touches.length === 2) {
+      // It's a pinch gesture, so we'll handle zooming instead of dragging
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Store the initial distance between the two touch points
+      const initialDistance = getDistance(e.touches[0], e.touches[1]);
+      setPinchDistance(initialDistance);
       return;
     }
 
@@ -189,6 +236,51 @@ const BracketView = ({
   };
 
   const handleDragMove = (e) => {
+    // Handle pinch gesture for zooming
+    if (e.touches && e.touches.length === 2 && pinchDistance !== null) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Calculate the current distance between touch points
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      
+      // Calculate zoom factor
+      const zoomFactor = currentDistance / pinchDistance;
+      
+      // Calculate new zoom level based on the zoom factor
+      // Adjust the multiplier (0.5) to control sensitivity
+      const newZoomLevel = Math.min(Math.max(zoomLevel * zoomFactor * 0.5, 50), 200);
+      
+      // Get the midpoint between the two touches
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      
+      // Get the position of the scroll container
+      const rect = bracketScrollRef.current.getBoundingClientRect();
+      
+      // Calculate the position within the content
+      const posX = (midX - rect.left) + bracketScrollRef.current.scrollLeft;
+      const posY = (midY - rect.top) + bracketScrollRef.current.scrollTop;
+      
+      // Update the zoom level
+      setZoomLevel(newZoomLevel);
+      setHasInteracted(true);
+      
+      // Update the pinch distance for the next move event
+      setPinchDistance(currentDistance);
+      
+      // Adjust scroll to keep the pinch center stable
+      if (bracketScrollRef.current) {
+        const scaleFactor = newZoomLevel / zoomLevel;
+        setTimeout(() => {
+          bracketScrollRef.current.scrollLeft = posX * scaleFactor - (midX - rect.left);
+          bracketScrollRef.current.scrollTop = posY * scaleFactor - (midY - rect.top);
+        }, 10);
+      }
+      
+      return;
+    }
+    
     if (!isDragging) return;
     
     // Prevent default to stop text selection and other browser behaviors
@@ -210,7 +302,9 @@ const BracketView = ({
     }
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e) => {
+    // Reset pinch distance
+    setPinchDistance(null);
     setIsDragging(false);
     
     // Reset cursor and class
@@ -268,7 +362,7 @@ const BracketView = ({
         bracketWrapperRef.current.classList.remove('dragging');
       }
     };
-  }, [isDragging, startPos, scrollPos]);
+  }, [isDragging, startPos, scrollPos, pinchDistance, zoomLevel]);
 
   // Update connector lines when bracket data changes or window resizes or zoom changes
   useEffect(() => {
@@ -347,91 +441,6 @@ const BracketView = ({
       window.removeEventListener('resize', handleResize);
     };
   }, [bracketData, zoomLevel]);
-
-  // Update connector lines when zoom changes
-  useEffect(() => {
-    if (!bracketData || typeof window === 'undefined') return;
-    
-    // Create a function to update connector lines after zoom
-    const updateConnectorsAfterZoom = () => {
-      // Wait for the transform to complete
-      const bracketWrapper = document.querySelector(`.${styles.bracketWrapper}`);
-      if (!bracketWrapper) return;
-      
-      const lines = [];
-      const bracketRect = bracketWrapper.getBoundingClientRect();
-      const scale = zoomLevel / 100; // Current scale factor
-      
-      // Loop through all rounds except the final
-      for (let roundIndex = 0; roundIndex < bracketData.length - 1; roundIndex++) {
-        const currentRound = bracketData[roundIndex];
-        
-        // Loop through matches in the current round
-        for (let matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
-          const match = currentRound[matchIndex];
-          
-          // Skip if no next match
-          if (!match.nextMatchId) continue;
-          
-          // Find the source and target match elements
-          const sourceRef = matchRefs.current[`match-${match.id}`];
-          const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
-          
-          // Skip if either ref is missing
-          if (!sourceRef || !targetRef) continue;
-          
-          // Get the source and target match positions
-          const sourceRect = sourceRef.getBoundingClientRect();
-          const targetRect = targetRef.getBoundingClientRect();
-          
-          // Calculate relative positions
-          const x1 = (sourceRect.right - bracketRect.left) / scale;
-          const y1 = (sourceRect.top + sourceRect.height / 2 - bracketRect.top) / scale;
-          const x2 = (targetRect.left - bracketRect.left) / scale;
-          const y2 = (targetRect.top + targetRect.height / 2 - bracketRect.top) / scale;
-          
-          // Create path for the connector line
-          const midX = x1 + (x2 - x1) / 2;
-          const path = `M${x1},${y1} H${midX} V${y2} H${x2}`;
-          
-          // Add the line to the array
-          lines.push(
-            <path 
-              key={`connector-${match.id}-${match.nextMatchId}`}
-              d={path}
-              className={styles.connector}
-              strokeWidth="2.5"
-            />
-          );
-        }
-      }
-      
-      setConnectorLines(lines);
-    };
-    
-    // Debounce function to limit the frequency of updates
-    const debounce = (func, wait) => {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
-    };
-    
-    // Create debounced version of the update function
-    const debouncedUpdate = debounce(updateConnectorsAfterZoom, 10);
-    
-    // Call the update function immediately
-    updateConnectorsAfterZoom();
-    
-    // Also set up a small delay to ensure lines are positioned correctly after any DOM updates
-    setTimeout(updateConnectorsAfterZoom, 50);
-    
-  }, [zoomLevel, bracketData]);
 
   // Add wheel event listeners for zoom functionality
   useEffect(() => {
@@ -686,6 +695,32 @@ const BracketView = ({
     setDisableMatchInteraction(!isAdmin);
   }, [isAdmin]);
 
+  // Mobile button click handler - specific for mobile fullscreen toggle
+  const handleMobileFullscreenClick = () => {
+    // Call the existing toggleFullscreen method
+    toggleFullscreen();
+
+    // Extra logging for debugging
+    console.log("Mobile fullscreen button clicked, current fullscreen state:", isFullscreen);
+    
+    // Force update the isFullscreen state if needed for mobile devices
+    // This helps with devices where the fullscreen API might not trigger events properly
+    setTimeout(() => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+      
+      // Update state if it doesn't match the actual fullscreen status
+      if (isFullscreen !== isCurrentlyFullscreen) {
+        console.log("Forcing fullscreen state update to:", isCurrentlyFullscreen);
+        setIsFullscreen(isCurrentlyFullscreen);
+      }
+    }, 300);
+  };
+
   return (
     <div className={`${styles.bracketContainer} ${isFullscreen ? styles.fullscreen : ''}`}>
       {/* Admin edit mode toggle */}
@@ -859,7 +894,7 @@ const BracketView = ({
       {/* Fullscreen button - always visible, even on mobile */}
       {isTouchDevice && (
         <div className={`${styles.zoomControls} ${styles.mobileFullscreenOnly}`}>
-          <button className={styles.zoomButton} onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+          <button className={styles.zoomButton} onClick={handleMobileFullscreenClick} aria-label="Toggle fullscreen">
             {isFullscreen ? <FaCompress /> : <FaExpand />}
           </button>
         </div>
