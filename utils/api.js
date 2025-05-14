@@ -58,16 +58,29 @@ const enhancedFetch = async (url, options = {}) => {
 export const validateUserCredentials = async (username, password) => {
   try {
     console.log('Validating user credentials for username:', username);
+    
+    // Add error handling for empty parameters
+    if (!username || !password) {
+      console.error('Missing required parameters for validation');
+      return { isValid: false, error: 'Username and password are required' };
+    }
+    
     const response = await fetch('/api/validateUserCredentials', {
       ...fetchConfig,
       method: 'POST',
       body: JSON.stringify({ username, password }),
+      credentials: 'same-origin', // Include cookies for session handling
+      cache: 'no-store', // Prevent caching issues in Safari/Brave
     });
 
     if (!response.ok) {
       console.error('HTTP status:', response.status);
-      // Swallow HTTP errors by returning invalid response
-      return { isValid: false };
+      // Add more detailed error information
+      return { 
+        isValid: false, 
+        error: `Server error: ${response.status}`,
+        status: response.status
+      };
     }
 
     const data = await response.json();
@@ -81,11 +94,20 @@ export const validateUserCredentials = async (username, password) => {
         username: data.result.identity.name,
       };
     } else {
-      return { isValid: false }; // Invalid credentials
+      // Return more detailed error information
+      return { 
+        isValid: false,
+        error: data.message || 'Invalid credentials',
+        details: data.result || {}
+      };
     }
   } catch (error) {
     console.error('Validation error:', error);
-    return { isValid: false }; // Handle errors
+    return { 
+      isValid: false,
+      error: error.message || 'Connection error',
+      isConnectionError: true
+    };
   }
 };
     

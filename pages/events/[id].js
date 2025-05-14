@@ -12,6 +12,9 @@ import EventGallery from '../../components/EventGallery';
 import React from 'react';
 import DynamicMeta from '../../components/DynamicMeta';
 import TournamentWinner from '../../components/shared/TournamentWinner';
+import MobileTeamModal from '../../components/MobileTeamModal';
+import DesktopTeamModal from '../../components/DesktopTeamModal';
+import CancelRegistrationModal from '../../components/CancelRegistrationModal';
 
 // Format date for display - moved to a utility function outside component
 const formatDate = (dateString) => {
@@ -359,7 +362,47 @@ export default function EventDetail({ metaData }) {
   // Remove debug info display flag - set to false by default
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [teamName, setTeamName] = useState('');
+  const [modalStep, setModalStep] = useState(1); // For mobile step-by-step flow
 
+  // Check if we're on mobile 
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Listen for resize events
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
+  // Reset modal step when modal opens/closes
+  useEffect(() => {
+    if (isTeamModalOpen) {
+      setModalStep(1);
+      // Prevent scrolling on body when modal is open
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      // Re-enable scrolling when modal is closed
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    
+    // Cleanup function to ensure scrolling is re-enabled if component unmounts
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [isTeamModalOpen]);
+  
   // Store event ID in ref to prevent re-renders
   if (event && event.id !== eventId.current) {
     eventId.current = event.id;
@@ -933,7 +976,17 @@ export default function EventDetail({ metaData }) {
     }
   };
   
-  // Complete registration with selected team members
+  // Handle next step in mobile modal flow
+  const goToNextStep = () => {
+    setModalStep(prevStep => prevStep + 1);
+  };
+  
+  // Handle previous step in mobile modal flow
+  const goToPrevStep = () => {
+    setModalStep(prevStep => Math.max(1, prevStep - 1));
+  };
+  
+  // Complete registration function remains but now works with both desktop and mobile
   const completeRegistration = () => {
     // For duo events, ensure exactly one team member is selected
     if (teamType === 'duo' && selectedTeamMembers.length !== 1) {
@@ -1185,22 +1238,6 @@ export default function EventDetail({ metaData }) {
       return () => clearTimeout(timeoutId);
     }
   }, [loading]);
-
-  // Check if mobile on client side
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const checkIfMobile = () => {
-        setIsMobile(window.innerWidth <= 767);
-      };
-      
-      checkIfMobile();
-      window.addEventListener('resize', checkIfMobile);
-      
-      return () => {
-        window.removeEventListener('resize', checkIfMobile);
-      };
-    }
-  }, []);
 
   // Add a function to fetch public bracket data
   const fetchPublicBracketData = async () => {
@@ -1619,165 +1656,54 @@ export default function EventDetail({ metaData }) {
         
         {/* Team selection modal - no change needed here */}
         {isTeamModalOpen && (
-          <div className={styles.modalOverlay}>
-            <div className={styles.modal}>
-              <div className={styles.modalHeader}>
-                <h3>{teamType === 'duo' ? 'Select Your Partner' : 'Select Your Team'}</h3>
-                <button className={styles.closeButton} onClick={closeTeamModal}>
-                  ×
-                </button>
-            </div>
-              <div className={styles.modalBody}>
-                {/* Search input - existing code */}
-                <div className={styles.searchContainer}>
-                  <input
-                    type="text"
-                    ref={searchInputRef}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search for teammates..."
-                    className={styles.searchInput}
-                  />
-                </div>
-                
-                {/* Team members list - existing code */}
-                {filteredTeamMembers.length === 0 ? (
-                  <div className={styles.noResults}>No teammates found</div>
-                ) : (
-                  <div className={styles.teamMembersList}>
-                    {filteredTeamMembers.map(member => (
-                      <div 
-                        key={member.id}
-                        className={`${styles.teamMember} ${
-                          selectedTeamMembers.some(m => m.userId === member.id) 
-                            ? styles.selected 
-                            : ''
-                        }`}
-                        onClick={() => handleTeamMemberSelection(member)}
-                      >
-                        <div className={styles.memberAvatar}>
-                          {member.username.charAt(0).toUpperCase()}
-                        </div>
-                        <div className={styles.memberName}>{member.username}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {/* Modal actions - existing code */}
-              <div className={styles.modalActions}>
-                {/* Display the selected team members */}
-                {selectedTeamMembers.length > 0 && (
-                  <div className={styles.selectedMembers}>
-                    <h4>Selected {teamType === 'duo' ? 'Partner' : 'Team Members'}</h4>
-                    <div className={styles.selectedList}>
-                      {selectedTeamMembers.map(member => (
-                        <div key={member.userId} className={styles.selectedMember}>
-                          <span>{member.username}</span>
-                          <button 
-                            className={styles.removeMember}
-                            onClick={() => handleTeamMemberSelection({ id: member.userId, username: member.username })}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Team Name Input - moved to appear after team members are selected */}
-                {selectedTeamMembers.length > 0 && (
-                  <div className={styles.teamNameInput}>
-                    <label htmlFor="teamName">
-                      Team Name{teamType === 'duo' ? ' (Optional)' : ''}:
-                    </label>
-                    <input
-                      type="text"
-                      id="teamName"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder={teamType === 'duo' ? 
-                        "Enter team name (or use auto-generated)" : 
-                        "Enter your team name"}
-                      maxLength={30}
-                      required={teamType === 'team'}
-                    />
-                    <small>
-                      {teamType === 'duo' ? 
-                        "Optional: We'll auto-generate a name from both usernames if left empty" : 
-                        "This name will appear in the tournament bracket"}
-                    </small>
-                  </div>
-                )}
-                
-                {/* Notes input - existing code */}
-                <div className={styles.notesContainer}>
-                  <label htmlFor="registrationNotes">Notes (optional):</label>
-                  <textarea
-                    id="registrationNotes"
-                    value={registrationNotes}
-                    onChange={(e) => setRegistrationNotes(e.target.value)}
-                    placeholder="Any additional information..."
-                    className={styles.notesInput}
-                    maxLength={500}
-                  />
-                </div>
-                
-                <button 
-                  className={styles.registerButton}
-                  onClick={completeRegistration}
-                  disabled={
-                    registrationStatus.isLoading || 
-                    (teamType === 'duo' && selectedTeamMembers.length === 0) ||
-                    (teamType === 'team' && selectedTeamMembers.length === 0) ||
-                    (teamType === 'team' && !teamName.trim())
-                  }
-                >
-                  Complete Registration
-                </button>
-              </div>
-            </div>
+          <div className={styles.modalOverlay} onClick={closeTeamModal}>
+            {isMobile ? (
+              <MobileTeamModal
+                filteredTeamMembers={filteredTeamMembers}
+                selectedTeamMembers={selectedTeamMembers}
+                searchQuery={searchQuery}
+                onSearchChange={e => setSearchQuery(e.target.value)}
+                handleTeamMemberSelection={handleTeamMemberSelection}
+                modalStep={modalStep}
+                goToNextStep={goToNextStep}
+                goToPrevStep={goToPrevStep}
+                completeRegistration={completeRegistration}
+                teamType={teamType}
+                closeModal={closeTeamModal}
+                teamName={teamName}
+                onTeamNameChange={setTeamName}
+                notes={registrationNotes}
+                onNotesChange={setRegistrationNotes}
+                registrationStatus={registrationStatus}
+                eventTitle={event?.title}
+              />
+            ) : (
+              <DesktopTeamModal
+                filteredTeamMembers={filteredTeamMembers}
+                selectedTeamMembers={selectedTeamMembers}
+                searchQuery={searchQuery}
+                onSearchChange={e => setSearchQuery(e.target.value)}
+                handleTeamMemberSelection={handleTeamMemberSelection}
+                completeRegistration={completeRegistration}
+                teamType={teamType}
+                closeModal={closeTeamModal}
+                teamName={teamName}
+                onTeamNameChange={setTeamName}
+                notes={registrationNotes}
+                onNotesChange={setRegistrationNotes}
+                registrationStatus={registrationStatus}
+              />
+            )}
           </div>
         )}
         
         {/* Cancellation confirmation modal */}
         {isCancelModalOpen && (
-          <div className={styles.modalBackdrop} onClick={closeCancelModal}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
-              <div className={styles.modalHeader}>
-                <h3>Cancel Registration?</h3>
-                <button className={styles.closeButton} onClick={closeCancelModal}>
-                  ×
-                </button>
-              </div>
-              <div className={styles.modalBody}>
-                <div className={styles.cancelWarning}>
-                  <p>Are you sure you want to cancel your registration for this event?</p>
-                  {teamType !== 'solo' && registrationStatus.teamMembers.length > 0 && (
-                    <div className={styles.teamWarning}>
-                      <p><strong>Warning:</strong> This will remove your entire team from the event.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className={styles.modalActions}>
-                <button 
-                  className={styles.cancelButton}
-                  onClick={closeCancelModal}
-                >
-                  No, Keep Registration
-                </button>
-                <button 
-                  className={styles.deleteButton}
-                  onClick={confirmCancellation}
-                >
-                  Yes, Cancel Registration
-                </button>
-              </div>
-            </div>
-          </div>
+          <CancelRegistrationModal
+            onClose={closeCancelModal}
+            onConfirm={confirmCancellation}
+            eventTitle={event?.title || 'this event'}
+          />
         )}
       </div>
     </ProtectedPageWrapper>

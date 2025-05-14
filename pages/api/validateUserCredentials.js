@@ -13,16 +13,30 @@ export default async function handler(req, res) {
     const apiUrl = `${process.env.API_BASE_URL}/users/${encodeURIComponent(username)}/${encodeURIComponent(password)}/valid`;
   
     try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          Authorization: 'Basic ' + btoa(process.env.API_AUTH), // Base64 encode auth
+          Authorization: 'Basic ' + Buffer.from(process.env.API_AUTH).toString('base64'), // Use Buffer instead of btoa for compatibility
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache'
         },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
   
       if (!response.ok) {
         console.error(`HTTP Error: ${response.status}`);
-        return res.status(response.status).json({ message: 'Failed to fetch user credentials' });
+        return res.status(response.status).json({ 
+          message: 'Failed to fetch user credentials',
+          status: response.status,
+          isError: true
+        });
       }
   
       const data = await response.json();
@@ -32,7 +46,14 @@ export default async function handler(req, res) {
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error in validateUserCredentials:', error);
-      return res.status(500).json({ message: 'Internal Server Error' });
+      // Provide more detailed error information
+      return res.status(500).json({ 
+        message: error.name === 'AbortError' 
+          ? 'Request timed out' 
+          : 'Internal Server Error',
+        error: error.message,
+        isError: true
+      });
     }
   }
   

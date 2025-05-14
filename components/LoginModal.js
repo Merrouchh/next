@@ -212,6 +212,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       } catch (vErr) {
         console.error('validateUserCredentials threw:', vErr);
         setError('Error validating credentials. Please try again.');
+        setIsLoading(false);
         return;
       }
 

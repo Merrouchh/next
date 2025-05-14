@@ -802,33 +802,33 @@
 
 .teamMembersList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
   margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
 .teamMember {
-  padding: 0.75rem 1rem;
-  background-color: #2a2a2a;
-  border: 1px solid #333;
-  border-radius: 4px;
-  cursor: pointer;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  transition: all 0.2s ease;
-  color: #e0e0e0;
+  background-color: #2c2c2c;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .teamMember:hover {
-  border-color: #FFD700;
   background-color: #333;
+  border-color: rgba(255, 215, 0, 0.3);
 }
 
 .teamMember.selected {
   background-color: rgba(255, 215, 0, 0.1);
-  border-color: #FFD700;
-  font-weight: 500;
+  border: 1px solid rgba(255, 215, 0, 0.5);
 }
 
 .checkmark {
@@ -926,6 +926,7 @@
   z-index: 10000; /* Increased z-index to ensure it's above other elements */
   padding: 1rem;
   backdrop-filter: blur(4px);
+  overflow: hidden; /* Prevent scrolling on the overlay itself */
 }
 
 .modal {
@@ -998,63 +999,81 @@
 }
 
 .searchContainer {
-  padding: 0.75rem 0;
-  position: relative;
   margin-bottom: 1rem;
+  position: relative;
 }
 
 .searchInput {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #3a3a3a;
   border-radius: 4px;
-  border: 1px solid #2a2a2a;
   background-color: #282828;
-  color: #e0e0e0;
+  color: #fff;
   font-size: 1rem;
-  transition: all 0.2s;
 }
 
 .searchInput:focus {
   outline: none;
   border-color: #FFD700;
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
+}
+
+/* Add these mobile styles for search input */
+@media (max-width: 767px) {
+  .searchInput {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.75rem;
+  }
 }
 
 .noResults {
+  padding: 1.5rem;
   text-align: center;
-  color: #b0b0b0;
-  padding: 2rem 0;
-  font-style: italic;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 1rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 767px) {
+  .noResults {
+    padding: 1rem;
+    margin: 0.75rem 0;
+    font-size: 0.95rem;
+  }
 }
 
 .teamMembersList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
 .teamMember {
-  padding: 0.75rem 1rem;
-  background-color: #2a2a2a;
-  border: 1px solid #333;
-  border-radius: 4px;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  transition: all 0.2s ease;
-  color: #e0e0e0;
+  background-color: #2c2c2c;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
 .teamMember:hover {
-  border-color: #FFD700;
   background-color: #333;
+  border-color: rgba(255, 215, 0, 0.3);
 }
 
 .teamMember.selected {
   background-color: rgba(255, 215, 0, 0.1);
-  border-color: #FFD700;
-  font-weight: 500;
+  border: 1px solid rgba(255, 215, 0, 0.5);
 }
 
 .modalActions {
@@ -1946,6 +1965,13 @@
   border-left: 3px solid #FFD700;
 }
 
+.teamNameDisplay h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  color: #e0e0e0;
+}
+
 .teamName {
   font-size: 1.2rem;
   font-weight: 600;
@@ -1985,6 +2011,8 @@
   border-radius: 4px;
   border: 1px solid rgba(255, 215, 0, 0.2);
   font-size: 0.9rem;
+  max-width: 100%;
+  word-break: break-word;
 }
 
 .removeMember {
@@ -1998,6 +2026,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 24px; /* Fixed width to ensure tap target size */
+  min-height: 24px; /* Fixed height to ensure tap target size */
 }
 
 .removeMember:hover {
@@ -2035,8 +2065,9 @@
 
 /* Fix for memberAvatar which was missing */
 .memberAvatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px; /* Ensure consistent width */
   background-color: #333;
   border-radius: 50%;
   display: flex;
@@ -2051,102 +2082,280 @@
   flex: 1;
 }
 
-/* Mobile-friendly Modal Styles */
+/* Modal styles for consistent sizing */
 @media (max-width: 767px) {
   .modalOverlay {
-    padding: 0;
+    padding: 1rem;
+    align-items: center;
+    padding-top: 0;
   }
 
   .modal {
     max-width: 100%;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
+    max-height: 95vh;
+    height: 650px; /* Reduced height to better fit mobile screens */
+    border-radius: 8px;
     margin: 0;
+    display: flex;
+    flex-direction: column;
   }
   
   .modalHeader {
     padding: 1rem;
+    border-bottom: 1px solid #333;
+    flex-shrink: 0;
   }
   
   .modalBody {
-    max-height: calc(100vh - 240px);
-    padding: 1rem;
-    overflow-y: auto;
+    flex: 1;
+    padding: 0;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
   }
 
-  .modalActions {
-    padding: 1rem;
-    position: sticky;
-    bottom: 0;
-    background-color: #1a1a1a;
-    z-index: 5;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  .stepIndicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    flex-shrink: 0;
+    height: 30px;
+    box-sizing: border-box;
   }
   
-  .teamMembersList {
-    grid-template-columns: 1fr;
+  .stepDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #333;
+    margin: 0 5px;
+    transition: all 0.3s ease;
   }
-}
+  
+  .stepDot.active {
+    background-color: #FFD700;
+    transform: scale(1.2);
+  }
+  
+  .stepButtons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0;
+    padding: 1rem;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+    height: 70px;
+    box-sizing: border-box;
+    background-color: #1a1a1a;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+  }
+  
+  .stepButton {
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .stepButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .stepButton.primary {
+    background-color: #FFD700;
+    color: #121212;
+  }
 
-/* modalBackdrop for cancellation modal */
-.modalBackdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-  padding: 1rem;
-}
+  /* Modal step styling */
+  .modalStep {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-sizing: border-box;
+    padding-bottom: 70px; /* Make space for buttons at bottom */
+  }
+  
+  .modalStep.active {
+    display: block;
+  }
+  
+  /* Special styling for step 1 */
+  .modalStep.active[data-step="1"] {
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+    padding: 0;
+    padding-bottom: 70px; /* Make space for buttons at bottom */
+  }
 
-/* Add these after the modalBackdrop styles */
+  /* Selection section - modified to make search fixed */
+  .selectionSection {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1;
+    position: relative;
+    overflow: hidden; /* Changed from overflow-y: auto to prevent whole section scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Keep search container fixed at top */
+  .selectionSection .searchContainer {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #1a1a1a;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    margin-top: -0.5rem;
+    padding-top: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add subtle shadow for depth */
+  }
+  
+  /* When split (has selections), make it smaller but keep single column layout */
+  .modalStep.active[data-step="1"].split .selectionSection {
+    height: 50%;
+    min-height: 250px;
+    border-bottom: 2px solid #333;
+    overflow: hidden; /* Prevent whole section scrolling */
+  }
+  
+  /* Specific styles for the team members list when split */
+  .modalStep.active[data-step="1"].split .teamMembersList {
+    max-height: none !important;
+    height: calc(100% - 60px); /* Account for search box */
+    overflow-y: auto;
+    margin-bottom: 0;
+    padding-bottom: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr; /* Single column layout */
+    gap: 0.75rem;
+  }
+  
+  /* Make sure team members list takes full height when no selections */
+  .modalStep.active[data-step="1"]:not(.split) .selectionSection {
+    height: calc(100% - 70px); /* Full height minus button area */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Use hidden instead of auto to prevent whole section scrolling */
+    -webkit-overflow-scrolling: touch;
+    background-color: #1a1a1a; /* Ensure consistent background color */
+  }
+  
+  /* Add a min-height to the list container to ensure it fills empty space */
+  .modalStep.active[data-step="1"]:not(.split) .teamMembersList {
+    flex: 1;
+    margin-bottom: 0;
+    max-height: none !important; /* Override the default max-height */
+    overflow-y: auto; /* Let the list scroll while search stays fixed */
+    padding-bottom: 1rem; /* Add padding at the bottom */
+    display: grid;
+    grid-template-columns: 1fr; /* Single column layout */
+    gap: 0.75rem;
+    align-content: start; /* Align items to the top */
+    background-color: #1a1a1a; /* Match the background color */
+  }
+  
+  /* Improve the appearance of the member cards */
+  .teamMember {
+    min-height: 60px; /* Ensure consistent height */
+    display: flex;
+    align-items: center;
+    background-color: #2c2c2c;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    margin-bottom: 0.5rem; /* Add spacing between items */
+  }
+  
+  /* Add vertical space in the view when no members are selected */
+  .modalStep.active[data-step="1"]:not(.split) .searchContainer {
+    margin-bottom: 1rem;
+  }
+  
+  .modalStep.active[data-step="1"]:not(.split) .selectionSection::after {
+    content: '';
+    display: block;
+    height: 0.5rem; /* Add some space at the bottom */
+  }
+  
+  /* Make sure the registration summary is more mobile friendly */
+  .registrationSummary {
+    padding: 0.75rem;
+    margin-top: 1.25rem;
+  }
+  
+  .registrationSummary h4 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .registrationSummary p {
+    font-size: 0.95rem;
+    margin: 0.4rem 0;
+  }
 
-.cancelWarning {
-  text-align: center;
-  padding: 1rem;
-}
+  /* Selected section styling */
+  .selectedSection {
+    padding: 1rem;
+    background-color: rgba(40, 40, 40, 0.5);
+    min-height: 200px;
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+    overflow-y: auto;
+  }
+  
+  .selectedSection h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #FFD700;
+    font-size: 1.1rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    background-color: rgba(40, 40, 40, 0.9);
+    z-index: 5;
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
 
-.cancelWarning p {
-  margin-bottom: 1rem;
-  color: #e0e0e0;
-  font-size: 1.1rem;
-}
-
-.teamWarning {
-  background-color: rgba(220, 53, 69, 0.1);
-  border-left: 3px solid #dc3545;
-  padding: 0.75rem;
-  border-radius: 4px;
-  text-align: left;
-  margin-top: 1rem;
-  color: #e0e0e0;
-}
-
-.teamWarning strong {
-  color: #dc3545;
-}
-
-.deleteButton {
-  padding: 0.75rem 1.5rem;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.deleteButton:hover {
-  background-color: #c82333;
+  /* Specific styles for mobile team member items */
+  .modalStep.active[data-step="1"] .teamMember {
+    min-height: 60px; /* Ensure consistent height */
+    margin-bottom: 5px; /* Add more spacing between items */
+    border: 1px solid #333; /* Add visible border */
+  }
+  
+  /* Make sure at least a few items show */
+  .modalStep.active[data-step="1"] .teamMembersList {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+  
+  /* Additional mobile styling handled in the main memberAvatar styles */
 } 
