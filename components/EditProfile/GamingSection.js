@@ -1,78 +1,285 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../styles/EditProfile.module.css';
-import { FaGamepad, FaTools } from 'react-icons/fa';
-import { AiOutlineInfoCircle } from 'react-icons/ai';
+import { FaGamepad, FaSave, FaDiscord, FaPlaystation } from 'react-icons/fa';
+import { SiValorant, SiEpicgames, SiBattledotnet } from 'react-icons/si';
+import { useAuth } from '../../contexts/AuthContext';
 
 const GamingSection = () => {
-  // Styles for the "Coming Soon" section
-  const comingSoonStyles = {
-    container: {
-      opacity: 0.7,
-      pointerEvents: 'none',
-      position: 'relative',
-    },
-    overlay: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '30px 20px',
-      border: '2px dashed #4a4a4a',
-      borderRadius: '8px',
-      margin: '20px 0',
-      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-      color: '#b3b3b3',
-      textAlign: 'center',
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '15px',
-      color: '#ffcc00',
-    },
-    icon: {
-      fontSize: '50px',
-      marginBottom: '20px',
-      color: '#ffcc00',
-    },
-    description: {
-      fontSize: '16px',
-      lineHeight: '1.5',
-      maxWidth: '500px',
-      marginBottom: '10px',
-    },
-    info: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '14px',
-      color: '#8a8a8a',
-      marginTop: '10px',
+  const { user, supabase, refreshUserData } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [showCustomGameInput, setShowCustomGameInput] = useState(false);
+  
+  // Form state for all gaming profiles
+  const [profiles, setProfiles] = useState({
+    favorite_game: '',
+    custom_game: '',
+    discord_id: '',
+    valorant_id: '',
+    fortnite_name: '',
+    battlenet_id: ''
+  });
+  
+  // Popular game options
+  const gameOptions = [
+    'Valorant',
+    'League of Legends',
+    'FIFA',
+    'CS:GO',
+    'Fortnite',
+    'Call of Duty',
+    'PUBG',
+    'Apex Legends',
+    'Minecraft',
+    'Rocket League',
+    'Overwatch',
+    'Dota 2',
+    'Hearthstone',
+    'Rainbow Six Siege',
+    'Other'
+  ];
+
+  // Load current profile data
+  useEffect(() => {
+    if (user) {
+      // Check if favorite game is in our predefined list
+      const isCustomGame = user.favorite_game && !gameOptions.includes(user.favorite_game) && user.favorite_game !== 'Other';
+      
+      setProfiles({
+        favorite_game: isCustomGame ? 'Other' : (user.favorite_game || ''),
+        custom_game: isCustomGame ? user.favorite_game : '',
+        discord_id: user.discord_id || '',
+        valorant_id: user.valorant_id || '',
+        fortnite_name: user.fortnite_name || '',
+        battlenet_id: user.battlenet_id || ''
+      });
+      
+      setShowCustomGameInput(isCustomGame || user.favorite_game === 'Other');
+    }
+  }, [user]);
+
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'favorite_game') {
+      setShowCustomGameInput(value === 'Other');
+    }
+    
+    setProfiles(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Save gaming profiles
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      // Determine the actual favorite game value to save
+      const favoriteGameToSave = profiles.favorite_game === 'Other' && profiles.custom_game 
+        ? profiles.custom_game 
+        : profiles.favorite_game;
+      
+      const { error } = await supabase
+        .from('users')
+        .update({
+          favorite_game: favoriteGameToSave,
+          discord_id: profiles.discord_id,
+          valorant_id: profiles.valorant_id,
+          fortnite_name: profiles.fortnite_name,
+          battlenet_id: profiles.battlenet_id
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Show success message
+      setMessage({ type: 'success', text: 'Gaming profiles updated successfully!' });
+      
+      // Refresh user data in context
+      if (refreshUserData) {
+        await refreshUserData();
+      }
+    } catch (error) {
+      console.error('Error updating gaming profiles:', error);
+      setMessage({ type: 'error', text: 'Failed to update gaming profiles. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Platform colors for styling
+  const platformStyles = {
+    main: { borderColor: '#FFD700', background: 'rgba(255, 215, 0, 0.05)' },
+    discord: { borderColor: '#5865F2', background: 'rgba(88, 101, 242, 0.05)' },
+    valorant: { borderColor: '#FA4454', background: 'rgba(250, 68, 84, 0.05)' },
+    fortnite: { borderColor: '#9D4DFF', background: 'rgba(157, 77, 255, 0.05)' },
+    battlenet: { borderColor: '#00AEFF', background: 'rgba(0, 174, 255, 0.05)' }
+  };
+
   return (
-    <section className={styles.section} style={comingSoonStyles.container}>
+    <section className={styles.section}>
       <div className={styles.sectionHeader}>
         <FaGamepad className={styles.sectionIcon} />
-        <h2>Gaming Account</h2>
+        <h2>Gaming Profiles</h2>
       </div>
       
-      <div style={comingSoonStyles.overlay}>
-        <FaTools style={comingSoonStyles.icon} />
-        <h3 style={comingSoonStyles.title}>Coming Soon</h3>
-        <p style={comingSoonStyles.description}>
-          The Gaming Account management feature is currently under development. 
-          Soon you'll be able to update your gaming credentials and manage your gaming account directly from this page.
-        </p>
-        <p style={comingSoonStyles.description}>
-          We're working hard to bring you this feature as quickly as possible!
-        </p>
-        <div style={comingSoonStyles.info}>
-          <AiOutlineInfoCircle />
-          <span>Feature expected to launch in the next update</span>
+      <form onSubmit={handleSave} className={styles.form}>
+        {/* Favorite Game */}
+        <div 
+          className={`${styles.formGroup} ${styles.platformSection}`}
+          style={platformStyles.main}
+        >
+          <label htmlFor="favorite_game" className={styles.platformLabel}>
+            <FaGamepad style={{ marginRight: '8px' }} />
+            Your Main Game
+          </label>
+          <p className={styles.formDescription}>
+            Select your favorite game to display on your profile
+          </p>
+          
+          <select 
+            id="favorite_game"
+            name="favorite_game"
+            value={profiles.favorite_game}
+            onChange={handleChange}
+            className={styles.formSelect}
+          >
+            <option value="">Select your main game</option>
+            {gameOptions.map(game => (
+              <option key={game} value={game}>{game}</option>
+            ))}
+          </select>
+          
+          {showCustomGameInput && (
+            <div className={styles.customGameInput}>
+              <input
+                type="text"
+                id="custom_game"
+                name="custom_game"
+                value={profiles.custom_game}
+                onChange={handleChange}
+                placeholder="Enter your favorite game"
+                className={styles.formInput}
+                style={{ marginTop: '10px' }}
+              />
+            </div>
+          )}
         </div>
-      </div>
+
+        {/* Discord ID */}
+        <div 
+          className={`${styles.formGroup} ${styles.platformSection}`}
+          style={platformStyles.discord}
+        >
+          <label htmlFor="discord_id" className={styles.platformLabel}>
+            <FaDiscord style={{ marginRight: '8px', color: '#5865F2' }} />
+            Discord Username
+          </label>
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              id="discord_id"
+              name="discord_id"
+              value={profiles.discord_id}
+              onChange={handleChange}
+              placeholder="Your Discord username"
+              className={`${styles.formInput} ${styles.discordInput}`}
+            />
+          </div>
+        </div>
+
+        {/* Valorant ID */}
+        <div 
+          className={`${styles.formGroup} ${styles.platformSection}`}
+          style={platformStyles.valorant}
+        >
+          <label htmlFor="valorant_id" className={styles.platformLabel}>
+            <SiValorant style={{ marginRight: '8px', color: '#FA4454' }} />
+            Valorant ID
+          </label>
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              id="valorant_id"
+              name="valorant_id"
+              value={profiles.valorant_id}
+              onChange={handleChange}
+              placeholder="Your Valorant ID (e.g., name#tag)"
+              className={`${styles.formInput} ${styles.valorantInput}`}
+            />
+          </div>
+        </div>
+
+        {/* Fortnite Name */}
+        <div 
+          className={`${styles.formGroup} ${styles.platformSection}`}
+          style={platformStyles.fortnite}
+        >
+          <label htmlFor="fortnite_name" className={styles.platformLabel}>
+            <SiEpicgames style={{ marginRight: '8px', color: '#9D4DFF' }} />
+            Fortnite / Epic Games Username
+          </label>
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              id="fortnite_name"
+              name="fortnite_name"
+              value={profiles.fortnite_name}
+              onChange={handleChange}
+              placeholder="Your Fortnite/Epic Games username"
+              className={`${styles.formInput} ${styles.fortniteInput}`}
+            />
+          </div>
+        </div>
+
+        {/* Battle.net ID */}
+        <div 
+          className={`${styles.formGroup} ${styles.platformSection}`}
+          style={platformStyles.battlenet}
+        >
+          <label htmlFor="battlenet_id" className={styles.platformLabel}>
+            <SiBattledotnet style={{ marginRight: '8px', color: '#00AEFF' }} />
+            Battle.net ID
+          </label>
+          <div className={styles.inputWrapper}>
+            <input
+              type="text"
+              id="battlenet_id"
+              name="battlenet_id"
+              value={profiles.battlenet_id}
+              onChange={handleChange}
+              placeholder="Your Battle.net ID (e.g., name#12345)"
+              className={`${styles.formInput} ${styles.battlenetInput}`}
+            />
+          </div>
+        </div>
+
+        {message.text && (
+          <div className={`${styles.message} ${styles[message.type]}`}>
+            {message.text}
+          </div>
+        )}
+
+        <div className={styles.buttonGroup}>
+          <button 
+            type="submit" 
+            className={styles.saveButton} 
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : (
+              <>
+                <FaSave className={styles.buttonIcon} />
+                <span>Save Changes</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </section>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaGamepad, FaDiscord, FaTrophy, FaCalendarCheck, 
-  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt
+  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt, FaEdit
 } from 'react-icons/fa';
 import { IoMdPodium } from 'react-icons/io';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
@@ -236,155 +236,80 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
               borderBottom: '1px solid #222',
               marginTop: '-5px'
             }}>
-              <button 
-                onClick={() => {
-                  if (isEditing) {
-                    handleSaveProfiles();
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
-                className={isEditing ? styles['save-button'] : styles['edit-button']}
+              <Link 
+                href="/editprofile"
+                className={styles['edit-button']}
                 style={{ 
                   margin: '0 auto',
                   paddingTop: '4px',
-                  paddingBottom: '4px'
+                  paddingBottom: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  textDecoration: 'none'
                 }}
               >
-                {isEditing ? 'Save' : 'Edit Profiles'}
-              </button>
+                <FaEdit style={{ marginRight: '5px' }} />
+                Edit Gaming Profiles
+              </Link>
             </div>
           )}
           
-          {isEditing ? (
-            <div className={styles['gaming-profile-grid']}>
-              <div className={styles['gaming-profile-input']}>
+          <div className={styles['gaming-profile-grid']}>
+            {profiles?.discord_id && (
+              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.discord_id, 'Discord ID')}>
                 <FaDiscord className={styles['gaming-profile-icon']} />
-                <input
-                  type="text"
-                  value={editedProfiles.discord_id}
-                  onChange={(e) => setEditedProfiles(prev => ({
-                    ...prev,
-                    discord_id: e.target.value
-                  }))}
-                  placeholder="Discord ID"
-                />
+                <span className={styles['gaming-profile-text']}>{profiles.discord_id}</span>
+                <FaCopy className={styles['gaming-profile-copy']} />
               </div>
-              <div className={styles['gaming-profile-input']}>
+            )}
+            {profiles?.valorant_id && (
+              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.valorant_id, 'Valorant ID')}>
                 <SiValorant className={styles['gaming-profile-icon']} />
-                <div className={styles['valorant-input-group']}>
-                  <input
-                    type="text"
-                    value={editedProfiles.valorant_name}
-                    onChange={(e) => setEditedProfiles(prev => {
-                      const newName = e.target.value;
-                      const newId = newName && prev.valorant_tag 
-                        ? `${newName}#${prev.valorant_tag}` 
-                        : newName;
-                      return {
-                        ...prev,
-                        valorant_name: newName,
-                        valorant_id: newId
-                      };
-                    })}
-                    placeholder="Username"
-                    className={styles['valorant-name-input']}
-                  />
-                  <span className={styles['hash-separator']}>
-                    #
-                  </span>
-                  <input
-                    type="text"
-                    value={editedProfiles.valorant_tag}
-                    onChange={(e) => setEditedProfiles(prev => {
-                      const newTag = e.target.value;
-                      const newId = prev.valorant_name
-                        ? (newTag ? `${prev.valorant_name}#${newTag}` : prev.valorant_name)
-                        : '';
-                      return {
-                        ...prev,
-                        valorant_tag: newTag,
-                        valorant_id: newId
-                      };
-                    })}
-                    placeholder="Tag"
-                    className={styles['valorant-tag-input']}
-                  />
-                </div>
+                <span className={styles['gaming-profile-text']}>
+                  {valorantParts.name}
+                  {valorantParts.tag && (
+                    <>
+                      <span style={{ color: '#888', margin: '0 1px' }}>#</span>
+                      {valorantParts.tag}
+                    </>
+                  )}
+                </span>
+                <FaCopy className={styles['gaming-profile-copy']} />
               </div>
-              <div className={styles['gaming-profile-input']}>
+            )}
+            {profiles?.fortnite_name && (
+              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.fortnite_name, 'Fortnite Name')}>
                 <SiEpicgames className={styles['gaming-profile-icon']} />
-                <input
-                  type="text"
-                  value={editedProfiles.fortnite_name}
-                  onChange={(e) => setEditedProfiles(prev => ({
-                    ...prev,
-                    fortnite_name: e.target.value
-                  }))}
-                  placeholder="Fortnite Name"
-                />
+                <span className={styles['gaming-profile-text']}>{profiles.fortnite_name}</span>
+                <FaCopy className={styles['gaming-profile-copy']} />
               </div>
-              <div className={styles['gaming-profile-input']}>
+            )}
+            {profiles?.battlenet_id && (
+              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.battlenet_id, 'Battle.net ID')}>
                 <SiBattledotnet className={styles['gaming-profile-icon']} />
-                <input
-                  type="text"
-                  value={editedProfiles.battlenet_id}
-                  onChange={(e) => setEditedProfiles(prev => ({
-                    ...prev,
-                    battlenet_id: e.target.value
-                  }))}
-                  placeholder="Battle.net ID"
-                />
+                <span className={styles['gaming-profile-text']}>{profiles.battlenet_id}</span>
+                <FaCopy className={styles['gaming-profile-copy']} />
               </div>
-            </div>
-          ) : (
-            <div className={styles['gaming-profile-grid']}>
-              {profiles?.discord_id && (
-                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.discord_id, 'Discord ID')}>
-                  <FaDiscord className={styles['gaming-profile-icon']} />
-                  <span className={styles['gaming-profile-text']}>{profiles.discord_id}</span>
-                  <FaCopy className={styles['gaming-profile-copy']} />
-                </div>
-              )}
-              {profiles?.valorant_id && (
-                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.valorant_id, 'Valorant ID')}>
-                  <SiValorant className={styles['gaming-profile-icon']} />
-                  <span className={styles['gaming-profile-text']}>
-                    {valorantParts.name}
-                    {valorantParts.tag && (
-                      <>
-                        <span style={{ color: '#888', margin: '0 1px' }}>#</span>
-                        {valorantParts.tag}
-                      </>
-                    )}
-                  </span>
-                  <FaCopy className={styles['gaming-profile-copy']} />
-                </div>
-              )}
-              {profiles?.fortnite_name && (
-                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.fortnite_name, 'Fortnite Name')}>
-                  <SiEpicgames className={styles['gaming-profile-icon']} />
-                  <span className={styles['gaming-profile-text']}>{profiles.fortnite_name}</span>
-                  <FaCopy className={styles['gaming-profile-copy']} />
-                </div>
-              )}
-              {profiles?.battlenet_id && (
-                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.battlenet_id, 'Battle.net ID')}>
-                  <SiBattledotnet className={styles['gaming-profile-icon']} />
-                  <span className={styles['gaming-profile-text']}>{profiles.battlenet_id}</span>
-                  <FaCopy className={styles['gaming-profile-copy']} />
-                </div>
-              )}
-              {!profiles?.discord_id && 
-               !profiles?.valorant_id && 
-               !profiles?.fortnite_name && 
-               !profiles?.battlenet_id && (
-                <div className={styles['no-profiles-message']}>
-                  {isOwner ? 'Add your gaming profiles!' : 'No gaming profiles added yet.'}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+            {!profiles?.discord_id && 
+             !profiles?.valorant_id && 
+             !profiles?.fortnite_name && 
+             !profiles?.battlenet_id && (
+              <div className={styles['no-profiles-message']}>
+                {isOwner ? (
+                  <div className={styles['no-profiles-owner']}>
+                    <p>No gaming profiles added yet.</p>
+                    <Link href="/editprofile" className={styles['add-profiles-link']}>
+                      + Add your gaming profiles
+                    </Link>
+                  </div>
+                ) : (
+                  'No gaming profiles added yet.'
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

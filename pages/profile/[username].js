@@ -7,8 +7,9 @@ import { createClient } from '../../utils/supabase/server-props';
 import ProfileDashboard from '../../components/profile/ProfileDashboard';
 import UploadButton from '../../components/profile/UploadButton';
 import UserClips from '../../components/profile/UserClips';
-import { FaVideo } from 'react-icons/fa';
+import { FaVideo, FaGamepad, FaPlus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 // LoadingSpinner component
 const LoadingSpinner = ({ message = "Loading profile..." }) => (
@@ -35,7 +36,16 @@ export async function getServerSideProps({ req, res, params }) {
     // Fetch user data
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, username, gizmo_id')
+      .select(`
+        id, 
+        username, 
+        gizmo_id, 
+        favorite_game,
+        discord_id,
+        valorant_id,
+        fortnite_name,
+        battlenet_id
+      `)
       .eq('username', normalizedUsername)
       .single();
 
@@ -85,6 +95,10 @@ export async function getServerSideProps({ req, res, params }) {
         
     // Create a more detailed and personalized description
     let userDescription = `${normalizedUsername}'s gaming profile at Merrouch Gaming Center`;
+    
+    if (userData.favorite_game) {
+      userDescription += ` | ${userData.favorite_game} Player`;
+    }
         
     if (clipsCount) {
       userDescription += ` featuring ${clipsCount} public gaming ${clipsCount === 1 ? 'clip' : 'clips'}`;
@@ -196,7 +210,8 @@ const ProfilePage = ({ username, metaData }) => {
             discord_id,
             valorant_id,
             fortnite_name,
-            battlenet_id
+            battlenet_id,
+            favorite_game
           `)
           .eq('username', username)
           .single();
@@ -566,6 +581,17 @@ const ProfilePage = ({ username, metaData }) => {
           <h1 className={styles.profileTitle}>
             {isOwner ? 'YOUR GAMING PROFILE' : `${username}'s GAMING PROFILE`}
           </h1>
+          {userData.favorite_game ? (
+            <div className={styles.favoriteGame}>
+              <FaGamepad style={{ marginRight: '5px' }} />
+              <span>{userData.favorite_game} Player</span>
+            </div>
+          ) : isOwner ? (
+            <Link href="/editprofile" className={styles.addFavoriteGame}>
+              <FaPlus style={{ marginRight: '5px' }} />
+              <span>+ Add your main game</span>
+            </Link>
+          ) : null}
         </header>
         
         {/* Profile Dashboard (Game Accounts & Events) - add key to force re-render */}

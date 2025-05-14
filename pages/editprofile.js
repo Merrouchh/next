@@ -248,19 +248,19 @@ const EditProfile = () => {
           onClose={closeModal}
           title={modalTitles.phone}
         >
-          <PhoneSection 
+          <PhoneSection
             user={user}
             supabase={supabase}
             websiteAccount={websiteAccount}
             setWebsiteAccount={setWebsiteAccount}
-            phoneVerification={phoneVerification}
-            setPhoneVerification={setPhoneVerification}
             message={message}
             setMessage={setMessage}
             isLoading={isLoading}
             setIsLoading={setIsLoading}
             showPasswords={showPasswords}
             togglePasswordVisibility={togglePasswordVisibility}
+            phoneVerification={phoneVerification}
+            setPhoneVerification={setPhoneVerification}
           />
         </EditProfileModal>
         
@@ -271,6 +271,8 @@ const EditProfile = () => {
           title={modalTitles.password}
         >
           <PasswordSection 
+            user={user}
+            supabase={supabase}
             websiteAccount={websiteAccount}
             setWebsiteAccount={setWebsiteAccount}
             message={message}
@@ -282,7 +284,7 @@ const EditProfile = () => {
           />
         </EditProfileModal>
         
-        {/* Gaming Modal */}
+        {/* Gaming Account Modal */}
         <EditProfileModal
           isOpen={activeModal === 'gaming'}
           onClose={closeModal}
