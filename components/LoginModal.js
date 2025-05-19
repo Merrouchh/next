@@ -203,20 +203,38 @@ const LoginModal = ({ isOpen, onClose }) => {
       // Trim the username before validation
       const trimmedUsername = formData.username.trim().toLowerCase();
       
+      // Add timeout handling for browsers with privacy features
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 15000);
+      
       let response;
       try {
         response = await validateUserCredentials(
           trimmedUsername, 
           formData.gizmoPassword
         );
+        clearTimeout(timeoutId);
       } catch (vErr) {
+        clearTimeout(timeoutId);
         console.error('validateUserCredentials threw:', vErr);
-        setError('Error validating credentials. Please try again.');
+        // Provide more specific error for privacy browsers
+        if (vErr.message?.includes('abort') || vErr.message?.includes('timeout')) {
+          setError('Your browser may be blocking this request. Try disabling tracking prevention or switch to a different browser.');
+        } else {
+          setError('Error validating credentials. Please try again.');
+        }
         setIsLoading(false);
         return;
       }
 
       console.log('Validation response:', response);
+
+      // Check if response indicates a connection/privacy error
+      if (response.isConnectionError) {
+        setError('Connection error: Your browser privacy settings may be blocking this request. Try disabling tracking prevention or try a different browser.');
+        setIsLoading(false);
+        return;
+      }
 
       // Check if response indicates valid credentials
       if (response.isValid && response.userId) {

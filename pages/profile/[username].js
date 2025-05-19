@@ -44,7 +44,8 @@ export async function getServerSideProps({ req, res, params }) {
         discord_id,
         valorant_id,
         fortnite_name,
-        battlenet_id
+        battlenet_id,
+        points
       `)
       .eq('username', normalizedUsername)
       .single();
@@ -211,7 +212,8 @@ const ProfilePage = ({ username, metaData }) => {
             valorant_id,
             fortnite_name,
             battlenet_id,
-            favorite_game
+            favorite_game,
+            points
           `)
           .eq('username', username)
           .single();
@@ -230,10 +232,21 @@ const ProfilePage = ({ username, metaData }) => {
           .eq('user_id', userData.id)
           .eq('visibility', 'public');
 
+        // Get total clips count (public and private) for the owner
+        let totalClipsCount = clipsCount;
+        if (user && user.id === userData.id) {
+          const { count: ownerClipsCount } = await supabase
+            .from('clips')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userData.id);
+          totalClipsCount = ownerClipsCount || 0;
+        }
+
         // Set the user data with clips count
         setUserData({
           ...userData,
-          clips_count: clipsCount || 0
+          clips_count: clipsCount || 0,
+          total_clips_count: totalClipsCount
         });
         setLoadingUser(false);
 
@@ -615,7 +628,7 @@ const ProfilePage = ({ username, metaData }) => {
           <div className={styles.clipsHeader}>
             <h2>
               <FaVideo style={{ marginRight: '10px' }} />
-              CLIPS ({userData.clips_count || 0})
+              CLIPS ({isOwner ? (userData.total_clips_count || 0) : (userData.clips_count || 0)})
             </h2>
             {isOwner && <UploadButton isCompact={true} />}
           </div>

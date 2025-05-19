@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList, FaLaptop, FaCheck } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList, FaLaptop, FaCheck, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
@@ -180,6 +180,13 @@ export default function AdminDashboard() {
       description: 'Monitor active gaming sessions and computer usage.',
       action: () => router.push('/admin/sessions'),
       color: '#34A853' // Green
+    },
+    {
+      title: 'Achievement Reviews',
+      icon: <FaTrophy className={styles.featureIcon} />,
+      description: 'Verify user achievement claims and award points.',
+      action: () => router.push('/admin/achievements'),
+      color: '#FFD700' // Gold
     },
     {
       title: 'Statistics',

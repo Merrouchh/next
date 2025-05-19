@@ -31,7 +31,8 @@ const Layout = ({ children }) => {
       '/upload',
       '/discover',
       '/topusers',
-      '/events'
+      '/events',
+      '/awards'
     ];
 
     if (isVerificationPage) return true;

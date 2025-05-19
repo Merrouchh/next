@@ -66,11 +66,17 @@ export const validateUserCredentials = async (username, password) => {
     }
     
     const response = await fetch('/api/validateUserCredentials', {
-      ...fetchConfig,
       method: 'POST',
       body: JSON.stringify({ username, password }),
       credentials: 'same-origin', // Include cookies for session handling
       cache: 'no-store', // Prevent caching issues in Safari/Brave
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest', // Helps with some ad blockers
+        'Cache-Control': 'no-cache, no-store, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
     });
 
     if (!response.ok) {
@@ -103,10 +109,20 @@ export const validateUserCredentials = async (username, password) => {
     }
   } catch (error) {
     console.error('Validation error:', error);
+    // Detect common privacy browser errors
+    const isPrivacyBlock = error.message?.includes('Failed to fetch') || 
+                           error.message?.includes('NetworkError') ||
+                           error.message?.includes('AbortError') ||
+                           error.message?.includes('timeout') ||
+                           error.name === 'AbortError';
+    
     return { 
       isValid: false,
-      error: error.message || 'Connection error',
-      isConnectionError: true
+      error: isPrivacyBlock 
+        ? 'Browser privacy settings may be blocking this request' 
+        : error.message || 'Connection error',
+      isConnectionError: true,
+      isPrivacyBlock: isPrivacyBlock
     };
   }
 };
@@ -653,6 +669,90 @@ export const loginUserToComputer = async (gizmoId, hostId) => {
     };
   } catch (error) {
     console.error('Error in loginUserToComputer:', error);
+    return {
+      success: false,
+      error: error.message || 'Unknown error occurred'
+    };
+  }
+};
+
+/**
+ * Add game time to a user as a reward
+ * @param {string} gizmoId - The user's Gizmo ID
+ * @param {number} seconds - Amount of time to add in seconds
+ * @returns {Promise<object>} - Result of the operation
+ */
+export const addGameTimeToUser = async (gizmoId, seconds) => {
+  try {
+    if (!gizmoId || !seconds) {
+      return {
+        success: false,
+        error: 'Missing required parameters'
+      };
+    }
+
+    // IMPORTANT FIX: The API appears to be treating the seconds value as MINUTES
+    // Divide by 60 to get the correct amount of time (1 hour = 60 minutes)
+    const apiAmount = Math.round(seconds / 60);
+    
+    console.log(`[AMOUNT DEBUG] Original request: ${seconds} seconds (${seconds/3600} hours)`);
+    console.log(`[AMOUNT DEBUG] CORRECTED amount: ${apiAmount} units (should be 60 minutes = 1 hour)`);
+    
+    // Generate a unique request ID to track this specific request
+    const requestId = Date.now().toString();
+    console.log(`[AMOUNT DEBUG] Request ID: ${requestId}`);
+
+    // Use the correct URL path structure with price=0 (free)
+    // But use the corrected amount parameter
+    const apiUrl = `/api/users/${gizmoId}/order/time/${apiAmount}/price/0/invoice`;
+    console.log(`[AMOUNT DEBUG] Calling endpoint: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        ...fetchConfig.headers,
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId
+      },
+      // Use empty object as body
+      body: JSON.stringify({})
+    });
+
+    // First get the response as text
+    const responseText = await response.text();
+    console.log(`[AMOUNT DEBUG] Raw response for request ${requestId}:`, responseText.substring(0, 200));
+    
+    // Then try to parse it as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (error) {
+      console.error(`[AMOUNT DEBUG] Invalid JSON response for request ${requestId}:`, responseText);
+      return {
+        success: false,
+        error: `Invalid response: ${responseText.substring(0, 100)}`
+      };
+    }
+
+    if (!response.ok) {
+      console.error(`[AMOUNT DEBUG] Request ${requestId} failed: ${response.status}`, data);
+      return {
+        success: false,
+        error: data.error || `Server error: ${response.status}`,
+        details: data.details,
+        status: response.status
+      };
+    }
+    
+    console.log(`[AMOUNT DEBUG] Request ${requestId} successful - added ${apiAmount} units to user ${gizmoId}`);
+    
+    return {
+      success: true,
+      result: data.result,
+      message: data.message || 'Game time added successfully'
+    };
+  } catch (error) {
+    console.error('[AMOUNT DEBUG] Error adding game time:', error);
     return {
       success: false,
       error: error.message || 'Unknown error occurred'

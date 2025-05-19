@@ -19,6 +19,12 @@ export const ROUTE_CONFIG = {
     showNavigation: true
   },
 
+  '/awards': {
+    public: false,
+    requireAuth: true,
+    showNavigation: true
+  },
+
   '/upload': {
     public: false,
     requireAuth: true,

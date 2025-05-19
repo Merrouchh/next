@@ -67,41 +67,43 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
     if (!currentUser?.id || !clipId || isUpdatingLike) return false;
 
     setIsUpdatingLike(true);
-    const supabase = createClient();
 
     try {
-      if (liked) {
-        // Unlike
-        const { error } = await supabase
-          .from('video_likes')
-          .delete()
-          .match({ 
-            clip_id: clipId, 
-            user_id: currentUser.id 
-          });
+      // Use the API endpoint instead of directly calling the database
+      const response = await fetch('/api/clips/like', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ clipId })
+      });
 
-        if (error) throw error;
-      } else {
-        // Like
-        const { error } = await supabase
-          .from('video_likes')
-          .insert({ 
-            clip_id: clipId, 
-            user_id: currentUser.id 
-          });
-
-        if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update like');
       }
-
-      setLiked(!liked);
-      await fetchLikes(); // Refresh likes
+      
+      const data = await response.json();
+      
+      // Set the liked state based on the action performed
+      setLiked(data.action === 'added');
+      
+      // Update the like count
+      if (data.count !== undefined) {
+        setLikesCount(data.count);
+      } else {
+        // If count wasn't returned, refresh likes
+        await fetchLikes();
+      }
+      
       return true;
     } catch (error) {
+      console.error('Error updating like:', error);
       return false;
     } finally {
       setIsUpdatingLike(false);
     }
-  }, [clipId, currentUser?.id, liked, isUpdatingLike, fetchLikes]);
+  }, [clipId, currentUser?.id, isUpdatingLike, fetchLikes]);
 
   useEffect(() => {
     const checkInitialLikeStatus = async () => {

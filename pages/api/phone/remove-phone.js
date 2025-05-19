@@ -166,6 +166,25 @@ export default async function handler(req, res) {
       console.error('Error checking/deleting phone_verification_codes (non-fatal):', codesError);
     }
 
+    // Remove the phone achievement if it exists
+    try {
+      // Delete the phone-verified achievement from user_achievements
+      const { error: achievementError } = await supabase
+        .from('user_achievements')
+        .delete()
+        .eq('user_id', userId)
+        .eq('achievement_id', 'phone-verified');
+      
+      if (achievementError) {
+        console.error('Error removing phone achievement:', achievementError);
+        // Non-fatal, continue with process
+      } else {
+        console.log('Successfully removed phone-verified achievement for user:', userId);
+      }
+    } catch (achievementError) {
+      console.error('Error handling phone achievement removal (non-fatal):', achievementError);
+    }
+
     // Return success since auth update was successful
     console.log('Phone number removal process completed successfully for user:', userId);
 

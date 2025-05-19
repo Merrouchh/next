@@ -248,7 +248,7 @@ const EditProfile = () => {
           onClose={closeModal}
           title={modalTitles.phone}
         >
-          <PhoneSection
+          <PhoneSection 
             user={user}
             supabase={supabase}
             websiteAccount={websiteAccount}

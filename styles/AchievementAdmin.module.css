@@ -1,0 +1,461 @@
+.achievementAdminContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.adminHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerTitle {
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  color: #FFD700;
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+}
+
+.headerIcon {
+  margin-right: 10px;
+}
+
+.headerDescription {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.actionButton {
+  background: linear-gradient(135deg, rgba(157, 78, 221, 0.7) 0%, rgba(107, 48, 171, 0.7) 100%);
+  border: 1px solid rgba(157, 78, 221, 0.5);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionButton:hover {
+  background: linear-gradient(135deg, rgba(177, 98, 241, 0.8) 0%, rgba(127, 68, 191, 0.8) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.actionButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.actionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, rgba(100, 100, 100, 0.7) 0%, rgba(70, 70, 70, 0.7) 100%);
+  border-color: rgba(100, 100, 100, 0.3);
+  transform: none;
+  box-shadow: none;
+}
+
+.refreshButton {
+  background: rgba(26, 26, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshButton:hover {
+  background: rgba(50, 50, 50, 0.7);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 215, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: #FFD700;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 50px 20px;
+  background: rgba(26, 26, 26, 0.7);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.emptyState h2 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+  color: #FFD700;
+}
+
+.emptyState p {
+  color: #aaa;
+}
+
+.reviewsTable {
+  background: rgba(26, 26, 26, 0.7);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  color: #FFD700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  padding: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+  background: rgba(40, 40, 40, 0.7);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableColumn {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding-right: 10px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+}
+
+.userAvatarFallback {
+  width: 40px;
+  height: 40px;
+  color: #aaa;
+  margin-right: 12px;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.profileLink {
+  font-size: 0.8rem;
+  color: #9D4EDD;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.profileLink:hover {
+  color: #FFD700;
+}
+
+.externalLinkIcon {
+  font-size: 0.7rem;
+  margin-left: 5px;
+}
+
+.submissionTime {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.viewButton, .approveButton, .rejectButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.viewButton {
+  background: linear-gradient(135deg, rgba(70, 70, 70, 0.7) 0%, rgba(50, 50, 50, 0.7) 100%);
+  color: #fff;
+  border: 1px solid rgba(100, 100, 100, 0.3);
+  padding: 8px 14px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.viewButton:hover {
+  background: linear-gradient(135deg, rgba(90, 90, 90, 0.7) 0%, rgba(70, 70, 70, 0.7) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.approveButton {
+  background: linear-gradient(135deg, rgba(52, 168, 83, 0.3) 0%, rgba(42, 138, 68, 0.3) 100%);
+  color: #4CAF50;
+  border: 1px solid rgba(52, 168, 83, 0.3);
+  padding: 8px 14px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.approveButton:hover {
+  background: linear-gradient(135deg, rgba(52, 168, 83, 0.4) 0%, rgba(42, 138, 68, 0.4) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.rejectButton {
+  background: linear-gradient(135deg, rgba(234, 67, 53, 0.3) 0%, rgba(204, 57, 43, 0.3) 100%);
+  color: #F44336;
+  border: 1px solid rgba(234, 67, 53, 0.3);
+  padding: 8px 14px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.rejectButton:hover {
+  background: linear-gradient(135deg, rgba(234, 67, 53, 0.4) 0%, rgba(204, 57, 43, 0.4) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.buttonIcon {
+  margin-right: 5px;
+  font-size: 0.9rem;
+}
+
+.viewButton:disabled, .approveButton:disabled, .rejectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.imageModal {
+  background: rgba(26, 26, 26, 0.9);
+  border-radius: 8px;
+  position: relative;
+  padding: 10px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.closeModalButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.closeModalButton:hover {
+  background: rgba(255, 0, 0, 0.5);
+}
+
+.imageContainer {
+  overflow: auto;
+  max-height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 10px;
+}
+
+.modalImage {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .achievementAdminContainer {
+    padding: 15px 10px;
+  }
+  
+  .adminHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .actionButton {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .tableHeader, .tableRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .tableHeader {
+    display: none;
+  }
+  
+  .tableColumn {
+    padding: 5px 0;
+  }
+  
+  .tableColumn:not(:last-child) {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+  
+  .userInfo {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .actionButtons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .viewButton, .approveButton, .rejectButton {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  
+  .imageModal {
+    width: 95%;
+    padding: 8px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .headerTitle {
+    font-size: 1.5rem;
+  }
+  
+  .tableRow {
+    padding: 12px 8px;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .approveButton, .rejectButton {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .viewButton {
+    width: 100%;
+  }
+} 

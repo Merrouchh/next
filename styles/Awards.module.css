@@ -1,0 +1,786 @@
+.awardsContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+}
+
+.awardsHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40px;
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.awardsTitle {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: #FFD700;
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+  letter-spacing: 2px;
+}
+
+.awardsStats {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 20px;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+.recalculateButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 5px;
+  border-radius: 5px;
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+
+.recalculateButton:hover {
+  transform: rotate(45deg);
+  opacity: 1;
+}
+
+.statIcon {
+  color: #FFD700;
+}
+
+.awardsSection {
+  padding: 10px;
+}
+
+.awardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.awardCard {
+  background: rgba(26, 26, 26, 0.7);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 200px;
+}
+
+.awardClaimed {
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+}
+
+.awardCompleted {
+  border-color: rgba(157, 78, 221, 0.6);
+  box-shadow: 0 0 15px rgba(157, 78, 221, 0.15);
+}
+
+.awardLocked {
+  opacity: 0.7;
+  filter: grayscale(40%);
+}
+
+.claimedBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #FFD700, #FFC107);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  transform: rotate(5deg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.awardIconContainer {
+  background: rgba(15, 15, 15, 0.7);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  border: 2px solid transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.awardClaimed .awardIconContainer {
+  border-color: #FFD700;
+  background: linear-gradient(135deg, rgba(15, 15, 15, 0.8), rgba(50, 50, 50, 0.8));
+}
+
+.awardCompleted .awardIconContainer {
+  border-color: #9D4EDD;
+  background: linear-gradient(135deg, rgba(15, 15, 15, 0.8), rgba(30, 30, 30, 0.8));
+}
+
+.awardIconContainer::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.5s ease;
+  z-index: -1;
+}
+
+.awardClaimed .awardIconContainer::after {
+  box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.awardCompleted .awardIconContainer::after {
+  box-shadow: 0 0 20px 5px rgba(157, 78, 221, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+.awardIcon {
+  font-size: 1.8rem;
+  color: #FFD700;
+}
+
+.awardClaimed .awardIcon {
+  color: #FFD700;
+}
+
+.awardCompleted .awardIcon {
+  color: #9D4EDD;
+}
+
+.awardLocked .awardIcon {
+  color: #aaa;
+}
+
+.lockedIcon {
+  color: #888;
+  opacity: 0.8;
+}
+
+.awardInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.awardName {
+  font-size: 1.3rem;
+  margin-bottom: 5px;
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+  color: #ffffff;
+}
+
+.awardClaimed .awardName {
+  color: #FFD700;
+}
+
+.awardCompleted .awardName {
+  color: #9D4EDD;
+}
+
+.awardDescription {
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  margin-bottom: 15px;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.awardMeta {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.9rem;
+  margin-top: auto;
+}
+
+.awardPoints {
+  font-weight: bold;
+  color: #FFD700;
+  background: rgba(15, 15, 15, 0.5);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.claimButton {
+  margin-top: auto;
+  background: linear-gradient(135deg, #c084fc, #7B2CBF);
+  color: #ffffff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(123, 44, 191, 0.3);
+  font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.claimButton:hover {
+  background: linear-gradient(135deg, #d8b4fe, #9D4EDD);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(157, 78, 221, 0.5);
+}
+
+.claimButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(123, 44, 191, 0.3);
+}
+
+.claimIcon {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.claimingText {
+  animation: pulse 1.5s infinite;
+}
+
+.progressContainer {
+  height: 10px;
+  background: rgba(15, 15, 15, 0.5);
+  border-radius: 5px;
+  margin-top: 15px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #9D4EDD, #5A189A);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.progressText {
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-top: 5px;
+}
+
+.achievementLink {
+  color: #9D4EDD;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  padding: 8px 12px;
+  align-self: flex-start;
+  background: rgba(157, 78, 221, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(157, 78, 221, 0.3);
+  font-weight: 500;
+}
+
+.achievementLink:hover {
+  color: #FFD700;
+  background: rgba(157, 78, 221, 0.2);
+  border-color: rgba(157, 78, 221, 0.5);
+}
+
+.linkArrow {
+  margin-left: 5px;
+  transition: transform 0.3s ease;
+}
+
+.achievementLink:hover .linkArrow {
+  transform: translateX(3px);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 215, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: #FFD700;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .awardsTitle {
+    font-size: 2rem;
+  }
+  
+  .awardsStats {
+    gap: 15px;
+  }
+  
+  .awardsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .awardCard {
+    padding: 15px;
+  }
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: rgb(26, 26, 26);
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  padding: 25px;
+  box-shadow: 0 0 20px rgba(157, 78, 221, 0.3);
+  border: 1px solid rgba(157, 78, 221, 0.4);
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.modalTitle {
+  font-size: 1.8rem;
+  color: #FFD700;
+  text-align: center;
+  margin-bottom: 20px;
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.modalDescription {
+  margin-bottom: 25px;
+  text-align: center;
+  color: #e0e0e0;
+  line-height: 1.5;
+}
+
+.reviewButtonsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  width: 100%;
+}
+
+.reviewButtons {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.reviewButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
+  font-weight: 600;
+  flex: 1;
+  min-width: 200px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 1rem;
+  width: auto;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.googleButton {
+  background: linear-gradient(135deg, #4e95ff, #2563eb);
+  color: white;
+  border: none;
+}
+
+.googleButton:hover {
+  background: linear-gradient(135deg, #60a5ff, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.5);
+}
+
+.googleButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+}
+
+.uploadButton {
+  background: linear-gradient(135deg, #c084fc, #8b5cf6);
+  color: white;
+  border: none;
+}
+
+.uploadButton:hover {
+  background: linear-gradient(135deg, #d8b4fe, #a855f7);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(168, 85, 247, 0.5);
+}
+
+.uploadButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(168, 85, 247, 0.3);
+}
+
+.buttonIcon {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.modal .buttonIcon {
+  font-size: 1.2rem;
+}
+
+.selectedFile {
+  background: rgba(15, 15, 15, 0.5);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.selectedFile p {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.awardCard .selectedFile {
+  background: rgba(15, 15, 15, 0.5);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 5px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.awardCard .selectedFile p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progressBarContainer {
+  height: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFC107);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.progressBarContainer span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.8rem;
+  color: white;
+  font-weight: bold;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.submitButton {
+  background: linear-gradient(135deg, #ffdd00, #ffb700);
+  color: #000;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 183, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
+  box-shadow: 0 3px 10px rgba(255, 183, 0, 0.3);
+  width: 100%;
+  margin-top: 10px;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+
+.submitButton:hover {
+  background: linear-gradient(135deg, #ffea00, #ffc400);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 196, 0, 0.5);
+}
+
+.submitButton:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 8px rgba(250, 204, 21, 0.3);
+}
+
+/* Status badge for pending verification */
+.pendingBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #FF9800, #FF5722);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  transform: rotate(5deg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.pendingMessage {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: auto;
+  text-align: center;
+}
+
+.pendingMessage p {
+  color: #FF9800;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.completedBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #9D4EDD, #7B2CBF);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  transform: rotate(5deg);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .reviewButtons {
+    flex-direction: column;
+  }
+  
+  .reviewButton {
+    width: 100%;
+  }
+  
+  .modal {
+    width: 95%;
+    padding: 20px 15px;
+  }
+  
+  .modalTitle {
+    font-size: 1.5rem;
+  }
+}
+
+/* Button disabled states */
+.claimButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  background: linear-gradient(135deg, #9c9c9c, #7a7a7a);
+  box-shadow: none;
+}
+
+.submitButton:disabled {
+  background: linear-gradient(135deg, #6b6b6b, #555555);
+  color: #aaa;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+.reviewButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  background: linear-gradient(135deg, #6b6b6b, #555555);
+  box-shadow: none;
+} 
+
+/* Back to profile button - matching the edit-profile-btn styling */
+.backToProfileBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #9D4EDD 0%, #7B2CBF 100%);
+  box-shadow: 0 2px 10px rgba(157, 78, 221, 0.3);
+  margin: 0 auto;
+  text-decoration: none;
+  max-width: fit-content;
+}
+
+.backToProfileBtn:hover {
+  background: linear-gradient(135deg, #7B2CBF 0%, #5A189A 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(157, 78, 221, 0.4);
+}
+
+/* Styles for Achievement Hunter reward tag */
+.achievementRewardTag {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #9D4EDD, #6A0DAD);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 10px;
+  vertical-align: middle;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Specific styling for the VIP claim button */
+.vipClaimButton {
+  background: linear-gradient(135deg, #9D4EDD, #6A0DAD);
+  color: white;
+  box-shadow: 0 3px 8px rgba(106, 13, 173, 0.4);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.vipClaimButton:hover {
+  background: linear-gradient(135deg, #A74AF9, #7B2CBF);
+  box-shadow: 0 5px 15px rgba(106, 13, 173, 0.6);
+}
+
+/* Update or remove old styles */
+.vipRewardBadge {
+  display: none; /* Hide the old badge */
+}
+
+.vipRewardIcon {
+  font-size: 0.75rem;
+}
+
+.vipRewardText {
+  display: none; /* Hide the old text */
+} 

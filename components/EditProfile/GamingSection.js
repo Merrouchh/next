@@ -278,7 +278,7 @@ const GamingSection = () => {
               </>
             )}
           </button>
-        </div>
+      </div>
       </form>
     </section>
   );

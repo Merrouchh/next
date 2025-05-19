@@ -1,4 +1,5 @@
 import { createClient } from '../../../utils/supabase/server-props';
+import { markAchievementCompleted } from '../../../lib/achievements/achievementService';
 
 /**
  * API route for handling video clip comments
@@ -155,6 +156,24 @@ async function addComment(req, res, supabase, session) {
     if (error) {
       console.error('Error adding comment:', error);
       return res.status(500).json({ error: 'Failed to add comment' });
+    }
+
+    // Only trigger first-interaction achievement when the user has both liked and commented
+    try {
+      // Check if the user has liked any clips
+      const { count: likesCount, error: likesError } = await supabase
+        .from('video_likes')
+        .select('id', { count: 'exact' })
+        .eq('user_id', session.user.id)
+        .limit(1);
+        
+      if (!likesError && likesCount > 0) {
+        // User has both commented and liked, so award the achievement
+        await markAchievementCompleted(supabase, session.user.id, 'first-interaction');
+      }
+    } catch (achievementError) {
+      console.error('Error checking/triggering achievement:', achievementError);
+      // Non-fatal, continue with comment submission
     }
 
     return res.status(201).json(comment);

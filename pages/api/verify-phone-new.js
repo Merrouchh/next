@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { generateRandomCode } from '../../utils/auth';
 import fetch from 'node-fetch';
+import { markAchievementCompleted } from '../../lib/achievements/achievementService';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -423,6 +424,9 @@ export default async function handler(req, res) {
         }
 
         console.log('Phone number updated successfully in auth.users table');
+
+        // Trigger phone achievement
+        await markAchievementCompleted(supabase, userId, 'phone-verified');
 
         return res.status(200).json({
           success: true,

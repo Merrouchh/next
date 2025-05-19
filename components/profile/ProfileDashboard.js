@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaGamepad, FaDiscord, FaTrophy, FaCalendarCheck, 
-  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt, FaEdit
+  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt, FaEdit, FaStar
 } from 'react-icons/fa';
 import { IoMdPodium } from 'react-icons/io';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
@@ -202,10 +202,53 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
               {user?.username || 'User'}
             </h1>
           </div>
-          {winCount > 0 && (
-            <div className={styles['user-badge']}>
-              <FaTrophy style={{ color: '#FFD700', marginRight: '8px' }} />
-              <span>{winCount} Tournament {winCount === 1 ? 'Win' : 'Wins'}</span>
+          
+          <div className={styles['user-stats']}>
+            {/* Add points display */}
+            <div className={styles['stat-item']}>
+              <FaStar className={styles['stat-icon']} />
+              <span className={styles['stat-value']}>{user.points || 0}</span>
+              <span className={styles['stat-label']}>Points</span>
+            </div>
+            
+            <div className={styles['stat-item']}>
+              <FaTrophy className={styles['stat-icon']} />
+              <span className={styles['stat-value']}>{winCount}</span>
+              <span className={styles['stat-label']}>Wins</span>
+            </div>
+            
+            {user.joined_at && (
+              <div className={styles['stat-item']}>
+                <FaCalendarCheck className={styles['stat-icon']} />
+                <span className={styles['stat-value']}>{formatDate(user.joined_at)}</span>
+                <span className={styles['stat-label']}>Joined</span>
+              </div>
+            )}
+            
+            {user.clips_count !== undefined && (
+              <div className={styles['stat-item']}>
+                <AiOutlineCamera className={styles['stat-icon']} />
+                <span className={styles['stat-value']}>{user.clips_count}</span>
+                <span className={styles['stat-label']}>Clips</span>
+              </div>
+            )}
+          </div>
+          
+          {isOwner && (
+            <div className={styles['actions-container']}>
+              <Link href="/editprofile" passHref>
+                <button className={styles['edit-profile-btn']}>
+                  <FaEdit className={styles['edit-icon']} />
+                  <span>EDIT PROFILE</span>
+                </button>
+              </Link>
+              
+              <Link href="/awards" passHref>
+                <button className={styles['awards-btn']}>
+                  <FaTrophy className={styles['awards-icon']} />
+                  <span>ACHIEVEMENTS</span>
+                </button>
+              </Link>
             </div>
           )}
         </div>
@@ -228,87 +271,60 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         </button>
         
         <div className={`${styles['dashboard-section-content']} ${profilesExpanded ? styles['expanded'] : ''}`}>
-          {isOwner && profilesExpanded && (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              padding: '10px 15px 12px', 
-              borderBottom: '1px solid #222',
-              marginTop: '-5px'
-            }}>
-              <Link 
-                href="/editprofile"
-                className={styles['edit-button']}
-                style={{ 
-                  margin: '0 auto',
-                  paddingTop: '4px',
-                  paddingBottom: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  textDecoration: 'none'
-                }}
-              >
-                <FaEdit style={{ marginRight: '5px' }} />
-                Edit Gaming Profiles
-              </Link>
-            </div>
-          )}
-          
-          <div className={styles['gaming-profile-grid']}>
-            {profiles?.discord_id && (
-              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.discord_id, 'Discord ID')}>
-                <FaDiscord className={styles['gaming-profile-icon']} />
-                <span className={styles['gaming-profile-text']}>{profiles.discord_id}</span>
-                <FaCopy className={styles['gaming-profile-copy']} />
-              </div>
-            )}
-            {profiles?.valorant_id && (
-              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.valorant_id, 'Valorant ID')}>
-                <SiValorant className={styles['gaming-profile-icon']} />
-                <span className={styles['gaming-profile-text']}>
-                  {valorantParts.name}
-                  {valorantParts.tag && (
-                    <>
-                      <span style={{ color: '#888', margin: '0 1px' }}>#</span>
-                      {valorantParts.tag}
-                    </>
-                  )}
-                </span>
-                <FaCopy className={styles['gaming-profile-copy']} />
-              </div>
-            )}
-            {profiles?.fortnite_name && (
-              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.fortnite_name, 'Fortnite Name')}>
-                <SiEpicgames className={styles['gaming-profile-icon']} />
-                <span className={styles['gaming-profile-text']}>{profiles.fortnite_name}</span>
-                <FaCopy className={styles['gaming-profile-copy']} />
-              </div>
-            )}
-            {profiles?.battlenet_id && (
-              <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.battlenet_id, 'Battle.net ID')}>
-                <SiBattledotnet className={styles['gaming-profile-icon']} />
-                <span className={styles['gaming-profile-text']}>{profiles.battlenet_id}</span>
-                <FaCopy className={styles['gaming-profile-copy']} />
-              </div>
-            )}
-            {!profiles?.discord_id && 
-             !profiles?.valorant_id && 
-             !profiles?.fortnite_name && 
-             !profiles?.battlenet_id && (
-              <div className={styles['no-profiles-message']}>
+            <div className={styles['gaming-profile-grid']}>
+              {profiles?.discord_id && (
+                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.discord_id, 'Discord ID')}>
+                  <FaDiscord className={styles['gaming-profile-icon']} />
+                  <span className={styles['gaming-profile-text']}>{profiles.discord_id}</span>
+                  <FaCopy className={styles['gaming-profile-copy']} />
+                </div>
+              )}
+              {profiles?.valorant_id && (
+                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.valorant_id, 'Valorant ID')}>
+                  <SiValorant className={styles['gaming-profile-icon']} />
+                  <span className={styles['gaming-profile-text']}>
+                    {valorantParts.name}
+                    {valorantParts.tag && (
+                      <>
+                        <span style={{ color: '#888', margin: '0 1px' }}>#</span>
+                        {valorantParts.tag}
+                      </>
+                    )}
+                  </span>
+                  <FaCopy className={styles['gaming-profile-copy']} />
+                </div>
+              )}
+              {profiles?.fortnite_name && (
+                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.fortnite_name, 'Fortnite Name')}>
+                  <SiEpicgames className={styles['gaming-profile-icon']} />
+                  <span className={styles['gaming-profile-text']}>{profiles.fortnite_name}</span>
+                  <FaCopy className={styles['gaming-profile-copy']} />
+                </div>
+              )}
+              {profiles?.battlenet_id && (
+                <div className={styles['gaming-profile-item']} onClick={() => handleCopy(profiles.battlenet_id, 'Battle.net ID')}>
+                  <SiBattledotnet className={styles['gaming-profile-icon']} />
+                  <span className={styles['gaming-profile-text']}>{profiles.battlenet_id}</span>
+                  <FaCopy className={styles['gaming-profile-copy']} />
+                </div>
+              )}
+              {!profiles?.discord_id && 
+               !profiles?.valorant_id && 
+               !profiles?.fortnite_name && 
+               !profiles?.battlenet_id && (
+                <div className={styles['no-profiles-message']}>
                 {isOwner ? (
                   <div className={styles['no-profiles-owner']}>
                     <p>No gaming profiles added yet.</p>
                     <Link href="/editprofile" className={styles['add-profiles-link']}>
                       + Add your gaming profiles
                     </Link>
-                  </div>
+                </div>
                 ) : (
                   'No gaming profiles added yet.'
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
           </div>
         </div>
       </div>

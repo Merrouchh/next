@@ -564,4 +564,71 @@
 .add-profiles-link:hover {
   background-color: rgba(0, 0, 0, 0.9);
   transform: translateY(-1px);
+}
+
+/* Profile Action Buttons */
+.actions-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.edit-profile-btn, .awards-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-profile-btn {
+  background: linear-gradient(135deg, #9D4EDD 0%, #7B2CBF 100%);
+  box-shadow: 0 2px 10px rgba(157, 78, 221, 0.3);
+}
+
+.edit-profile-btn:hover {
+  background: linear-gradient(135deg, #7B2CBF 0%, #5A189A 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(157, 78, 221, 0.4);
+}
+
+.awards-btn {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+}
+
+.awards-btn:hover {
+  background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+}
+
+.edit-icon, .awards-icon {
+  font-size: 16px;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 480px) {
+  .actions-container {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 250px;
+    margin: 15px auto 0;
+  }
+  
+  .edit-profile-btn, .awards-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 16px;
+  }
 } 

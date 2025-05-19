@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/DesktopDashboardHeader.module.css';
-import { AiOutlineDashboard, AiOutlineDesktop, AiOutlineShop, AiOutlineTrophy, AiOutlineVideoCamera, AiOutlineCompass, AiOutlineCalendar } from 'react-icons/ai';
+import { AiOutlineDashboard, AiOutlineDesktop, AiOutlineShop, AiOutlineTrophy, AiOutlineVideoCamera, AiOutlineCompass, AiOutlineCalendar, AiOutlineStar } from 'react-icons/ai';
 
 const DesktopDashboardHeader = () => {
   const router = useRouter();
@@ -29,6 +29,11 @@ const DesktopDashboardHeader = () => {
       path: '/events',
       label: 'Events',
       icon: <AiOutlineCalendar size={20} />
+    },
+    {
+      path: '/awards',
+      label: 'Awards',
+      icon: <AiOutlineStar size={20} />
     },
     {
       path: '/discover',

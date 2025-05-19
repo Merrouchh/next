@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineDashboard } from 'react-icons/ai';
+import { AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineDashboard, AiOutlineStar } from 'react-icons/ai';
 import styles from '../styles/MobileHeader.module.css';
 import Image from 'next/image';
 import MobileMenu from './MobileMenu';
@@ -141,6 +141,17 @@ const MobileHeader = () => {
               >
                 <span className={styles.icon}><AiOutlineVideoCamera size={20} /></span>
                 <span className={styles.label}>Profile</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  router.push('/awards');
+                  closeMenu();
+                }}
+                className={`${styles.navButton} ${router.pathname === '/awards' ? styles.active : ''}`}
+              >
+                <span className={styles.icon}><AiOutlineStar size={20} /></span>
+                <span className={styles.label}>Awards</span>
               </button>
 
               {user?.isAdmin && (
