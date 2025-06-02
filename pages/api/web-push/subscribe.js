@@ -8,8 +8,16 @@ export default async function handler(req, res) {
 
   try {
     const { subscription } = req.body;
+    console.log('🔍 Received subscription request:', {
+      hasSubscription: !!subscription,
+      endpoint: subscription?.endpoint?.substring(0, 50) + '...',
+      hasKeys: !!subscription?.keys,
+      hasP256dh: !!subscription?.keys?.p256dh,
+      hasAuth: !!subscription?.keys?.auth
+    });
 
     if (!subscription || !subscription.endpoint) {
+      console.error('❌ Invalid subscription data received:', subscription);
       return res.status(400).json({ error: 'Invalid subscription data' });
     }
 
@@ -66,10 +74,17 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error('Error saving push subscription:', error);
+      console.error('❌ Detailed error saving push subscription:', {
+        error: error,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       return res.status(500).json({ 
         error: 'Failed to save subscription',
-        details: error.message 
+        details: error.message,
+        code: error.code
       });
     }
 
