@@ -379,8 +379,25 @@ const AvailableComputers = ({ metaData }) => {
     if (user) {
       setQueueDataLoaded(false);
       setUserQueueStatusLoaded(false);
+    } else {
+      // If no user, mark as loaded to prevent infinite loading
+      setQueueDataLoaded(true);
+      setUserQueueStatusLoaded(true);
     }
   }, [user]);
+
+  // Add fallback timeout to prevent infinite loading
+  useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      console.log('⚠️ Loading timeout - forcing completion to prevent black screen');
+      setQueueDataLoaded(true);
+      setUserQueueStatusLoaded(true);
+      setPageReady(true);
+      setConnectionError(false);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(fallbackTimeout);
+  }, []);
 
   // Combined real-time subscription for queue status and user position
   useEffect(() => {
@@ -414,77 +431,94 @@ const AvailableComputers = ({ metaData }) => {
         await checkIfUserInQueue();
         setConnectionError(false);
         
-      } catch (error) {
-        console.error('Error loading initial data:', error);
-        setConnectionError(true);
-        setQueueStatus({ 
-          hasQueue: false, 
-          count: 0, 
-          byType: { normal: 0, vip: 0, any: 0 }
-        });
-        setQueueDataLoaded(true);
-        setUserQueueStatusLoaded(true);
-      } finally {
-        setIsRefreshingQueue(false);
-      }
+              } catch (error) {
+          console.error('Error loading initial data:', error);
+          setConnectionError(true);
+          setQueueStatus({ 
+            hasQueue: false, 
+            count: 0, 
+            byType: { normal: 0, vip: 0, any: 0 }
+          });
+          setQueueDataLoaded(true);
+          setUserQueueStatusLoaded(true);
+          
+          // If this is an auth error, it might be a token issue
+          if (error.message?.includes('JWT') || error.message?.includes('expired') || error.message?.includes('invalid')) {
+            console.log('🔄 Auth error detected - might need token refresh');
+            // Force a small delay then reload to get fresh tokens
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
+        } finally {
+          setIsRefreshingQueue(false);
+        }
     };
 
     loadInitialData();
 
     // Set up single real-time subscription for all queue changes
-    const queueSubscription = supabase
-      .channel('combined-queue-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'computer_queue'
-        },
-        (payload) => {
-          console.log('Real-time queue change detected:', payload);
-          setIsRefreshingQueue(true);
-          
-          // Refresh both queue status and user position when any change occurs
-          setTimeout(async () => {
-            try {
-              // Refresh general queue status
-              const response = await fetch('/api/computer-queue?count_only=true');
-              if (response.ok) {
-                const data = await response.json();
-                const queueLength = data.queue?.length || 0;
-                const queueByType = data.queueByType || { normal: 0, vip: 0, any: 0 };
+    let queueSubscription;
+    
+    try {
+      queueSubscription = supabase
+        .channel('combined-queue-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+            schema: 'public',
+            table: 'computer_queue'
+          },
+          (payload) => {
+            console.log('Real-time queue change detected:', payload);
+            setIsRefreshingQueue(true);
+            
+            // Refresh both queue status and user position when any change occurs
+            setTimeout(async () => {
+              try {
+                // Refresh general queue status
+                const response = await fetch('/api/computer-queue?count_only=true');
+                if (response.ok) {
+                  const data = await response.json();
+                  const queueLength = data.queue?.length || 0;
+                  const queueByType = data.queueByType || { normal: 0, vip: 0, any: 0 };
+                  
+                  setQueueStatus({
+                    hasQueue: queueLength > 0,
+                    count: queueLength,
+                    byType: queueByType
+                  });
+                }
                 
-                setQueueStatus({
-                  hasQueue: queueLength > 0,
-                  count: queueLength,
-                  byType: queueByType
-                });
+                // Refresh user's queue position (this will catch position changes)
+                await checkIfUserInQueue();
+                setConnectionError(false);
+                
+              } catch (error) {
+                console.error('Error refreshing data on real-time update:', error);
+                setConnectionError(true);
+              } finally {
+                setIsRefreshingQueue(false);
               }
-              
-              // Refresh user's queue position (this will catch position changes)
-              await checkIfUserInQueue();
-              setConnectionError(false);
-              
-            } catch (error) {
-              console.error('Error refreshing data on real-time update:', error);
-              setConnectionError(true);
-            } finally {
-              setIsRefreshingQueue(false);
-            }
-          }, 100); // Small delay to ensure DB consistency
-        }
-      )
-      .subscribe((status) => {
-        console.log('Combined queue subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time queue and position updates active');
-          setRealtimeStatus('connected');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.log('❌ Real-time connection error');
-          setRealtimeStatus('disconnected');
-        }
-      });
+            }, 100); // Small delay to ensure DB consistency
+          }
+        )
+        .subscribe((status) => {
+          console.log('Combined queue subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Real-time queue and position updates active');
+            setRealtimeStatus('connected');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.log('❌ Real-time connection error:', status);
+            setRealtimeStatus('disconnected');
+          }
+        });
+    } catch (error) {
+      console.error('❌ Failed to set up real-time subscription:', error);
+      setRealtimeStatus('disconnected');
+      setConnectionError(true);
+    }
 
     // Fallback polling if real-time fails
     let fallbackInterval;
@@ -524,7 +558,13 @@ const AvailableComputers = ({ metaData }) => {
       console.log('🔌 Unsubscribing from combined queue changes');
       clearTimeout(fallbackTimer);
       if (fallbackInterval) clearInterval(fallbackInterval);
-      supabase.removeChannel(queueSubscription);
+      if (queueSubscription) {
+        try {
+          supabase.removeChannel(queueSubscription);
+        } catch (error) {
+          console.log('Error removing subscription:', error);
+        }
+      }
     };
   }, [user, supabase]);
 
@@ -570,6 +610,11 @@ const AvailableComputers = ({ metaData }) => {
       }
     } catch (error) {
       console.error('Error checking user queue status:', error);
+      
+      // If this is an auth error, mark as loaded to prevent black screen
+      if (error.message?.includes('JWT') || error.message?.includes('expired') || error.message?.includes('invalid') || error.message?.includes('401')) {
+        console.log('🔄 Auth error in queue check - marking as loaded to prevent black screen');
+      }
     }
 
     setUserQueuePosition(null);
@@ -696,14 +741,36 @@ const AvailableComputers = ({ metaData }) => {
         if (mounted) setError(null);
       } catch (err) {
         console.error('Error fetching computer data:', err);
-        if (mounted) setError('Unable to fetch computer data. Please try again.');
+        
+        // Check if this is an auth error
+        if (err.message?.includes('JWT') || err.message?.includes('expired') || err.message?.includes('invalid') || err.message?.includes('401')) {
+          console.log('🔄 Auth error in computer data fetch - might need token refresh');
+          // Don't show error for auth issues, just mark as loaded
+          if (mounted) {
+            const allLoaded = {};
+            [...computersList.normal, ...computersList.vip].forEach(computer => {
+              allLoaded[computer.id] = true;
+            });
+            setLoadedComputers(allLoaded);
+            setError(null);
+            
+            // Try to refresh tokens by reloading after a delay
+            setTimeout(() => {
+              window.location.reload();
+            }, 3000);
+          }
+        } else {
+          if (mounted) setError('Unable to fetch computer data. Please try again.');
+        }
         
         // Mark all computers as loaded even on error to prevent infinite loading
-        const allLoaded = {};
-        [...computersList.normal, ...computersList.vip].forEach(computer => {
-          allLoaded[computer.id] = true;
-        });
-        setLoadedComputers(allLoaded);
+        if (mounted) {
+          const allLoaded = {};
+          [...computersList.normal, ...computersList.vip].forEach(computer => {
+            allLoaded[computer.id] = true;
+          });
+          setLoadedComputers(allLoaded);
+        }
       }
     };
 
@@ -1494,13 +1561,42 @@ const AvailableComputers = ({ metaData }) => {
   }, []);
 
   // If the page is not yet ready or queue data is still loading, show the full page loading screen
-  if (!pageReady || !queueDataLoaded || !userQueueStatusLoaded) {
+  // Add emergency escape hatch to prevent infinite loading
+  const shouldShowLoading = (!pageReady || !queueDataLoaded || !userQueueStatusLoaded);
+  
+  if (shouldShowLoading) {
     return (
       <ProtectedPageWrapper>
         <div className={styles.loading}>
           <div className={styles.loadingDot}></div>
           <div className={styles.loadingDot}></div>
           <div className={styles.loadingDot}></div>
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>
+              Loading computer status...
+            </p>
+            <button 
+              onClick={() => {
+                console.log('🚨 Emergency escape - forcing page load');
+                setPageReady(true);
+                setQueueDataLoaded(true);
+                setUserQueueStatusLoaded(true);
+                setError(null);
+              }}
+              style={{
+                marginTop: '1rem',
+                padding: '8px 16px',
+                background: '#333',
+                color: '#fff',
+                border: '1px solid #555',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              Skip Loading
+            </button>
+          </div>
         </div>
       </ProtectedPageWrapper>
     );
