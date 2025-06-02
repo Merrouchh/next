@@ -1,16 +1,67 @@
 {
-  "name": "Merrouch Gaming",
+  "name": "Merrouch Gaming Center",
   "short_name": "MG",
-  "description": "Best Gaming center in Tangier",
+  "description": "Best Gaming center in Tangier - Computer status, queue system, and gaming services",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#FFD700",
+  "scope": "/",
+  "categories": ["entertainment", "games"],
+  "lang": "en",
   "icons": [
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Computer Status",
+      "short_name": "Computers",
+      "description": "Check computer availability",
+      "url": "/avcomputers",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Discover Videos",
+      "short_name": "Discover",
+      "description": "Browse gaming clips",
+      "url": "/discover",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "gcm_sender_id": "103953800507"
 } 

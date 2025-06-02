@@ -7,6 +7,13 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import UserLoginModal from '../components/UserLoginModal';
 import { toast } from 'react-hot-toast';
+import { 
+  registerServiceWorker, 
+  showServiceWorkerNotification, 
+  requestNotificationPermission,
+  areNotificationsEnabled,
+  resetNotificationRateLimit
+} from '../utils/serviceWorker';
 
 export const getServerSideProps = async ({ res }) => {
   // Set cache control headers
@@ -941,6 +948,9 @@ const AvailableComputers = ({ metaData }) => {
           notes: ''
         });
         
+        // Reset notification rate limits for fresh notifications
+        resetNotificationRateLimit();
+        
         // Real-time system will automatically update the UI
         // No manual refresh needed - the subscription will handle it
         
@@ -993,6 +1003,10 @@ const AvailableComputers = ({ metaData }) => {
       if (response.ok) {
         toast.success(data.message);
         setUserQueuePosition(null);
+        setPreviousQueuePosition(null); // Reset previous position tracking
+        
+        // Reset notification rate limits for when they rejoin
+        resetNotificationRateLimit();
         
                  // Real-time system will automatically update the UI
          // No manual refresh needed - the subscription will handle it
@@ -1120,43 +1134,195 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, []);
 
-  // Request notification permission on component mount
+  // Initialize service worker and notifications on component mount
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        setNotificationsEnabled(permission === 'granted');
-      });
-    } else if (Notification.permission === 'granted') {
-      setNotificationsEnabled(true);
+    console.log('🔔 NOTIFICATION INIT: Starting PWA notification setup...');
+    
+    const initializeNotifications = async () => {
+      try {
+        // 1. Register service worker first
+        const registration = await registerServiceWorker();
+        
+        if (!registration) {
+          console.log('❌ Service Worker registration failed');
+          setNotificationsEnabled(false);
+          return;
+        }
+        
+        // 2. Check notification support
+        const notificationStatus = areNotificationsEnabled();
+        console.log('🔔 Notification status:', notificationStatus);
+        
+        if (!notificationStatus.supported) {
+          console.log('❌ Notifications not supported in this browser');
+          setNotificationsEnabled(false);
+          return;
+        }
+        
+        // 3. Request permission if needed
+        let permission = notificationStatus.permission;
+        
+        if (permission === 'default') {
+          console.log('🔔 Requesting notification permission...');
+          permission = await requestNotificationPermission();
+        }
+        
+        if (permission === 'granted') {
+          console.log('✅ Notifications enabled with Service Worker!');
+          setNotificationsEnabled(true);
+          
+          // 4. Show test notification through service worker
+          try {
+            const success = await showServiceWorkerNotification('Queue Notifications Ready!', {
+              body: 'You will now receive notifications about your queue position.',
+              icon: '/logo.png',
+              tag: 'test-notification',
+              data: { url: '/avcomputers' }
+            });
+            
+            if (success) {
+              console.log('✅ Test service worker notification sent successfully');
+            } else {
+              console.log('⚠️ Test notification failed, but service worker is ready');
+            }
+          } catch (error) {
+            console.error('❌ Error sending test notification:', error);
+          }
+        } else {
+          console.log('❌ Notification permission denied:', permission);
+          setNotificationsEnabled(false);
+        }
+        
+      } catch (error) {
+        console.error('❌ Error initializing PWA notifications:', error);
+        setNotificationsEnabled(false);
+      }
+    };
+    
+    // Only run in browser
+    if (typeof window !== 'undefined') {
+      initializeNotifications();
     }
+    
+    // Cleanup function
+    return () => {
+      console.log('🧹 Cleaning up notification system...');
+    };
   }, []);
 
   // Check for queue position changes and send notifications
   useEffect(() => {
-    if (userQueuePosition && previousQueuePosition && notificationsEnabled) {
-      const currentPos = userQueuePosition.position;
-      const prevPos = previousQueuePosition.position;
-      
-      if (currentPos < prevPos) {
-        // Position improved - trigger immediate refresh for more responsive updates
-        const improvement = prevPos - currentPos;
-        new Notification('Queue Update', {
-          body: `You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`,
-          icon: '/favicon.ico',
-          tag: 'queue-update'
-        });
+    console.log('🔔 Queue Position Debug:', {
+      userQueuePosition: userQueuePosition?.position,
+      previousQueuePosition: previousQueuePosition?.position,
+      notificationsEnabled,
+      hasCurrentPosition: !!userQueuePosition,
+      hasPreviousPosition: !!previousQueuePosition
+    });
+
+    const handleQueueNotifications = async () => {
+      if (userQueuePosition && previousQueuePosition && notificationsEnabled) {
+        const currentPos = userQueuePosition.position;
+        const prevPos = previousQueuePosition.position;
         
-        // Real-time system will automatically update the UI
-        // No manual refresh needed - the subscription handles all changes
+        console.log('🔔 Position Change Check:', { currentPos, prevPos, improved: currentPos < prevPos });
         
-      } else if (currentPos === 1 && prevPos > 1) {
-        // They're next!
-        new Notification('You\'re Next!', {
-          body: 'You are next in line! Get ready to game.',
-          icon: '/favicon.ico',
-          tag: 'queue-next'
-        });
+        if (currentPos < prevPos) {
+          // Position improved - trigger immediate refresh for more responsive updates
+          const improvement = prevPos - currentPos;
+          console.log('🔔 Sending position improvement notification:', improvement);
+          
+          try {
+            console.log('🔔 Sending position improvement notification via Service Worker');
+            const success = await showServiceWorkerNotification('Queue Update 🎮', {
+              body: `You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`,
+              icon: '/logo.png',
+              badge: '/favicon.ico',
+              tag: `queue-update-${Date.now()}`, // Make tag unique to allow multiple notifications
+              data: { 
+                url: '/avcomputers',
+                type: 'position-improvement',
+                position: currentPos 
+              },
+              actions: [
+                {
+                  action: 'view',
+                  title: 'View Queue',
+                  icon: '/favicon.ico'
+                }
+              ],
+              requireInteraction: false,
+              vibrate: [200, 100, 200]
+            });
+            
+            if (success) {
+              console.log('✅ Service Worker notification sent successfully');
+            } else {
+              console.log('🔔 Service Worker notification failed, using toast fallback');
+              toast.success(`You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`);
+            }
+          } catch (error) {
+            console.error('❌ Error creating service worker notification:', error);
+            // Fallback to toast notification
+            toast.success(`You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`);
+          }
+          
+          // Real-time system will automatically update the UI
+          // No manual refresh needed - the subscription handles all changes
+          
+        } else if (currentPos === 1 && prevPos > 1) {
+          // They're next!
+          console.log('🔔 Sending "You\'re Next!" notification');
+          try {
+            console.log('🔔 Sending "You\'re Next!" notification via Service Worker');
+            const success = await showServiceWorkerNotification('You\'re Next! 🎯', {
+              body: 'You are next in line! Get ready to game. 🎮',
+              icon: '/logo.png',
+              badge: '/favicon.ico',
+              tag: `queue-next-${Date.now()}`, // Make tag unique to allow multiple notifications
+              data: { 
+                url: '/avcomputers',
+                type: 'next-in-line',
+                position: 1 
+              },
+              actions: [
+                {
+                  action: 'view',
+                  title: 'Go to Gaming Center',
+                  icon: '/favicon.ico'
+                }
+              ],
+              requireInteraction: true, // Keep this notification visible until user interacts
+              vibrate: [300, 100, 300, 100, 300]
+            });
+            
+            if (success) {
+              console.log('✅ "You\'re Next!" Service Worker notification sent successfully');
+            } else {
+              console.log('🔔 Service Worker notification failed, using toast fallback');
+              toast.success('You\'re Next! You are next in line! Get ready to game.');
+            }
+          } catch (error) {
+            console.error('❌ Error creating service worker notification:', error);
+            // Fallback to toast notification
+            toast.success('You\'re Next! You are next in line! Get ready to game.');
+          }
+        }
+      } else if (userQueuePosition && !notificationsEnabled) {
+        console.log('🔔 Queue position exists but notifications are disabled');
+      } else if (!userQueuePosition) {
+        console.log('🔔 No queue position - user not in queue');
       }
+    };
+
+    handleQueueNotifications();
+    // Always update previous position, even if no notifications were sent
+    if (userQueuePosition !== previousQueuePosition) {
+      console.log('🔔 Queue position tracking update:', {
+        from: previousQueuePosition?.position || 'none',
+        to: userQueuePosition?.position || 'none',
+        notificationsEnabled
+      });
     }
     
     setPreviousQueuePosition(userQueuePosition);
