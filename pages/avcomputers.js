@@ -1392,20 +1392,104 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, [userQueuePosition, previousQueuePosition, notificationsEnabled]);
 
-  // Track online/offline status
+  // Track online/offline status and page visibility for auto-refresh
   useEffect(() => {
+    let refreshTimeout;
+    let wasOffline = false;
+    let wasHidden = false;
+    let lastActiveTime = Date.now();
+
     const handleOnline = () => {
+      console.log('🌐 Connection restored');
       setIsOffline(false);
       setConnectionError(false);
+      
+      // If we were offline, refresh the page after a short delay
+      if (wasOffline) {
+        console.log('🔄 Auto-refreshing after reconnection...');
+        refreshTimeout = setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+      wasOffline = false;
     };
-    const handleOffline = () => setIsOffline(true);
 
+    const handleOffline = () => {
+      console.log('🌐 Connection lost');
+      setIsOffline(true);
+      wasOffline = true;
+      if (refreshTimeout) clearTimeout(refreshTimeout);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page became hidden
+        wasHidden = true;
+        lastActiveTime = Date.now();
+        console.log('👁️ Page hidden');
+      } else {
+        // Page became visible
+        console.log('👁️ Page visible');
+        
+        if (wasHidden) {
+          const timeAway = Date.now() - lastActiveTime;
+          const minutesAway = Math.floor(timeAway / (1000 * 60));
+          
+          console.log(`⏰ User was away for ${minutesAway} minutes`);
+          
+          // If user was away for more than 2 minutes, refresh the page
+          if (timeAway > 2 * 60 * 1000) {
+            console.log('🔄 Auto-refreshing after extended absence...');
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else if (timeAway > 30 * 1000) {
+            // If away for more than 30 seconds, force data refresh
+            console.log('🔄 Forcing data refresh...');
+            setRealtimeStatus('connecting');
+            setIsRefreshingQueue(true);
+            
+            // Trigger a manual refresh of all data
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        }
+        wasHidden = false;
+      }
+    };
+
+    const handleFocus = () => {
+      // Additional check when window gains focus
+      if (wasHidden || wasOffline) {
+        console.log('🔄 Window focused - checking if refresh needed...');
+        const timeAway = Date.now() - lastActiveTime;
+        
+        if (timeAway > 60 * 1000) { // More than 1 minute
+          console.log('🔄 Auto-refreshing on focus...');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }
+    };
+
+    // Listen for connection events
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // Listen for page visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Listen for window focus (backup method)
+    window.addEventListener('focus', handleFocus);
 
     return () => {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -1457,6 +1541,15 @@ const AvailableComputers = ({ metaData }) => {
              realtimeStatus === 'disconnected' ? 'Reconnecting...' : 
              'Live'}
           </span>
+          {(realtimeStatus === 'disconnected' || connectionError || isOffline) && (
+            <button 
+              className={styles.refreshButton}
+              onClick={() => window.location.reload()}
+              title="Refresh page to get latest data"
+            >
+              🔄
+            </button>
+          )}
         </div>
         
         {/* Connection Status Banner */}

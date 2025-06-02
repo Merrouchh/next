@@ -420,6 +420,35 @@
   letter-spacing: 1px;
 }
 
+.refreshButton {
+  margin-left: 0.5rem;
+  background: none;
+  border: 1px solid #4b5563;
+  color: #9ca3af;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+}
+
+.refreshButton:hover {
+  background: #374151;
+  border-color: #6b7280;
+  color: #d1d5db;
+  transform: rotate(90deg);
+}
+
+.refreshButton:active {
+  transform: rotate(180deg);
+  background: #4b5563;
+}
+
 @keyframes livePulse {
   0% {
     transform: scale(1);
