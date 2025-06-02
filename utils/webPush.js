@@ -191,6 +191,50 @@ export const getPushSubscription = async () => {
 };
 
 /**
+ * Clean up all push subscriptions for the current user (for logout)
+ */
+export const cleanupUserPushSubscriptions = async () => {
+  try {
+    console.log('🔔 Cleaning up user push subscriptions...');
+    
+    // First try to unsubscribe from the browser push manager
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        
+        if (subscription) {
+          await subscription.unsubscribe();
+          console.log('✅ Browser push subscription removed');
+        }
+      } catch (browserError) {
+        console.log('⚠️ Could not unsubscribe from browser:', browserError);
+      }
+    }
+    
+    // Clean up all user subscriptions from server database
+    const headers = await getAuthHeaders();
+    const response = await fetch('/api/web-push/unsubscribe-user', {
+      method: 'POST',
+      headers
+    });
+
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log(`✅ Cleaned up ${data.cleanedCount} push subscriptions for user`);
+      return { success: true, cleanedCount: data.cleanedCount };
+    } else {
+      console.error('❌ Failed to cleanup user push subscriptions:', data.error);
+      return { success: false, error: data.error };
+    }
+  } catch (error) {
+    console.error('❌ User push cleanup error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Test sending a push notification
  */
 export const testPushNotification = async () => {
