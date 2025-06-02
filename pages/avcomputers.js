@@ -1561,42 +1561,13 @@ const AvailableComputers = ({ metaData }) => {
   }, []);
 
   // If the page is not yet ready or queue data is still loading, show the full page loading screen
-  // Add emergency escape hatch to prevent infinite loading
-  const shouldShowLoading = (!pageReady || !queueDataLoaded || !userQueueStatusLoaded);
-  
-  if (shouldShowLoading) {
+  if (!pageReady || !queueDataLoaded || !userQueueStatusLoaded) {
     return (
       <ProtectedPageWrapper>
         <div className={styles.loading}>
           <div className={styles.loadingDot}></div>
           <div className={styles.loadingDot}></div>
           <div className={styles.loadingDot}></div>
-          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-            <p style={{ color: '#aaa', fontSize: '0.9rem' }}>
-              Loading computer status...
-            </p>
-            <button 
-              onClick={() => {
-                console.log('🚨 Emergency escape - forcing page load');
-                setPageReady(true);
-                setQueueDataLoaded(true);
-                setUserQueueStatusLoaded(true);
-                setError(null);
-              }}
-              style={{
-                marginTop: '1rem',
-                padding: '8px 16px',
-                background: '#333',
-                color: '#fff',
-                border: '1px solid #555',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.8rem'
-              }}
-            >
-              Skip Loading
-            </button>
-          </div>
         </div>
       </ProtectedPageWrapper>
     );
