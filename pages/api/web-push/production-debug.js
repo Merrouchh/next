@@ -34,16 +34,15 @@ export default async function handler(req, res) {
         process.env.SUPABASE_SERVICE_ROLE_KEY
       );
 
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('push_subscriptions')
-        .select('count(*)', { count: 'exact' })
-        .limit(1);
+        .select('*', { count: 'exact', head: true });
 
-      if (error) {
-        supabaseTest = { success: false, error: error.message };
-      } else {
-        supabaseTest = { success: true, totalSubscriptions: data?.length || 0 };
-      }
+              if (error) {
+          supabaseTest = { success: false, error: error.message };
+        } else {
+          supabaseTest = { success: true, totalSubscriptions: count || 0 };
+        }
     } catch (error) {
       supabaseTest = { success: false, error: error.message };
     }

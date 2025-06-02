@@ -99,10 +99,16 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ Error saving push subscription:', error);
+    console.error('❌ Fatal error in subscribe endpoint:', {
+      error: error,
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({ 
       error: 'Failed to save subscription',
-      details: error.message 
+      details: error.message,
+      type: error.name
     });
   }
 } 
