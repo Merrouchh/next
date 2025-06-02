@@ -95,7 +95,7 @@ export default async function handler(req, res) {
             endpoint: testSubscription.endpoint,
             p256dh_key: testSubscription.keys.p256dh,
             auth_key: testSubscription.keys.auth,
-            user_ip: 'test-ip',
+            user_ip: null,
             user_agent: 'test-agent',
             is_active: true
           }, {
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
             endpoint: subscription.endpoint,
             p256dh_key: subscription.keys?.p256dh || '',
             auth_key: subscription.keys?.auth || '',
-            user_ip: req.headers['x-forwarded-for'] || 'unknown',
+            user_ip: null, // Avoid IP format issues in debug
             user_agent: req.headers['user-agent'] || '',
             is_active: true
           }, {

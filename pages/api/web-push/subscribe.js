@@ -43,8 +43,25 @@ export default async function handler(req, res) {
       }
     }
     
-    // Extract additional info
-    const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    // Extract additional info - handle multiple IPs from proxies/CDNs
+    const forwardedFor = req.headers['x-forwarded-for'];
+    let userIp = 'unknown';
+    
+    if (forwardedFor) {
+      // Take the first IP address from the comma-separated list
+      userIp = forwardedFor.split(',')[0].trim();
+    } else if (req.connection.remoteAddress) {
+      userIp = req.connection.remoteAddress;
+    }
+    
+    // Validate IP format for PostgreSQL INET type
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+    
+    if (!ipv4Regex.test(userIp) && !ipv6Regex.test(userIp)) {
+      userIp = null; // Set to null if invalid format
+    }
+    
     const userAgent = req.headers['user-agent'] || '';
     
     // Create a unique identifier for this subscription
