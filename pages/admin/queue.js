@@ -19,6 +19,10 @@ export default function QueueManagement() {
     computer_type: 'any',
     notes: ''
   });
+  const [addMode, setAddMode] = useState('manual'); // 'manual' or 'existing'
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -61,6 +65,33 @@ export default function QueueManagement() {
     }
   };
 
+  // Fetch users for selection
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, username, email, phone')
+        .order('username', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+      
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  // Open add modal and fetch users if needed
+  const handleOpenAddModal = () => {
+    setShowAddModal(true);
+    if (users.length === 0) {
+      fetchUsers();
+    }
+  };
+
   useEffect(() => {
     fetchQueue();
     
@@ -79,9 +110,34 @@ export default function QueueManagement() {
   const handleAddToQueue = async (e) => {
     e.preventDefault();
     
-    if (!newEntry.user_name.trim()) {
-      toast.error('User name is required');
-      return;
+    let queueData = {};
+    
+    if (addMode === 'existing') {
+      if (!selectedUser) {
+        toast.error('Please select a user');
+        return;
+      }
+      
+      const user = users.find(u => u.id === selectedUser);
+      if (!user) {
+        toast.error('Selected user not found');
+        return;
+      }
+      
+      queueData = {
+        user_name: user.username || user.email,
+        phone_number: user.phone || '',
+        computer_type: newEntry.computer_type,
+        notes: newEntry.notes,
+        user_id: user.id // Link to the website user account
+      };
+    } else {
+      if (!newEntry.user_name.trim()) {
+        toast.error('User name is required');
+        return;
+      }
+      
+      queueData = { ...newEntry };
     }
 
     try {
@@ -94,25 +150,69 @@ export default function QueueManagement() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newEntry)
+        body: JSON.stringify(queueData)
       });
 
       if (!response.ok) {
         throw new Error('Failed to add to queue');
       }
 
-      toast.success('Added to queue successfully');
+      const userName = addMode === 'existing' ? 
+        users.find(u => u.id === selectedUser)?.username || 'User' : 
+        newEntry.user_name;
+      
+      toast.success(`${userName} added to queue successfully`);
+      
+      // Reset form
       setNewEntry({
         user_name: '',
         phone_number: '',
         computer_type: 'any',
         notes: ''
       });
+      setSelectedUser('');
+      setSearchTerm('');
       setShowAddModal(false);
       fetchQueue();
     } catch (error) {
       console.error('Error adding to queue:', error);
       toast.error('Failed to add to queue');
+    }
+  };
+
+  // Reset form when switching modes
+  const handleModeChange = (mode) => {
+    setAddMode(mode);
+    setNewEntry({
+      user_name: '',
+      phone_number: '',
+      computer_type: 'any',
+      notes: ''
+    });
+    setSelectedUser('');
+    setSearchTerm('');
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      (user.username && user.username.toLowerCase().includes(searchLower)) ||
+      (user.email && user.email.toLowerCase().includes(searchLower)) ||
+      (user.phone && user.phone.includes(searchTerm))
+    );
+  });
+
+  // Handle user selection
+  const handleUserSelect = (userId) => {
+    setSelectedUser(userId);
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      // Pre-fill any available data
+      setNewEntry(prev => ({
+        ...prev,
+        phone_number: user.phone || prev.phone_number
+      }));
     }
   };
 
@@ -254,7 +354,7 @@ export default function QueueManagement() {
             
             <button 
               className={styles.addButton}
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
             >
               <FaPlus /> Add to Queue
             </button>
@@ -410,28 +510,117 @@ export default function QueueManagement() {
               </div>
               
               <form onSubmit={handleAddToQueue} className={styles.modalForm}>
+                {/* Mode Selection */}
                 <div className={styles.formGroup}>
-                  <label htmlFor="user_name">Customer Name *</label>
-                  <input
-                    type="text"
-                    id="user_name"
-                    value={newEntry.user_name}
-                    onChange={(e) => setNewEntry(prev => ({ ...prev, user_name: e.target.value }))}
-                    required
-                    placeholder="Enter customer name"
-                  />
+                  <label>Add Method</label>
+                  <div className={styles.modeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.modeButton} ${addMode === 'manual' ? styles.active : ''}`}
+                      onClick={() => handleModeChange('manual')}
+                    >
+                      Manual Entry
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.modeButton} ${addMode === 'existing' ? styles.active : ''}`}
+                      onClick={() => handleModeChange('existing')}
+                    >
+                      Select Existing User
+                    </button>
+                  </div>
                 </div>
-                
-                <div className={styles.formGroup}>
-                  <label htmlFor="phone_number">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone_number"
-                    value={newEntry.phone_number}
-                    onChange={(e) => setNewEntry(prev => ({ ...prev, phone_number: e.target.value }))}
-                    placeholder="Enter phone number"
-                  />
-                </div>
+
+                {/* Existing User Selection */}
+                {addMode === 'existing' && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="user_search">Search & Select User *</label>
+                    <input
+                      type="text"
+                      id="user_search"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search by username, email, or phone..."
+                      className={styles.searchInput}
+                    />
+                    
+                    {searchTerm && (
+                      <div className={styles.userList}>
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map(user => (
+                            <div
+                              key={user.id}
+                              className={`${styles.userItem} ${selectedUser === user.id ? styles.selected : ''}`}
+                              onClick={() => handleUserSelect(user.id)}
+                            >
+                              <div className={styles.userInfo}>
+                                <strong>{user.username || 'No username'}</strong>
+                                <small>{user.email}</small>
+                                {user.phone && <small>{user.phone}</small>}
+                              </div>
+                              {selectedUser === user.id && (
+                                <div className={styles.selectedIndicator}>✓</div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className={styles.noResults}>
+                            No users found matching "{searchTerm}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {selectedUser && (
+                      <div className={styles.selectedUserInfo}>
+                        <strong>Selected: </strong>
+                        {users.find(u => u.id === selectedUser)?.username || 'Unknown User'}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Manual Entry Fields */}
+                {addMode === 'manual' && (
+                  <>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="user_name">Customer Name *</label>
+                      <input
+                        type="text"
+                        id="user_name"
+                        value={newEntry.user_name}
+                        onChange={(e) => setNewEntry(prev => ({ ...prev, user_name: e.target.value }))}
+                        required
+                        placeholder="Enter customer name"
+                      />
+                    </div>
+                    
+                    <div className={styles.formGroup}>
+                      <label htmlFor="phone_number">Phone Number</label>
+                      <input
+                        type="tel"
+                        id="phone_number"
+                        value={newEntry.phone_number}
+                        onChange={(e) => setNewEntry(prev => ({ ...prev, phone_number: e.target.value }))}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Phone number override for existing users */}
+                {addMode === 'existing' && selectedUser && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="phone_override">Phone Number (Optional Override)</label>
+                    <input
+                      type="tel"
+                      id="phone_override"
+                      value={newEntry.phone_number}
+                      onChange={(e) => setNewEntry(prev => ({ ...prev, phone_number: e.target.value }))}
+                      placeholder="Override phone number if needed"
+                    />
+                  </div>
+                )}
                 
                 <div className={styles.formGroup}>
                   <label htmlFor="computer_type">Preferred Computer Type</label>

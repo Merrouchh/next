@@ -204,39 +204,47 @@ async function addToQueue(req, res, supabase) {
     }
 
     // Check for existing entries to prevent duplicates
-    if (self_service) {
-      // For self-service, check by user_id first if available, then by phone_number
-      if (authenticatedUserId) {
-        const { data: existingByUserId } = await supabase
-          .from('computer_queue')
-          .select('*')
-          .eq('user_id', authenticatedUserId)
-          .single();
+    const targetUserId = self_service ? authenticatedUserId : user_id;
+    
+    // Check by user_id if available (for both self-service and admin-added existing users)
+    if (targetUserId) {
+      const { data: existingByUserId } = await supabase
+        .from('computer_queue')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .single();
 
-        if (existingByUserId) {
-          return res.status(409).json({ 
-            error: `You are already in the queue at position #${existingByUserId.position}`,
-            existing_entry: existingByUserId,
-            is_duplicate: true
-          });
-        }
+      if (existingByUserId) {
+        const errorMessage = self_service 
+          ? `You are already in the queue at position #${existingByUserId.position}`
+          : `This user is already in the queue at position #${existingByUserId.position}`;
+        
+        return res.status(409).json({ 
+          error: errorMessage,
+          existing_entry: existingByUserId,
+          is_duplicate: true
+        });
       }
+    }
+    
+    // Also check by phone number for additional safety
+    if (phone_number) {
+      const { data: existingByPhone } = await supabase
+        .from('computer_queue')
+        .select('*')
+        .eq('phone_number', phone_number)
+        .single();
 
-      // Also check by phone number
-      if (phone_number) {
-        const { data: existingByPhone } = await supabase
-          .from('computer_queue')
-          .select('*')
-          .eq('phone_number', phone_number)
-          .single();
-
-        if (existingByPhone) {
-          return res.status(409).json({ 
-            error: `This phone number is already in the queue at position #${existingByPhone.position}`,
-            existing_entry: existingByPhone,
-            is_duplicate: true
-          });
-        }
+      if (existingByPhone) {
+        const errorMessage = self_service 
+          ? `This phone number is already in the queue at position #${existingByPhone.position}`
+          : `This phone number is already in the queue at position #${existingByPhone.position}`;
+        
+        return res.status(409).json({ 
+          error: errorMessage,
+          existing_entry: existingByPhone,
+          is_duplicate: true
+        });
       }
     }
 
@@ -258,7 +266,7 @@ async function addToQueue(req, res, supabase) {
         computer_type,
         notes: self_service ? (notes || 'Remote queue registration') : notes,
         position: nextPosition,
-        user_id: self_service ? authenticatedUserId : null,
+        user_id: self_service ? authenticatedUserId : user_id, // Use provided user_id for admin-added existing users
         created_by
       }])
       .select()

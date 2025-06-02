@@ -530,6 +530,8 @@ const AvailableComputers = ({ metaData }) => {
         return { in_queue: false };
       }
 
+      console.log('🔍 Checking user queue status for user:', user.id);
+      
       const response = await fetch('/api/computer-queue?check_status=true', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -538,9 +540,13 @@ const AvailableComputers = ({ metaData }) => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Queue status response:', data);
+        
         if (data.in_queue) {
+          console.log('✅ User is in queue at position:', data.entry.position);
           setUserQueuePosition(data.entry);
         } else {
+          console.log('❌ User is not in queue');
           setUserQueuePosition(null);
         }
         setUserQueueStatusLoaded(true);
