@@ -1,4 +1,4 @@
-const CACHE_NAME = 'merrouch-gaming-v1';
+const CACHE_NAME = 'merrouch-gaming-v2';
 const urlsToCache = [
   '/',
   '/avcomputers',

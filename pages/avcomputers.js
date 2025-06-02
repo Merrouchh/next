@@ -14,6 +14,12 @@ import {
   areNotificationsEnabled,
   resetNotificationRateLimit
 } from '../utils/serviceWorker';
+import { 
+  subscribeUserToPush, 
+  unsubscribeFromPush, 
+  isPushSubscribed, 
+  testPushNotification 
+} from '../utils/webPush';
 
 export const getServerSideProps = async ({ res }) => {
   // Set cache control headers
@@ -318,6 +324,9 @@ const AvailableComputers = ({ metaData }) => {
   // State for tracking previous queue position for notifications
   const [previousQueuePosition, setPreviousQueuePosition] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  // Web Push state
+  const [webPushSubscribed, setWebPushSubscribed] = useState(false);
+  const [webPushLoading, setWebPushLoading] = useState(false);
   // State for connection status
   const [isOffline, setIsOffline] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
@@ -1134,111 +1143,209 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, []);
 
-  // Initialize service worker and notifications on component mount
+  // Web Push Functions
+  const handleSubscribeToWebPush = async () => {
+    setWebPushLoading(true);
+    try {
+      // Request permission if needed
+      const permission = await requestNotificationPermission();
+      
+      if (permission !== 'granted') {
+        toast.error('❌ Notification permission is required for background notifications');
+        return;
+      }
+      
+      // Update permission state
+      setNotificationsEnabled(true);
+      
+      // Subscribe to web push
+      const result = await subscribeUserToPush();
+      if (result.success) {
+        setWebPushSubscribed(true);
+        
+        if (!result.wasAlreadySubscribed) {
+          toast.success('✅ Background notifications enabled! You\'ll get notified even when the browser is closed.');
+          
+          // Show welcome notification for new subscriptions only
+          try {
+            await showServiceWorkerNotification('Notifications Enabled! 🎯', {
+              body: 'You\'ll now get queue updates even when your browser is closed.',
+              icon: '/logo.png',
+              tag: 'notifications-enabled',
+              data: { url: '/avcomputers' }
+            });
+          } catch (error) {
+            console.log('Could not show welcome notification:', error);
+          }
+        } else {
+          toast.success('✅ Background notifications are already active!');
+        }
+      } else {
+        toast.error(`❌ Failed to enable notifications: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error('❌ Failed to enable background notifications');
+      console.error('❌ Subscription error:', error);
+    } finally {
+      setWebPushLoading(false);
+    }
+  };
+
+  const handleUnsubscribeFromWebPush = async () => {
+    setWebPushLoading(true);
+    try {
+      const result = await unsubscribeFromPush();
+      if (result.success) {
+        setWebPushSubscribed(false);
+        toast.success('✅ Unsubscribed from web push notifications');
+        console.log('✅ Successfully unsubscribed from web push notifications');
+      } else {
+        toast.error(`❌ Failed to unsubscribe from web push: ${result.error}`);
+        console.error('❌ Web push unsubscription failed:', result.error);
+      }
+    } catch (error) {
+      toast.error('❌ Failed to unsubscribe from web push notifications');
+      console.error('❌ Web push unsubscription error:', error);
+    } finally {
+      setWebPushLoading(false);
+    }
+  };
+
+  const handleTestWebPush = async () => {
+    try {
+      const result = await testPushNotification();
+      if (result.success) {
+        toast.success('✅ Test web push notification sent!');
+        console.log('✅ Test web push notification sent successfully');
+      } else {
+        toast.error(`❌ Failed to send test notification: ${result.error}`);
+        console.error('❌ Test web push failed:', result.error);
+      }
+    } catch (error) {
+      toast.error('❌ Failed to send test notification');
+      console.error('❌ Test web push error:', error);
+    }
+  };
+
+  // Simple notification initialization
   useEffect(() => {
-    console.log('🔔 NOTIFICATION INIT: Starting PWA notification setup...');
+    console.log('🔔 Initializing notifications...');
     
     const initializeNotifications = async () => {
       try {
-        // 1. Register service worker first
-        const registration = await registerServiceWorker();
+        // Register service worker
+        await registerServiceWorker();
         
-        if (!registration) {
-          console.log('❌ Service Worker registration failed');
-          setNotificationsEnabled(false);
-          return;
-        }
-        
-        // 2. Check notification support
+        // Check if notifications are supported and permission status
         const notificationStatus = areNotificationsEnabled();
         console.log('🔔 Notification status:', notificationStatus);
         
         if (!notificationStatus.supported) {
-          console.log('❌ Notifications not supported in this browser');
-          setNotificationsEnabled(false);
+          console.log('❌ Notifications not supported');
           return;
         }
         
-        // 3. Request permission if needed
-        let permission = notificationStatus.permission;
+        // Update states based on current status
+        setNotificationsEnabled(notificationStatus.permission === 'granted');
         
-        if (permission === 'default') {
-          console.log('🔔 Requesting notification permission...');
-          permission = await requestNotificationPermission();
-        }
-        
-        if (permission === 'granted') {
-          console.log('✅ Notifications enabled with Service Worker!');
-          setNotificationsEnabled(true);
-          
-          // 4. Show test notification through service worker
-          try {
-            const success = await showServiceWorkerNotification('Queue Notifications Ready!', {
-              body: 'You will now receive notifications about your queue position.',
-              icon: '/logo.png',
-              tag: 'test-notification',
-              data: { url: '/avcomputers' }
-            });
-            
-            if (success) {
-              console.log('✅ Test service worker notification sent successfully');
-            } else {
-              console.log('⚠️ Test notification failed, but service worker is ready');
-            }
-          } catch (error) {
-            console.error('❌ Error sending test notification:', error);
-          }
+        // Check web push subscription status
+        if (notificationStatus.permission === 'granted') {
+          const isSubscribed = await isPushSubscribed();
+          setWebPushSubscribed(isSubscribed);
+          console.log('🔔 Push subscribed:', isSubscribed);
         } else {
-          console.log('❌ Notification permission denied:', permission);
-          setNotificationsEnabled(false);
+          setWebPushSubscribed(false);
         }
         
       } catch (error) {
-        console.error('❌ Error initializing PWA notifications:', error);
+        console.error('❌ Error initializing notifications:', error);
         setNotificationsEnabled(false);
+        setWebPushSubscribed(false);
       }
     };
     
-    // Only run in browser
     if (typeof window !== 'undefined') {
       initializeNotifications();
     }
-    
-    // Cleanup function
-    return () => {
-      console.log('🧹 Cleaning up notification system...');
-    };
   }, []);
 
   // Check for queue position changes and send notifications
   useEffect(() => {
-    console.log('🔔 Queue Position Debug:', {
-      userQueuePosition: userQueuePosition?.position,
-      previousQueuePosition: previousQueuePosition?.position,
-      notificationsEnabled,
-      hasCurrentPosition: !!userQueuePosition,
-      hasPreviousPosition: !!previousQueuePosition
-    });
-
     const handleQueueNotifications = async () => {
-      if (userQueuePosition && previousQueuePosition && notificationsEnabled) {
-        const currentPos = userQueuePosition.position;
-        const prevPos = previousQueuePosition.position;
+      console.log('🔔 Queue Position Debug:', {
+        userQueuePosition: userQueuePosition?.position,
+        previousQueuePosition: previousQueuePosition?.position,
+        notificationsEnabled,
+        hasCurrentPosition: !!userQueuePosition,
+        hasPreviousPosition: !!previousQueuePosition
+      });
+
+      // Only proceed if we have both current and previous positions and notifications are enabled
+      if (!userQueuePosition || !previousQueuePosition || !notificationsEnabled) {
+        return;
+      }
+
+      const currentPos = parseInt(userQueuePosition.position, 10);
+      const prevPos = parseInt(previousQueuePosition.position, 10);
+      
+      // Validate that both positions are valid numbers
+      if (isNaN(currentPos) || isNaN(prevPos)) {
+        console.log('❌ Invalid position values detected:', { currentPos, prevPos });
+        return;
+      }
+      
+      console.log('🔔 Position Change Check:', { 
+        currentPos, 
+        prevPos, 
+        improved: currentPos < prevPos,
+        isNext: currentPos === 1
+      });
+
+      // Only send one notification per position change
+      if (currentPos < prevPos) {
+        const improvement = prevPos - currentPos;
+        console.log('🔔 Position improved by:', improvement, 'Current position:', currentPos);
         
-        console.log('🔔 Position Change Check:', { currentPos, prevPos, improved: currentPos < prevPos });
-        
-        if (currentPos < prevPos) {
-          // Position improved - trigger immediate refresh for more responsive updates
-          const improvement = prevPos - currentPos;
-          console.log('🔔 Sending position improvement notification:', improvement);
+        try {
+          let notificationSent = false;
           
-          try {
-            console.log('🔔 Sending position improvement notification via Service Worker');
+          // Special case for becoming first in line - ONLY if we weren't already first
+          if (currentPos === 1 && prevPos > 1) {
+            console.log('🔔 User is now first in line!');
+            const success = await showServiceWorkerNotification('You\'re Next! 🎯', {
+              body: 'You are next in line! Get ready to game. 🎮',
+              icon: '/logo.png',
+              badge: '/favicon.ico',
+              tag: `queue-next-${Date.now()}`,
+              data: { 
+                url: '/avcomputers',
+                type: 'next-in-line',
+                position: 1 
+              },
+              actions: [
+                {
+                  action: 'view',
+                  title: 'Go to Gaming Center',
+                  icon: '/favicon.ico'
+                }
+              ],
+              requireInteraction: true,
+              vibrate: [300, 100, 300, 100, 300]
+            });
+            
+            if (!success) {
+              toast.success('You\'re Next! You are next in line! Get ready to game.');
+            }
+            notificationSent = true;
+          }
+          
+          // Only send position update if we haven't sent the "You're Next!" notification
+          if (!notificationSent) {
             const success = await showServiceWorkerNotification('Queue Update 🎮', {
               body: `You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`,
               icon: '/logo.png',
               badge: '/favicon.ico',
-              tag: `queue-update-${Date.now()}`, // Make tag unique to allow multiple notifications
+              tag: `queue-update-${Date.now()}`,
               data: { 
                 url: '/avcomputers',
                 type: 'position-improvement',
@@ -1255,67 +1362,25 @@ const AvailableComputers = ({ metaData }) => {
               vibrate: [200, 100, 200]
             });
             
-            if (success) {
-              console.log('✅ Service Worker notification sent successfully');
-            } else {
-              console.log('🔔 Service Worker notification failed, using toast fallback');
+            if (!success) {
               toast.success(`You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`);
             }
-          } catch (error) {
-            console.error('❌ Error creating service worker notification:', error);
-            // Fallback to toast notification
+          }
+        } catch (error) {
+          console.error('❌ Error sending queue notification:', error);
+          // Fallback notification based on position
+          if (currentPos === 1 && prevPos > 1) {
+            toast.success('You\'re Next! You are next in line! Get ready to game.');
+          } else {
             toast.success(`You moved up ${improvement} ${improvement === 1 ? 'spot' : 'spots'}! You're now #${currentPos} in line.`);
           }
-          
-          // Real-time system will automatically update the UI
-          // No manual refresh needed - the subscription handles all changes
-          
-        } else if (currentPos === 1 && prevPos > 1) {
-          // They're next!
-          console.log('🔔 Sending "You\'re Next!" notification');
-          try {
-            console.log('🔔 Sending "You\'re Next!" notification via Service Worker');
-            const success = await showServiceWorkerNotification('You\'re Next! 🎯', {
-              body: 'You are next in line! Get ready to game. 🎮',
-              icon: '/logo.png',
-              badge: '/favicon.ico',
-              tag: `queue-next-${Date.now()}`, // Make tag unique to allow multiple notifications
-              data: { 
-                url: '/avcomputers',
-                type: 'next-in-line',
-                position: 1 
-              },
-              actions: [
-                {
-                  action: 'view',
-                  title: 'Go to Gaming Center',
-                  icon: '/favicon.ico'
-                }
-              ],
-              requireInteraction: true, // Keep this notification visible until user interacts
-              vibrate: [300, 100, 300, 100, 300]
-            });
-            
-            if (success) {
-              console.log('✅ "You\'re Next!" Service Worker notification sent successfully');
-            } else {
-              console.log('🔔 Service Worker notification failed, using toast fallback');
-              toast.success('You\'re Next! You are next in line! Get ready to game.');
-            }
-          } catch (error) {
-            console.error('❌ Error creating service worker notification:', error);
-            // Fallback to toast notification
-            toast.success('You\'re Next! You are next in line! Get ready to game.');
-          }
         }
-      } else if (userQueuePosition && !notificationsEnabled) {
-        console.log('🔔 Queue position exists but notifications are disabled');
-      } else if (!userQueuePosition) {
-        console.log('🔔 No queue position - user not in queue');
       }
     };
 
+    // Run the notification check
     handleQueueNotifications();
+    
     // Always update previous position, even if no notifications were sent
     if (userQueuePosition !== previousQueuePosition) {
       console.log('🔔 Queue position tracking update:', {
@@ -1323,9 +1388,8 @@ const AvailableComputers = ({ metaData }) => {
         to: userQueuePosition?.position || 'none',
         notificationsEnabled
       });
+      setPreviousQueuePosition(userQueuePosition);
     }
-    
-    setPreviousQueuePosition(userQueuePosition);
   }, [userQueuePosition, previousQueuePosition, notificationsEnabled]);
 
   // Track online/offline status
@@ -1496,6 +1560,71 @@ const AvailableComputers = ({ metaData }) => {
           userInQueue={!!userQueuePosition}
           hasQueueConflict={hasQueueConflict('VIP')}
         />
+
+        {/* Background Notifications */}
+        <div className={styles.webPushSection}>
+          <h3 className={styles.webPushTitle}>🔔 Background Notifications</h3>
+          <p className={styles.webPushDescription}>
+            Get queue updates even when your browser is closed!
+          </p>
+          
+          <div className={styles.webPushControls}>
+            {!webPushSubscribed ? (
+              <div className={styles.permissionNeeded}>
+                <p className={styles.permissionText}>
+                  📱 Never miss your turn in the queue
+                </p>
+                <button 
+                  className={`${styles.webPushButton} ${styles.subscribeButton}`}
+                  onClick={handleSubscribeToWebPush}
+                  disabled={webPushLoading}
+                >
+                  {webPushLoading ? '⏳ Enabling...' : '🔔 Enable Notifications'}
+                </button>
+                <small className={styles.permissionNote}>
+                  Your browser will ask for permission
+                </small>
+              </div>
+            ) : (
+              <div className={styles.webPushSubscribed}>
+                <div className={styles.subscribedStatus}>
+                  <span className={styles.subscribedIcon}>✅</span>
+                  <span>Background notifications active</span>
+                </div>
+                <div className={styles.webPushActions}>
+                  <button 
+                    className={`${styles.webPushButton} ${styles.testButton}`}
+                    onClick={handleTestWebPush}
+                  >
+                    🧪 Test
+                  </button>
+                  <button 
+                    className={`${styles.webPushButton} ${styles.unsubscribeButton}`}
+                    onClick={handleUnsubscribeFromWebPush}
+                    disabled={webPushLoading}
+                  >
+                    {webPushLoading ? '⏳ Disabling...' : '🔕 Disable'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className={styles.webPushFeatures}>
+            <div className={styles.feature}>
+              <span className={styles.featureIcon}>🚀</span>
+              <span>Works when browser is closed</span>
+            </div>
+            <div className={styles.feature}>
+              <span className={styles.featureIcon}>📱</span>
+              <span>Real-time queue updates</span>
+            </div>
+            <div className={styles.feature}>
+              <span className={styles.featureIcon}>⚡</span>
+              <span>Instant position changes</span>
+            </div>
+          </div>
+        </div>
         
         {/* User confirmation login modal */}
         <UserLoginModal 
