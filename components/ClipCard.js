@@ -215,7 +215,8 @@ const ClipCard = ({
     likesCount,
     isUpdatingLike,
     likesList,
-    handleLike
+    handleLike,
+    isLoadingLikes
   } = useLikes(clipData.id, clipData.likes_count || 0, user);
 
   const isOwner = user?.id === clipData.user_id;
@@ -730,7 +731,7 @@ const ClipCard = ({
             isOpen={showLikesModal}
             onClose={() => setShowLikesModal(false)}
             likes={likesList}
-            isLoadingLikes={isUpdatingLike}
+            isLoadingLikes={isLoadingLikes}
           />
         </div>
       </div>

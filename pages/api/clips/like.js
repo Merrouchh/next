@@ -14,14 +14,13 @@ export default async function handler(req, res) {
   // Create Supabase client
   const supabase = createClient({ req, res });
 
-  // Get authenticated user (more secure than getSession)
+  // Get user session for authentication
   const {
-    data: { user },
-    error: authError
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // Check authentication
-  if (authError || !user) {
+  if (!session) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
@@ -37,7 +36,7 @@ export default async function handler(req, res) {
       .from('video_likes')
       .select('id')
       .eq('clip_id', clipId)
-      .eq('user_id', user.id)
+      .eq('user_id', session.user.id)
       .maybeSingle();
 
     if (likeError && likeError.code !== 'PGRST116') {
@@ -53,7 +52,7 @@ export default async function handler(req, res) {
         .from('video_likes')
         .delete()
         .eq('clip_id', clipId)
-        .eq('user_id', user.id);
+        .eq('user_id', session.user.id);
 
       if (unlikeError) {
         console.error('Error removing like:', unlikeError);
@@ -67,7 +66,7 @@ export default async function handler(req, res) {
         .from('video_likes')
         .insert({
           clip_id: clipId,
-          user_id: user.id
+          user_id: session.user.id
         });
 
       if (likeError) {
@@ -81,12 +80,12 @@ export default async function handler(req, res) {
         const { count: commentsCount, error: commentsError } = await supabase
           .from('clip_comments')
           .select('id', { count: 'exact' })
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .limit(1);
           
         if (!commentsError && commentsCount > 0) {
           // User has both liked and commented, so award the achievement
-          await markAchievementCompleted(supabase, user.id, 'first-interaction');
+          await markAchievementCompleted(supabase, session.user.id, 'first-interaction');
         }
       } catch (achievementError) {
         console.error('Error checking/triggering achievement:', achievementError);

@@ -38,10 +38,10 @@ const LikesModal = ({ isOpen, onClose, likes, isLoadingLikes }) => {
         ) : likes?.length > 0 ? (
           <div className={styles.likesList}>
             {likes.map((like, index) => {
-              // Generate a unique key even if user_id is undefined
-              const uniqueKey = like.user_id 
-                ? `${like.user_id}-${like.created_at || Date.now()}`
-                : `like-${index}-${Date.now()}`;
+              // Generate a unique key, preferring userId but falling back to a stable key
+              const uniqueKey = like.userId || like.user_id 
+                ? `${like.userId || like.user_id}-${like.createdAt || like.created_at || index}`
+                : `like-${index}`;
 
               return (
                 <div 

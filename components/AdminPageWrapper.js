@@ -36,7 +36,6 @@ export default function AdminPageWrapper({ children, title }) {
     { path: '/admin/events', label: 'Events', icon: <FaCalendarAlt /> },
     { path: '/admin/events/brackets', label: 'Brackets', icon: <FaTrophy /> },
     { path: '/admin/sessions', label: 'Sessions', icon: <FaDesktop /> },
-    { path: '/admin/queue', label: 'Queue', icon: <FaUsers /> },
     { path: '/admin/stats', label: 'Analytics', icon: <FaChartLine /> },
     { path: '/admin/tasks', label: 'Tasks', icon: <FaClock /> },
     { path: '/admin/notifications', label: 'Notifications', icon: <FaBell /> },

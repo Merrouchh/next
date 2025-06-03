@@ -8,16 +8,8 @@ export default async function handler(req, res) {
 
   try {
     const { subscription } = req.body;
-    console.log('🔍 Received subscription request:', {
-      hasSubscription: !!subscription,
-      endpoint: subscription?.endpoint?.substring(0, 50) + '...',
-      hasKeys: !!subscription?.keys,
-      hasP256dh: !!subscription?.keys?.p256dh,
-      hasAuth: !!subscription?.keys?.auth
-    });
 
     if (!subscription || !subscription.endpoint) {
-      console.error('❌ Invalid subscription data received:', subscription);
       return res.status(400).json({ error: 'Invalid subscription data' });
     }
 
@@ -43,78 +35,19 @@ export default async function handler(req, res) {
       }
     }
     
-    // Extract additional info - handle multiple IPs from proxies/CDNs
-    const forwardedFor = req.headers['x-forwarded-for'];
-    let userIp = 'unknown';
-    
-    if (forwardedFor) {
-      // Take the first IP address from the comma-separated list
-      userIp = forwardedFor.split(',')[0].trim();
-    } else if (req.connection.remoteAddress) {
-      userIp = req.connection.remoteAddress;
-    }
-    
-    // Validate IP format for PostgreSQL INET type
-    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-    
-    if (!ipv4Regex.test(userIp) && !ipv6Regex.test(userIp)) {
-      userIp = null; // Set to null if invalid format
-    }
-    
+    // Extract additional info
+    const userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || '';
     
     // Create a unique identifier for this subscription
     const subscriptionId = Buffer.from(subscription.endpoint).toString('base64').substring(0, 50);
 
-    // Use Supabase client with SERVICE ROLE KEY (bypasses RLS)
+    // Use Supabase client to save subscription
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    console.log('🔍 Attempting to save subscription with:', {
-      subscriptionId,
-      userId,
-      endpoint: subscription.endpoint?.substring(0, 50) + '...',
-      hasP256dh: !!subscription.keys?.p256dh,
-      hasAuth: !!subscription.keys?.auth,
-      userIp,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    });
-
-    // First, try to check if table exists and is accessible
-    try {
-      const { data: testQuery, error: testError, count } = await supabase
-        .from('push_subscriptions')
-        .select('id', { count: 'exact', head: true });
-      
-      console.log('🔍 Table accessibility test:', {
-        success: !testError,
-        error: testError?.message,
-        count: count
-      });
-      
-      if (testError) {
-        console.error('❌ Table access test failed:', testError);
-        return res.status(500).json({ 
-          error: 'Database table access failed',
-          details: testError.message,
-          code: testError.code,
-          hint: 'Check if push_subscriptions table exists and RLS policies are correct'
-        });
-      }
-    } catch (tableError) {
-      console.error('❌ Table access test exception:', tableError);
-      return res.status(500).json({ 
-        error: 'Database connection failed',
-        details: tableError.message,
-        type: tableError.name
-      });
-    }
-
-    // Now try to save the subscription
     const { data, error } = await supabase
       .from('push_subscriptions')
       .upsert({
@@ -133,34 +66,14 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error('❌ Detailed error saving push subscription:', {
-        error: error,
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        subscriptionData: {
-          subscription_id: subscriptionId,
-          user_id: userId,
-          endpoint: subscription.endpoint?.substring(0, 50) + '...',
-          has_p256dh: !!subscription.keys?.p256dh,
-          has_auth: !!subscription.keys?.auth
-        }
-      });
+      console.error('Error saving push subscription:', error);
       return res.status(500).json({ 
         error: 'Failed to save subscription',
-        details: error.message,
-        code: error.code,
-        hint: error.hint,
-        subscriptionId
+        details: error.message 
       });
     }
 
-    console.log('✅ Push subscription saved successfully:', {
-      subscriptionId,
-      userId,
-      dataId: data?.id
-    });
+    console.log('✅ Push subscription saved:', subscriptionId);
 
     res.status(200).json({ 
       success: true, 
@@ -171,17 +84,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ Fatal error in subscribe endpoint:', {
-      error: error,
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('❌ Error saving push subscription:', error);
     res.status(500).json({ 
       error: 'Failed to save subscription',
-      details: error.message,
-      type: error.name,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: error.message 
     });
   }
 } 

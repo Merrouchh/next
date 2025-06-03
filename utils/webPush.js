@@ -27,21 +27,14 @@ async function getAuthHeaders() {
   };
   
   // Add auth token if available
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.supabase) {
     try {
-      // Import the client-side Supabase utility
-      const { createClient } = await import('../utils/supabase/component');
-      const supabase = createClient();
-      
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await window.supabase.auth.getSession();
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
-        console.log('✅ Auth token added to web push headers');
-      } else {
-        console.log('⚠️ No active session found for web push');
       }
     } catch (error) {
-      console.log('❌ Could not get auth session for web push:', error);
+      console.log('Could not get auth session for web push');
     }
   }
   
@@ -78,7 +71,7 @@ export const subscribeUserToPush = async () => {
         })
       });
       
-      return { success: true, subscription: existingSubscription, wasAlreadySubscribed: true };
+      return { success: true, subscription: existingSubscription };
     }
 
     // Subscribe to push manager
@@ -104,7 +97,7 @@ export const subscribeUserToPush = async () => {
     }
 
     console.log('✅ Subscription saved on server');
-    return { success: true, subscription, wasAlreadySubscribed: false };
+    return { success: true, subscription };
 
   } catch (error) {
     console.error('❌ Failed to subscribe to push notifications:', error);
@@ -156,7 +149,7 @@ export const unsubscribeFromPush = async () => {
 };
 
 /**
- * Check if user is subscribed to push notifications (browser only - simple check)
+ * Check if user is subscribed to push notifications
  */
 export const isPushSubscribed = async () => {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -187,50 +180,6 @@ export const getPushSubscription = async () => {
   } catch (error) {
     console.error('Error getting push subscription:', error);
     return null;
-  }
-};
-
-/**
- * Clean up all push subscriptions for the current user (for logout)
- */
-export const cleanupUserPushSubscriptions = async () => {
-  try {
-    console.log('🔔 Cleaning up user push subscriptions...');
-    
-    // First try to unsubscribe from the browser push manager
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        
-        if (subscription) {
-          await subscription.unsubscribe();
-          console.log('✅ Browser push subscription removed');
-        }
-      } catch (browserError) {
-        console.log('⚠️ Could not unsubscribe from browser:', browserError);
-      }
-    }
-    
-    // Clean up all user subscriptions from server database
-    const headers = await getAuthHeaders();
-    const response = await fetch('/api/web-push/unsubscribe-user', {
-      method: 'POST',
-      headers
-    });
-
-    const data = await response.json();
-    
-    if (response.ok) {
-      console.log(`✅ Cleaned up ${data.cleanedCount} push subscriptions for user`);
-      return { success: true, cleanedCount: data.cleanedCount };
-    } else {
-      console.error('❌ Failed to cleanup user push subscriptions:', data.error);
-      return { success: false, error: data.error };
-    }
-  } catch (error) {
-    console.error('❌ User push cleanup error:', error);
-    return { success: false, error: error.message };
   }
 };
 

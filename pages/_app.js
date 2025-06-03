@@ -11,7 +11,6 @@ import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
 import DynamicMeta from '../components/DynamicMeta';
 import { ModalProvider } from '../contexts/ModalContext';
-import PushNotificationManager from '../components/PushNotificationManager';
 import Head from 'next/head';
 
 // Disable error overlay in development
@@ -210,40 +209,39 @@ function MyApp({ Component, pageProps }) {
             {/* Page-specific SEO will override DefaultSeo */}
             <DynamicMeta {...safeMetaData} />
             
-                      <AuthProvider onError={handleGlobalError}>
-            <ModalProvider>
-              <PushNotificationManager />
-              <Toaster 
-                position="bottom-center"
-                toastOptions={{
-                  style: {
-                    background: '#333',
-                    color: '#fff',
-                    border: '1px solid #2a2a2a',
-                  },
-                  success: {
-                    duration: 2000,
-                    iconTheme: {
-                      primary: '#FFD700',
-                      secondary: '#000',
+            <AuthProvider onError={handleGlobalError}>
+              <ModalProvider>
+                <Toaster 
+                  position="bottom-center"
+                  toastOptions={{
+                    style: {
+                      background: '#333',
+                      color: '#fff',
+                      border: '1px solid #2a2a2a',
                     },
-                  },
-                  error: {
-                    duration: 3000,
-                    iconTheme: {
-                      primary: '#ff4b4b',
-                      secondary: '#fff',
+                    success: {
+                      duration: 2000,
+                      iconTheme: {
+                        primary: '#FFD700',
+                        secondary: '#000',
+                      },
                     },
-                  },
-                }}
-              />
-              <Layout>
-                <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
-                  <Component {...pageProps} />
-                </main>
-              </Layout>
-            </ModalProvider>
-          </AuthProvider>
+                    error: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#ff4b4b',
+                        secondary: '#fff',
+                      },
+                    },
+                  }}
+                />
+                <Layout>
+                  <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
+                    <Component {...pageProps} />
+                  </main>
+                </Layout>
+              </ModalProvider>
+            </AuthProvider>
           </div>
         </ErrorBoundary>
       </StrictMode>
@@ -265,17 +263,16 @@ function MyApp({ Component, pageProps }) {
           {/* Page-specific SEO will override DefaultSeo */}
           <DynamicMeta {...safeMetaData} />
           
-                  <AuthProvider onError={handleGlobalError}>
-          <ModalProvider>
-            <PushNotificationManager />
-            <Toaster />
-            <Layout>
-              <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
-                <Component {...pageProps} />
-              </main>
-            </Layout>
-          </ModalProvider>
-        </AuthProvider>
+          <AuthProvider onError={handleGlobalError}>
+            <ModalProvider>
+              <Toaster />
+              <Layout>
+                <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
+                  <Component {...pageProps} />
+                </main>
+              </Layout>
+            </ModalProvider>
+          </AuthProvider>
         </div>
       </ErrorBoundary>
     </StrictMode>

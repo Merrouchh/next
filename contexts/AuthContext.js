@@ -739,31 +739,11 @@ export const AuthProvider = ({ children, onError }) => {
         setBroadcastChannel(channel);
         
         // Listen for auth events from other tabs
-        channel.onmessage = async (event) => {
+        channel.onmessage = (event) => {
           console.log('Auth: Received broadcast message', event.data.type);
           
           if (event.data.type === 'SIGNED_OUT') {
             console.log('Auth: Another tab signed out, updating state');
-            
-            // Clean up browser push subscription only (no server cleanup since session is gone)
-            if (typeof window !== 'undefined') {
-              try {
-                console.log('🔔 Cleaning up browser push subscription after logout from another tab...');
-                
-                // Import cleanup function dynamically
-                const { unsubscribeFromPush } = await import('../utils/webPush');
-                const result = await unsubscribeFromPush();
-                
-                if (result.success) {
-                  console.log('✅ Browser push subscription cleaned up after cross-tab logout');
-                } else {
-                  console.log('⚠️ Browser push cleanup failed after cross-tab logout:', result.error);
-                }
-              } catch (pushError) {
-                console.log('⚠️ Could not cleanup browser push subscription:', pushError);
-              }
-            }
-            
             setAuthState({
               user: null,
               isLoggedIn: false,
@@ -784,7 +764,7 @@ export const AuthProvider = ({ children, onError }) => {
         console.warn('BroadcastChannel not supported, falling back to localStorage:', error);
         
         // Set up localStorage event listener as fallback
-        const handleStorageEvent = async (event) => {
+        const handleStorageEvent = (event) => {
           if (event.key === 'auth-sync') {
             try {
               const data = JSON.parse(event.newValue);
@@ -792,26 +772,6 @@ export const AuthProvider = ({ children, onError }) => {
               
               if (data.type === 'SIGNED_OUT') {
                 console.log('Auth: Another tab signed out via localStorage, updating state');
-                
-                // Clean up browser push subscription only (no server cleanup since session is gone)
-                if (typeof window !== 'undefined') {
-                  try {
-                    console.log('🔔 Cleaning up browser push subscription after logout from another tab...');
-                    
-                    // Import cleanup function dynamically
-                    const { unsubscribeFromPush } = await import('../utils/webPush');
-                    const result = await unsubscribeFromPush();
-                    
-                    if (result.success) {
-                      console.log('✅ Browser push subscription cleaned up after cross-tab logout');
-                    } else {
-                      console.log('⚠️ Browser push cleanup failed after cross-tab logout:', result.error);
-                    }
-                  } catch (pushError) {
-                    console.log('⚠️ Could not cleanup browser push subscription:', pushError);
-                  }
-                }
-                
                 setAuthState({
                   user: null,
                   isLoggedIn: false,
@@ -876,31 +836,13 @@ export const AuthProvider = ({ children, onError }) => {
     }
   };
 
-  // Modified logout to broadcast to other tabs and cleanup push subscriptions
+  // Modified logout to broadcast to other tabs
   const logout = async () => {
     try {
       setIsLoggingOut(true);
 
-      // Clean up push subscriptions before logout
+      // Clear any stored data first
       if (typeof window !== 'undefined') {
-        try {
-          console.log('🔔 Cleaning up push subscriptions on logout...');
-          
-          // Import cleanup function dynamically to avoid SSR issues
-          const { cleanupUserPushSubscriptions } = await import('../utils/webPush');
-          const result = await cleanupUserPushSubscriptions();
-          
-          if (result.success) {
-            console.log(`✅ Push subscriptions cleaned up successfully (${result.cleanedCount || 0} removed)`);
-          } else {
-            console.log('⚠️ Push subscription cleanup failed:', result.error);
-          }
-        } catch (pushError) {
-          console.log('⚠️ Could not cleanup push subscriptions:', pushError);
-          // Don't block logout if push cleanup fails
-        }
-
-        // Clear any stored data
         localStorage.removeItem('supabase.auth.token');
       }
 
