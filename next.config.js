@@ -10,6 +10,17 @@ const nextConfig = {
   generateEtags: true,
   poweredByHeader: false,
   compress: true,
+  
+  // Force consistent build IDs and prevent caching issues
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
+  
+  // Add version query parameter to force cache invalidation
+  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : '',
+  
+  // Disable automatic static optimization to ensure fresh HTML
+  target: 'server',
 
   // Disable error overlay in development
   onDemandEntries: {
@@ -26,6 +37,8 @@ const nextConfig = {
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
     // Disable the overlay in development
     NEXT_PUBLIC_DISABLE_ERROR_OVERLAY: 'true',
+    // Expose build ID for automatic cache invalidation
+    NEXT_PUBLIC_BUILD_ID: 'build-' + Date.now(),
   },
 
   // Image optimization settings
@@ -140,7 +153,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate'
+            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
           },
           {
             key: 'Pragma',
@@ -157,6 +170,18 @@ const nextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
+          },
+          {
+            key: 'Vary',
+            value: 'Accept-Encoding, User-Agent'
+          },
+          {
+            key: 'Last-Modified',
+            value: new Date().toUTCString()
+          },
+          {
+            key: 'ETag',
+            value: `"${Date.now()}"`
           }
         ]
       },
