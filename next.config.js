@@ -2,6 +2,14 @@
 const nextConfig = {
   // Enable React strict mode only in development
   reactStrictMode: true,
+  
+  // Ensure trailing slash consistency
+  trailingSlash: false,
+  
+  // Ensure proper asset handling
+  generateEtags: true,
+  poweredByHeader: false,
+  compress: true,
 
   // Disable error overlay in development
   onDemandEntries: {
@@ -103,8 +111,32 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply to all routes
-        source: '/:path*',
+        // Static assets need proper caching and MIME types
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          }
+        ]
+      },
+      {
+        // JavaScript and CSS files
+        source: '/:path*.(js|css|woff|woff2|eot|ttf|otf)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
+        // Apply no-cache to HTML pages only (not static assets)
+        source: '/((?!_next/static|favicon.ico|robots.txt|sitemap.xml).*)',
         headers: [
           {
             key: 'Cache-Control',
@@ -304,10 +336,7 @@ const nextConfig = {
     ];
   },
 
-  // Security optimizations
-  poweredByHeader: false,
-  generateEtags: true,
-  compress: true,
+
 
   // Add this section
   experimental: {
