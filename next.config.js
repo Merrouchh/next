@@ -2,25 +2,6 @@
 const nextConfig = {
   // Enable React strict mode only in development
   reactStrictMode: true,
-  
-  // Ensure trailing slash consistency
-  trailingSlash: false,
-  
-  // Ensure proper asset handling
-  generateEtags: true,
-  poweredByHeader: false,
-  compress: true,
-  
-  // Force consistent build IDs and prevent caching issues
-  generateBuildId: async () => {
-    return 'build-' + Date.now();
-  },
-  
-  // Add version query parameter to force cache invalidation
-  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : '',
-  
-  // Disable automatic static optimization to ensure fresh HTML
-  target: 'server',
 
   // Disable error overlay in development
   onDemandEntries: {
@@ -37,8 +18,6 @@ const nextConfig = {
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
     // Disable the overlay in development
     NEXT_PUBLIC_DISABLE_ERROR_OVERLAY: 'true',
-    // Expose build ID for automatic cache invalidation
-    NEXT_PUBLIC_BUILD_ID: 'build-' + Date.now(),
   },
 
   // Image optimization settings
@@ -124,22 +103,40 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Static assets need proper caching and MIME types
+        // Apply NO-CACHE only to dynamic pages, NOT static assets
+        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)).*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          }
+        ]
+      },
+      {
+        // Let Cloudflare handle static assets caching
         source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
           }
         ]
       },
       {
-        // JavaScript and CSS files
-        source: '/:path*.(js|css|woff|woff2|eot|ttf|otf)',
+        // Let Cloudflare handle image optimization caching
+        source: '/_next/image/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -148,46 +145,8 @@ const nextConfig = {
         ]
       },
       {
-        // Apply no-cache to HTML pages only (not static assets)
-        source: '/((?!_next/static|favicon.ico|robots.txt|sitemap.xml).*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache'
-          },
-          {
-            key: 'Expires',
-            value: '0'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'no-store'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Vary',
-            value: 'Accept-Encoding, User-Agent'
-          },
-          {
-            key: 'Last-Modified',
-            value: new Date().toUTCString()
-          },
-          {
-            key: 'ETag',
-            value: `"${Date.now()}"`
-          }
-        ]
-      },
-      {
-        // Specific stricter rules for dashboard
-        source: '/dashboard',
+        // Specific stricter rules for dashboard - DYNAMIC PAGES ONLY
+        source: '/dashboard/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -204,8 +163,8 @@ const nextConfig = {
         ]
       },
       {
-        // Specific stricter rules for avcomputers
-        source: '/avcomputers',
+        // Specific stricter rules for avcomputers - DYNAMIC PAGES ONLY
+        source: '/avcomputers/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -226,16 +185,12 @@ const nextConfig = {
         ]
       },
       {
-        // Specific caching rules for discover page
+        // Specific caching rules for discover page - let Cloudflare handle it
         source: '/discover',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, stale-while-revalidate=300'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'public, max-age=60, stale-while-revalidate=300'
+            value: 'public, s-maxage=300, stale-while-revalidate=600'
           },
           {
             key: 'X-Content-Type-Options',
@@ -244,16 +199,12 @@ const nextConfig = {
         ]
       },
       {
-        // Specific caching rules for individual clip pages
+        // Specific caching rules for individual clip pages - let Cloudflare handle it
         source: '/clip/:id',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, stale-while-revalidate=600'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'public, max-age=60, stale-while-revalidate=600'
+            value: 'public, s-maxage=300, stale-while-revalidate=600'
           },
           {
             key: 'X-Content-Type-Options',
@@ -266,12 +217,12 @@ const nextConfig = {
         ]
       },
       {
-        // Profile pages cache control
+        // Profile pages cache control - let Cloudflare handle it
         source: '/profile/:username',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=10, stale-while-revalidate=59'
+            value: 'public, s-maxage=60, stale-while-revalidate=300'
           },
           {
             key: 'Vary',
@@ -284,16 +235,12 @@ const nextConfig = {
         ]
       },
       {
-        // Top users page cache control
+        // Top users page cache control - let Cloudflare handle it
         source: '/topusers',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=15, stale-while-revalidate=30'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'public, max-age=15, stale-while-revalidate=30'
+            value: 'public, s-maxage=300, stale-while-revalidate=600'
           },
           {
             key: 'X-Content-Type-Options',
@@ -306,16 +253,12 @@ const nextConfig = {
         ]
       },
       {
-        // Home page cache control (more aggressive caching for landing page)
+        // Home page cache control - let Cloudflare handle it
         source: '/',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=300, stale-while-revalidate=3600'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'public, max-age=300, stale-while-revalidate=3600'
+            value: 'public, s-maxage=300, stale-while-revalidate=600'
           },
           {
             key: 'X-Content-Type-Options',
@@ -328,16 +271,12 @@ const nextConfig = {
         ]
       },
       {
-        // Shop page cache control
+        // Shop page cache control - let Cloudflare handle it
         source: '/shop',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=60, stale-while-revalidate=300'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'public, max-age=60, stale-while-revalidate=300'
+            value: 'public, s-maxage=300, stale-while-revalidate=600'
           },
           {
             key: 'X-Content-Type-Options',
@@ -355,13 +294,20 @@ const nextConfig = {
           {
             key: 'Service-Worker-Allowed',
             value: '/'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate'
           }
         ]
       }
     ];
   },
 
-
+  // Security optimizations
+  poweredByHeader: false,
+  generateEtags: true,
+  compress: true,
 
   // Add this section
   experimental: {

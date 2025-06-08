@@ -123,31 +123,7 @@ function MyApp({ Component, pageProps }) {
       }
     };
     
-    // Auto cache invalidation for static assets
-    const checkForUpdates = () => {
-      // Check if current build matches what's in localStorage
-      const currentBuildId = process.env.NEXT_PUBLIC_BUILD_ID || 'unknown';
-      const storedBuildId = localStorage.getItem('app_build_id');
-      
-      if (storedBuildId && storedBuildId !== currentBuildId) {
-        // Build has changed, clear cache and reload
-        console.log('New version detected, refreshing...');
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Force reload without cache
-        window.location.reload(true);
-        return;
-      }
-      
-      // Store current build ID
-      localStorage.setItem('app_build_id', currentBuildId);
-    };
-    
     window.addEventListener('unhandledrejection', handleUnhandledRejection, true);
-    
-    // Check for updates on mount
-    checkForUpdates();
 
     setMounted(true);
     
@@ -223,11 +199,9 @@ function MyApp({ Component, pageProps }) {
         <ErrorBoundary>
           <div suppressHydrationWarning>
             {/* Add special tag to ensure only one set of structured data appears */}
-                      <Head>
-            <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
-            <meta name="build-version" content={process.env.NEXT_PUBLIC_BUILD_ID || 'unknown'} />
-            <script src="/cache-manager.js" defer></script>
-          </Head>
+            <Head>
+              <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
+            </Head>
             
             {/* Base SEO - lowest priority */}
             <DefaultSeo {...appSeoConfig} />
@@ -281,8 +255,6 @@ function MyApp({ Component, pageProps }) {
           {/* Add special tag to ensure only one set of structured data appears */}
           <Head>
             <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
-            <meta name="build-version" content={process.env.NEXT_PUBLIC_BUILD_ID || 'unknown'} />
-            <script src="/cache-manager.js" defer></script>
           </Head>
           
           {/* Base SEO - lowest priority */}
