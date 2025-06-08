@@ -67,12 +67,8 @@ async function handleAutomaticModeAfterChange() {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    // Verify authentication
+    // Verify authentication for all methods
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -85,89 +81,144 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Get user details
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, username')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return res.status(400).json({ error: 'User not found' });
+    // Handle different HTTP methods
+    switch (req.method) {
+      case 'POST':
+        return await handleJoinQueue(req, res, user);
+      case 'DELETE':
+        return await handleLeaveQueue(req, res, user);
+      default:
+        return res.status(405).json({ error: 'Method not allowed' });
     }
+  } catch (error) {
+    console.error('Queue API error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
 
-    const { computerType = 'any' } = req.body;
+// Handle joining the queue
+async function handleJoinQueue(req, res, user) {
+  // Get user details
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('id, username')
+    .eq('id', user.id)
+    .single();
 
-    // Check if queue is active and allows online joining
-    const { data: queueStatus } = await supabase.rpc('get_queue_status');
-    
-    // Handle case where queueStatus is an array
-    const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
-    
-    if (!status || (!status.is_active && !status.automatic_mode)) {
-      return res.status(400).json({ error: 'Queue is not currently active' });
+  if (userError || !userData) {
+    return res.status(400).json({ error: 'User not found' });
+  }
+
+  const { computerType = 'any' } = req.body;
+
+  // Check if queue is active and allows online joining
+  const { data: queueStatus } = await supabase.rpc('get_queue_status');
+  
+  // Handle case where queueStatus is an array
+  const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
+  
+  if (!status || (!status.is_active && !status.automatic_mode)) {
+    return res.status(400).json({ error: 'Queue is not currently active' });
+  }
+
+  if (!status.allow_online_joining) {
+    return res.status(400).json({ error: 'Online joining is not currently allowed' });
+  }
+
+  if (status.current_queue_size >= status.max_queue_size) {
+    return res.status(400).json({ error: 'Queue is full' });
+  }
+
+  // Check if user is already in queue
+  const { data: existingEntry } = await supabase
+    .from('computer_queue')
+    .select('id, position')
+    .eq('user_id', user.id)
+    .eq('status', 'waiting')
+    .single();
+
+  if (existingEntry) {
+    return res.status(400).json({ 
+      error: 'You are already in the queue',
+      position: existingEntry.position
+    });
+  }
+
+  // Get next position
+  const { data: nextPos } = await supabase.rpc('get_next_queue_position');
+
+  // Add to queue
+  const { data: queueEntry, error: insertError } = await supabase
+    .from('computer_queue')
+    .insert({
+      user_name: userData.username,
+      computer_type: computerType,
+      position: nextPos,
+      is_physical: false,
+      user_id: user.id
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error('Error joining queue:', insertError);
+    return res.status(500).json({ error: 'Failed to join queue' });
+  }
+
+  // Check and handle automatic mode after joining
+  await handleAutomaticModeAfterChange();
+
+  return res.status(201).json({
+    success: true,
+    message: `You joined the queue at position ${nextPos}`,
+    data: {
+      id: queueEntry.id,
+      position: nextPos,
+      computerType: computerType,
+      estimatedWait: nextPos * 5 // Rough estimate: 5 minutes per person
     }
+  });
+}
 
-    if (!status.allow_online_joining) {
-      return res.status(400).json({ error: 'Online joining is not currently allowed' });
-    }
-
-    if (status.current_queue_size >= status.max_queue_size) {
-      return res.status(400).json({ error: 'Queue is full' });
-    }
-
-    // Check if user is already in queue
-    const { data: existingEntry } = await supabase
+// Handle leaving the queue
+async function handleLeaveQueue(req, res, user) {
+  try {
+    // Find user's queue entry
+    const { data: queueEntry, error: findError } = await supabase
       .from('computer_queue')
-      .select('id, position')
+      .select('id, position, user_name')
       .eq('user_id', user.id)
       .eq('status', 'waiting')
       .single();
 
-    if (existingEntry) {
-      return res.status(400).json({ 
-        error: 'You are already in the queue',
-        position: existingEntry.position
-      });
+    if (findError || !queueEntry) {
+      return res.status(404).json({ error: 'You are not currently in the queue' });
     }
 
-    // Get next position
-    const { data: nextPos } = await supabase.rpc('get_next_queue_position');
-
-    // Add to queue
-    const { data: queueEntry, error: insertError } = await supabase
+    // Remove user from queue
+    const { error: deleteError } = await supabase
       .from('computer_queue')
-      .insert({
-        user_name: userData.username,
-        computer_type: computerType,
-        position: nextPos,
-        is_physical: false,
-        user_id: user.id
-      })
-      .select()
-      .single();
+      .delete()
+      .eq('id', queueEntry.id);
 
-    if (insertError) {
-      console.error('Error joining queue:', insertError);
-      return res.status(500).json({ error: 'Failed to join queue' });
+    if (deleteError) {
+      console.error('Error leaving queue:', deleteError);
+      return res.status(500).json({ error: 'Failed to leave queue' });
     }
 
-    // Check and handle automatic mode after joining
+    // Add a small delay to ensure database operations are complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Check and handle automatic mode after removal
     await handleAutomaticModeAfterChange();
 
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: `You joined the queue at position ${nextPos}`,
-      data: {
-        id: queueEntry.id,
-        position: nextPos,
-        computerType: computerType,
-        estimatedWait: nextPos * 5 // Rough estimate: 5 minutes per person
-      }
+      message: `${queueEntry.user_name} has left the queue`
     });
 
   } catch (error) {
-    console.error('Queue join error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error in handleLeaveQueue:', error);
+    return res.status(500).json({ error: 'Failed to leave queue' });
   }
 } 

@@ -415,7 +415,7 @@ const AvailableComputers = ({ metaData }) => {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
 
-      const response = await fetch(`/api/queue/manage?id=${userInQueue.id}`, {
+      const response = await fetch('/api/queue/join', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${accessToken}`
