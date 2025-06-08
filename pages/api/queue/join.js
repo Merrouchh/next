@@ -5,6 +5,67 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Function to handle automatic mode after queue changes
+async function handleAutomaticModeAfterChange() {
+  try {
+    // Get current queue status and settings
+    const { data: queueStatus, error: statusError } = await supabase.rpc('get_queue_status');
+    
+    if (statusError) {
+      console.error('Error getting queue status in automatic mode:', statusError);
+      return;
+    }
+    
+    const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
+    
+    if (!status) {
+      console.log('No queue status found');
+      return;
+    }
+    
+    if (!status.automatic_mode) {
+      console.log('Automatic mode is off, skipping queue control');
+      return;
+    }
+
+    const currentQueueSize = status.current_queue_size || 0;
+    const isCurrentlyActive = status.is_active;
+
+    console.log(`Automatic mode check: Queue size=${currentQueueSize}, Currently active=${isCurrentlyActive}, Automatic mode=${status.automatic_mode}`);
+
+    // Auto-control logic
+    if (currentQueueSize > 0 && !isCurrentlyActive) {
+      // Should be active but isn't - turn it on
+      const { error: updateError } = await supabase
+        .from('queue_settings')
+        .update({ is_active: true })
+        .eq('id', 1);
+      
+      if (updateError) {
+        console.error('Error activating queue:', updateError);
+      } else {
+        console.log('Automatic mode: Started queue system (queue not empty)');
+      }
+    } else if (currentQueueSize === 0 && isCurrentlyActive) {
+      // Should be inactive but isn't - turn it off
+      const { error: updateError } = await supabase
+        .from('queue_settings')
+        .update({ is_active: false })
+        .eq('id', 1);
+      
+      if (updateError) {
+        console.error('Error deactivating queue:', updateError);
+      } else {
+        console.log('Automatic mode: Stopped queue system (queue empty)');
+      }
+    } else {
+      console.log('Queue state is correct, no changes needed');
+    }
+  } catch (error) {
+    console.error('Error in automatic mode handler:', error);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -40,13 +101,8 @@ export default async function handler(req, res) {
     // Check if queue is active and allows online joining
     const { data: queueStatus } = await supabase.rpc('get_queue_status');
     
-    console.log('Queue status from DB:', queueStatus);
-    console.log('Queue status type:', typeof queueStatus);
-    console.log('Is array?', Array.isArray(queueStatus));
-    
     // Handle case where queueStatus is an array
     const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
-    console.log('Final status object:', status);
     
     if (!status || (!status.is_active && !status.automatic_mode)) {
       return res.status(400).json({ error: 'Queue is not currently active' });
@@ -96,15 +152,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to join queue' });
     }
 
-    // If automatic mode is on and queue was not active, start it now
-    if (status.automatic_mode && !status.is_active && nextPos === 1) {
-      await supabase
-        .from('queue_settings')
-        .update({ is_active: true })
-        .eq('id', 1);
-      
-      console.log('Automatic mode: Started queue system when first person joined');
-    }
+    // Check and handle automatic mode after joining
+    await handleAutomaticModeAfterChange();
 
     return res.status(201).json({
       success: true,

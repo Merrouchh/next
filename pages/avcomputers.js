@@ -387,11 +387,17 @@ const AvailableComputers = ({ metaData }) => {
       const result = await response.json();
       
       if (response.ok) {
-        alert(result.message);
+        const successMessage = shouldShowWaitingList 
+          ? 'You have been added to the waiting list! We\'ll notify you when a computer becomes available.'
+          : result.message;
+        alert(successMessage);
         fetchQueueStatus(); // Refresh queue status
         setShowQueueModal(false);
       } else {
-        alert('Error joining queue: ' + result.error);
+        const errorMessage = shouldShowWaitingList
+          ? 'Unable to join waiting list: ' + result.error
+          : 'Error joining queue: ' + result.error;
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error joining queue:', error);
@@ -418,7 +424,14 @@ const AvailableComputers = ({ metaData }) => {
 
       if (response.ok) {
         alert('You have left the queue');
-        fetchQueueStatus(); // Refresh queue status
+        
+        // Clear user queue state immediately
+        setUserInQueue(null);
+        
+        // Add a small delay to ensure backend processing is complete
+        setTimeout(() => {
+          fetchQueueStatus(); // Refresh queue status
+        }, 1000);
       } else {
         const errorData = await response.json();
         alert('Error leaving queue: ' + errorData.error);
@@ -743,6 +756,23 @@ const AvailableComputers = ({ metaData }) => {
     return loadedComputers[computerId] === true;
   }, [loadedComputers]);
 
+  // Check if all computers are occupied (14/14)
+  const areAllComputersOccupied = useMemo(() => {
+    const totalComputers = 14; // 8 bottom + 6 top
+    const occupiedComputers = [...computers.normal, ...computers.vip].filter(computer => computer.isActive).length;
+    return occupiedComputers === totalComputers;
+  }, [computers.normal, computers.vip]);
+
+  // Determine if we should show "Join Waiting List" option
+  const shouldShowWaitingList = useMemo(() => {
+    return (
+      areAllComputersOccupied && // All computers are full
+      !userInQueue && // User is not already in queue
+      !userAlreadyLoggedIn && // User is not already logged into a computer
+      (!queueStatus || (!queueStatus.is_active && queueStatus.current_queue_size === 0)) // Queue is inactive and empty
+    );
+  }, [areAllComputersOccupied, userInQueue, userAlreadyLoggedIn, queueStatus]);
+
   // If the page is not yet ready, show the full page loading screen
   if (!pageReady) {
     return (
@@ -815,6 +845,29 @@ const AvailableComputers = ({ metaData }) => {
             </p>
           </div>
         )}
+
+        {/* All Computers Full - Join Waiting List */}
+        {shouldShowWaitingList && (
+          <div className={styles.waitingListSection}>
+            <div className={styles.waitingListHeader}>
+              <h3>🔴 All Computers Occupied ({[...computers.normal, ...computers.vip].filter(c => c.isActive).length}/14)</h3>
+              <p>All gaming stations are currently in use. Join our waiting list to be notified when a computer becomes available!</p>
+            </div>
+            <div className={styles.waitingListActions}>
+              <button 
+                className={styles.joinWaitingListButton}
+                onClick={() => setShowQueueModal(true)}
+              >
+                📋 Join Waiting List
+              </button>
+            </div>
+            <div className={styles.waitingListInfo}>
+              <p>✅ Get notified when it's your turn</p>
+              <p>✅ Reserve your preferred computer type</p>
+              <p>✅ No need to wait physically at the center</p>
+            </div>
+          </div>
+        )}
         
         <h2 className={styles.sectionHeading}>Bottom Computers</h2>
         <div className={styles.computerGrid}>
@@ -857,8 +910,13 @@ const AvailableComputers = ({ metaData }) => {
         {showQueueModal && (
           <div className={styles.queueModal}>
             <div className={styles.queueModalContent}>
-              <h3>Join Queue</h3>
-              <p>All computers are currently occupied. Would you like to join the queue?</p>
+              <h3>{shouldShowWaitingList ? 'Join Waiting List' : 'Join Queue'}</h3>
+              <p>
+                {shouldShowWaitingList 
+                  ? 'All computers are currently occupied. Join our waiting list and we\'ll notify you when a computer becomes available!'
+                  : 'All computers are currently occupied. Would you like to join the queue?'
+                }
+              </p>
               
               <div className={styles.queueModalOptions}>
                 <h4>Computer Preference:</h4>
