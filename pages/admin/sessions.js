@@ -77,12 +77,12 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
   
   return (
     <>
-      {/* VIP Section */}
+      {/* Top Section */}
       <div>
         <h3 className={styles.sectionHeader}>
-          VIP Computers
+          Top Computers
           <span className={styles.sectionHeaderCount}>
-            {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} active
+            {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Top').length} active
           </span>
         </h3>
         
@@ -100,7 +100,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                     <FaDesktop />
                   </div>
                   <div className={styles.computerName}>
-                    VIP {computer.displayNumber || (computer.number + 8)}
+                    PC {computer.displayNumber || (computer.number + 8)}
                   </div>
                   {computer.available && 
                     <div className={styles.availableBadge}>Available</div>
@@ -170,12 +170,12 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
         </div>
       </div>
       
-      {/* Normal Section */}
+      {/* Bottom Section */}
       <div>
         <h3 className={styles.sectionHeader}>
-          Normal Computers
+          Bottom Computers
           <span className={styles.sectionHeaderCount}>
-            {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} active
+            {stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Bottom').length} active
           </span>
         </h3>
         <div className={styles.computerGridSpecial}>
@@ -189,7 +189,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                   <FaDesktop />
                 </div>
                 <div className={styles.computerName}>
-                  Normal {computer.number}
+                  PC {computer.number}
                 </div>
                 {computer.available && 
                   <div className={styles.availableBadge}>Available</div>
@@ -269,7 +269,7 @@ const ComputerGridView = ({ stats, getComputerType, formatTimeLeft, getSessionSt
                   <FaDesktop />
                 </div>
                 <div className={styles.computerName}>
-                  Normal {computer.number}
+                  PC {computer.number}
                 </div>
                 {computer.available && 
                   <div className={styles.availableBadge}>Available</div>
@@ -367,36 +367,36 @@ export default function SessionsPage() {
   const allComputers = {
     normal: Array.from({ length: 8 }, (_, i) => ({
       id: i + 1,
-      hostId: [26, 12, 8, 5, 17, 11, 16, 14][i] || (i + 1),
+      hostId: [26, 28, 29, 31, 27, 30, 33, 32][i] || (i + 1),
       number: i + 1,
-      type: 'normal'
+      type: 'bottom'
     })),
     vip: Array.from({ length: 6 }, (_, i) => ({
       id: i + 9,
       hostId: [21, 22, 25, 20, 24, 23][i] || (i + 9),
       number: i + 1,
       displayNumber: i + 9,
-      type: 'vip'
+      type: 'top'
     }))
   };
 
   // Get computer type from ID
   const getComputerType = (computerId) => {
     // Computer IDs from avcomputers.js
-    const normalComputers = [26, 12, 8, 5, 17, 11, 16, 14];
-    const vipComputers = [21, 22, 25, 20, 24, 23];
+    const bottomComputers = [26, 28, 29, 31, 27, 30, 33, 32]; // PCs 1-8 (bottom floor)
+    const topComputers = [21, 22, 25, 20, 24, 23]; // PCs 9-14 (top floor)
     
-    if (vipComputers.includes(computerId)) return 'VIP';
-    if (normalComputers.includes(computerId)) return 'Normal';
-    return computerId <= 8 ? 'Normal' : 'VIP'; // Fallback based on ID
+    if (topComputers.includes(computerId)) return 'Top';
+    if (bottomComputers.includes(computerId)) return 'Bottom';
+    return computerId <= 8 ? 'Bottom' : 'Top'; // Fallback based on ID
   };
 
   // Get computer number from ID
   const getComputerNumber = (computerId) => {
     // Mapping from avcomputers.js
     const computerMap = {
-      26: 1, 12: 2, 8: 3, 5: 4, 17: 5, 11: 6, 16: 7, 14: 8, // Normal PCs
-      21: 9, 22: 10, 25: 11, 20: 12, 24: 13, 23: 14 // VIP PCs
+      26: 1, 28: 2, 29: 3, 31: 4, 27: 5, 30: 6, 33: 7, 32: 8, // Bottom PCs
+      21: 9, 22: 10, 25: 11, 20: 12, 24: 13, 23: 14 // Top PCs
     };
     
     return computerMap[computerId] || computerId;
@@ -445,11 +445,11 @@ export default function SessionsPage() {
 
   // Helper function to count low time computers
   const countLowTimeComputers = (sessions) => {
-    if (!sessions || sessions.length === 0) return { normal: 0, vip: 0 };
+    if (!sessions || sessions.length === 0) return { bottom: 0, top: 0 };
     
     const lowTime = {
-      normal: 0,
-      vip: 0
+      bottom: 0,
+      top: 0
     };
     
     sessions.forEach(session => {
@@ -460,10 +460,10 @@ export default function SessionsPage() {
       const status = getSessionStatus(session.timeLeft);
       if (status === 'warning') {
         const computerType = getComputerType(session.hostId);
-        if (computerType === 'Normal') {
-          lowTime.normal++;
-        } else if (computerType === 'VIP') {
-          lowTime.vip++;
+        if (computerType === 'Bottom') {
+          lowTime.bottom++;
+        } else if (computerType === 'Top') {
+          lowTime.top++;
         }
       }
     });
@@ -676,7 +676,7 @@ export default function SessionsPage() {
     // For each active session, find the matching computer and update it
     stats.activeSessions.forEach(session => {
       const computerType = getComputerType(session.hostId).toLowerCase();
-      const computers = computerType === 'vip' ? vipComputers : normalComputers;
+      const computers = computerType === 'top' ? vipComputers : normalComputers;
       
       // Find the computer that matches this session
       const computerIndex = computers.findIndex(pc => pc.hostId === session.hostId);
@@ -770,7 +770,7 @@ export default function SessionsPage() {
       isOpen: true,
       selectedComputer: {
         hostId: computer.hostId,
-        type: computer.type === 'vip' ? 'VIP' : 'Normal',
+        type: computer.type === 'top' ? 'Top' : 'Bottom',
         number: computer.number
       }
     });
@@ -826,8 +826,8 @@ export default function SessionsPage() {
                 <div className={styles.summaryLabel}>Availability</div>
                 <div className={styles.summaryValue}>
                   <>
-                    {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Normal').length} Normal +{' '}
-                    {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'VIP').length} VIP
+                    {8 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Bottom').length} Bottom +{' '}
+                    {6 - stats.activeSessions.filter(s => getComputerType(s.hostId) === 'Top').length} Top
                   </>
                 </div>
               </div>
@@ -844,7 +844,7 @@ export default function SessionsPage() {
                     const lowTime = countLowTimeComputers(stats.activeSessions);
                     return (
                       <>
-                        {lowTime.normal} Normal + {lowTime.vip} VIP
+                        {lowTime.bottom} Bottom + {lowTime.top} Top
                       </>
                     );
                   })()}
@@ -927,7 +927,7 @@ export default function SessionsPage() {
                     >
                       <div className={`${styles.sessionComputer} ${styles[computerType.toLowerCase()]}`}>
                         <FaDesktop />
-                        <span>{computerType} {computerNumber}</span>
+                        <span>PC {computerNumber}</span>
                       </div>
                       <div className={styles.sessionInfo}>
                         <div className={styles.sessionUser}>

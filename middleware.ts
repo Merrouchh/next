@@ -58,8 +58,10 @@ export async function middleware(request: NextRequest) {
   const { pathname, search, hash } = url;
   const searchParams = url.searchParams;
 
-  // Log URL details for debugging
-  console.log('Middleware processing URL:', { pathname, search, hash });
+  // Skip logging for static assets to reduce noise
+  if (!pathname.startsWith('/_next') && !pathname.includes('service-worker') && !pathname.includes('.')) {
+    console.log('Middleware processing URL:', { pathname, search, hash });
+  }
 
   // Special handling for URLs with hash fragments that might contain magic link tokens
   // Unfortunately, hash fragments are not sent to the server

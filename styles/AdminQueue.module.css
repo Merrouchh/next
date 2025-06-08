@@ -1,0 +1,671 @@
+/* =========================================================================== */
+/* SIMPLIFIED QUEUE ADMIN - EASY TO UNDERSTAND AND USE */
+/* =========================================================================== */
+
+.queueAdmin {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 1.2rem;
+  color: #666;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.loading p {
+  margin-top: 15px;
+  margin-bottom: 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* =========================================================================== */
+/* MAIN CONTROLS - Start/Stop Queue & Online Access */
+/* =========================================================================== */
+
+.mainControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.controlCard {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 2px solid #f0f0f0;
+}
+
+.controlCard h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.controlCard p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.bigButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bigButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Start/Stop Queue Buttons */
+.startButton {
+  background: #28a745;
+  color: white;
+  border: 2px solid #28a745;
+}
+
+.startButton:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.stopButton {
+  background: #dc3545;
+  color: white;
+  border: 2px solid #dc3545;
+}
+
+.stopButton:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Allow/Block Online Buttons */
+.allowButton {
+  background: #17a2b8;
+  color: white;
+  border: 2px solid #17a2b8;
+}
+
+.allowButton:hover:not(:disabled) {
+  background: #138496;
+  border-color: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.blockButton {
+  background: #fd7e14;
+  color: white;
+  border: 2px solid #fd7e14;
+}
+
+.blockButton:hover:not(:disabled) {
+  background: #e8680d;
+  border-color: #e8680d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(253, 126, 20, 0.3);
+}
+
+.autoOnButton {
+  background: #28a745;
+  color: white;
+  border: 2px solid #28a745;
+}
+
+.autoOnButton:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.autoOffButton {
+  background: #6c757d;
+  color: white;
+  border: 2px solid #6c757d;
+}
+
+.autoOffButton:hover:not(:disabled) {
+  background: #5a6268;
+  border-color: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.status {
+  margin-top: 15px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+/* =========================================================================== */
+/* STATISTICS SECTION */
+/* =========================================================================== */
+
+.statsSection {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.statCard {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-left: 4px solid #007bff;
+}
+
+.statCard svg {
+  font-size: 2rem;
+  color: #007bff;
+}
+
+.statNumber {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* =========================================================================== */
+/* ADD PERSON SECTION */
+/* =========================================================================== */
+
+.addSection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+
+.showAddButton {
+  width: 100%;
+  padding: 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.showAddButton:hover:not(:disabled) {
+  background: #218838;
+}
+
+.showAddButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.addForm {
+  padding: 25px;
+}
+
+.addFormHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.addFormHeader h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.addFormHeader p {
+  margin: 5px 0 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.cancelButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cancelButton:hover {
+  background: #5a6268;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.formGroup input,
+.formGroup select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.searchContainer {
+  position: relative;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.searchResult {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  color: #333333;
+}
+
+.searchResult:hover {
+  background-color: #f8f9fa;
+  border-left: 4px solid #007bff;
+}
+
+.searchResult:last-child {
+  border-bottom: none;
+}
+
+.resultMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.resultMain strong {
+  color: #333333;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.resultPhone {
+  font-size: 0.8rem;
+  color: #007bff;
+  background: #e7f3ff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  border: 1px solid #b8daff;
+}
+
+.resultEmail {
+  font-size: 0.85rem;
+  color: #666666;
+  font-style: italic;
+}
+
+.userFound {
+  margin-top: 5px;
+  padding: 8px 10px;
+  background: #d4edda;
+  color: #155724;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  border: 1px solid #c3e6cb;
+}
+
+.addSubmitButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.addSubmitButton:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.addSubmitButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* =========================================================================== */
+/* QUEUE LIST SECTION */
+/* =========================================================================== */
+
+.queueSection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.queueSection h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.emptyQueue {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-style: italic;
+}
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.queuePerson {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.queuePerson:hover {
+  background: #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.personPosition {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  background: #007bff;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-right: 15px;
+}
+
+.personDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.personType {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.personType.physical {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.personType.online {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.personInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.personNotes {
+  font-size: 0.9rem;
+  color: #495057;
+  font-style: italic;
+  background: white;
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-top: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.removeButton {
+  flex-shrink: 0;
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-left: 15px;
+}
+
+.removeButton:hover {
+  background: #c82333;
+}
+
+/* =========================================================================== */
+/* HELP SECTION */
+/* =========================================================================== */
+
+.helpSection {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+}
+
+.helpSection h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.helpCards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.helpCard {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.helpCard h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.helpCard p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* =========================================================================== */
+/* RESPONSIVE DESIGN */
+/* =========================================================================== */
+
+@media (max-width: 768px) {
+  .queueAdmin {
+    padding: 15px;
+  }
+
+  .mainControls {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .statsSection {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .helpCards {
+    grid-template-columns: 1fr;
+  }
+
+  .queuePerson {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .personPosition {
+    margin-right: 0;
+  }
+
+  .removeButton {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .addFormHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .personInfo {
+    flex-direction: column;
+    gap: 5px;
+  }
+} 

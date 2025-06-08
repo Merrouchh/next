@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/AdminPageWrapper.module.css';
@@ -12,34 +12,94 @@ import { FaUsers, FaDesktop, FaCalendarAlt, FaTachometerAlt, FaChevronLeft, FaCh
  * Checks if the user is an admin and redirects to dashboard if not
  */
 export default function AdminPageWrapper({ children, title }) {
-  const { user, isLoggedIn, loading } = useAuth();
+  const { user, isLoggedIn, loading, initialized } = useAuth();
   const router = useRouter();
   const currentPath = router.pathname;
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   useEffect(() => {
-    // If authentication is complete and user is not an admin, redirect to dashboard
-    if (!loading && (!isLoggedIn || !user?.isAdmin)) {
-      toast.error('You do not have permission to access admin pages');
-      router.replace('/dashboard');
+    // Only redirect if auth is fully initialized
+    if (initialized && !loading) {
+      if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
+        toast.error('You do not have permission to access admin pages');
+        router.replace('/dashboard');
+      }
+      // Staff users can ONLY access queue page - block access to all other admin pages
+      else if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
+        toast.error('Staff access is limited to queue management only');
+        router.replace('/admin/queue');
+      }
     }
-  }, [user, isLoggedIn, loading, router]);
+  }, [user, isLoggedIn, loading, initialized, router, currentPath]);
 
-  // Show simple loading message while checking authentication
-  if (loading || !isLoggedIn || !user?.isAdmin) {
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!initialized && !loading) {
+        setLoadingTimeout(true);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timer);
+  }, [initialized, loading]);
+
+  // If loading has timed out, try to force a page refresh
+  if (loadingTimeout) {
+    return (
+      <div className={styles.adminLoading}>
+        Authentication timeout. 
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ 
+            marginTop: '1rem', 
+            padding: '0.5rem 1rem', 
+            background: '#FFD700', 
+            color: '#000', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
+
+  // Show loading while authentication is not yet initialized or still loading
+  if (!initialized || loading) {
     return <div className={styles.adminLoading}>Checking admin access...</div>;
   }
 
-  // Admin menu items
-  const adminMenu = [
-    { path: '/admin', label: 'Dashboard', icon: <FaTachometerAlt /> },
-    { path: '/admin/users', label: 'Users', icon: <FaUsers /> },
-    { path: '/admin/events', label: 'Events', icon: <FaCalendarAlt /> },
-    { path: '/admin/events/brackets', label: 'Brackets', icon: <FaTrophy /> },
-    { path: '/admin/sessions', label: 'Sessions', icon: <FaDesktop /> },
-    { path: '/admin/stats', label: 'Analytics', icon: <FaChartLine /> },
-    { path: '/admin/tasks', label: 'Tasks', icon: <FaClock /> },
-    { path: '/admin/notifications', label: 'Notifications', icon: <FaBell /> },
+  // Show loading if user is not logged in or not admin/staff (but auth is initialized)
+  if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
+    return <div className={styles.adminLoading}>Checking admin access...</div>;
+  }
+
+  // Staff users can ONLY access queue page - block access to all other admin pages
+  if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
+    return <div className={styles.adminLoading}>Redirecting to queue management...</div>;
+  }
+
+  // Admin menu items - filter based on user role
+  const baseAdminMenu = [
+    { path: '/admin', label: 'Dashboard', icon: <FaTachometerAlt />, adminOnly: false },
+    { path: '/admin/users', label: 'Users', icon: <FaUsers />, adminOnly: true },
+    { path: '/admin/events', label: 'Events', icon: <FaCalendarAlt />, adminOnly: true },
+    { path: '/admin/events/brackets', label: 'Brackets', icon: <FaTrophy />, adminOnly: true },
+    { path: '/admin/sessions', label: 'Sessions', icon: <FaDesktop />, adminOnly: true },
+    { path: '/admin/queue', label: 'Queue', icon: <FaUsers />, adminOnly: false },
+    { path: '/admin/stats', label: 'Analytics', icon: <FaChartLine />, adminOnly: true },
+    { path: '/admin/tasks', label: 'Tasks', icon: <FaClock />, adminOnly: true },
+    { path: '/admin/notifications', label: 'Notifications', icon: <FaBell />, adminOnly: true },
   ];
+
+  // Filter menu items based on user role
+  const adminMenu = baseAdminMenu.filter(item => {
+    if (user?.isAdmin) return true; // Admins see everything
+    if (user?.isStaff) return !item.adminOnly; // Staff only see non-admin-only items
+    return false;
+  });
 
   // Check if path is active (exact match or active section)
   const isActivePath = (path) => {
@@ -85,7 +145,10 @@ export default function AdminPageWrapper({ children, title }) {
         <header className={styles.adminHeader}>
           <h1 className={styles.adminTitle}>{title || 'Admin Panel'}</h1>
           <div className={styles.adminUser}>
-            {user?.username || user?.email} <span className={styles.adminBadge}>Admin</span>
+            {user?.username || user?.email} 
+            <span className={styles.adminBadge}>
+              {user?.isAdmin ? 'Admin' : 'Staff'}
+            </span>
           </div>
         </header>
         

@@ -42,6 +42,13 @@ const debugLog = (message, data) => {
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
   const router = useRouter();
+
+  // Redirect staff users to queue management (they don't need full admin dashboard)
+  useEffect(() => {
+    if (user && user.isStaff && !user.isAdmin) {
+      router.replace('/admin/queue');
+    }
+  }, [user, router]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     profilesCount: 0,
@@ -180,6 +187,13 @@ export default function AdminDashboard() {
       description: 'Monitor active gaming sessions and computer usage.',
       action: () => router.push('/admin/sessions'),
       color: '#34A853' // Green
+    },
+    {
+      title: 'Queue Management',
+      icon: <FaUsers className={styles.featureIcon} />,
+      description: 'Manage customer queue and waiting lists for computers.',
+      action: () => router.push('/admin/queue'),
+      color: '#6C757D' // Gray
     },
     {
       title: 'Achievement Reviews',

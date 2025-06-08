@@ -15,7 +15,7 @@ export default function AdminUsers() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && (!user || !user.is_admin)) {
+    if (!authLoading && (!user || !user.isAdmin)) {
       toast.error('You do not have permission to access this page');
       router.push('/');
     }
@@ -31,7 +31,7 @@ export default function AdminUsers() {
   }
 
   // Don't render anything if not admin
-  if (!user?.is_admin) {
+  if (!user?.isAdmin) {
     return null;
   }
 

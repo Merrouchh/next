@@ -28,7 +28,7 @@ export const getServerSideProps = async ({ res }) => {
         timestamp: Date.now(), // Keep timestamp to force revalidation
         metaData: {
           title: "Computer Status | Merrouch Gaming Center",
-          description: "Real-time status of gaming computers. Monitor availability of Normal and VIP PCs.",
+          description: "Real-time status of gaming computers. Monitor availability of Bottom and Top floor PCs.",
           image: "https://merrouchgaming.com/top.jpg",
           url: "https://merrouchgaming.com/avcomputers",
           type: "website",
@@ -72,7 +72,7 @@ export const getServerSideProps = async ({ res }) => {
 // Computer component
 const ComputerBox = ({ 
   computer, 
-  isVip, 
+  isTopFloor, 
   lastUpdate, 
   highlightActive, 
   onOpenLoginModal, 
@@ -83,7 +83,7 @@ const ComputerBox = ({
   // If component is in loading state, show a skeleton
   if (isLoading) {
     return (
-      <div className={`${isVip ? styles.vipPcBox : styles.pcSquare} ${styles.loadingComputer}`}>
+      <div className={`${isTopFloor ? styles.vipPcBox : styles.pcSquare} ${styles.loadingComputer}`}>
         <div className={styles.loadingPulse}></div>
       </div>
     );
@@ -96,10 +96,10 @@ const ComputerBox = ({
   const minutes = parseInt(timeParts[1]) || 0;
   const totalMinutes = hours * 60 + minutes;
 
-  const boxClass = isVip ? styles.vipPcBox : styles.pcSquare;
+  const boxClass = isTopFloor ? styles.vipPcBox : styles.pcSquare;
   const activeClass = computer.isActive
     ? totalMinutes < 60
-      ? isVip ? styles.orange : styles.warning
+      ? isTopFloor ? styles.orange : styles.warning
       : styles.active
     : styles.inactive;
 
@@ -124,7 +124,7 @@ const ComputerBox = ({
         <div className={styles.currentUserBadge}>Your Session</div>
       )}
       <div className={styles.pcNumber}>
-        {isVip ? 'VIP PC' : 'PC'}{computer.number}
+        PC {computer.number}
       </div>
       <div className={styles.statusText}>
         {computer.isActive 
@@ -138,7 +138,7 @@ const ComputerBox = ({
           className={styles.loginButton}
           onClick={() => onOpenLoginModal({
             hostId: computer.id,
-            type: isVip ? 'VIP' : 'Normal',
+            type: isTopFloor ? 'Top' : 'Bottom',
             number: computer.number
           })}
         >
@@ -149,8 +149,8 @@ const ComputerBox = ({
   );
 };
 
-// VIP Computers section
-const VIPComputers = ({ 
+// Top Computers section (Upper Floor)
+const TopComputers = ({ 
   computers, 
   lastUpdate, 
   highlightActive, 
@@ -226,7 +226,7 @@ const VIPComputers = ({
   return (
     <div className={styles.vipWrapper}>
       <div className={styles.vipSection}>
-        <h2 className={styles.sectionHeading}>VIP PCs</h2>
+        <h2 className={styles.sectionHeading}>Top Computers</h2>
         <div className={styles.swipeControls}>
           <button 
             onClick={() => handleScrollButton('left')} 
@@ -253,7 +253,7 @@ const VIPComputers = ({
             <ComputerBox 
               key={computer.id} 
               computer={computer} 
-              isVip={true}
+              isTopFloor={true}
               lastUpdate={lastUpdate}
               highlightActive={highlightActive}
               onOpenLoginModal={onOpenLoginModal}
@@ -272,7 +272,7 @@ const VIPComputers = ({
  * AvailableComputers page component
  * 
  * This page allows users to:
- * 1. View the status of all computers (normal and VIP)
+ * 1. View the status of all computers (bottom floor and top floor)
  * 2. See which computers are available
  * 3. Log in to available computers using their own account
  *    - When a user clicks "Login" on an available computer, the system uses
@@ -303,14 +303,18 @@ const AvailableComputers = ({ metaData }) => {
   const [userGizmoId, setUserGizmoId] = useState(null);
   // Track which computers have loaded data
   const [loadedComputers, setLoadedComputers] = useState({});
+  // Queue related states
+  const [queueStatus, setQueueStatus] = useState(null);
+  const [userInQueue, setUserInQueue] = useState(null);
+  const [showQueueModal, setShowQueueModal] = useState(false);
 
   // Move computersList to useMemo to prevent unnecessary recreations
   const computersList = useMemo(() => ({
     normal: [
-      { number: 1, id: 26 }, { number: 2, id: 12 },
-      { number: 3, id: 8 }, { number: 4, id: 5 },
-      { number: 5, id: 17 }, { number: 6, id: 11 },
-      { number: 7, id: 16 }, { number: 8, id: 14 }
+      { number: 1, id: 26 }, { number: 2, id: 28 },
+      { number: 3, id: 29 }, { number: 4, id: 31 },
+      { number: 5, id: 27 }, { number: 6, id: 30 },
+      { number: 7, id: 33 }, { number: 8, id: 32 }
     ],
     vip: [
       { number: 9, id: 21 }, { number: 10, id: 22 },
@@ -341,6 +345,89 @@ const AvailableComputers = ({ metaData }) => {
       fetchUserGizmoId();
     }
   }, [user, supabase]);
+
+  // Fetch queue status
+  const fetchQueueStatus = async () => {
+    try {
+      const response = await fetch('/api/queue/status');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Queue status data:', data);
+        // Handle case where status is returned as an array
+        const status = Array.isArray(data.status) ? data.status[0] : data.status;
+        console.log('Queue status:', status);
+        setQueueStatus(status);
+        
+        // Check if current user is in queue
+        if (user?.id && data.queue) {
+          const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
+          setUserInQueue(userQueueEntry || null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching queue status:', error);
+    }
+  };
+
+  // Join queue
+  const joinQueue = async (computerType = 'any') => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/queue/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ computerType })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(result.message);
+        fetchQueueStatus(); // Refresh queue status
+        setShowQueueModal(false);
+      } else {
+        alert('Error joining queue: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error joining queue:', error);
+      alert('Error joining queue');
+    }
+  };
+
+  // Leave queue
+  const leaveQueue = async () => {
+    if (!userInQueue) return;
+    
+    if (!confirm('Are you sure you want to leave the queue?')) return;
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch(`/api/queue/manage?id=${userInQueue.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (response.ok) {
+        alert('You have left the queue');
+        fetchQueueStatus(); // Refresh queue status
+      } else {
+        const errorData = await response.json();
+        alert('Error leaving queue: ' + errorData.error);
+      }
+    } catch (error) {
+      console.error('Error leaving queue:', error);
+      alert('Error leaving queue');
+    }
+  };
 
   const updateSingleComputer = useCallback((computer, newData) => {
     setComputers(prev => {
@@ -405,7 +492,7 @@ const AvailableComputers = ({ metaData }) => {
                                 computersList.vip.find(c => c.id === userSession.hostId);
             
             if (userComputer) {
-              const computerType = userComputer.number <= 8 ? 'Normal' : 'VIP';
+              const computerType = userComputer.number <= 8 ? 'Bottom' : 'Top';
               setUserCurrentComputer({
                 type: computerType,
                 number: userComputer.number,
@@ -482,6 +569,42 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, [computersList, computers.normal.length, computers.vip.length]);
 
+  // Fetch queue status on component mount and set up real-time subscriptions
+  useEffect(() => {
+    if (user) {
+      fetchQueueStatus();
+      
+      // Set up real-time subscriptions for queue changes
+      const queueSubscription = supabase
+        .channel('queue-changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'computer_queue'
+        }, () => {
+          console.log('Queue data changed, refreshing...');
+          fetchQueueStatus();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'queue_settings'
+        }, () => {
+          console.log('Queue settings changed, refreshing...');
+          fetchQueueStatus();
+        })
+        .subscribe();
+
+      // Backup polling every 30 seconds (reduced from 10)
+      const queueInterval = setInterval(fetchQueueStatus, 30000);
+      
+      return () => {
+        queueSubscription.unsubscribe();
+        clearInterval(queueInterval);
+      };
+    }
+  }, [user, supabase]);
+
   // Add effect to handle highlighting
   useEffect(() => {
     if (router.query.from === 'dashboard') {
@@ -502,6 +625,24 @@ const AvailableComputers = ({ metaData }) => {
     if (!user || !user.id) {
       alert("You must be logged in to use this feature");
       return;
+    }
+
+    // Check if queue is active
+    if (queueStatus && queueStatus.is_active) {
+      // If user is in queue, show different message
+      if (userInQueue) {
+        alert(`You are currently in the queue at position ${userInQueue.position}. Please wait for your turn.`);
+        return;
+      }
+      
+      // If queue is active but user not in queue, prompt to join
+      if (queueStatus.allow_online_joining) {
+        setShowQueueModal(true);
+        return;
+      } else {
+        alert("A queue is currently active and online joining is disabled. Please visit the gaming center to join the physical queue.");
+        return;
+      }
     }
     
     try {
@@ -553,7 +694,7 @@ const AvailableComputers = ({ metaData }) => {
     
     // Update UI to show the computer is now in use
     const computerType = computer.type.toLowerCase();
-    const computerSection = computerType === 'vip' ? 'vip' : 'normal';
+    const computerSection = computerType === 'top' ? 'vip' : 'normal';
     
     // Mark the computer as being updated
     setLastUpdate(prev => ({ ...prev, [computer.hostId]: Date.now() }));
@@ -640,14 +781,48 @@ const AvailableComputers = ({ metaData }) => {
           <div className={styles.liveDot}></div>
           <span className={styles.liveText}>Live</span>
         </div>
+
+        {/* Queue Status Display */}
+        {queueStatus && (queueStatus.is_active || queueStatus.current_queue_size > 0) && (
+          <div className={styles.queueStatus}>
+            <div className={styles.queueStatusHeader}>
+              <h3>🎮 {queueStatus.is_active ? 'Queue System Active' : 'People Waiting in Queue'}</h3>
+              {userInQueue ? (
+                <div className={styles.userQueueInfo}>
+                  <span className={styles.queuePosition}>You are position #{userInQueue.position}</span>
+                  <button className={styles.leaveQueueButton} onClick={leaveQueue}>
+                    Leave Queue
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.queueInfo}>
+                  <span>{queueStatus.current_queue_size} people waiting</span>
+                  {queueStatus.allow_online_joining && (
+                    <button className={styles.joinQueueButton} onClick={() => setShowQueueModal(true)}>
+                      Join Queue
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className={styles.queueMessage}>
+              {userInQueue 
+                ? `Estimated wait time: ${userInQueue.position * 5} minutes`
+                : queueStatus.allow_online_joining 
+                  ? "People are waiting for computers. Join the queue to get notified when it's your turn."
+                  : "People are waiting for computers. Visit the gaming center to join the physical queue."
+              }
+            </p>
+          </div>
+        )}
         
-        <h2 className={styles.sectionHeading}>Normal Computers</h2>
+        <h2 className={styles.sectionHeading}>Bottom Computers</h2>
         <div className={styles.computerGrid}>
           {computers.normal.map(computer => (
             <ComputerBox 
               key={computer.id} 
               computer={computer} 
-              isVip={false}
+              isTopFloor={false}
               lastUpdate={lastUpdate}
               highlightActive={highlightActive}
               onOpenLoginModal={handleOpenLoginModal}
@@ -658,7 +833,7 @@ const AvailableComputers = ({ metaData }) => {
           ))}
         </div>
 
-        <VIPComputers 
+        <TopComputers 
           computers={computers.vip} 
           lastUpdate={lastUpdate}
           highlightActive={highlightActive}
@@ -677,6 +852,49 @@ const AvailableComputers = ({ metaData }) => {
           onSuccess={handleLoginSuccess}
           autoLoginUser={loginModalState.autoLogin}
         />
+
+        {/* Queue Join Modal */}
+        {showQueueModal && (
+          <div className={styles.queueModal}>
+            <div className={styles.queueModalContent}>
+              <h3>Join Queue</h3>
+              <p>All computers are currently occupied. Would you like to join the queue?</p>
+              
+              <div className={styles.queueModalOptions}>
+                <h4>Computer Preference:</h4>
+                <div className={styles.preferenceButtons}>
+                  <button 
+                    className={styles.preferenceButton}
+                    onClick={() => joinQueue('any')}
+                  >
+                    Any Available Computer
+                  </button>
+                  <button 
+                    className={styles.preferenceButton}
+                    onClick={() => joinQueue('bottom')}
+                  >
+                    Bottom Floor Only
+                  </button>
+                  <button 
+                    className={styles.preferenceButton}
+                    onClick={() => joinQueue('top')}
+                  >
+                    Top Floor Only
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.queueModalActions}>
+                <button 
+                  className={styles.queueCancelButton}
+                  onClick={() => setShowQueueModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </ProtectedPageWrapper>
   );

@@ -86,6 +86,7 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -94,6 +95,7 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -102,6 +104,7 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -110,6 +113,34 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
+    showNavigation: true,
+    adminPage: true
+  },
+
+  '/admin/queue': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    allowStaff: true, // Allow staff access to this page only
+    showNavigation: true,
+    adminPage: true
+  },
+
+  '/admin/stats': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
+    showNavigation: true,
+    adminPage: true
+  },
+
+  '/admin/achievements': {
+    public: false,
+    requireAuth: true,
+    requireAdmin: true,
+    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },

@@ -18,7 +18,7 @@ import {
   fetchUserPicture
 } from '../utils/api';
 import { toast } from 'react-hot-toast';
-import { FaBell } from 'react-icons/fa';
+import { FaBell, FaUsers } from 'react-icons/fa';
 
 export async function getServerSideProps({ res }) {
   // Keep existing cache headers
@@ -277,7 +277,7 @@ const DebtCard = ({ debtAmount, hasTime }) => {
 
 const Dashboard = ({ _initialClips, metaData }) => {
   const router = useRouter();
-  const { user, loading: authLoading, refreshSession } = useAuth();
+  const { user, loading: authLoading, initialized, refreshSession } = useAuth();
   const [pageState, setPageState] = useState({
     loading: true,
     error: null,
@@ -314,20 +314,23 @@ const Dashboard = ({ _initialClips, metaData }) => {
     };
   }, [user, refreshSession]);
 
-  // Log user information to verify admin status
+  // Log user information to verify admin/staff status
   useEffect(() => {
     if (user) {
       console.log('Current user:', user);
       console.log('Is admin?', user.isAdmin);
+      console.log('Is staff?', user.isStaff);
       
-      // More explicit check for isAdmin property
-      if (user.isAdmin === undefined) {
-        console.warn('isAdmin property is undefined in user object');
+      // More explicit check for role properties
+      if (user.isAdmin === undefined && user.isStaff === undefined) {
+        console.warn('Role properties are undefined in user object');
         console.log('Full user object:', JSON.stringify(user));
       } else if (user.isAdmin === true) {
         console.log('User is confirmed as an admin');
+      } else if (user.isStaff === true) {
+        console.log('User is confirmed as staff');
       } else {
-        console.log('User is not an admin');
+        console.log('User is a regular user');
       }
     }
   }, [user]);
@@ -656,13 +659,14 @@ const Dashboard = ({ _initialClips, metaData }) => {
       <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
-            <h1 className={styles.welcomeText}>
+                          <h1 className={styles.welcomeText}>
               Hey <span className={styles.username}>
                 {user?.username ? (
                   user.username.charAt(0).toUpperCase() + user.username.slice(1)
                 ) : 'User'}
               </span>!
               {user?.isAdmin && <span className={styles.adminIndicator}>Admin</span>}
+              {user?.isStaff && !user?.isAdmin && <span className={styles.adminIndicator}>Staff</span>}
             </h1>
             <DashboardUserSearch />
           </div>
@@ -793,21 +797,32 @@ const Dashboard = ({ _initialClips, metaData }) => {
           />
         </div>
 
-        {/* Admin Section - Only visible to admin users */}
-        {user?.isAdmin ? (
+        {/* Admin/Staff Section - Only visible after auth is fully loaded */}
+        {!authLoading && initialized && user && (user.isAdmin === true || user.isStaff === true) ? (
+          console.log('Showing admin/staff section - Admin:', user.isAdmin, 'Staff:', user.isStaff) ||
           <section className={styles.adminSection}>
             <div className={styles.adminSectionHeader}>
-              <h2>Admin Controls</h2>
-              <p>Welcome to the admin dashboard. You have access to additional controls and features.</p>
+              <h2>{user?.isAdmin ? 'Admin Controls' : 'Staff Controls'}</h2>
+              <p>Welcome to the {user?.isAdmin ? 'admin' : 'staff'} dashboard. You have access to additional controls and features.</p>
             </div>
             <div className={styles.adminMainAction}>
-              <button 
-                className={styles.adminDashboardButton}
-                onClick={() => router.push('/admin')}
-              >
-                <AiOutlineDashboard className={styles.adminDashboardIcon} />
-                Open Admin Dashboard
-              </button>
+              {user?.isAdmin ? (
+                <button 
+                  className={styles.adminDashboardButton}
+                  onClick={() => router.push('/admin')}
+                >
+                  <AiOutlineDashboard className={styles.adminDashboardIcon} />
+                  Open Admin Dashboard
+                </button>
+              ) : (
+                <button 
+                  className={styles.adminDashboardButton}
+                  onClick={() => router.push('/admin/queue')}
+                >
+                  <FaUsers className={styles.adminDashboardIcon} />
+                  Manage Queue System
+                </button>
+              )}
             </div>
           </section>
         ) : (

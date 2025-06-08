@@ -100,11 +100,12 @@ export const AuthProvider = ({ children, onError }) => {
       
       if (userData) {
         // Update auth state with user data
-        const processedUserData = {
-          ...userData,
-          isAdmin: userData.is_admin,
-          email: authUser.email // Always use the email from auth
-        };
+                    const processedUserData = {
+              ...userData,
+              isAdmin: userData.is_admin,
+              isStaff: userData.is_staff,
+              email: authUser.email // Always use the email from auth
+            };
         
         console.log('Auth: Updating state with reloaded user data:', processedUserData.email);
         
@@ -211,6 +212,7 @@ export const AuthProvider = ({ children, onError }) => {
             const processedUserData = {
               ...userData,
               isAdmin: userData.is_admin,
+              isStaff: userData.is_staff,
               email: authUser.email // Always use the email from auth
             };
             
@@ -353,6 +355,7 @@ export const AuthProvider = ({ children, onError }) => {
             const processedUserData = userData ? {
               ...userData,
               isAdmin: userData.is_admin,
+              isStaff: userData.is_staff,
               email: authUser.email // Always use the email from auth user
             } : null;
 
@@ -611,6 +614,7 @@ export const AuthProvider = ({ children, onError }) => {
             return {
               ...data,
               isAdmin: data.is_admin,
+              isStaff: data.is_staff,
               // Use auth email if available (more up-to-date)
               email: authUser.email
             };
@@ -623,7 +627,8 @@ export const AuthProvider = ({ children, onError }) => {
         console.log('Raw user data from DB:', data);
         return {
           ...data,
-          isAdmin: data.is_admin
+          isAdmin: data.is_admin,
+          isStaff: data.is_staff
         };
       }
       
