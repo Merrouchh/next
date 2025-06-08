@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
   const searchParams = url.searchParams;
 
   // Skip logging for static assets to reduce noise
-  if (!pathname.startsWith('/_next') && !pathname.includes('service-worker') && !pathname.includes('.')) {
+      if (!pathname.startsWith('/_next') && !pathname.includes('.')) {
     console.log('Middleware processing URL:', { pathname, search, hash });
   }
 

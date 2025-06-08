@@ -12,6 +12,7 @@ import { defaultSEO } from '../utils/seo-config';
 import DynamicMeta from '../components/DynamicMeta';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
+import { unregisterServiceWorkers } from '../utils/unregisterServiceWorker';
 
 // Disable error overlay in development
 if (process.env.NODE_ENV === 'development') {
@@ -124,6 +125,9 @@ function MyApp({ Component, pageProps }) {
     };
     
     window.addEventListener('unhandledrejection', handleUnhandledRejection, true);
+
+    // Unregister all service workers to prevent caching issues
+    unregisterServiceWorkers();
 
     setMounted(true);
     
