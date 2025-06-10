@@ -6,7 +6,7 @@ import Header from './Header';
 import MobileHeader from './MobileHeader';
 import DashboardHeader from './DashboardHeader';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
@@ -20,10 +20,23 @@ const ProtectedPageWrapper = ({ children }) => {
   const routeConfig = getRouteConfig(router.pathname);
   const isVerificationPage = isAuthPage(router.pathname);
   const isAdminRequired = requiresAdmin(router.pathname);
+  const [initTimeout, setInitTimeout] = useState(false);
 
   const hasNavigation = routeConfig.showNavigation;
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
+
+  // Add timeout for auth initialization
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!initialized) {
+        console.warn('ProtectedPageWrapper: Auth initialization timeout');
+        setInitTimeout(true);
+      }
+    }, 8000); // 8 second timeout
+
+    return () => clearTimeout(timer);
+  }, [initialized]);
 
   // If this is a verification page, don't wrap with navigation/headers
   if (isVerificationPage) {
@@ -32,28 +45,42 @@ const ProtectedPageWrapper = ({ children }) => {
 
   // Handle authentication-based routing
   useEffect(() => {
+    // Don't do anything if auth is not initialized yet
     if (!initialized) return;
 
     // If user is logged in and on home page, redirect to dashboard
-    if (user && router.pathname === '/') {
+    // But only if we're not already in the middle of a redirect
+    if (user && router.pathname === '/' && router.isReady) {
       console.log('User logged in, redirecting to dashboard');
       router.replace('/dashboard');
       return;
     }
     
     // If user is not logged in and page requires auth, redirect to home
-    if (!user && routeConfig.requireAuth) {
+    if (!user && routeConfig.requireAuth && router.isReady) {
       router.replace('/');
       return;
     }
     
     // If admin access is required but user is not an admin, redirect to dashboard
-    if (isAdminRequired && user && !user.isAdmin) {
+    if (isAdminRequired && user && !user.isAdmin && router.isReady) {
       toast.error('You do not have admin access to this page');
       router.replace('/dashboard');
       return;
     }
-  }, [initialized, user, router, routeConfig.requireAuth, router.pathname, isVerificationPage, isAdminRequired]);
+  }, [initialized, user, router, routeConfig.requireAuth, router.pathname, router.isReady, isVerificationPage, isAdminRequired]);
+
+  // Show loading while auth is initializing (unless timeout reached)
+  if (!initialized && !initTimeout) {
+    return <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh', 
+      fontSize: '1.2rem', 
+      color: '#FFD700' 
+    }}>Loading...</div>;
+  }
 
   // Don't render protected content if user is not authenticated
   if (!user && routeConfig.requireAuth) {

@@ -25,12 +25,37 @@ const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
 
 // Main Home component first
 const Home = ({ metaData }) => {
-  const { user, loading, supabase } = useAuth();
+  const { user, loading, supabase, initialized } = useAuth();
   const router = useRouter();
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [processingMagicLink, setProcessingMagicLink] = useState(false);
+  const [initTimeout, setInitTimeout] = useState(false);
+
+  // Add timeout for auth initialization to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!initialized) {
+        console.warn('Auth initialization timeout, showing page anyway');
+        setInitTimeout(true);
+      }
+    }, 8000); // 8 second timeout
+
+    return () => clearTimeout(timer);
+  }, [initialized]);
+
+  // Debug logging for white screen issue
+  useEffect(() => {
+    console.log('Home page state:', {
+      initialized,
+      loading,
+      user: user ? 'logged in' : 'not logged in',
+      isVerifying,
+      initTimeout,
+      pathname: router.pathname
+    });
+  }, [initialized, loading, user, isVerifying, initTimeout, router.pathname]);
 
   // Add magic link detection at the beginning
   useEffect(() => {
@@ -134,14 +159,14 @@ const Home = ({ metaData }) => {
 
   // Handle dashboard redirect for logged-in users
   useEffect(() => {
-    // Only redirect to dashboard if there's no verification happening
-    if (!loading && user && !isVerifying) {
+    // Only redirect to dashboard if there's no verification happening AND auth is fully initialized (or timed out)
+    if (!loading && (initialized || initTimeout) && user && !isVerifying) {
       if (!hasAuthTokens()) {
         console.log('User is logged in and no auth tokens in URL, redirecting to dashboard');
         router.replace('/dashboard');
       }
     }
-  }, [user, loading, router, isVerifying]);
+  }, [user, loading, initialized, initTimeout, router, isVerifying]);
 
   const handleCheckAvailability = () => {
     if (!user) {
@@ -156,10 +181,10 @@ const Home = ({ metaData }) => {
     setIsLoginModalOpen(true);
   };
 
-  // Simplified loading states with divs instead of LoadingScreen
-  if (loading) return <div className={styles.simpleLoadingWrapper}>Loading...</div>;
+  // Improved loading states with proper initialization checks and timeout
+  if ((!initialized && !initTimeout) || loading) return <div className={styles.simpleLoadingWrapper}>Loading...</div>;
   if (isVerifying) return <div className={styles.simpleLoadingWrapper}>{processingMagicLink ? "Processing magic link login..." : "Verifying email..."}</div>;
-  if (user && !hasAuthTokens()) return <div className={styles.simpleLoadingWrapper}>Redirecting...</div>;
+  if (user && !hasAuthTokens() && (initialized || initTimeout)) return <div className={styles.simpleLoadingWrapper}>Redirecting...</div>;
 
   return (
     <>

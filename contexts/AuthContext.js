@@ -225,11 +225,6 @@ export const AuthProvider = ({ children, onError }) => {
               loading: false,
               initialized: true
             });
-
-            // Only redirect to dashboard if we're on the home page
-            if (router.pathname === '/') {
-              await router.replace('/dashboard');
-            }
           } else {
             setAuthState(prev => ({
               ...prev,
