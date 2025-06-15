@@ -789,7 +789,8 @@ export const AuthProvider = ({ children, onError }) => {
           user: {
             ...fullUserData,
             email: authUser.email, // Always use the email from auth
-            isAdmin: fullUserData.is_admin
+            isAdmin: fullUserData.is_admin,
+            isStaff: fullUserData.is_staff  // ✅ ADD THIS!
           },
           loading: false,
           initialized: true
@@ -1036,10 +1037,14 @@ export const AuthProvider = ({ children, onError }) => {
 
       if (signInError) throw signInError;
 
-      // Update auth state
+      // Update auth state with processed role data
       setAuthState({
         isLoggedIn: true,
-        user: userData,
+        user: {
+          ...userData,
+          isAdmin: userData.is_admin,
+          isStaff: userData.is_staff
+        },
         loading: false,
         initialized: true
       });

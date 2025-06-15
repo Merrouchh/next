@@ -1,24 +1,80 @@
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/router';
 import styles from '../styles/DarkModeMap.module.css';
 
 const DarkModeMap = () => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldRender, setShouldRender] = useState(false);
+  const router = useRouter();
+  const mountedRef = useRef(true);
+  const initTimeoutRef = useRef(null);
+
+  // Only render after component is mounted to prevent SSR issues
+  useEffect(() => {
+    setShouldRender(true);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Clean up on route changes to prevent chunk loading errors
+  useEffect(() => {
+    const handleRouteChangeStart = () => {
+      mountedRef.current = false;
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
+      if (mapInstance.current) {
+        try {
+          mapInstance.current.remove();
+          mapInstance.current = null;
+        } catch (error) {
+          console.warn('Error cleaning up map on route change:', error);
+        }
+      }
+    };
+
+    router.events.on('routeChangeStart', handleRouteChangeStart);
+    
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChangeStart);
+    };
+  }, [router.events]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !shouldRender) return;
     
-    let mounted = true;
-
     const initializeMap = async () => {
       try {
-        if (!mapRef.current || !mounted) return;
+        // Double check we're still mounted and have a ref
+        if (!mapRef.current || !mountedRef.current) return;
 
-        const L = (await import('leaflet')).default;
-        await import('leaflet/dist/leaflet.css');
+        // Dynamic import with error handling
+        let L;
+        try {
+          L = (await import('leaflet')).default;
+          await import('leaflet/dist/leaflet.css');
+        } catch (importError) {
+          console.error('Failed to import leaflet:', importError);
+          setIsLoading(false);
+          return;
+        }
 
-        if (!mapRef.current || !mounted) return;
+        // Check again after async operations
+        if (!mapRef.current || !mountedRef.current) return;
+
+        // Clean up any existing map instance
+        if (mapInstance.current) {
+          try {
+            mapInstance.current.remove();
+          } catch (error) {
+            console.warn('Error removing existing map:', error);
+          }
+          mapInstance.current = null;
+        }
 
         mapInstance.current = L.map(mapRef.current, {
           center: [35.768685, -5.810158],
@@ -52,30 +108,55 @@ const DarkModeMap = () => {
           icon: customIcon,
         }).addTo(mapInstance.current);
 
-        setTimeout(() => {
-          if (mapInstance.current && mounted) {
-            mapInstance.current.invalidateSize();
+        initTimeoutRef.current = setTimeout(() => {
+          if (mapInstance.current && mountedRef.current) {
+            try {
+              mapInstance.current.invalidateSize();
+            } catch (error) {
+              console.warn('Error invalidating map size:', error);
+            }
           }
-          setIsLoading(false);
+          if (mountedRef.current) {
+            setIsLoading(false);
+          }
         }, 100);
 
       } catch (error) {
         console.error('Map initialization error:', error);
-        setIsLoading(false);
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     const timer = setTimeout(initializeMap, 100);
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       clearTimeout(timer);
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+        initTimeoutRef.current = null;
+      }
       if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
+        try {
+          mapInstance.current.remove();
+          mapInstance.current = null;
+        } catch (error) {
+          console.warn('Error cleaning up map:', error);
+        }
       }
     };
-  }, []);
+  }, [shouldRender]);
+
+  // Don't render if not ready or if component is unmounting
+  if (!shouldRender || !mountedRef.current) {
+    return (
+      <div className={styles.mapWrapper}>
+        <div className={styles.mapLoading}>Loading map...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.mapWrapper}>

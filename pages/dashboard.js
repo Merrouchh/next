@@ -192,6 +192,46 @@ const SessionRefreshButton = () => {
   );
 };
 
+// Admin/Staff Section Component - Simplified
+const AdminStaffSection = ({ user, authLoading, initialized, router }) => {
+  // Simple role checking
+  const isAdmin = user?.isAdmin === true;
+  const isStaff = user?.isStaff === true;
+  const hasAdminAccess = isAdmin || isStaff;
+  
+  if (authLoading || !initialized || !user || !hasAdminAccess) {
+    return null;
+  }
+  
+  return (
+    <section className={styles.adminSection}>
+      <div className={styles.adminSectionHeader}>
+        <h2>{isAdmin ? 'Admin Controls' : 'Staff Controls'}</h2>
+        <p>Welcome to the {isAdmin ? 'admin' : 'staff'} dashboard. You have access to additional controls and features.</p>
+      </div>
+      <div className={styles.adminMainAction}>
+        {isAdmin ? (
+          <button 
+            className={styles.adminDashboardButton}
+            onClick={() => router.push('/admin')}
+          >
+            <AiOutlineDashboard className={styles.adminDashboardIcon} />
+            Open Admin Dashboard
+          </button>
+        ) : (
+          <button 
+            className={styles.adminDashboardButton}
+            onClick={() => router.push('/admin/queue')}
+          >
+            <FaUsers className={styles.adminDashboardIcon} />
+            Manage Queue System
+          </button>
+        )}
+      </div>
+    </section>
+  );
+};
+
 // Loading spinner component
 const LoadingSpinner = () => (
   <div className={styles.loadingContainer}>
@@ -284,26 +324,11 @@ const Dashboard = ({ _initialClips, metaData }) => {
     data: null
   });
 
-  // Auto refresh session when the page is loaded or becomes visible
+  // Simple session refresh on visibility change only
   useEffect(() => {
-    const autoRefreshSession = async () => {
-      if (!user) return;
-      
-      try {
-        // Silently try to refresh the session on page load
-        await refreshSession({ silent: true });
-      } catch (error) {
-        console.error('Auto session refresh failed:', error);
-      }
-    };
-    
-    // Run on initial load
-    autoRefreshSession();
-    
-    // Set up visibility change handler
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        autoRefreshSession();
+      if (document.visibilityState === 'visible' && user) {
+        refreshSession({ silent: true }).catch(console.error);
       }
     };
     
@@ -314,26 +339,9 @@ const Dashboard = ({ _initialClips, metaData }) => {
     };
   }, [user, refreshSession]);
 
-  // Log user information to verify admin/staff status
-  useEffect(() => {
-    if (user) {
-      console.log('Current user:', user);
-      console.log('Is admin?', user.isAdmin);
-      console.log('Is staff?', user.isStaff);
-      
-      // More explicit check for role properties
-      if (user.isAdmin === undefined && user.isStaff === undefined) {
-        console.warn('Role properties are undefined in user object');
-        console.log('Full user object:', JSON.stringify(user));
-      } else if (user.isAdmin === true) {
-        console.log('User is confirmed as an admin');
-      } else if (user.isStaff === true) {
-        console.log('User is confirmed as staff');
-      } else {
-        console.log('User is a regular user');
-      }
-    }
-  }, [user]);
+
+
+
 
   useEffect(() => {
     if (pageState.data) return;
@@ -483,10 +491,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
     );
   }
 
-  // Debug admin status before rendering
-  console.log('About to render dashboard for:', user?.username);
-  console.log('User admin status in render:', user?.isAdmin);
-  console.log('Should show admin section:', Boolean(user?.isAdmin));
+
 
   // Show setup required state
   if (pageState.data?.needsProfileSetup) {
@@ -797,38 +802,13 @@ const Dashboard = ({ _initialClips, metaData }) => {
           />
         </div>
 
-        {/* Admin/Staff Section - Only visible after auth is fully loaded */}
-        {!authLoading && initialized && user && (user.isAdmin === true || user.isStaff === true) ? (
-          console.log('Showing admin/staff section - Admin:', user.isAdmin, 'Staff:', user.isStaff) ||
-          <section className={styles.adminSection}>
-            <div className={styles.adminSectionHeader}>
-              <h2>{user?.isAdmin ? 'Admin Controls' : 'Staff Controls'}</h2>
-              <p>Welcome to the {user?.isAdmin ? 'admin' : 'staff'} dashboard. You have access to additional controls and features.</p>
-            </div>
-            <div className={styles.adminMainAction}>
-              {user?.isAdmin ? (
-                <button 
-                  className={styles.adminDashboardButton}
-                  onClick={() => router.push('/admin')}
-                >
-                  <AiOutlineDashboard className={styles.adminDashboardIcon} />
-                  Open Admin Dashboard
-                </button>
-              ) : (
-                <button 
-                  className={styles.adminDashboardButton}
-                  onClick={() => router.push('/admin/queue')}
-                >
-                  <FaUsers className={styles.adminDashboardIcon} />
-                  Manage Queue System
-                </button>
-              )}
-            </div>
-          </section>
-        ) : (
-          // Debug message - will only appear in console
-          console.log('User is not an admin, admin section not rendered')
-        )}
+                 {/* Admin/Staff Section */}
+         <AdminStaffSection 
+           user={user} 
+           authLoading={authLoading} 
+           initialized={initialized} 
+           router={router} 
+         />
       </main>
     </ProtectedPageWrapper>
   );

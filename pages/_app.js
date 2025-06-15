@@ -6,7 +6,7 @@ import '../styles/globals.css';
 import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
-import { Toaster } from 'react-hot-toast';
+import ClientOnlyToaster from '../components/ClientOnlyToaster';
 import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
 import DynamicMeta from '../components/DynamicMeta';
@@ -121,29 +121,7 @@ function MyApp({ Component, pageProps }) {
             <AuthProvider>
               <ModalProvider>
                 <Component {...pageProps} />
-                <Toaster
-                  position="top-right"
-                  toastOptions={{
-                    duration: 4000,
-                    style: {
-                      background: '#1a1a1a',
-                      color: '#fff',
-                      border: '1px solid #333',
-                    },
-                    success: {
-                      iconTheme: {
-                        primary: '#10b981',
-                        secondary: '#fff',
-                      },
-                    },
-                    error: {
-                      iconTheme: {
-                        primary: '#ef4444',
-                        secondary: '#fff',
-                      },
-                    },
-                  }}
-                />
+                <ClientOnlyToaster />
               </ModalProvider>
             </AuthProvider>
           </main>
@@ -166,29 +144,7 @@ function MyApp({ Component, pageProps }) {
           <AuthProvider>
             <ModalProvider>
               {getLayout(<Component {...pageProps} />)}
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#1a1a1a',
-                    color: '#fff',
-                    border: '1px solid #333',
-                  },
-                  success: {
-                    iconTheme: {
-                      primary: '#10b981',
-                      secondary: '#fff',
-                    },
-                  },
-                  error: {
-                    iconTheme: {
-                      primary: '#ef4444',
-                      secondary: '#fff',
-                    },
-                  },
-                }}
-              />
+              <ClientOnlyToaster />
             </ModalProvider>
           </AuthProvider>
         </main>
