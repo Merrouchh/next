@@ -1,32 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
 import styles from '../styles/DarkModeMap.module.css';
 
 const DarkModeMap = () => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
-  const isInitialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     let mounted = true;
-    let initTimer;
 
     const initializeMap = async () => {
       try {
         if (!mapRef.current || !mounted) return;
-
-        if (isInitialized.current) return;
 
         const L = (await import('leaflet')).default;
         await import('leaflet/dist/leaflet.css');
 
         if (!mapRef.current || !mounted) return;
 
-        isInitialized.current = true;
-        
         mapInstance.current = L.map(mapRef.current, {
           center: [35.768685, -5.810158],
           zoom: 16,
@@ -38,11 +31,9 @@ const DarkModeMap = () => {
           attributionControl: false,
         });
 
-        const darkTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
-        });
-
-        darkTileLayer.addTo(mapInstance.current);
+        }).addTo(mapInstance.current);
 
         const customIcon = L.divIcon({
           className: styles.markerIcon,
@@ -62,40 +53,38 @@ const DarkModeMap = () => {
         }).addTo(mapInstance.current);
 
         setTimeout(() => {
-          mapInstance.current?.invalidateSize();
+          if (mapInstance.current && mounted) {
+            mapInstance.current.invalidateSize();
+          }
           setIsLoading(false);
-        }, 250);
+        }, 100);
 
       } catch (error) {
-        if (mounted) {
-          console.error('Map initialization error:', error);
-          setIsLoading(false);
-        }
+        console.error('Map initialization error:', error);
+        setIsLoading(false);
       }
     };
 
-    initTimer = setTimeout(initializeMap, 100);
+    const timer = setTimeout(initializeMap, 100);
 
     return () => {
       mounted = false;
-      clearTimeout(initTimer);
+      clearTimeout(timer);
       if (mapInstance.current) {
         mapInstance.current.remove();
         mapInstance.current = null;
-        isInitialized.current = false;
       }
     };
   }, []);
 
   return (
     <div className={styles.mapWrapper}>
-      {isLoading && <div className={styles.mapLoading}>Loading map...</div>}
+      {isLoading && (
+        <div className={styles.mapLoading}>Loading map...</div>
+      )}
       <div ref={mapRef} className={styles.mapContainer} />
     </div>
   );
 };
 
-export default dynamic(() => Promise.resolve(DarkModeMap), {
-  ssr: false,
-  loading: () => <div className={styles.mapLoading}>Loading map component...</div>
-});
+export default DarkModeMap;

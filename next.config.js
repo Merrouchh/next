@@ -55,8 +55,8 @@ const nextConfig = {
     } : false,
   },
 
-  // Webpack configuration
-  webpack: (config, { isServer, dev }) => {
+  // Simplified webpack configuration
+  webpack: (config, { isServer }) => {
     config.infrastructureLogging = { level: 'error' };
 
     config.resolve.fallback = {
@@ -70,15 +70,6 @@ const nextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         punycode: false,
-      };
-    }
-
-    // Only in production client bundle
-    if (!isServer && !dev) {
-      config.optimization.splitChunks.cacheGroups = {
-        ...config.optimization.splitChunks.cacheGroups,
-        // Disable framework chunk
-        framework: false
       };
     }
 
@@ -99,7 +90,7 @@ const nextConfig = {
     ];
   },
 
-  // Security headers with more restrictive CORS
+  // Security headers
   async headers() {
     return [
       {
@@ -177,10 +168,6 @@ const nextConfig = {
           {
             key: 'Expires',
             value: '0'
-          },
-          {
-            key: 'Surrogate-Control',
-            value: 'no-store'
           }
         ]
       },

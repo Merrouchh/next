@@ -4,14 +4,23 @@ import { useRouter } from 'next/router';
 import { fetchGizmoId } from '../utils/api';
 import { isPublicRoute, isProtectedRoute } from '../utils/routeConfig';
 
-// Error messages
+// Enhanced error messages with more specific cases
 const AUTH_ERRORS = {
   USER_NOT_FOUND: 'User not found',
   INVALID_PASSWORD: 'Invalid password',
   RATE_LIMIT: 'Too many attempts. Please try again later.',
   GENERIC_ERROR: 'An unexpected error occurred',
-  SESSION_EXPIRED: 'Session expired. Please login again'
+  SESSION_EXPIRED: 'Session expired. Please login again',
+  NETWORK_ERROR: 'Network error. Please check your connection.',
+  INVALID_TOKEN: 'Invalid authentication token',
+  USER_DISABLED: 'Account has been disabled'
 };
+
+// Session validation constants - balanced approach
+const SESSION_CHECK_INTERVAL = 15 * 60 * 1000; // 15 minutes (reduced from 5)
+const TOKEN_REFRESH_THRESHOLD = 10 * 60 * 1000; // Refresh if token expires within 10 minutes
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_BASE = 1000; // Base delay for exponential backoff
 
 // Create context with default value
 const AuthContext = createContext({
@@ -56,6 +65,47 @@ export const AuthProvider = ({ children, onError }) => {
     setMounted(true);
   }, []);
 
+  // Enhanced session validation function
+  const validateSession = useCallback(async () => {
+    if (!supabaseRef.current) return { valid: false, error: 'Supabase client not initialized' };
+    
+    try {
+      // Get current session
+      const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+      
+      if (error) {
+        console.error('Auth: Session validation error:', error);
+        return { valid: false, error: AUTH_ERRORS.INVALID_TOKEN };
+      }
+      
+      if (!session) {
+        return { valid: false, error: AUTH_ERRORS.SESSION_EXPIRED };
+      }
+      
+      // Check if token is about to expire
+      const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+      
+      if (timeUntilExpiry <= 0) {
+        return { valid: false, error: AUTH_ERRORS.SESSION_EXPIRED };
+      }
+      
+      // Check if we need to refresh soon
+      const needsRefresh = timeUntilExpiry <= TOKEN_REFRESH_THRESHOLD;
+      
+      return { 
+        valid: true, 
+        session, 
+        needsRefresh,
+        expiresIn: timeUntilExpiry
+      };
+    } catch (error) {
+      console.error('Auth: Session validation error:', error);
+      return { valid: false, error: AUTH_ERRORS.NETWORK_ERROR };
+    }
+  }, []);
+
   // Add a function to force auth state reload from localStorage
   const forceSessionReload = useCallback(async () => {
     if (!supabaseRef.current) return { success: false, error: 'Supabase client not initialized' };
@@ -63,20 +113,15 @@ export const AuthProvider = ({ children, onError }) => {
     try {
       console.log('Auth: Force-reloading session from storage');
       
-      // First try to get session from storage
-      const { data: { session }, error } = await supabaseRef.current.auth.getSession();
-      
-      if (error) {
-        console.error('Auth: Error getting session during force reload:', error);
-        return { success: false, error };
+      // Validate session first
+      const validation = await validateSession();
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
       }
       
-      if (!session) {
-        console.warn('Auth: No session found during force reload');
-        return { success: false, error: { message: 'No session found' } };
-      }
+      const session = validation.session;
       
-      console.log('Auth: Session found during force reload, getting user data');
+      console.log('Auth: Session valid, getting user data');
       
       // Get the current auth user
       const { data: { user: authUser }, error: userError } = await supabaseRef.current.auth.getUser();
@@ -100,12 +145,12 @@ export const AuthProvider = ({ children, onError }) => {
       
       if (userData) {
         // Update auth state with user data
-                    const processedUserData = {
-              ...userData,
-              isAdmin: userData.is_admin,
-              isStaff: userData.is_staff,
-              email: authUser.email // Always use the email from auth
-            };
+        const processedUserData = {
+          ...userData,
+          isAdmin: userData.is_admin,
+          isStaff: userData.is_staff,
+          email: authUser.email // Always use the email from auth
+        };
         
         console.log('Auth: Updating state with reloaded user data:', processedUserData.email);
         
@@ -124,7 +169,7 @@ export const AuthProvider = ({ children, onError }) => {
       console.error('Auth: Error during force reload:', error);
       return { success: false, error };
     }
-  }, []);
+  }, [validateSession]);
 
   // Initialize auth state
   useEffect(() => {
@@ -252,26 +297,61 @@ export const AuthProvider = ({ children, onError }) => {
     getInitialSession();
   }, [mounted, router]);
 
-  // Session check function
-  const checkSession = useCallback(async () => {
-    if (!mounted || !supabaseRef.current) return;
+  // Enhanced session check function with retry logic
+  const checkSession = useCallback(async (retryCount = 0) => {
+    if (!mounted || !supabaseRef.current) return { success: false };
 
     try {
-      const { data: { session } } = await supabaseRef.current.auth.getSession();
-      if (!session && authState.isLoggedIn) {
-        setAuthState(prev => ({
-          ...prev,
-          isLoggedIn: false,
-          loading: false
-        }));
+      const validation = await validateSession();
+      
+      if (!validation.valid) {
+        // If session is invalid and user was logged in, log them out
+        if (authState.isLoggedIn) {
+          console.warn('Auth: Invalid session detected, logging out user');
+          setAuthState(prev => ({
+            ...prev,
+            isLoggedIn: false,
+            user: null,
+            loading: false
+          }));
+          
+          // Notify other tabs
+          notifyTabs({ type: 'SESSION_INVALID' });
+        }
+        return { success: false, error: validation.error };
       }
+      
+      // If session needs refresh, do it automatically
+      if (validation.needsRefresh && authState.isLoggedIn) {
+        console.log('Auth: Token needs refresh, refreshing automatically');
+        const refreshResult = await refreshUserSession({ silent: true });
+        if (!refreshResult.success) {
+          console.error('Auth: Auto-refresh failed:', refreshResult.error);
+          return { success: false, error: refreshResult.error };
+        }
+      }
+      
+      return { success: true, session: validation.session };
     } catch (error) {
       console.error('Session check error:', error);
+      
+      // Retry logic for network errors
+      if (retryCount < MAX_RETRY_ATTEMPTS && error.message.includes('network')) {
+        const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+        console.log(`Auth: Retrying session check in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return checkSession(retryCount + 1);
+      }
+      
+      return { success: false, error: AUTH_ERRORS.NETWORK_ERROR };
     }
-  }, [authState.isLoggedIn, mounted]);
+  }, [authState.isLoggedIn, mounted, validateSession]);
 
-  // Handle focus and visibility
+  // Enhanced session monitoring with periodic checks
   useEffect(() => {
+    let intervalId = null;
+    
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authState.isLoggedIn) {
         checkSession();
@@ -284,14 +364,24 @@ export const AuthProvider = ({ children, onError }) => {
       }
     };
 
+    // Periodic session validation (every 15 minutes when logged in)
+    if (authState.isLoggedIn && mounted) {
+      intervalId = setInterval(() => {
+        checkSession();
+      }, SESSION_CHECK_INTERVAL);
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [authState.isLoggedIn, checkSession]);
+  }, [authState.isLoggedIn, checkSession, mounted]);
 
   // Extract common refresh logic to a single function
   const refreshUserSession = async (retryOptions = {}) => {
@@ -757,6 +847,9 @@ export const AuthProvider = ({ children, onError }) => {
             }
           } else if (event.data.type === 'SESSION_REFRESHED') {
             console.log('Auth: Session refreshed in another tab, refreshing here as well');
+            checkSession();
+          } else if (event.data.type === 'SESSION_INVALID') {
+            console.log('Auth: Session invalid in another tab, checking here as well');
             checkSession();
           }
         };

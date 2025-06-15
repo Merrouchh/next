@@ -12,42 +12,6 @@ import { defaultSEO } from '../utils/seo-config';
 import DynamicMeta from '../components/DynamicMeta';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
-import { unregisterServiceWorkers } from '../utils/unregisterServiceWorker';
-
-// Disable error overlay in development
-if (process.env.NODE_ENV === 'development') {
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    if (
-      typeof args[0] === 'string' && 
-      (args[0].includes('AuthApiError') || 
-       args[0].includes('Invalid login credentials') ||
-       args[0].includes('Current password is incorrect') ||
-       args[0].includes('verification code') ||
-       args[0].includes('Invalid verification code'))
-    ) {
-      // Suppress specific errors from the console
-      return;
-    }
-    originalConsoleError.apply(console, args);
-  };
-
-  // Override Error overlay
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', (event) => {
-      if (
-        event.error?.name === 'AuthApiError' || 
-        event.error?.message?.includes('Invalid login credentials') ||
-        event.error?.message?.includes('Current password is incorrect') ||
-        event.error?.message?.includes('verification code') ||
-        event.error?.message?.includes('Invalid verification code')
-      ) {
-        event.preventDefault();
-        return false;
-      }
-    }, true);
-  }
-}
 
 const inter = Inter({
   subsets: ['latin'],
@@ -71,69 +35,12 @@ const zenDots = Zen_Dots({
   variable: '--font-zen-dots',
 });
 
-// Add error handler for lock failures and auth errors
-const handleGlobalError = (error) => {
-  if (error.message?.includes('LockManager lock') || error.isAcquireTimeout) {
-    // Silently handle lock errors
-    console.debug('Auth lock already acquired, continuing...');
-    return;
-  }
-  
-  // Handle Supabase auth errors
-  if (error.name === 'AuthApiError' || 
-      error.message?.includes('Invalid login credentials') ||
-      error.message?.includes('verification code') ||
-      error.message?.includes('Invalid verification code')) {
-    // Log but don't show in Next.js error overlay
-    console.debug('Auth error handled:', error.message);
-    return;
-  }
-  
-  // Rethrow other errors
-  throw error;
-};
-
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Add global error handler for lock errors and auth errors
-    const handleUnhandledRejection = (event) => {
-      const error = event.reason;
-      
-      // Check for auth-related errors
-      if (
-        error?.name === 'AuthApiError' || 
-        error?.message?.includes('Invalid login credentials') ||
-        error?.message?.includes('LockManager lock') ||
-        error?.message?.includes('Current password is incorrect') ||
-        error?.message?.includes('verification code') ||
-        error?.message?.includes('Invalid verification code') ||
-        error?.isAcquireTimeout
-      ) {
-        // Prevent the error from propagating
-        event.preventDefault();
-        event.stopPropagation();
-        
-        // Log for debugging but suppress the overlay
-        console.debug('Auth error suppressed:', error.message || 'Unknown auth error');
-        
-        // Return false to stop error propagation
-        return false;
-      }
-    };
-    
-    window.addEventListener('unhandledrejection', handleUnhandledRejection, true);
-
-    // Unregister all service workers to prevent caching issues
-    unregisterServiceWorkers();
-
     setMounted(true);
-    
-    return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection, true);
-    };
   }, []);
 
   useEffect(() => {
@@ -164,89 +71,82 @@ function MyApp({ Component, pageProps }) {
       }
     };
 
-    handleScrollTop();
-
     const handleRouteChange = () => {
-      setTimeout(handleScrollTop, 100);
+      setTimeout(() => {
+        handleScrollTop();
+      }, 100);
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);
-
+    
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
     };
   }, [router.events, mounted]);
 
-  // Determine if it's a public page
-  const isPublicPage = ['/'].includes(router.pathname);
+  const getLayout = Component.getLayout || ((page) => <Layout>{page}</Layout>);
 
-  // Add safety check for metaData
-  const safeMetaData = pageProps?.metaData || {
-    title: defaultSEO.defaultTitle,
-    description: defaultSEO.description
-  };
-
-  // For pages with their own structured data, we need to completely
-  // disable JSON-LD in DefaultSeo to prevent duplication
-  const appSeoConfig = {...defaultSEO};
-  const hasPageStructuredData = !!(safeMetaData.structuredData || safeMetaData.structuredDataItems);
-  
-  // If the page has its own structured data, remove any JSON-LD from DefaultSeo
-  if (hasPageStructuredData) {
-    delete appSeoConfig.additionalLinkTags;
-    delete appSeoConfig.jsonLd;
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#000000'
+      }}>
+        <div style={{ color: '#FFD700' }}>Loading...</div>
+      </div>
+    );
   }
 
-  if (process.env.NEXT_PUBLIC_ENABLE_STRICT_MODE === 'true') {
+  const isAuthPage = router.pathname.startsWith('/auth/');
+  const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
+                      router.pathname.startsWith('/events/') || 
+                      router.pathname.startsWith('/profile/');
+
+  if (isAuthPage) {
     return (
       <StrictMode>
         <ErrorBoundary>
-          <div suppressHydrationWarning>
-            {/* Add special tag to ensure only one set of structured data appears */}
-            <Head>
-              <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
-            </Head>
-            
-            {/* Base SEO - lowest priority */}
-            <DefaultSeo {...appSeoConfig} />
-            
-            {/* Page-specific SEO will override DefaultSeo */}
-            <DynamicMeta {...safeMetaData} />
-            
-            <AuthProvider onError={handleGlobalError}>
+          <Head>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link rel="icon" href="/favicon.ico" />
+            <meta name="theme-color" content="#000000" />
+          </Head>
+          <DefaultSeo {...defaultSEO} />
+          <DynamicMeta />
+          <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
+            <AuthProvider>
               <ModalProvider>
-                <Toaster 
-                  position="bottom-center"
+                <Component {...pageProps} />
+                <Toaster
+                  position="top-right"
                   toastOptions={{
+                    duration: 4000,
                     style: {
-                      background: '#333',
+                      background: '#1a1a1a',
                       color: '#fff',
-                      border: '1px solid #2a2a2a',
+                      border: '1px solid #333',
                     },
                     success: {
-                      duration: 2000,
                       iconTheme: {
-                        primary: '#FFD700',
-                        secondary: '#000',
+                        primary: '#10b981',
+                        secondary: '#fff',
                       },
                     },
                     error: {
-                      duration: 3000,
                       iconTheme: {
-                        primary: '#ff4b4b',
+                        primary: '#ef4444',
                         secondary: '#fff',
                       },
                     },
                   }}
                 />
-                <Layout>
-                  <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
-                    <Component {...pageProps} />
-                  </main>
-                </Layout>
               </ModalProvider>
             </AuthProvider>
-          </div>
+          </main>
         </ErrorBoundary>
       </StrictMode>
     );
@@ -255,29 +155,43 @@ function MyApp({ Component, pageProps }) {
   return (
     <StrictMode>
       <ErrorBoundary>
-        <div suppressHydrationWarning>
-          {/* Add special tag to ensure only one set of structured data appears */}
-          <Head>
-            <meta name="structured-data-source" content={hasPageStructuredData ? 'page' : 'app'} />
-          </Head>
-          
-          {/* Base SEO - lowest priority */}
-          <DefaultSeo {...appSeoConfig} />
-          
-          {/* Page-specific SEO will override DefaultSeo */}
-          <DynamicMeta {...safeMetaData} />
-          
-          <AuthProvider onError={handleGlobalError}>
+        <Head>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="icon" href="/favicon.ico" />
+          <meta name="theme-color" content="#000000" />
+        </Head>
+        <DefaultSeo {...defaultSEO} />
+        <DynamicMeta />
+        <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
+          <AuthProvider>
             <ModalProvider>
-              <Toaster />
-              <Layout>
-                <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
-                  <Component {...pageProps} />
-                </main>
-              </Layout>
+              {getLayout(<Component {...pageProps} />)}
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#1a1a1a',
+                    color: '#fff',
+                    border: '1px solid #333',
+                  },
+                  success: {
+                    iconTheme: {
+                      primary: '#10b981',
+                      secondary: '#fff',
+                    },
+                  },
+                  error: {
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
             </ModalProvider>
           </AuthProvider>
-        </div>
+        </main>
       </ErrorBoundary>
     </StrictMode>
   );

@@ -668,4 +668,101 @@
     flex-direction: column;
     gap: 5px;
   }
+}
+
+/* =========================================================================== */
+/* QUEUE POSITION CONTROLS */
+/* =========================================================================== */
+
+.queueActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.positionControls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.positionControls .positionButton {
+  background: #007bff !important;
+  color: white !important;
+  border: none !important;
+  padding: 6px 10px !important;
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  min-width: 80px !important;
+  text-align: center !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.positionControls .positionButton:hover:not(:disabled) {
+  background: #0056b3 !important;
+  transform: translateY(-1px) !important;
+}
+
+.positionControls .positionButton:disabled {
+  background: #6c757d !important;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.positionControls .positionButton.moveDown {
+  background: #6c757d !important;
+}
+
+.positionControls .positionButton.moveDown:hover:not(:disabled) {
+  background: #545b62 !important;
+}
+
+/* Override the default remove button for queue items */
+.queueActions .removeButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-left: 15px;
+}
+
+.queueActions .removeButton:hover {
+  background: #c82333;
+}
+
+@media (max-width: 768px) {
+  .queueActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .positionControls {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .positionButton {
+    min-width: 70px;
+    font-size: 0.7rem;
+  }
+
+  .queueActions .removeButton {
+    margin-left: 0;
+    align-self: flex-end;
+  }
 } 

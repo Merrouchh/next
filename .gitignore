@@ -42,10 +42,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Service Worker
-
-public/workbox-*.js
-
 # Go binaries
 /voicehcat/voicechat-server
 /voicehcat/voicechat-server.exe

@@ -21,6 +21,17 @@ import HeroSection from '../components/HeroSection';
 
 const DarkModeMap = dynamic(() => import('../components/DarkModeMap'), {
   ssr: false,
+  loading: () => <div style={{ 
+    width: '100%', 
+    height: '300px', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    background: '#1a1f2c',
+    color: '#FFD700',
+    borderRadius: '10px',
+    border: '1px solid #FFD700'
+  }}>Loading map...</div>
 });
 
 // Main Home component first
@@ -32,15 +43,22 @@ const Home = ({ metaData }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [processingMagicLink, setProcessingMagicLink] = useState(false);
   const [initTimeout, setInitTimeout] = useState(false);
+  const [shouldShowPage, setShouldShowPage] = useState(false);
 
-  // Add timeout for auth initialization to prevent infinite loading
+  // Enhanced timeout for auth initialization with better fallback
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!initialized) {
         console.warn('Auth initialization timeout, showing page anyway');
         setInitTimeout(true);
+        setShouldShowPage(true);
       }
-    }, 8000); // 8 second timeout
+    }, 3000);
+
+    // Also show page when properly initialized
+    if (initialized) {
+      setShouldShowPage(true);
+    }
 
     return () => clearTimeout(timer);
   }, [initialized]);
@@ -57,24 +75,24 @@ const Home = ({ metaData }) => {
     });
   }, [initialized, loading, user, isVerifying, initTimeout, router.pathname]);
 
-  // Add magic link detection at the beginning
+  // Enhanced magic link detection with better error handling
   useEffect(() => {
-    // Skip if not in browser
-    if (typeof window === 'undefined') return;
+    // Skip if not in browser or if already processing
+    if (typeof window === 'undefined' || processingMagicLink) return;
     
     const detectMagicLink = async () => {
-      const hash = window.location.hash;
-      // Check if this looks like a magic link hash fragment
-      if (hash && 
-          hash.includes('access_token=') && 
-          hash.includes('refresh_token=') &&
-          hash.includes('type=magiclink')) {
-        
-        console.log('Detected magic link hash on homepage:', hash);
-        setProcessingMagicLink(true);
-        setIsVerifying(true);
-        
-        try {
+      try {
+        const hash = window.location.hash;
+        // Check if this looks like a magic link hash fragment
+        if (hash && 
+            hash.includes('access_token=') && 
+            hash.includes('refresh_token=') &&
+            hash.includes('type=magiclink')) {
+          
+          console.log('Detected magic link hash on homepage');
+          setProcessingMagicLink(true);
+          setIsVerifying(true);
+          
           // Parse the hash parameters
           const hashParams = new URLSearchParams(hash.substring(1));
           const accessToken = hashParams.get('access_token');
@@ -95,23 +113,29 @@ const Home = ({ metaData }) => {
             throw error;
           }
           
-          // Clear hash
+          // Clear hash immediately
           window.history.replaceState(null, '', window.location.pathname);
           
-          // Redirect to dashboard
+          // Redirect to dashboard with a slight delay
           console.log('Magic link auth successful, redirecting to dashboard');
-          router.replace('/dashboard');
-        } catch (error) {
-          console.error('Error processing magic link:', error);
-          setIsVerifying(false);
-          setProcessingMagicLink(false);
-          // If there's an error, continue with normal page display
+          setTimeout(() => {
+            router.replace('/dashboard');
+          }, 500);
+          
         }
+      } catch (error) {
+        console.error('Error processing magic link:', error);
+        setIsVerifying(false);
+        setProcessingMagicLink(false);
+        setShouldShowPage(true); // Show page on error
       }
     };
     
-    detectMagicLink();
-  }, [supabase, router]);
+    // Only run if supabase is available
+    if (supabase) {
+      detectMagicLink();
+    }
+  }, [supabase, router, processingMagicLink]);
 
   // Function to check if URL has auth tokens
   const hasAuthTokens = () => {
@@ -157,16 +181,19 @@ const Home = ({ metaData }) => {
     }
   }, [router.isReady, router.query, user, router]);
 
-  // Handle dashboard redirect for logged-in users
+  // Handle dashboard redirect for logged-in users - with safety checks
   useEffect(() => {
-    // Only redirect to dashboard if there's no verification happening AND auth is fully initialized (or timed out)
-    if (!loading && (initialized || initTimeout) && user && !isVerifying) {
+    // Only redirect if everything is properly initialized and ready
+    if (!loading && !isVerifying && user && router.isReady && initialized && !processingMagicLink) {
       if (!hasAuthTokens()) {
         console.log('User is logged in and no auth tokens in URL, redirecting to dashboard');
-        router.replace('/dashboard');
+        // Add a small delay to prevent race conditions
+        setTimeout(() => {
+          router.replace('/dashboard');
+        }, 100);
       }
     }
-  }, [user, loading, initialized, initTimeout, router, isVerifying]);
+  }, [user, loading, router.isReady, isVerifying, initialized, processingMagicLink]);
 
   const handleCheckAvailability = () => {
     if (!user) {
@@ -181,10 +208,22 @@ const Home = ({ metaData }) => {
     setIsLoginModalOpen(true);
   };
 
-  // Improved loading states with proper initialization checks and timeout
-  if ((!initialized && !initTimeout) || loading) return <div className={styles.simpleLoadingWrapper}>Loading...</div>;
-  if (isVerifying) return <div className={styles.simpleLoadingWrapper}>{processingMagicLink ? "Processing magic link login..." : "Verifying email..."}</div>;
-  if (user && !hasAuthTokens() && (initialized || initTimeout)) return <div className={styles.simpleLoadingWrapper}>Redirecting...</div>;
+  // Enhanced loading states with better conditions
+  if (isVerifying) {
+    return <div className={styles.simpleLoadingWrapper}>
+      {processingMagicLink ? "Processing magic link login..." : "Verifying email..."}
+    </div>;
+  }
+  
+  // Show redirecting message only for confirmed logged-in users who should be redirected
+  if (user && !hasAuthTokens() && !loading && initialized) {
+    return <div className={styles.simpleLoadingWrapper}>Redirecting to dashboard...</div>;
+  }
+  
+  // Show loading if auth is not ready yet (prevent white screen)
+  if (!shouldShowPage && !initTimeout) {
+    return <div className={styles.simpleLoadingWrapper}>Loading...</div>;
+  }
 
   return (
     <>

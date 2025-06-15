@@ -62,6 +62,15 @@ export default function AdminQueue() {
         }
         
         const newQueueList = data.queue || [];
+        // Debug: Log first person's fields to see what phone fields are available
+        if (newQueueList.length > 0) {
+          console.log('Person object fields:', Object.keys(newQueueList[0]));
+          console.log('Phone-related fields:', {
+            phone: newQueueList[0].phone,
+            phone_number: newQueueList[0].phone_number,
+            user_phone: newQueueList[0].user_phone
+          });
+        }
         setQueueList(newQueueList);
         
         // Auto-control queue if automatic mode is enabled
@@ -96,6 +105,11 @@ export default function AdminQueue() {
       if (response.ok) {
         setQueueActive(!queueActive);
         alert(queueActive ? 'Queue system stopped' : 'Queue system started');
+        
+        // Force refresh of queue data to ensure all pages sync
+        setTimeout(() => {
+          loadQueueData();
+        }, 1000);
       } else {
         alert('Error updating queue system');
       }
@@ -348,6 +362,37 @@ export default function AdminQueue() {
       alert('Error removing person');
     }
   };
+
+  // =============================================================================
+  // 6. REORDER QUEUE MANUALLY
+  // =============================================================================
+  const movePersonInQueue = async (personId, direction) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch('/api/queue/reorder', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+        },
+        body: JSON.stringify({ 
+          personId, 
+          direction // 'up' or 'down'
+        })
+      });
+
+      if (response.ok) {
+        loadQueueData(); // Refresh the list
+      } else {
+        alert('Error reordering queue');
+      }
+    } catch (error) {
+      console.error('Error reordering queue:', error);
+      alert('Error reordering queue');
+    }
+  };
+
+
 
   // Check authentication and admin/staff permissions
   useEffect(() => {
@@ -644,7 +689,9 @@ export default function AdminQueue() {
         {/* CURRENT QUEUE LIST */}
         {/* =================================================================== */}
         <div className={styles.queueSection}>
-          <h3>Current Queue ({queueList.length} people waiting)</h3>
+          <div className={styles.queueHeader}>
+            <h3>Current Queue ({queueList.length} people waiting)</h3>
+          </div>
           
           {queueList.length === 0 ? (
             <div className={styles.emptyQueue}>
@@ -652,7 +699,7 @@ export default function AdminQueue() {
             </div>
           ) : (
             <div className={styles.queueList}>
-              {queueList.map((person) => (
+              {queueList.map((person, index) => (
                 <div key={person.id} className={styles.queuePerson}>
                   <div className={styles.personPosition}>
                     {person.position}
@@ -664,26 +711,54 @@ export default function AdminQueue() {
                       <span className={`${styles.personType} ${person.is_physical ? styles.physical : styles.online}`}>
                         {person.is_physical ? 'HERE' : 'ONLINE'}
                       </span>
+                      {(person.phone_number || person.phone) && (
+                        <span className={styles.personType} style={{backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7'}}>
+                          📞 {person.phone_number || person.phone}
+                        </span>
+                      )}
                     </div>
                     
                     <div className={styles.personInfo}>
-                      <span>Computer: {person.computer_type}</span>
-                      {person.phone_number && <span>Phone: {person.phone_number}</span>}
+                      <span>Wants: {person.computer_type === 'any' ? 'Any Computer' : `${person.computer_type.charAt(0).toUpperCase() + person.computer_type.slice(1)} Floor Only`}</span>
                       <span>Added: {new Date(person.created_at).toLocaleTimeString()}</span>
                     </div>
                     
                     {person.notes && (
-                      <div className={styles.personNotes}>{person.notes}</div>
+                      <div className={styles.personNotes}>📝 {person.notes}</div>
                     )}
                   </div>
                   
-                  <button
-                    className={styles.removeButton}
-                    onClick={() => removePerson(person.id, person.user_name)}
-                    title="Remove from queue"
-                  >
-                    <FaTrash />
-                  </button>
+                  <div className={styles.queueActions}>
+                    {/* Position change buttons - only show if there are multiple people */}
+                    {queueList.length > 1 && (
+                      <div className={styles.positionControls}>
+                        <button
+                          className={styles.positionButton}
+                          onClick={() => movePersonInQueue(person.id, 'up')}
+                          disabled={index === 0}
+                          title={`Move ${person.user_name} to position ${person.position - 1}`}
+                        >
+                          ↑ Move Up
+                        </button>
+                        <button
+                          className={`${styles.positionButton} ${styles.moveDown}`}
+                          onClick={() => movePersonInQueue(person.id, 'down')}
+                          disabled={index === queueList.length - 1}
+                          title={`Move ${person.user_name} to position ${person.position + 1}`}
+                        >
+                          ↓ Move Down
+                        </button>
+                      </div>
+                    )}
+                    
+                    <button
+                      className={styles.removeButton}
+                      onClick={() => removePerson(person.id, person.user_name)}
+                      title={`Remove ${person.user_name} from queue`}
+                    >
+                      <FaTrash /> Remove
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -23,11 +23,14 @@ export default function AdminPageWrapper({ children, title }) {
       if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
         toast.error('You do not have permission to access admin pages');
         router.replace('/dashboard');
+        return;
       }
+      
       // Staff users can ONLY access queue page - block access to all other admin pages
-      else if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
+      if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
         toast.error('Staff access is limited to queue management only');
         router.replace('/admin/queue');
+        return;
       }
     }
   }, [user, isLoggedIn, loading, initialized, router, currentPath]);

@@ -26,14 +26,21 @@ const ProtectedPageWrapper = ({ children }) => {
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
 
-  // Add timeout for auth initialization
+  // Add timeout for auth initialization with retry logic
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!initialized) {
         console.warn('ProtectedPageWrapper: Auth initialization timeout');
         setInitTimeout(true);
+        
+        // Try to force a session reload as a fallback
+        if (window.location.pathname !== '/') {
+          console.log('ProtectedPageWrapper: Attempting to force session reload');
+          // This would trigger a session check
+          window.dispatchEvent(new Event('focus'));
+        }
       }
-    }, 8000); // 8 second timeout
+    }, 3000); // Reduced to 3 seconds to match home page
 
     return () => clearTimeout(timer);
   }, [initialized]);
@@ -70,8 +77,8 @@ const ProtectedPageWrapper = ({ children }) => {
     }
   }, [initialized, user, router, routeConfig.requireAuth, router.pathname, router.isReady, isVerificationPage, isAdminRequired]);
 
-  // Show loading while auth is initializing (unless timeout reached)
-  if (!initialized && !initTimeout) {
+  // Show loading while auth is initializing (unless timeout reached or it's the home page)
+  if (!initialized && !initTimeout && router.pathname !== '/') {
     return <div style={{ 
       display: 'flex', 
       justifyContent: 'center', 

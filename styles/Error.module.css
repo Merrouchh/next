@@ -47,4 +47,125 @@
 
 .button:hover {
   background: #4a4a4a;
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 2rem;
+  text-align: center;
+  background: var(--background-primary, #0f0f0f);
+  color: var(--text-primary, #ffffff);
+}
+
+.errorContent {
+  max-width: 600px;
+  width: 100%;
+}
+
+.errorCode {
+  font-size: 8rem;
+  font-weight: 800;
+  color: #FFD700;
+  margin: 0;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+}
+
+.errorTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 1rem 0;
+  font-family: var(--font-orbitron, 'Orbitron'), sans-serif;
+}
+
+.errorDescription {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 1.5rem 0 2.5rem;
+  line-height: 1.6;
+}
+
+.errorActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  background: linear-gradient(45deg, #FFD700, #FFC107);
+  color: #000;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.secondaryButton {
+  background: transparent;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.secondaryButton:hover {
+  background: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .errorContainer {
+    padding: 1rem;
+    min-height: 70vh;
+  }
+
+  .errorCode {
+    font-size: 5rem;
+  }
+
+  .errorTitle {
+    font-size: 2rem;
+  }
+
+  .errorDescription {
+    font-size: 1rem;
+    margin: 1rem 0 2rem;
+  }
+
+  .errorActions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.875rem 1.5rem;
+  }
 } 

@@ -268,6 +268,137 @@ const TopComputers = ({
   );
 };
 
+// Custom hook for queue management
+const useQueueSystem = (user, supabase) => {
+  const [queueStatus, setQueueStatus] = useState(null);
+  const [userInQueue, setUserInQueue] = useState(null);
+  
+  const fetchQueueStatus = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/queue/status');
+      if (response.ok) {
+        const data = await response.json();
+        const status = Array.isArray(data.status) ? data.status[0] : data.status;
+        console.log('Queue status updated:', status); // Debug log
+        setQueueStatus(status);
+        
+        // Check if current user is in queue
+        if (data.queue) {
+          const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
+          setUserInQueue(userQueueEntry || null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching queue status:', error);
+    }
+  }, [user]);
+
+  // Set up real-time subscriptions and polling
+  useEffect(() => {
+    if (!user || !supabase) return;
+    
+    fetchQueueStatus();
+    
+    // Set up real-time subscription for queue changes
+    const queueSubscription = supabase
+      .channel('queue-changes-users')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'computer_queue'
+      }, (payload) => {
+        console.log('Queue data changed:', payload);
+        fetchQueueStatus();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'queue_settings'
+      }, (payload) => {
+        console.log('Queue settings changed:', payload);
+        fetchQueueStatus();
+      })
+      .subscribe();
+
+    // More frequent polling for queue status to ensure sync - every 10 seconds
+    const queueInterval = setInterval(fetchQueueStatus, 10000);
+    
+    return () => {
+      queueSubscription.unsubscribe();
+      clearInterval(queueInterval);
+    };
+  }, [user, supabase, fetchQueueStatus]);
+
+  const joinQueue = async (computerType = 'any') => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/queue/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ computerType })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert('You have been added to the queue! We\'ll notify you when a computer becomes available.');
+        return true;
+      } else {
+        alert('Unable to join queue: ' + result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error joining queue:', error);
+      alert('Error joining queue');
+      return false;
+    }
+  };
+
+  const leaveQueue = async () => {
+    if (!userInQueue || !confirm('Are you sure you want to leave the queue?')) return;
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/queue/join', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (response.ok) {
+        alert('You have left the queue');
+        return true;
+      } else {
+        const errorData = await response.json();
+        alert('Error leaving queue: ' + errorData.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error leaving queue:', error);
+      alert('Error leaving queue');
+      return false;
+    }
+  };
+
+  return {
+    queueStatus,
+    userInQueue,
+    fetchQueueStatus,
+    joinQueue,
+    leaveQueue
+  };
+};
+
 /**
  * AvailableComputers page component
  * 
@@ -304,8 +435,6 @@ const AvailableComputers = ({ metaData }) => {
   // Track which computers have loaded data
   const [loadedComputers, setLoadedComputers] = useState({});
   // Queue related states
-  const [queueStatus, setQueueStatus] = useState(null);
-  const [userInQueue, setUserInQueue] = useState(null);
   const [showQueueModal, setShowQueueModal] = useState(false);
 
   // Move computersList to useMemo to prevent unnecessary recreations
@@ -346,101 +475,8 @@ const AvailableComputers = ({ metaData }) => {
     }
   }, [user, supabase]);
 
-  // Fetch queue status
-  const fetchQueueStatus = async () => {
-    try {
-      const response = await fetch('/api/queue/status');
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Queue status data:', data);
-        // Handle case where status is returned as an array
-        const status = Array.isArray(data.status) ? data.status[0] : data.status;
-        console.log('Queue status:', status);
-        setQueueStatus(status);
-        
-        // Check if current user is in queue
-        if (user?.id && data.queue) {
-          const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
-          setUserInQueue(userQueueEntry || null);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching queue status:', error);
-    }
-  };
-
-  // Join queue
-  const joinQueue = async (computerType = 'any') => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      const response = await fetch('/api/queue/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ computerType })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        const successMessage = shouldShowWaitingList 
-          ? 'You have been added to the waiting list! We\'ll notify you when a computer becomes available.'
-          : result.message;
-        alert(successMessage);
-        fetchQueueStatus(); // Refresh queue status
-        setShowQueueModal(false);
-      } else {
-        const errorMessage = shouldShowWaitingList
-          ? 'Unable to join waiting list: ' + result.error
-          : 'Error joining queue: ' + result.error;
-        alert(errorMessage);
-      }
-    } catch (error) {
-      console.error('Error joining queue:', error);
-      alert('Error joining queue');
-    }
-  };
-
-  // Leave queue
-  const leaveQueue = async () => {
-    if (!userInQueue) return;
-    
-    if (!confirm('Are you sure you want to leave the queue?')) return;
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-
-      const response = await fetch('/api/queue/join', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-
-      if (response.ok) {
-        alert('You have left the queue');
-        
-        // Clear user queue state immediately
-        setUserInQueue(null);
-        
-        // Add a small delay to ensure backend processing is complete
-        setTimeout(() => {
-          fetchQueueStatus(); // Refresh queue status
-        }, 1000);
-      } else {
-        const errorData = await response.json();
-        alert('Error leaving queue: ' + errorData.error);
-      }
-    } catch (error) {
-      console.error('Error leaving queue:', error);
-      alert('Error leaving queue');
-    }
-  };
+  // Queue management
+  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue } = useQueueSystem(user, supabase);
 
   const updateSingleComputer = useCallback((computer, newData) => {
     setComputers(prev => {
@@ -581,42 +617,6 @@ const AvailableComputers = ({ metaData }) => {
       }, 500);
     }
   }, [computersList, computers.normal.length, computers.vip.length]);
-
-  // Fetch queue status on component mount and set up real-time subscriptions
-  useEffect(() => {
-    if (user) {
-      fetchQueueStatus();
-      
-      // Set up real-time subscriptions for queue changes
-      const queueSubscription = supabase
-        .channel('queue-changes')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'computer_queue'
-        }, () => {
-          console.log('Queue data changed, refreshing...');
-          fetchQueueStatus();
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'queue_settings'
-        }, () => {
-          console.log('Queue settings changed, refreshing...');
-          fetchQueueStatus();
-        })
-        .subscribe();
-
-      // Backup polling every 30 seconds (reduced from 10)
-      const queueInterval = setInterval(fetchQueueStatus, 30000);
-      
-      return () => {
-        queueSubscription.unsubscribe();
-        clearInterval(queueInterval);
-      };
-    }
-  }, [user, supabase]);
 
   // Add effect to handle highlighting
   useEffect(() => {
@@ -763,8 +763,8 @@ const AvailableComputers = ({ metaData }) => {
     return occupiedComputers === totalComputers;
   }, [computers.normal, computers.vip]);
 
-  // Determine if we should show "Join Waiting List" option
-  const shouldShowWaitingList = useMemo(() => {
+  // Determine if we should show "Join Queue" option
+  const shouldShowQueueJoin = useMemo(() => {
     return (
       areAllComputersOccupied && // All computers are full
       !userInQueue && // User is not already in queue
@@ -847,7 +847,7 @@ const AvailableComputers = ({ metaData }) => {
         )}
 
         {/* All Computers Full - Join Waiting List */}
-        {shouldShowWaitingList && (
+        {shouldShowQueueJoin && (
           <div className={styles.waitingListSection}>
             <div className={styles.waitingListHeader}>
               <h3>🔴 All Computers Occupied ({[...computers.normal, ...computers.vip].filter(c => c.isActive).length}/14)</h3>
@@ -910,9 +910,9 @@ const AvailableComputers = ({ metaData }) => {
         {showQueueModal && (
           <div className={styles.queueModal}>
             <div className={styles.queueModalContent}>
-              <h3>{shouldShowWaitingList ? 'Join Waiting List' : 'Join Queue'}</h3>
+              <h3>{shouldShowQueueJoin ? 'Join Waiting List' : 'Join Queue'}</h3>
               <p>
-                {shouldShowWaitingList 
+                {shouldShowQueueJoin 
                   ? 'All computers are currently occupied. Join our waiting list and we\'ll notify you when a computer becomes available!'
                   : 'All computers are currently occupied. Would you like to join the queue?'
                 }
@@ -920,24 +920,54 @@ const AvailableComputers = ({ metaData }) => {
               
               <div className={styles.queueModalOptions}>
                 <h4>Computer Preference:</h4>
+                <p className={styles.preferenceDescription}>
+                  Choose your preferred gaming area. Top floor has premium setups with better specs.
+                </p>
                 <div className={styles.preferenceButtons}>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={() => joinQueue('any')}
+                    onClick={async () => {
+                      const success = await joinQueue('any');
+                      if (success) setShowQueueModal(false);
+                    }}
                   >
-                    Any Available Computer
+                    <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
+                    <div className={styles.preferenceSubtitle}>Get the next available computer</div>
+                    {queueStatus && (
+                      <div className={styles.estimatedWait}>
+                        ~{Math.max(5, (queueStatus.current_queue_size || 0) * 5)} min wait
+                      </div>
+                    )}
                   </button>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={() => joinQueue('bottom')}
+                    onClick={async () => {
+                      const success = await joinQueue('bottom');
+                      if (success) setShowQueueModal(false);
+                    }}
                   >
-                    Bottom Floor Only
+                    <div className={styles.preferenceTitle}>⬇️ Bottom Floor Only</div>
+                    <div className={styles.preferenceSubtitle}>Standard gaming PCs (PC 1-8)</div>
+                    {queueStatus && (
+                      <div className={styles.estimatedWait}>
+                        ~{Math.max(10, (queueStatus.current_queue_size || 0) * 7)} min wait
+                      </div>
+                    )}
                   </button>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={() => joinQueue('top')}
+                    onClick={async () => {
+                      const success = await joinQueue('top');
+                      if (success) setShowQueueModal(false);
+                    }}
                   >
-                    Top Floor Only
+                    <div className={styles.preferenceTitle}>⬆️ Top Floor Only</div>
+                    <div className={styles.preferenceSubtitle}>Premium gaming PCs (PC 9-14)</div>
+                    {queueStatus && (
+                      <div className={styles.estimatedWait}>
+                        ~{Math.max(15, (queueStatus.current_queue_size || 0) * 10)} min wait
+                      </div>
+                    )}
                   </button>
                 </div>
               </div>
