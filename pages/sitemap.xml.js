@@ -269,7 +269,6 @@ export async function getServerSideProps({ res }) {
     
     // Set appropriate headers
     res.setHeader('Content-Type', 'text/xml');
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=600');
     
     // Write sitemap to response
     res.write(sitemap);

@@ -8,17 +8,7 @@ import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 
 export async function getServerSideProps({ res }) {
-  // Set cache headers for shop page
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=60, stale-while-revalidate=300'
-  );
-  res.setHeader(
-    'Surrogate-Control',
-    'public, max-age=60, stale-while-revalidate=300'
-  );
-  // Add Vary header to handle different cached versions
-  res.setHeader('Vary', 'Cookie, Accept-Encoding');
+  // Cache headers removed
 
   return {
     props: {

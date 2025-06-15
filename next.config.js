@@ -90,11 +90,11 @@ const nextConfig = {
     ];
   },
 
-  // Security headers
+  // Security headers (cache rules removed)
   async headers() {
     return [
       {
-        // Apply NO-CACHE only to dynamic pages, NOT static assets
+        // Basic security headers for all pages
         source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)).*)',
         headers: [
           {
@@ -114,168 +114,7 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin'
           }
         ]
-      },
-      {
-        // Let Cloudflare handle static assets caching
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
-      },
-      {
-        // Let Cloudflare handle image optimization caching
-        source: '/_next/image/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
-      },
-      {
-        // Specific stricter rules for dashboard - DYNAMIC PAGES ONLY
-        source: '/dashboard/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'private, no-cache, no-store, must-revalidate, max-age=0'
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache'
-          },
-          {
-            key: 'Expires',
-            value: '0'
-          }
-        ]
-      },
-      {
-        // Specific stricter rules for avcomputers - DYNAMIC PAGES ONLY
-        source: '/avcomputers/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'private, no-cache, no-store, must-revalidate, max-age=0'
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache'
-          },
-          {
-            key: 'Expires',
-            value: '0'
-          }
-        ]
-      },
-      {
-        // Specific caching rules for discover page - let Cloudflare handle it
-        source: '/discover',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          }
-        ]
-      },
-      {
-        // Specific caching rules for individual clip pages - let Cloudflare handle it
-        source: '/clip/:id',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Vary',
-            value: 'Cookie'
-          }
-        ]
-      },
-      {
-        // Profile pages cache control - let Cloudflare handle it
-        source: '/profile/:username',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=60, stale-while-revalidate=300'
-          },
-          {
-            key: 'Vary',
-            value: 'Cookie, Authorization'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          }
-        ]
-      },
-      {
-        // Top users page cache control - let Cloudflare handle it
-        source: '/topusers',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Vary',
-            value: 'Accept-Encoding'
-          }
-        ]
-      },
-      {
-        // Home page cache control - let Cloudflare handle it
-        source: '/',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Vary',
-            value: 'Cookie, Accept-Encoding'
-          }
-        ]
-      },
-      {
-        // Shop page cache control - let Cloudflare handle it
-        source: '/shop',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=300, stale-while-revalidate=600'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Vary',
-            value: 'Cookie, Accept-Encoding'
-          }
-        ]
-      },
-
+      }
     ];
   },
 

@@ -31,9 +31,7 @@ export default async function handler(req, res) {
         method: 'GET',
         headers: {
           Authorization: 'Basic ' + Buffer.from(process.env.API_AUTH).toString('base64'), // Use Buffer instead of btoa for compatibility
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache'
+          'Content-Type': 'application/json'
         },
         signal: controller.signal
       });

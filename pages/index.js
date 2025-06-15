@@ -19,23 +19,30 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DynamicMeta from '../components/DynamicMeta';
 import HeroSection from '../components/HeroSection';
 
-const DarkModeMap = dynamic(() => import('../components/DarkModeMap').catch(err => {
-  console.warn('Failed to load DarkModeMap:', err);
-  // Return a fallback component
-  return { default: () => (
-    <div style={{ 
-      width: '100%', 
-      height: '300px', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      background: '#1a1f2c',
-      color: '#FFD700',
-      borderRadius: '10px',
-      border: '1px solid #FFD700'
-    }}>Map temporarily unavailable</div>
-  )};
-}), {
+const DarkModeMap = dynamic(() => 
+  import('../components/DarkModeMap')
+    .catch(err => {
+      // Silently handle chunk loading errors in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('DarkModeMap chunk loading error (dev only):', err.message);
+      } else {
+        console.error('Failed to load DarkModeMap:', err);
+      }
+      // Return a fallback component
+      return { default: () => (
+        <div style={{ 
+          width: '100%', 
+          height: '300px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: '#1a1f2c',
+          color: '#FFD700',
+          borderRadius: '10px',
+          border: '1px solid #FFD700'
+        }}>Map temporarily unavailable</div>
+      )};
+    }), {
   ssr: false,
   loading: () => <div style={{ 
     width: '100%', 

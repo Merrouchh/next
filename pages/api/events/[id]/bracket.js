@@ -73,9 +73,7 @@ async function handleAuthenticatedRequest(req, res, supabase, eventId) {
 async function getBracket(req, res, supabase, eventId) {
   try {
     // Disable caching to ensure fresh data
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+      // Cache headers removed
     
     // First check if the event exists
     const { data: event, error: eventError } = await supabase

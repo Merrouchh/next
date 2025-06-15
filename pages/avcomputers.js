@@ -17,8 +17,7 @@ export const getServerSideProps = async ({ res }) => {
     'Cache-Control',
     'private, no-cache, no-store, must-revalidate, max-age=0'
   );
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  // Cache headers removed
 
   try {
     const computers = await fetchComputers();

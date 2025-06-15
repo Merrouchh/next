@@ -229,7 +229,7 @@ const withTimeout = (promise, timeoutMs = 30000) => {
 
 export default async function handler(req, res) {
   // Set response headers to prevent caching
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
+      // Cache headers removed
   
   try {
     // Create a Supabase client with the auth token from the request

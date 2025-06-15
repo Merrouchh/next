@@ -26,8 +26,7 @@ export async function getServerSideProps({ res }) {
     'Cache-Control',
     'no-store, no-cache, must-revalidate, proxy-revalidate'
   );
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  // Cache headers removed
 
   return {
     props: {
@@ -192,33 +191,59 @@ const SessionRefreshButton = () => {
   );
 };
 
-// Admin/Staff Section Component - Simplified
+// Admin/Staff Section Component - Improved Logic
 const AdminStaffSection = ({ user, authLoading, initialized, router }) => {
-  // Simple role checking
+  // More explicit role checking with debugging
   const isAdmin = user?.isAdmin === true;
   const isStaff = user?.isStaff === true;
-  const hasAdminAccess = isAdmin || isStaff;
   
-  if (authLoading || !initialized || !user || !hasAdminAccess) {
+  // Debug logging to help identify issues
+  console.log('AdminStaffSection - User roles:', { 
+    username: user?.username, 
+    isAdmin, 
+    isStaff, 
+    authLoading, 
+    initialized 
+  });
+  
+  // Early returns for invalid states
+  if (authLoading || !initialized || !user) {
+    return null;
+  }
+  
+  // Must have at least one role
+  if (!isAdmin && !isStaff) {
     return null;
   }
   
   return (
     <section className={styles.adminSection}>
       <div className={styles.adminSectionHeader}>
-        <h2>{isAdmin ? 'Admin Controls' : 'Staff Controls'}</h2>
-        <p>Welcome to the {isAdmin ? 'admin' : 'staff'} dashboard. You have access to additional controls and features.</p>
+        <h2>
+          {isAdmin && isStaff ? 'Admin & Staff Controls' : 
+           isAdmin ? 'Admin Controls' : 'Staff Controls'}
+        </h2>
+        <p>
+          Welcome to the {isAdmin && isStaff ? 'admin and staff' : 
+                         isAdmin ? 'admin' : 'staff'} dashboard. 
+          You have access to additional controls and features.
+        </p>
       </div>
       <div className={styles.adminMainAction}>
-        {isAdmin ? (
+        {/* Show Admin button if user is admin */}
+        {isAdmin && (
           <button 
             className={styles.adminDashboardButton}
             onClick={() => router.push('/admin')}
+            style={{ marginRight: isStaff ? '10px' : '0' }}
           >
             <AiOutlineDashboard className={styles.adminDashboardIcon} />
             Open Admin Dashboard
           </button>
-        ) : (
+        )}
+        
+        {/* Show Staff button if user is staff */}
+        {isStaff && (
           <button 
             className={styles.adminDashboardButton}
             onClick={() => router.push('/admin/queue')}

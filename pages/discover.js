@@ -22,15 +22,7 @@ const LoadingSpinner = ({ message = "Loading clips..." }) => (
 );
 
 export async function getServerSideProps({ req, res }) {
-  // Set cache headers for discover page
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=60, stale-while-revalidate=300'
-  );
-  res.setHeader(
-    'Surrogate-Control',
-    'public, max-age=60, stale-while-revalidate=300'
-  );
+  // Cache headers removed
 
   const supabase = createServerClient({ req, res });
   
@@ -55,11 +47,7 @@ export async function getServerSideProps({ req, res }) {
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : latestClip?.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
 
-    // Set cache headers
-    res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=30, stale-while-revalidate=120'
-    );
+    // Cache headers removed
 
     // Build rich metadata
     const metaDescription = "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.";

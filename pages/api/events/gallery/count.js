@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   }
 
   // Set response headers to prevent caching
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
+      // Cache headers removed
 
   const { eventId } = req.query;
   

@@ -245,9 +245,7 @@ export default async function handler(req, res) {
     }));
     
     // Disable caching of the response
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+      // Cache headers removed
     
     return res.status(200).json({ 
       success: true,

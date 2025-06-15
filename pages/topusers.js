@@ -7,15 +7,7 @@ import { NextSeo } from 'next-seo';
 import DynamicMeta from '../components/DynamicMeta';
 
 export async function getServerSideProps({ res }) {
-  // Set cache headers for top users page
-  res.setHeader(
-    'Cache-Control',
-    'public, max-age=15, stale-while-revalidate=30'
-  );
-  res.setHeader(
-    'Surrogate-Control',
-    'public, max-age=15, stale-while-revalidate=30'
-  );
+  // Cache headers removed
 
   return {
     props: {

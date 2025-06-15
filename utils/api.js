@@ -7,13 +7,8 @@ const MAX_RETRIES = 3;
 
 const fetchConfig = {
   headers: {
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
     'Content-Type': 'application/json'
-  },
-  cache: 'no-store',
-  next: { revalidate: 0 }
+  }
 };
 
 const enhancedFetch = async (url, options = {}) => {
@@ -69,13 +64,9 @@ export const validateUserCredentials = async (username, password) => {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       credentials: 'same-origin', // Include cookies for session handling
-      cache: 'no-store', // Prevent caching issues in Safari/Brave
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest', // Helps with some ad blockers
-        'Cache-Control': 'no-cache, no-store, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'X-Requested-With': 'XMLHttpRequest' // Helps with some ad blockers
       },
     });
 

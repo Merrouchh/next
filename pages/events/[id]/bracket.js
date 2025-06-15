@@ -19,9 +19,7 @@ export async function getServerSideProps({ params, req, res }) {
   const { id } = params;
   
   // Disable caching to ensure fresh data after bracket regeneration
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+  // Cache headers removed
   
   // Default metadata for not found case
   const notFoundMetadata = {

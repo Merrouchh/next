@@ -30,8 +30,7 @@ export async function getServerSideProps({ req, res, params }) {
         'Cache-Control',
         'private, no-cache, no-store, must-revalidate, max-age=0'
       );
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
+        // Cache headers removed
     } else {
       // Public clips: cache for 1 minute, stale for 10 minutes
       res.setHeader(
