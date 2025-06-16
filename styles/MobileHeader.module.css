@@ -39,6 +39,19 @@
   align-items: center;
 }
 
+.logoLink {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoLink:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
 .mobileLogo {
   height: 40px;
   width: auto !important;

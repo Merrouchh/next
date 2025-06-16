@@ -349,11 +349,135 @@ const Dashboard = ({ _initialClips, metaData }) => {
     data: null
   });
 
-  // Simple session refresh on visibility change only
+  // Move handleRefresh definition here so it can be used in useEffect hooks
+  const handleRefresh = async () => {
+    if (!user?.gizmo_id) return;
+    
+    setPageState(prev => ({ ...prev, loading: true }));
+    try {
+      console.log('🔄 Refreshing dashboard data...');
+      
+      // First, load essential data without the picture
+      const [
+        activeSessions,
+        topUsers,
+        points,
+        timeInfo,
+        balanceInfo,
+      ] = await Promise.all([
+        fetchActiveUserSessions(),
+        fetchTopUsers(5),
+        fetchUserPoints(user.gizmo_id),
+        fetchUserTimeInfo(user.gizmo_id),
+        fetchUserBalanceWithDebt(user.gizmo_id),
+      ]);
+
+      // Update state with essential data and trigger upcoming matches refresh
+      setPageState({
+        loading: false,
+        error: null,
+        data: {
+          ...pageState.data,
+          activeSessions,
+          topUsers,
+          userPoints: points?.points || 0,
+          timeInfo,
+          balanceInfo,
+          isLoadingPicture: true,
+          upcomingMatchesKey: Date.now() // Add a timestamp to force UpcomingMatches refresh
+        }
+      });
+
+      // Show success toast for main data only for manual refresh
+      if (document.visibilityState === 'visible') {
+        toast.success('Dashboard refreshed!', {
+          position: 'top-right',
+          style: {
+            background: '#333',
+            color: '#fff',
+            border: '1px solid #FFD700',
+          },
+          iconTheme: {
+            primary: '#FFD700',
+            secondary: '#333',
+          },
+        });
+      }
+
+      // Then load the picture separately
+      try {
+        // Add a timeout for picture loading with increased timeout (8 seconds)
+        const picturePromise = fetchUserPicture(user.gizmo_id)
+          .catch(err => {
+            console.warn('Picture fetch error caught:', err);
+            return null; // Return null instead of throwing to avoid crashing
+          });
+          
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => {
+            console.warn('Picture loading timeout triggered');
+            reject(new Error('Picture loading timeout'));
+          }, 8000)
+        );
+        
+        // Race between picture loading and timeout
+        const userPicture = await Promise.race([picturePromise, timeoutPromise])
+          .catch(err => {
+            console.warn('Race promise error caught:', err);
+            return null; // Return null on any error
+          });
+        
+        // Update state with the picture (which might be null)
+        setPageState(prev => ({
+          ...prev,
+          data: {
+            ...prev.data,
+            userPicture,
+            isLoadingPicture: false
+          }
+        }));
+        
+        console.log(userPicture ? '✅ Picture loaded successfully' : '⚠️ No picture available');
+      } catch (pictureError) {
+        console.error('❌ Error loading picture:', pictureError);
+        // Safely update state even after picture error
+        setPageState(prev => {
+          if (!prev || !prev.data) return prev; // Guard against null prev state
+          return {
+            ...prev,
+            data: {
+              ...prev.data,
+              userPicture: null,
+              isLoadingPicture: false
+            }
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Refresh error:', error);
+      setPageState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to refresh data'
+      }));
+      toast.error('Failed to refresh data', {
+        position: 'top-right'
+      });
+    }
+  };
+
+  // Simple session refresh on visibility change and data refresh
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
+      if (document.visibilityState === 'visible' && user && pageState.data) {
+        // Refresh both session and data when page becomes visible
         refreshSession({ silent: true }).catch(console.error);
+        // Also refresh data to get latest information
+        setTimeout(() => {
+          if (document.visibilityState === 'visible') {
+            handleRefresh();
+          }
+        }, 1000);
       }
     };
     
@@ -362,14 +486,24 @@ const Dashboard = ({ _initialClips, metaData }) => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, refreshSession]);
+  }, [user, refreshSession, pageState.data]);
 
+  // Auto-refresh data every 30 seconds when page is visible
+  useEffect(() => {
+    if (!user?.gizmo_id || !pageState.data) return;
 
+    const autoRefresh = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 Auto-refreshing dashboard data...');
+        handleRefresh();
+      }
+    }, 30000); // Refresh every 30 seconds
 
-
+    return () => clearInterval(autoRefresh);
+  }, [user?.gizmo_id, pageState.data]);
 
   useEffect(() => {
-    if (pageState.data) return;
+    // Remove the problematic early return that prevents data refresh
     if (!user?.gizmo_id) {
       // If no gizmo_id, set loading to false and show appropriate message
       setPageState({
@@ -479,7 +613,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
     };
 
     initialize();
-  }, [user?.gizmo_id, pageState.data]);
+  }, [user?.gizmo_id]); // Remove pageState.data from dependencies to allow re-runs
 
   // Show loading state when no data or during auth
   if (authLoading || !pageState.data) {
@@ -515,8 +649,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
       </ProtectedPageWrapper>
     );
   }
-
-
 
   // Show setup required state
   if (pageState.data?.needsProfileSetup) {
@@ -572,115 +704,7 @@ const Dashboard = ({ _initialClips, metaData }) => {
     router.push('/editprofile');
   };
 
-  const handleRefresh = async () => {
-    setPageState(prev => ({ ...prev, loading: true }));
-    try {
-      // First, load essential data without the picture
-      const [
-        activeSessions,
-        topUsers,
-        points,
-        timeInfo,
-        balanceInfo,
-      ] = await Promise.all([
-        fetchActiveUserSessions(),
-        fetchTopUsers(5),
-        fetchUserPoints(user.gizmo_id),
-        fetchUserTimeInfo(user.gizmo_id),
-        fetchUserBalanceWithDebt(user.gizmo_id),
-      ]);
 
-      // Update state with essential data and trigger upcoming matches refresh
-      setPageState({
-        loading: false,
-        error: null,
-        data: {
-          ...pageState.data,
-          activeSessions,
-          topUsers,
-          userPoints: points?.points || 0,
-          timeInfo,
-          balanceInfo,
-          isLoadingPicture: true,
-          upcomingMatchesKey: Date.now() // Add a timestamp to force UpcomingMatches refresh
-        }
-      });
-
-      // Show success toast for main data
-      toast.success('Dashboard refreshed!', {
-        position: 'top-right',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #FFD700',
-        },
-        iconTheme: {
-          primary: '#FFD700',
-          secondary: '#333',
-        },
-      });
-
-      // Then load the picture separately
-      try {
-        // Add a timeout for picture loading with increased timeout (8 seconds)
-        const picturePromise = fetchUserPicture(user.gizmo_id)
-          .catch(err => {
-            console.warn('Picture fetch error caught:', err);
-            return null; // Return null instead of throwing to avoid crashing
-          });
-          
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => {
-            console.warn('Picture loading timeout triggered');
-            reject(new Error('Picture loading timeout'));
-          }, 8000)
-        );
-        
-        // Race between picture loading and timeout
-        const userPicture = await Promise.race([picturePromise, timeoutPromise])
-          .catch(err => {
-            console.warn('Race promise error caught:', err);
-            return null; // Return null on any error
-          });
-        
-        // Update state with the picture (which might be null)
-        setPageState(prev => ({
-          ...prev,
-          data: {
-            ...prev.data,
-            userPicture,
-            isLoadingPicture: false
-          }
-        }));
-        
-        console.log(userPicture ? '✅ Picture loaded successfully' : '⚠️ No picture available');
-      } catch (pictureError) {
-        console.error('❌ Error loading picture:', pictureError);
-        // Safely update state even after picture error
-        setPageState(prev => {
-          if (!prev || !prev.data) return prev; // Guard against null prev state
-          return {
-            ...prev,
-            data: {
-              ...prev.data,
-              userPicture: null,
-              isLoadingPicture: false
-            }
-          };
-        });
-      }
-    } catch (error) {
-      console.error('Refresh error:', error);
-      setPageState(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to refresh data'
-      }));
-      toast.error('Failed to refresh data', {
-        position: 'top-right'
-      });
-    }
-  };
 
   return (
     <ProtectedPageWrapper>

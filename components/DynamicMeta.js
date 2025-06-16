@@ -1,5 +1,6 @@
 import { NextSeo } from 'next-seo';
 import Head from 'next/head';
+import { useEffect, useState } from 'react';
 
 // Simple hash function to identify content
 const hashCode = (str) => {
@@ -25,6 +26,12 @@ export default function DynamicMeta({
   structuredDataItems = null,
   excludeFromAppSeo = false
 }) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
   const currentTime = new Date().toISOString();
   
   // Don't add timestamp to image URLs that already have parameters
@@ -108,38 +115,49 @@ export default function DynamicMeta({
         {/* Add a flag for the app-level component to detect */}
         {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
         
-        {/* Explicitly remove any previous structured data scripts */}
-        <script data-remove-previous-ld-json="true" type="text/plain" />
+        {/* Add a flag for structured data removal (meta tag instead of script) */}
+        <meta name="x-remove-previous-ld-json" content="true" />
         
-        {/* Add structured data if provided */}
-        {finalStructuredData && (
+        {/* Add structured data as regular HTML script tags - only if mounted */}
+        {mounted && finalStructuredData && (
           <>
             {Array.isArray(finalStructuredData) ? (
               // If it's an array of schema objects, render multiple script tags
               finalStructuredData.map((schema, index) => {
-                const schemaContent = JSON.stringify(schema);
-                const schemaHash = hashCode(schemaContent);
-                return (
-                  <script
-                    key={`schema-${schemaHash}-${index}`}
-                    type="application/ld+json"
-                    data-schema-id={`structuredData-${schemaHash}`}
-                    dangerouslySetInnerHTML={{ __html: schemaContent }}
-                  />
-                );
+                try {
+                  const schemaContent = JSON.stringify(schema);
+                  const schemaHash = hashCode(schemaContent);
+                  return (
+                    <script
+                      key={`schema-${schemaHash}-${index}`}
+                      id={`schema-${schemaHash}-${index}`}
+                      type="application/ld+json"
+                      dangerouslySetInnerHTML={{ __html: schemaContent }}
+                    />
+                  );
+                } catch (error) {
+                  console.error('Error rendering schema:', error);
+                  return null;
+                }
               })
             ) : (
               // If it's a single schema object, render one script tag
               (() => {
-                const schemaContent = JSON.stringify(finalStructuredData);
-                const schemaHash = hashCode(schemaContent);
-                return (
-                  <script
-                    type="application/ld+json"
-                    data-schema-id={`structuredData-${schemaHash}`}
-                    dangerouslySetInnerHTML={{ __html: schemaContent }}
-                  />
-                );
+                try {
+                  const schemaContent = JSON.stringify(finalStructuredData);
+                  const schemaHash = hashCode(schemaContent);
+                  return (
+                    <script
+                      key={`schema-${schemaHash}`}
+                      id={`schema-${schemaHash}`}
+                      type="application/ld+json"
+                      dangerouslySetInnerHTML={{ __html: schemaContent }}
+                    />
+                  );
+                } catch (error) {
+                  console.error('Error rendering schema:', error);
+                  return null;
+                }
               })()
             )}
           </>

@@ -35,13 +35,11 @@ const Header = () => {
     <div className={`${styles.headerWrapper} desktopOnly`}>
       <nav className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
         <div className={styles.logoContainer}>
-          <Link href="/" passHref legacyBehavior>
-            <a>
-              <h1 className={styles.logo}>
-                <span className={styles.merrouch}>Merrouch</span>{' '}
-                <span className={styles.gaming}>Gaming</span>
-              </h1>
-            </a>
+          <Link href="/" className={styles.logoLink}>
+            <h1 className={styles.logo}>
+              <span className={styles.merrouch}>Merrouch</span>{' '}
+              <span className={styles.gaming}>Gaming</span>
+            </h1>
           </Link>
         </div>
 

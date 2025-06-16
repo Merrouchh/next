@@ -120,7 +120,17 @@ export const validateUserCredentials = async (username, password) => {
     
 export const fetchActiveUserSessions = async () => {
   try {
-    const response = await fetch('/api/fetchactivesessions', fetchConfig);
+    // Add cache-busting timestamp
+    const timestamp = Date.now();
+    const response = await fetch(`/api/fetchactivesessions?t=${timestamp}`, {
+      ...fetchConfig,
+      headers: {
+        ...fetchConfig.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     if (!response.ok) throw new Error('Failed to fetch sessions');
     const data = await response.json();
     return data.result || [];
@@ -142,7 +152,17 @@ export const fetchUserBalance = async (gizmoId) => {
 
 export const fetchUserBalanceWithDebt = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/fetchuserbalance/${gizmoId}`, fetchConfig);
+    // Add cache-busting timestamp
+    const timestamp = Date.now();
+    const response = await fetch(`/api/fetchuserbalance/${gizmoId}?t=${timestamp}`, {
+      ...fetchConfig,
+      headers: {
+        ...fetchConfig.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     if (!response.ok) {
       return {
         balance: 'Error fetching time',
@@ -183,7 +203,17 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
   console.log('fetchTopUsers called');
   try {
     console.log('Making request to /api/fetchtopusers');
-    const response = await fetch(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}`, fetchConfig);
+    // Add cache-busting timestamp
+    const timestamp = Date.now();
+    const response = await fetch(`/api/fetchtopusers?numberOfUsers=${numberOfUsers}&t=${timestamp}`, {
+      ...fetchConfig,
+      headers: {
+        ...fetchConfig.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -220,10 +250,20 @@ export const fetchGizmoId = async (username) => {
 };
 
 export const fetchUserPoints = async (gizmoId) => {
-  const url = `/api/points/${gizmoId}`;
+  // Add cache-busting timestamp
+  const timestamp = Date.now();
+  const url = `/api/points/${gizmoId}?t=${timestamp}`;
   try {
     console.log(`Fetching user points from URL: ${url}`);
-    const response = await fetch(url, fetchConfig);
+    const response = await fetch(url, {
+      ...fetchConfig,
+      headers: {
+        ...fetchConfig.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -244,7 +284,17 @@ export const fetchUserPoints = async (gizmoId) => {
 
 export const fetchUserTimeInfo = async (gizmoId) => {
   try {
-    const response = await fetch(`/api/users/${gizmoId}/producttimeextended`, fetchConfig);
+    // Add cache-busting timestamp
+    const timestamp = Date.now();
+    const response = await fetch(`/api/users/${gizmoId}/producttimeextended?t=${timestamp}`, {
+      ...fetchConfig,
+      headers: {
+        ...fetchConfig.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     if (!response.ok) {
       console.error('Error response from time info API:', response.status);
       throw new Error('Failed to fetch time info');

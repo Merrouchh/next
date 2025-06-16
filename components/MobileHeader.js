@@ -68,19 +68,17 @@ const MobileHeader = () => {
     <div className={`${styles.headerWrapper} mobileOnly`}>
       <nav className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
         <div className={styles.logoContainer}>
-          <Link href="/" passHref legacyBehavior>
-            <a>
-              <Image
-                src="/logomobile.png"
-                alt="Merrouch Gaming"
-                width={150}
-                height={75}
-                priority={true}
-                loading="eager"
-                className={styles.mobileLogo}
-                sizes="(max-width: 768px) 150px, 110px"
-              />
-            </a>
+          <Link href="/" className={styles.logoLink}>
+            <Image
+              src="/logomobile.png"
+              alt="Merrouch Gaming"
+              width={150}
+              height={75}
+              priority={true}
+              loading="eager"
+              className={styles.mobileLogo}
+              sizes="(max-width: 768px) 150px, 110px"
+            />
           </Link>
         </div>
 

@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
 import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
-import DynamicMeta from '../components/DynamicMeta';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
 
@@ -116,7 +115,6 @@ function MyApp({ Component, pageProps }) {
             <meta name="theme-color" content="#000000" />
           </Head>
           <DefaultSeo {...defaultSEO} />
-          <DynamicMeta />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -139,7 +137,6 @@ function MyApp({ Component, pageProps }) {
           <meta name="theme-color" content="#000000" />
         </Head>
         <DefaultSeo {...defaultSEO} />
-        <DynamicMeta />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>

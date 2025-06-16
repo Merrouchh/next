@@ -21,27 +21,36 @@ import HeroSection from '../components/HeroSection';
 
 const DarkModeMap = dynamic(() => 
   import('../components/DarkModeMap')
+    .then(mod => mod)
     .catch(err => {
-      // Silently handle chunk loading errors in development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('DarkModeMap chunk loading error (dev only):', err.message);
-      } else {
-        console.error('Failed to load DarkModeMap:', err);
-      }
+      // Handle chunk loading errors gracefully
+      console.warn('DarkModeMap chunk loading error:', err.message);
       // Return a fallback component
-      return { default: () => (
-        <div style={{ 
-          width: '100%', 
-          height: '300px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          background: '#1a1f2c',
-          color: '#FFD700',
-          borderRadius: '10px',
-          border: '1px solid #FFD700'
-        }}>Map temporarily unavailable</div>
-      )};
+      return { 
+        default: () => (
+          <div style={{ 
+            width: '100%', 
+            height: '300px', 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: 'rgba(26, 31, 44, 0.9)',
+            color: '#e1e1e1',
+            borderRadius: '10px',
+            border: '1px solid #FFD700',
+            padding: '2rem',
+            textAlign: 'center'
+          }}>
+            <p style={{ color: '#FF4655', fontWeight: 600, marginBottom: '1rem' }}>
+              Map temporarily unavailable
+            </p>
+            <p style={{ margin: '0.5rem 0', lineHeight: '1.5' }}>
+              Visit us at: Rue Tanger, Tangier, Morocco
+            </p>
+          </div>
+        )
+      };
     }), {
   ssr: false,
   loading: () => <div style={{ 

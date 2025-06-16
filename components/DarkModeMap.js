@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import styles from '../styles/DarkModeMap.module.css';
 
 const DarkModeMap = () => {
@@ -7,9 +8,11 @@ const DarkModeMap = () => {
   const mapInstance = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [shouldRender, setShouldRender] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const router = useRouter();
   const mountedRef = useRef(true);
   const initTimeoutRef = useRef(null);
+  const leafletRef = useRef(null);
 
   // Only render after component is mounted to prevent SSR issues
   useEffect(() => {
@@ -44,27 +47,47 @@ const DarkModeMap = () => {
     };
   }, [router.events]);
 
+  // Memoized function to load Leaflet safely
+  const loadLeaflet = useCallback(async () => {
+    if (leafletRef.current) {
+      return leafletRef.current;
+    }
+
+    try {
+      const leafletModule = await import('leaflet');
+      await import('leaflet/dist/leaflet.css');
+      leafletRef.current = leafletModule.default;
+      return leafletRef.current;
+    } catch (error) {
+      console.error('Failed to load Leaflet:', error);
+      setLoadError(true);
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
-    if (typeof window === 'undefined' || !shouldRender) return;
+    if (typeof window === 'undefined' || !shouldRender || loadError) return;
     
     const initializeMap = async () => {
       try {
         // Double check we're still mounted and have a ref
         if (!mapRef.current || !mountedRef.current) return;
 
-        // Dynamic import with error handling
+        // Load Leaflet with error handling
         let L;
         try {
-          L = (await import('leaflet')).default;
-          await import('leaflet/dist/leaflet.css');
+          L = await loadLeaflet();
         } catch (importError) {
           console.error('Failed to import leaflet:', importError);
-          setIsLoading(false);
+          if (mountedRef.current) {
+            setIsLoading(false);
+            setLoadError(true);
+          }
           return;
         }
 
         // Check again after async operations
-        if (!mapRef.current || !mountedRef.current) return;
+        if (!mapRef.current || !mountedRef.current || !L) return;
 
         // Clean up any existing map instance
         if (mapInstance.current) {
@@ -125,6 +148,7 @@ const DarkModeMap = () => {
         console.error('Map initialization error:', error);
         if (mountedRef.current) {
           setIsLoading(false);
+          setLoadError(true);
         }
       }
     };
@@ -147,13 +171,25 @@ const DarkModeMap = () => {
         }
       }
     };
-  }, [shouldRender]);
+  }, [shouldRender, loadLeaflet, loadError]);
 
   // Don't render if not ready or if component is unmounting
   if (!shouldRender || !mountedRef.current) {
     return (
       <div className={styles.mapWrapper}>
         <div className={styles.mapLoading}>Loading map...</div>
+      </div>
+    );
+  }
+
+  // Show error state if map failed to load
+  if (loadError) {
+    return (
+      <div className={styles.mapWrapper}>
+        <div className={styles.mapError}>
+          <p>Map is temporarily unavailable</p>
+          <p>Visit us at: Rue Tanger, Tangier, Morocco</p>
+        </div>
       </div>
     );
   }

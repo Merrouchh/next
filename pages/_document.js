@@ -44,7 +44,21 @@ class MyDocument extends Document {
           <meta name="application-name" content="Merrouch" />
           <meta name="apple-mobile-web-app-title" content="Merrouch" />
           
-          {/* Error overlay disabler for auth errors - run early */}
+          {/* Media Chrome and HLS - Proper HTML script tags without Next.js props */}
+          <script 
+            type="module" 
+            src="https://cdn.jsdelivr.net/npm/media-chrome@1.5.1/+esm"
+          />
+          <script 
+            type="module" 
+            src="https://cdn.jsdelivr.net/npm/hls-video-element@1.2/+esm"
+          />
+        </Head>
+        <body>
+          <Main />
+          <NextScript />
+          
+          {/* Error overlay disabler for development - moved outside Head */}
           {process.env.NODE_ENV === 'development' && (
             <script 
               dangerouslySetInnerHTML={{ 
@@ -124,21 +138,6 @@ class MyDocument extends Document {
             />
           )}
           
-          {/* Media Chrome and HLS */}
-          <script 
-            type="module" 
-            src="https://cdn.jsdelivr.net/npm/media-chrome@1.5.1/+esm"
-            strategy="beforeInteractive"
-          />
-          <script 
-            type="module" 
-            src="https://cdn.jsdelivr.net/npm/hls-video-element@1.2/+esm"
-            strategy="beforeInteractive"
-          />
-        </Head>
-        <body>
-          <Main />
-          <NextScript />
           <script dangerouslySetInnerHTML={{
             __html: `
               (function() {
