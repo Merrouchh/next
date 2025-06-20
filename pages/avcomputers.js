@@ -435,6 +435,8 @@ const AvailableComputers = ({ metaData }) => {
   const [loadedComputers, setLoadedComputers] = useState({});
   // Queue related states
   const [showQueueModal, setShowQueueModal] = useState(false);
+  const [showQueueConfirmation, setShowQueueConfirmation] = useState(false);
+  const [selectedQueueType, setSelectedQueueType] = useState(null);
 
   // Move computersList to useMemo to prevent unnecessary recreations
   const computersList = useMemo(() => ({
@@ -476,6 +478,24 @@ const AvailableComputers = ({ metaData }) => {
 
   // Queue management
   const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue } = useQueueSystem(user, supabase);
+
+  // Handle queue type selection - show confirmation modal
+  const handleQueueSelection = (queueType) => {
+    setSelectedQueueType(queueType);
+    setShowQueueModal(false);
+    setShowQueueConfirmation(true);
+  };
+
+  // Handle final queue confirmation
+  const handleQueueConfirmation = async () => {
+    const success = await joinQueue(selectedQueueType);
+    if (success) {
+      setShowQueueConfirmation(false);
+      setSelectedQueueType(null);
+    }
+  };
+
+
 
   const updateSingleComputer = useCallback((computer, newData) => {
     setComputers(prev => {
@@ -641,19 +661,25 @@ const AvailableComputers = ({ metaData }) => {
 
     // Check if queue is active
     if (queueStatus && queueStatus.is_active) {
-      // If user is in queue, show different message
+      // If user is in queue
       if (userInQueue) {
-        alert(`You are currently in the queue at position ${userInQueue.position}. Please wait for your turn.`);
-        return;
-      }
-      
-      // If queue is active but user not in queue, prompt to join
-      if (queueStatus.allow_online_joining) {
-        setShowQueueModal(true);
-        return;
+        // Allow position #1 to login directly
+        if (userInQueue.position === 1) {
+          // Position #1 can login - continue with normal login process
+        } else {
+          // Other positions must wait
+          alert(`You are currently in the queue at position ${userInQueue.position}. Please wait for your turn.`);
+          return;
+        }
       } else {
-        alert("A queue is currently active and online joining is disabled. Please visit the gaming center to join the physical queue.");
-        return;
+        // If queue is active but user not in queue, prompt to join
+        if (queueStatus.allow_online_joining) {
+          setShowQueueModal(true);
+          return;
+        } else {
+          alert("A queue is currently active and online joining is disabled. Please visit the gaming center to join the physical queue.");
+          return;
+        }
       }
     }
     
@@ -701,7 +727,7 @@ const AvailableComputers = ({ metaData }) => {
   };
 
   // Handle login success
-  const handleLoginSuccess = (user, computer) => {
+  const handleLoginSuccess = async (user, computer) => {
     console.log(`User ${user.username} (ID: ${user.gizmoId}) logged in to ${computer.type} ${computer.number} (Host ID: ${computer.hostId})`);
     
     // Update UI to show the computer is now in use
@@ -714,6 +740,42 @@ const AvailableComputers = ({ metaData }) => {
     // Set user as logged in immediately and track which computer
     setUserAlreadyLoggedIn(true);
     setUserCurrentComputer(computer);
+    
+    // Automatically remove user from queue if they were in it
+    try {
+      // Find user in queue by gizmo_id
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, username')
+        .eq('gizmo_id', user.gizmoId)
+        .single();
+
+      if (!userError && userData) {
+        // Check if user is in queue
+        const { data: queueEntry, error: queueError } = await supabase
+          .from('computer_queue')
+          .select('id, user_name, position')
+          .eq('user_id', userData.id)
+          .eq('status', 'waiting')
+          .single();
+
+        if (!queueError && queueEntry) {
+          // Remove user from queue
+          const { error: deleteError } = await supabase
+            .from('computer_queue')
+            .delete()
+            .eq('id', queueEntry.id);
+
+          if (!deleteError) {
+            console.log(`✅ Automatically removed ${userData.username} from queue (position ${queueEntry.position}) - logged into ${computer.type} floor computer ${computer.number}`);
+          } else {
+            console.error('❌ Failed to remove user from queue:', deleteError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error removing user from queue after login:', error);
+    }
     
     // Delay the refetch to give the server time to update
     setTimeout(() => {
@@ -836,7 +898,7 @@ const AvailableComputers = ({ metaData }) => {
             </div>
             <p className={styles.queueMessage}>
               {userInQueue 
-                ? `Estimated wait time: ${userInQueue.position * 5} minutes`
+                ? (userInQueue.position === 1 ? "🎉 It's your turn! " : `Estimated wait time: ${userInQueue.position * 5} minutes`)
                 : queueStatus.allow_online_joining 
                   ? "People are waiting for computers. Join the queue to get notified when it's your turn."
                   : "People are waiting for computers. Visit the gaming center to join the physical queue."
@@ -844,6 +906,8 @@ const AvailableComputers = ({ metaData }) => {
             </p>
           </div>
         )}
+
+
 
         {/* All Computers Full - Join Waiting List */}
         {shouldShowQueueJoin && (
@@ -919,16 +983,10 @@ const AvailableComputers = ({ metaData }) => {
               
               <div className={styles.queueModalOptions}>
                 <h4>Computer Preference:</h4>
-                <p className={styles.preferenceDescription}>
-                  Choose your preferred gaming area. Top floor has premium setups with better specs.
-                </p>
                 <div className={styles.preferenceButtons}>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={async () => {
-                      const success = await joinQueue('any');
-                      if (success) setShowQueueModal(false);
-                    }}
+                    onClick={() => handleQueueSelection('any')}
                   >
                     <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
                     <div className={styles.preferenceSubtitle}>Get the next available computer</div>
@@ -940,13 +998,10 @@ const AvailableComputers = ({ metaData }) => {
                   </button>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={async () => {
-                      const success = await joinQueue('bottom');
-                      if (success) setShowQueueModal(false);
-                    }}
+                    onClick={() => handleQueueSelection('bottom')}
                   >
                     <div className={styles.preferenceTitle}>⬇️ Bottom Floor Only</div>
-                    <div className={styles.preferenceSubtitle}>Standard gaming PCs (PC 1-8)</div>
+                    <div className={styles.preferenceSubtitle}>Bottom floor gaming PCs (PC 1-8)</div>
                     {queueStatus && (
                       <div className={styles.estimatedWait}>
                         ~{Math.max(10, (queueStatus.current_queue_size || 0) * 7)} min wait
@@ -955,13 +1010,10 @@ const AvailableComputers = ({ metaData }) => {
                   </button>
                   <button 
                     className={styles.preferenceButton}
-                    onClick={async () => {
-                      const success = await joinQueue('top');
-                      if (success) setShowQueueModal(false);
-                    }}
+                    onClick={() => handleQueueSelection('top')}
                   >
                     <div className={styles.preferenceTitle}>⬆️ Top Floor Only</div>
-                    <div className={styles.preferenceSubtitle}>Premium gaming PCs (PC 9-14)</div>
+                    <div className={styles.preferenceSubtitle}>Top floor gaming PCs (PC 9-14)</div>
                     {queueStatus && (
                       <div className={styles.estimatedWait}>
                         ~{Math.max(15, (queueStatus.current_queue_size || 0) * 10)} min wait
@@ -977,6 +1029,56 @@ const AvailableComputers = ({ metaData }) => {
                   onClick={() => setShowQueueModal(false)}
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Queue Confirmation Modal */}
+        {showQueueConfirmation && (
+          <div className={styles.queueModal}>
+            <div className={styles.queueModalContent}>
+              <h3>🎮 Join Queue Confirmation</h3>
+              <div className={styles.confirmationMessage}>
+                <p>
+                  <strong>You're about to join the queue for {
+                    selectedQueueType === 'any' ? 'any available computer' :
+                    selectedQueueType === 'bottom' ? 'bottom floor computers' :
+                    'top floor computers'
+                  }.</strong>
+                </p>
+                
+                <div className={styles.confirmationInfo}>
+                  <p>📋 <strong>What happens next:</strong></p>
+                  <ul>
+                    <li>✅ You'll be added to the waiting list</li>
+                    <li>🔔 We'll notify you when it's your turn</li>
+                    <li>🎮 <strong>We will automatically log you in</strong> when a computer becomes available</li>
+                    <li>❌ If you change your mind, you can remove yourself from the queue</li>
+                  </ul>
+                </div>
+
+                <div className={styles.importantNote}>
+                  <p>⚠️ <strong>Important:</strong> Make sure you're ready to start gaming when it's your turn!</p>
+                </div>
+              </div>
+
+              <div className={styles.queueModalActions}>
+                <button 
+                  className={styles.queueCancelButton}
+                  onClick={() => {
+                    setShowQueueConfirmation(false);
+                    setSelectedQueueType(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className={styles.queueConfirmButton}
+                  onClick={handleQueueConfirmation}
+                >
+                  Confirm & Join Queue
                 </button>
               </div>
             </div>

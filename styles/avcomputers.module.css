@@ -530,6 +530,8 @@
   gap: 0.5rem;
 }
 
+
+
 .queueStatusHeader h3 {
   margin: 0;
   font-size: 1.2rem;
@@ -627,33 +629,34 @@
 }
 
 .queueModalContent {
-  background: white;
+  background: #1f2937;
+  border: 1px solid #374151;
   border-radius: 12px;
   padding: 2rem;
   max-width: 500px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-in-out;
 }
 
 .queueModalContent h3 {
   margin: 0 0 1rem 0;
-  color: #1f2937;
+  color: #f9fafb;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
 .queueModalContent p {
   margin: 0 0 1.5rem 0;
-  color: #6b7280;
+  color: #d1d5db;
   line-height: 1.5;
 }
 
 .queueModalOptions h4 {
   margin: 0 0 1rem 0;
-  color: #374151;
+  color: #f3f4f6;
   font-size: 1.1rem;
   font-weight: 500;
 }
@@ -667,10 +670,10 @@
 
 .preferenceButton {
   padding: 1rem;
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
+  background: #374151;
+  border: 2px solid #4b5563;
   border-radius: 8px;
-  color: #374151;
+  color: #f9fafb;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -679,14 +682,33 @@
 }
 
 .preferenceButton:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: #4b5563;
+  border-color: #6b7280;
 }
 
 .preferenceButton:active {
   background: #2563eb;
   border-color: #2563eb;
   color: white;
+}
+
+.preferenceTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+  color: inherit;
+}
+
+.preferenceSubtitle {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+.estimatedWait {
+  font-size: 0.8rem;
+  color: #fbbf24;
+  font-weight: 500;
 }
 
 .queueModalActions {
@@ -708,7 +730,7 @@
 }
 
 .queueCancelButton:hover {
-  background: #4b5563;
+  background-color: #64748b;
 }
 
 /* Animations */
@@ -845,4 +867,91 @@
   .waitingListInfo p {
     font-size: 0.85rem;
   }
+}
+
+/* Queue Confirmation Modal Styles */
+.confirmationMessage {
+  margin: 1rem 0;
+}
+
+.confirmationMessage > p {
+  margin-bottom: 1rem;
+  color: #e1e1e1;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.confirmationInfo {
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.confirmationInfo p {
+  margin: 0 0 0.5rem 0 !important;
+  color: #93c5fd !important;
+  font-weight: 600;
+}
+
+.confirmationInfo ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.confirmationInfo li {
+  margin: 0.5rem 0;
+  color: #e1e1e1;
+  line-height: 1.4;
+  position: relative;
+}
+
+.confirmationInfo li::before {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 0.6rem;
+  width: 4px;
+  height: 4px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+.importantNote {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.importantNote p {
+  margin: 0 !important;
+  color: #fbbf24 !important;
+  font-weight: 600;
+  text-align: center;
+}
+
+.queueConfirmButton {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.queueConfirmButton:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.queueConfirmButton:active {
+  background-color: #047857;
+  transform: translateY(0);
 }

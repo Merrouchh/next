@@ -1,0 +1,263 @@
+/* Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal */
+.modal {
+  background: white;
+  border-radius: 12px;
+  min-width: 400px;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+  border: 2px solid transparent;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal types */
+.modal.success {
+  border-color: #10b981;
+}
+
+.modal.error {
+  border-color: #ef4444;
+}
+
+.modal.warning {
+  border-color: #f59e0b;
+}
+
+.modal.confirm {
+  border-color: #3b82f6;
+}
+
+.modal.info {
+  border-color: #6b7280;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.iconTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Icons */
+.successIcon {
+  color: #10b981;
+  font-size: 24px;
+}
+
+.errorIcon {
+  color: #ef4444;
+  font-size: 24px;
+}
+
+.warningIcon {
+  color: #f59e0b;
+  font-size: 24px;
+}
+
+.confirmIcon {
+  color: #3b82f6;
+  font-size: 24px;
+}
+
+.infoIcon {
+  color: #6b7280;
+  font-size: 24px;
+}
+
+/* Content */
+.content {
+  padding: 16px 24px 24px;
+}
+
+.message {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px;
+  justify-content: flex-end;
+}
+
+.button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.okButton {
+  background: #3b82f6;
+  color: white;
+}
+
+.okButton:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.confirmButton {
+  background: #10b981;
+  color: white;
+}
+
+.confirmButton:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.cancelButton {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.cancelButton:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+/* Auto close indicator */
+.autoCloseIndicator {
+  position: relative;
+  height: 3px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.autoCloseBar {
+  height: 100%;
+  background: #3b82f6;
+  animation: autoClose 3s linear forwards;
+  transform-origin: left;
+}
+
+@keyframes autoClose {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Success modal specific styling */
+.modal.success .autoCloseBar {
+  background: #10b981;
+}
+
+.modal.error .autoCloseBar {
+  background: #ef4444;
+}
+
+.modal.warning .autoCloseBar {
+  background: #f59e0b;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .modal {
+    min-width: 320px;
+    max-width: 90vw;
+    margin: 20px;
+  }
+  
+  .header {
+    padding: 16px 20px 12px;
+  }
+  
+  .content {
+    padding: 12px 20px 20px;
+  }
+  
+  .actions {
+    padding: 0 20px 20px;
+    flex-direction: column-reverse;
+  }
+  
+  .button {
+    width: 100%;
+  }
+  
+  .title {
+    font-size: 16px;
+  }
+} 

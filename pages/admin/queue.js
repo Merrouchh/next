@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
+import QueueAdminModal from '../../components/QueueAdminModal';
 import Head from 'next/head';
 import styles from '../../styles/AdminQueue.module.css';
 import { toast } from 'react-hot-toast';
@@ -34,6 +35,36 @@ export default function AdminQueue() {
   const [foundUser, setFoundUser] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Modal state
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: null
+  });
+
+  // Helper function to show modal
+  const showModal = (type, title, message, onConfirm = null) => {
+    setModal({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm
+    });
+  };
+
+  const closeModal = () => {
+    setModal({
+      isOpen: false,
+      type: 'info',
+      title: '',
+      message: '',
+      onConfirm: null
+    });
+  };
 
   // =============================================================================
   // 1. LOAD QUEUE DATA (runs when page loads)
@@ -104,17 +135,18 @@ export default function AdminQueue() {
 
       if (response.ok) {
         setQueueActive(!queueActive);
-        alert(queueActive ? 'Queue system stopped' : 'Queue system started');
+        showModal('success', 'Queue System Updated', 
+          queueActive ? 'Queue system has been stopped.' : 'Queue system has been started.');
         
         // Force refresh of queue data to ensure all pages sync
         setTimeout(() => {
           loadQueueData();
         }, 1000);
       } else {
-        alert('Error updating queue system');
+        showModal('error', 'Error', 'Failed to update queue system. Please try again.');
       }
     } catch (error) {
-      alert('Error updating queue system');
+      showModal('error', 'Error', 'Failed to update queue system. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -139,15 +171,17 @@ export default function AdminQueue() {
       if (response.ok) {
         setAutomaticMode(!automaticMode);
         if (!automaticMode) {
-          alert('Automatic mode enabled: Queue will turn ON when people join and OFF when empty');
+          showModal('success', 'Automatic Mode Enabled', 
+            'Queue will automatically turn ON when people join and OFF when empty.');
         } else {
-          alert('Automatic mode disabled: Manual control restored');
+          showModal('success', 'Automatic Mode Disabled', 
+            'Manual control has been restored. You can now manually start/stop the queue.');
         }
       } else {
-        alert('Error updating automatic mode');
+        showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
       }
     } catch (error) {
-      alert('Error updating automatic mode');
+      showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -216,12 +250,13 @@ export default function AdminQueue() {
 
       if (response.ok) {
         setOnlineJoiningAllowed(!onlineJoiningAllowed);
-        alert(onlineJoiningAllowed ? 'Online joining blocked' : 'Online joining allowed');
+        showModal('success', 'Online Joining Updated', 
+          onlineJoiningAllowed ? 'Online joining has been blocked.' : 'Online joining has been allowed.');
       } else {
-        alert('Error updating settings');
+        showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
       }
     } catch (error) {
-      alert('Error updating settings');
+      showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -281,7 +316,7 @@ export default function AdminQueue() {
     e.preventDefault();
     
     if (!newPersonForm.username.trim()) {
-      alert('Please enter a username');
+      showModal('warning', 'Username Required', 'Please enter a username before adding to queue.');
       return;
     }
 
@@ -323,17 +358,17 @@ export default function AdminQueue() {
       });
 
       if (response.ok) {
-        alert('Person added to queue!');
+        showModal('success', 'Person Added', `${newPersonForm.username} has been successfully added to the queue!`);
         setNewPersonForm({ username: '', phone: '', notes: '', computerType: 'any' });
         setFoundUser(null);
         setShowAddForm(false);
         loadQueueData(); // Refresh the list
       } else {
         const error = await response.json();
-        alert('Error: ' + error.error);
+        showModal('error', 'Failed to Add Person', error.error || 'An error occurred while adding person to queue.');
       }
     } catch (error) {
-      alert('Error adding person to queue');
+      showModal('error', 'Failed to Add Person', 'An error occurred while adding person to queue.');
     } finally {
       setAddingPerson(false);
     }
@@ -342,9 +377,13 @@ export default function AdminQueue() {
   // =============================================================================
   // 6. REMOVE PERSON FROM QUEUE
   // =============================================================================
-  const removePerson = async (id, name) => {
-    if (!confirm(`Remove ${name} from the queue?`)) return;
+  const removePerson = (id, name) => {
+    showModal('confirm', 'Remove Person', `Are you sure you want to remove ${name} from the queue?`, () => {
+      executeRemovePerson(id, name);
+    });
+  };
 
+  const executeRemovePerson = async (id, name) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch(`/api/queue/manage?id=${id}`, {
@@ -353,13 +392,13 @@ export default function AdminQueue() {
       });
 
       if (response.ok) {
-        alert(`${name} removed from queue`);
+        showModal('success', 'Person Removed', `${name} has been successfully removed from the queue.`);
         loadQueueData(); // Refresh the list
       } else {
-        alert('Error removing person');
+        showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
       }
     } catch (error) {
-      alert('Error removing person');
+      showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
     }
   };
 
@@ -384,11 +423,11 @@ export default function AdminQueue() {
       if (response.ok) {
         loadQueueData(); // Refresh the list
       } else {
-        alert('Error reordering queue');
+        showModal('error', 'Reorder Failed', 'Failed to reorder queue. Please try again.');
       }
     } catch (error) {
       console.error('Error reordering queue:', error);
-      alert('Error reordering queue');
+      showModal('error', 'Reorder Failed', 'Failed to reorder queue. Please try again.');
     }
   };
 
@@ -790,6 +829,18 @@ export default function AdminQueue() {
           </div>
         </div>
       </div>
+
+      {/* Modal Component */}
+      <QueueAdminModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        autoClose={modal.type === 'success' ? true : false}
+        autoCloseDelay={2500}
+      />
     </AdminPageWrapper>
   );
 } 

@@ -8,14 +8,17 @@
     "dev:turbo": "cross-env TURBOPACK=1 next dev --turbo",
     "dev:turbo:trace": "cross-env TURBOPACK=1 NEXT_TURBOPACK_TRACING=1 next dev --turbo",
     "build": "cross-env NODE_ENV=production next build --no-lint",
-    "start": "next start",
+    "start": "concurrently --names \"SERVER,QUEUE\" --prefix-colors \"blue,green\" \"next start\" \"node scripts/queue-monitor.js\"",
+    "start:server-only": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "clean": "rimraf .next out",
     "dev:clean": "npm run clean && npm run dev",
     "dev:clean:standard": "npm run clean && npm run dev:standard",
     "dev:clean:turbo": "npm run clean && npm run dev:turbo",
-    "start:all": "start.bat"
+    "start:all": "start.bat",
+    "queue-monitor": "node scripts/queue-monitor.js",
+    "queue-monitor-once": "node scripts/queue-monitor.js --once"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",
@@ -55,7 +58,7 @@
     "leaflet": "^1.9.4",
     "multer": "^1.4.5-lts.1",
     "nanoid": "^5.0.9",
-    "next": "^15.4.0-canary.83",
+    "next": "^15.3.4",
     "next-connect": "^1.0.0",
     "next-seo": "^6.6.0",
     "nextjs-toploader": "^3.8.16",
