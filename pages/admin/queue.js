@@ -750,9 +750,9 @@ export default function AdminQueue() {
                       <span className={`${styles.personType} ${person.is_physical ? styles.physical : styles.online}`}>
                         {person.is_physical ? 'HERE' : 'ONLINE'}
                       </span>
-                      {(person.phone_number || person.phone) && (
+                      {(person.display_phone || person.phone_number || person.phone || person.user_phone) && (
                         <span className={styles.personType} style={{backgroundColor: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7'}}>
-                          📞 {person.phone_number || person.phone}
+                          📞 {person.display_phone || person.phone_number || person.phone || person.user_phone}
                         </span>
                       )}
                     </div>
