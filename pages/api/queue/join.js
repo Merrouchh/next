@@ -5,6 +5,55 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Helper function to get next position with retry logic (backup for race conditions)
+async function getNextQueuePositionWithRetry(maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Try to get next position
+      const { data: nextPos, error } = await supabase.rpc('get_next_queue_position');
+      
+      if (error) {
+        console.error(`Attempt ${attempt}: Error getting next position:`, error);
+        if (attempt === maxRetries) throw error;
+        continue;
+      }
+      
+      // Double-check that this position doesn't already exist (race condition check)
+      const { data: existingPosition, error: checkError } = await supabase
+        .from('computer_queue')
+        .select('id')
+        .eq('position', nextPos)
+        .eq('status', 'waiting')
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found (good)
+        console.error(`Attempt ${attempt}: Error checking position:`, checkError);
+        if (attempt === maxRetries) throw checkError;
+        continue;
+      }
+      
+      if (!existingPosition) {
+        // Position is available, return it
+        return nextPos;
+      } else {
+        // Position already exists (race condition detected), try again
+        console.warn(`Race condition detected: Position ${nextPos} already exists. Attempt ${attempt}/${maxRetries}`);
+        if (attempt === maxRetries) {
+          // Last attempt: force a higher position
+          const { data: maxPos } = await supabase.rpc('get_next_queue_position');
+          return (maxPos || 0) + attempt;
+        }
+        // Add a small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+      }
+    } catch (error) {
+      console.error(`Attempt ${attempt}: Unexpected error:`, error);
+      if (attempt === maxRetries) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+    }
+  }
+}
+
 // Function to handle automatic mode after queue changes
 async function handleAutomaticModeAfterChange() {
   try {
@@ -98,86 +147,130 @@ export default async function handler(req, res) {
 
 // Handle joining the queue
 async function handleJoinQueue(req, res, user) {
-  // Get user details
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('id, username')
-    .eq('id', user.id)
-    .single();
+  try {
+    // Get user details
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id, username')
+      .eq('id', user.id)
+      .single();
 
-  if (userError || !userData) {
-    return res.status(400).json({ error: 'User not found' });
-  }
-
-  const { computerType = 'any' } = req.body;
-
-  // Check if queue is active and allows online joining
-  const { data: queueStatus } = await supabase.rpc('get_queue_status');
-  
-  // Handle case where queueStatus is an array
-  const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
-  
-  if (!status || (!status.is_active && !status.automatic_mode)) {
-    return res.status(400).json({ error: 'Queue is not currently active' });
-  }
-
-  if (!status.allow_online_joining) {
-    return res.status(400).json({ error: 'Online joining is not currently allowed' });
-  }
-
-  if (status.current_queue_size >= status.max_queue_size) {
-    return res.status(400).json({ error: 'Queue is full' });
-  }
-
-  // Check if user is already in queue
-  const { data: existingEntry } = await supabase
-    .from('computer_queue')
-    .select('id, position')
-    .eq('user_id', user.id)
-    .eq('status', 'waiting')
-    .single();
-
-  if (existingEntry) {
-    return res.status(400).json({ 
-      error: 'You are already in the queue',
-      position: existingEntry.position
-    });
-  }
-
-  // Get next position
-  const { data: nextPos } = await supabase.rpc('get_next_queue_position');
-
-  // Add to queue
-  const { data: queueEntry, error: insertError } = await supabase
-    .from('computer_queue')
-    .insert({
-      user_name: userData.username,
-      computer_type: computerType,
-      position: nextPos,
-      is_physical: false,
-      user_id: user.id
-    })
-    .select()
-    .single();
-
-  if (insertError) {
-    console.error('Error joining queue:', insertError);
-    return res.status(500).json({ error: 'Failed to join queue' });
-  }
-
-  // Check and handle automatic mode after joining
-  await handleAutomaticModeAfterChange();
-
-  return res.status(201).json({
-    success: true,
-    message: `You joined the queue at position ${nextPos}`,
-    data: {
-      id: queueEntry.id,
-      position: nextPos,
-      computerType: computerType,
-      estimatedWait: nextPos * 5 // Rough estimate: 5 minutes per person
+    if (userError || !userData) {
+      return res.status(400).json({ error: 'User not found' });
     }
-  });
+
+    const { computerType = 'any' } = req.body;
+
+    // Check if queue is active and allows online joining
+    const { data: queueStatus } = await supabase.rpc('get_queue_status');
+    
+    // Handle case where queueStatus is an array
+    const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
+    
+    if (!status || (!status.is_active && !status.automatic_mode)) {
+      return res.status(400).json({ error: 'Queue is not currently active' });
+    }
+
+    if (!status.allow_online_joining) {
+      return res.status(400).json({ error: 'Online joining is not currently allowed' });
+    }
+
+    if (status.current_queue_size >= status.max_queue_size) {
+      return res.status(400).json({ error: 'Queue is full' });
+    }
+
+    // Check if user is already in queue
+    const { data: existingEntry } = await supabase
+      .from('computer_queue')
+      .select('id, position')
+      .eq('user_id', user.id)
+      .eq('status', 'waiting')
+      .single();
+
+    if (existingEntry) {
+      return res.status(400).json({ 
+        error: 'You are already in the queue',
+        position: existingEntry.position
+      });
+    }
+
+    // Get next position using retry logic to handle race conditions
+    const nextPos = await getNextQueuePositionWithRetry();
+
+    // Add to queue
+    const { data: queueEntry, error: insertError } = await supabase
+      .from('computer_queue')
+      .insert({
+        user_name: userData.username,
+        computer_type: computerType,
+        position: nextPos,
+        is_physical: false,
+        user_id: user.id
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error joining queue:', insertError);
+      
+      // If it's a unique constraint violation (race condition), try once more with a higher position
+      if (insertError.code === '23505') { // Unique violation
+        console.log('Detected race condition, retrying with higher position...');
+        const { data: maxPos } = await supabase.rpc('get_next_queue_position');
+        const retryPos = (maxPos || 0) + Math.floor(Math.random() * 10) + 1;
+        
+        const { data: retryQueueEntry, error: retryError } = await supabase
+          .from('computer_queue')
+          .insert({
+            user_name: userData.username,
+            computer_type: computerType,
+            position: retryPos,
+            is_physical: false,
+            user_id: user.id
+          })
+          .select()
+          .single();
+        
+        if (retryError) {
+          console.error('Retry also failed:', retryError);
+          return res.status(500).json({ error: 'Failed to join queue due to high traffic. Please try again.' });
+        }
+        
+        // Check and handle automatic mode after joining
+        await handleAutomaticModeAfterChange();
+        
+        return res.status(201).json({
+          success: true,
+          message: `You joined the queue at position ${retryPos}`,
+          data: {
+            id: retryQueueEntry.id,
+            position: retryPos,
+            computerType: computerType,
+            estimatedWait: retryPos * 5
+          }
+        });
+      }
+      
+      return res.status(500).json({ error: 'Failed to join queue' });
+    }
+
+    // Check and handle automatic mode after joining
+    await handleAutomaticModeAfterChange();
+
+    return res.status(201).json({
+      success: true,
+      message: `You joined the queue at position ${nextPos}`,
+      data: {
+        id: queueEntry.id,
+        position: nextPos,
+        computerType: computerType,
+        estimatedWait: nextPos * 5 // Rough estimate: 5 minutes per person
+      }
+    });
+  } catch (error) {
+    console.error('Error in handleJoinQueue:', error);
+    return res.status(500).json({ error: 'Failed to join queue. Please try again.' });
+  }
 }
 
 // Handle leaving the queue

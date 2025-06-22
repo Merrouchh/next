@@ -279,7 +279,7 @@ const useQueueSystem = (user, supabase) => {
       const response = await fetch('/api/queue/status');
       if (response.ok) {
         const data = await response.json();
-        const status = Array.isArray(data.status) ? data.status[0] : data.status;
+        const status = data.status; // Status is now always an object due to API fix
         console.log('Queue status updated:', status); // Debug log
         setQueueStatus(status);
         
@@ -288,9 +288,18 @@ const useQueueSystem = (user, supabase) => {
           const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
           setUserInQueue(userQueueEntry || null);
         }
+      } else {
+        console.error('Failed to fetch queue status:', response.status);
       }
     } catch (error) {
       console.error('Error fetching queue status:', error);
+      // Set default status to prevent UI errors
+      setQueueStatus({ 
+        is_active: false, 
+        allow_online_joining: false, 
+        current_queue_size: 0,
+        automatic_mode: false 
+      });
     }
   }, [user]);
 
@@ -880,7 +889,10 @@ const AvailableComputers = ({ metaData }) => {
               <h3>🎮 {queueStatus.is_active ? 'Queue System Active' : 'People Waiting in Queue'}</h3>
               {userInQueue ? (
                 <div className={styles.userQueueInfo}>
-                  <span className={styles.queuePosition}>You are position #{userInQueue.position}</span>
+                  <span className={styles.queuePosition}>
+                    You are position #{userInQueue.position || '?'}
+                    {userInQueue.position === 1 && <span style={{color: '#059669', fontWeight: 'bold'}}> - It's your turn!</span>}
+                  </span>
                   <button className={styles.leaveQueueButton} onClick={leaveQueue}>
                     Leave Queue
                   </button>

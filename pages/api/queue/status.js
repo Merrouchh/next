@@ -31,8 +31,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to get queue data' });
     }
 
+    // Ensure status is always an object, not an array
+    const status = Array.isArray(statusData) ? statusData[0] : statusData;
+    
     return res.status(200).json({
-      status: statusData,
+      status: status,
       queue: queueData || []
     });
 
