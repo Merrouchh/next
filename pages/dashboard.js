@@ -348,11 +348,13 @@ const Dashboard = ({ _initialClips, metaData }) => {
     error: null,
     data: null
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Move handleRefresh definition here so it can be used in useEffect hooks
-  const handleRefresh = async () => {
-    if (!user?.gizmo_id) return;
+  const handleRefresh = async (showToast = true) => {
+    if (!user?.gizmo_id || isRefreshing) return;
     
+    setIsRefreshing(true);
     setPageState(prev => ({ ...prev, loading: true }));
     try {
       console.log('🔄 Refreshing dashboard data...');
@@ -388,8 +390,8 @@ const Dashboard = ({ _initialClips, metaData }) => {
         }
       });
 
-      // Show success toast for main data only for manual refresh
-      if (document.visibilityState === 'visible') {
+      // Show success toast only if requested and page is visible
+      if (showToast && document.visibilityState === 'visible') {
         toast.success('Dashboard refreshed!', {
           position: 'top-right',
           style: {
@@ -460,22 +462,27 @@ const Dashboard = ({ _initialClips, metaData }) => {
         loading: false,
         error: 'Failed to refresh data'
       }));
-      toast.error('Failed to refresh data', {
-        position: 'top-right'
-      });
+      if (showToast) {
+        toast.error('Failed to refresh data', {
+          position: 'top-right'
+        });
+      }
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   // Simple session refresh on visibility change and data refresh
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user && pageState.data) {
+      if (document.visibilityState === 'visible' && user && pageState.data && !isRefreshing) {
+        console.log('👁️ Page became visible - refreshing session and data');
         // Refresh both session and data when page becomes visible
         refreshSession({ silent: true }).catch(console.error);
-        // Also refresh data to get latest information
+        // Also refresh data to get latest information (silent to avoid duplicate toasts)
         setTimeout(() => {
-          if (document.visibilityState === 'visible') {
-            handleRefresh();
+          if (document.visibilityState === 'visible' && !isRefreshing) {
+            handleRefresh(false); // false = don't show toast for visibility change
           }
         }, 1000);
       }
@@ -486,21 +493,21 @@ const Dashboard = ({ _initialClips, metaData }) => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, refreshSession, pageState.data]);
+  }, [user, refreshSession, pageState.data, isRefreshing]);
 
   // Auto-refresh data every 30 seconds when page is visible
   useEffect(() => {
     if (!user?.gizmo_id || !pageState.data) return;
 
     const autoRefresh = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        console.log('🔄 Auto-refreshing dashboard data...');
-        handleRefresh();
+      if (document.visibilityState === 'visible' && !isRefreshing) {
+        console.log('⏰ Auto-refreshing dashboard data...');
+        handleRefresh(false); // false = don't show toast for auto-refresh
       }
     }, 30000); // Refresh every 30 seconds
 
     return () => clearInterval(autoRefresh);
-  }, [user?.gizmo_id, pageState.data]);
+  }, [user?.gizmo_id, pageState.data, isRefreshing]);
 
   useEffect(() => {
     // Remove the problematic early return that prevents data refresh
@@ -846,8 +853,8 @@ const Dashboard = ({ _initialClips, metaData }) => {
           />
 
           <RefreshCard 
-            onRefresh={handleRefresh}
-            isLoading={pageState.loading}
+            onRefresh={() => handleRefresh(true)}
+            isLoading={pageState.loading || isRefreshing}
           />
         </div>
 

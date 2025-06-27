@@ -87,6 +87,73 @@
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
+/* Placeholder state */
+.navButton.placeholder {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.navButton.placeholder .icon,
+.navButton.placeholder .label {
+  color: #666;
+}
+
+.navButton.placeholder:active {
+  transform: none;
+}
+
+/* Sessions button styling */
+.navButton.sessionsButton {
+  padding: 8px 0;
+}
+
+.navButton.sessionsButton .sublabel {
+  font-size: 10px;
+  color: #FFD700;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  margin-top: 4px;
+  display: block;
+}
+
+.navButton.sessionsButton.active .sublabel {
+  color: #FFD700;
+}
+
+.navButton.sessionsButton .icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+/* Session count color classes */
+.navButton.sessionsButton .sublabel.green {
+  color: #4CAF50;
+}
+
+.navButton.sessionsButton .sublabel.orange {
+  color: #FF9800;
+}
+
+.navButton.sessionsButton .sublabel.red {
+  color: #F44336;
+}
+
+/* Active state overrides for colored sublabels */
+.navButton.sessionsButton.active .sublabel.green {
+  color: #4CAF50;
+}
+
+.navButton.sessionsButton.active .sublabel.orange {
+  color: #FF9800;
+}
+
+.navButton.sessionsButton.active .sublabel.red {
+  color: #F44336;
+}
+
 /* Loading state styles */
 .dashboardHeader:empty {
   height: var(--dashboard-height);
