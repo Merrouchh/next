@@ -119,7 +119,7 @@ const MobileDashboardHeader = () => {
 
     fetchSessions();
 
-    // Refresh sessions every 30 seconds (but don't show loading state for these)
+    // Refresh sessions every 5 seconds (but don't show loading state for these)
     const interval = setInterval(() => {
       fetchActiveUserSessions()
         .then(sessions => setActiveSessions(sessions || []))
@@ -127,7 +127,7 @@ const MobileDashboardHeader = () => {
           console.error('Error fetching active sessions:', error);
           setActiveSessions([]);
         });
-    }, 30000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
