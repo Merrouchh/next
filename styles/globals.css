@@ -30,6 +30,34 @@ html {
   overscroll-behavior: none; /* Prevent bounce effect in Chrome mobile */
 }
 
+/* PWA Standalone Mode - Add yellow status bar at top */
+@media (display-mode: standalone) {
+  html {
+    padding-top: env(safe-area-inset-top, 20px);
+  }
+  
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 20px);
+    background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+    z-index: 9999;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+  }
+}
+
+/* Additional PWA standalone status bar for mobile */
+@media (display-mode: standalone) and (max-width: 768px) {
+  body::before {
+    height: max(env(safe-area-inset-top, 20px), 25px);
+    background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFB700 100%);
+    box-shadow: 0 3px 15px rgba(255, 215, 0, 0.4);
+  }
+}
+
 body {
   min-height: 100vh;
   /* For mobile browsers */
