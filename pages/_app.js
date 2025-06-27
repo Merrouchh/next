@@ -112,7 +112,7 @@ function MyApp({ Component, pageProps }) {
           <Head>
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <link rel="icon" href="/favicon.ico" />
-            <meta name="theme-color" content="#000000" />
+            <meta name="theme-color" content="#FFD700" />
           </Head>
           <DefaultSeo {...defaultSEO} />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
@@ -134,7 +134,7 @@ function MyApp({ Component, pageProps }) {
         <Head>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" href="/favicon.ico" />
-          <meta name="theme-color" content="#000000" />
+          <meta name="theme-color" content="#FFD700" />
         </Head>
         <DefaultSeo {...defaultSEO} />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>

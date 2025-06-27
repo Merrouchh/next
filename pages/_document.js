@@ -40,9 +40,12 @@ class MyDocument extends Document {
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <meta name="application-name" content="Merrouch" />
           <meta name="apple-mobile-web-app-title" content="Merrouch" />
+          <meta name="theme-color" content="#FFD700" />
+          <meta name="msapplication-TileColor" content="#FFD700" />
+          <meta name="msapplication-navbutton-color" content="#FFD700" />
           
           {/* Media Chrome and HLS - Proper HTML script tags without Next.js props */}
           <script 
