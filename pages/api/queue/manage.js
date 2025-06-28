@@ -186,6 +186,8 @@ async function handleAddToQueue(req, res, admin) {
       return res.status(500).json({ error: 'Failed to add to queue' });
     }
 
+    // Queue entry added successfully
+
     // Check and handle automatic mode after addition
     await handleAutomaticModeAfterChange();
 
@@ -203,17 +205,32 @@ async function handleAddToQueue(req, res, admin) {
 
 // Update queue entry
 async function handleUpdateQueue(req, res, admin) {
-  const { id, notes, computerType, status } = req.body;
+  const { id, notes, computerType, status, position } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Queue entry ID is required' });
   }
 
   try {
+    // Get the current entry data before updating
+    const { data: currentEntry, error: fetchError } = await supabase
+      .from('computer_queue')
+      .select('position, user_name, phone_number, computer_type')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current entry:', fetchError);
+      return res.status(500).json({ error: 'Failed to fetch current entry' });
+    }
+
+    const oldPosition = currentEntry.position;
+
     const updates = {};
     if (notes !== undefined) updates.notes = notes;
     if (computerType !== undefined) updates.computer_type = computerType;
     if (status !== undefined) updates.status = status;
+    if (position !== undefined) updates.position = position;
 
     const { data: updatedEntry, error: updateError } = await supabase
       .from('computer_queue')
@@ -226,6 +243,8 @@ async function handleUpdateQueue(req, res, admin) {
       console.error('Error updating queue entry:', updateError);
       return res.status(500).json({ error: 'Failed to update queue entry' });
     }
+
+    // Position update completed
 
     return res.status(200).json({
       success: true,
@@ -248,6 +267,20 @@ async function handleRemoveFromQueue(req, res, admin) {
   }
 
   try {
+    // Get the entry being removed to check if it was position 1
+    const { data: removedEntry, error: fetchError } = await supabase
+      .from('computer_queue')
+      .select('position, user_name')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching entry to remove:', fetchError);
+      return res.status(500).json({ error: 'Failed to find queue entry' });
+    }
+
+    const wasPosition1 = removedEntry?.position === 1;
+
     // Remove from queue
     const { error: deleteError } = await supabase
       .from('computer_queue')
@@ -261,6 +294,10 @@ async function handleRemoveFromQueue(req, res, admin) {
 
     // Add a small delay to ensure database operations are complete
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Queue positions will be automatically updated by database triggers
+
+
 
     // Check and handle automatic mode after removal
     await handleAutomaticModeAfterChange();

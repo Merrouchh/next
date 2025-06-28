@@ -17,6 +17,9 @@ export default function AdminQueue() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
+  // Debouncing for API calls
+  const [refreshTimeout, setRefreshTimeout] = useState(null);
+  
   // Queue system state
   const [queueActive, setQueueActive] = useState(false);
   const [onlineJoiningAllowed, setOnlineJoiningAllowed] = useState(true);
@@ -69,7 +72,23 @@ export default function AdminQueue() {
   // =============================================================================
   // 1. LOAD QUEUE DATA (runs when page loads)
   // =============================================================================
-  const loadQueueData = async () => {
+  
+  // Debounced version to prevent API spam
+  const debouncedLoadQueueData = () => {
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      console.log('📱 Loading queue data (debounced)...');
+      loadQueueData();
+      setRefreshTimeout(null);
+    }, 1000); // Wait 1 second for rapid changes to settle
+    
+    setRefreshTimeout(timeoutId);
+  };
+
+  const loadQueueData = async (retryCount = 0) => {
     try {
       const response = await fetch('/api/queue/status');
       if (response.ok) {
@@ -109,9 +128,29 @@ export default function AdminQueue() {
         if (status.automatic_mode) {
           autoControlQueue(newQueueList.length, status.automatic_mode);
         }
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error loading queue:', error);
+      
+      // Retry logic for network errors (max 2 retries)
+      if (retryCount < 2 && (
+        error.message.includes('fetch') || 
+        error.message.includes('INSUFFICIENT_RESOURCES') ||
+        error.message.includes('network')
+      )) {
+        console.log(`🔄 Retrying queue data load... (attempt ${retryCount + 1})`);
+        setTimeout(() => {
+          loadQueueData(retryCount + 1);
+        }, (retryCount + 1) * 2000); // Exponential backoff: 2s, 4s
+        return;
+      }
+      
+      // Show user-friendly error after retries fail
+      if (retryCount >= 2) {
+        toast.error('Unable to load queue data. Please refresh the page.');
+      }
     } finally {
       setLoading(false);
     }
@@ -446,33 +485,30 @@ export default function AdminQueue() {
     if (user && supabase) {
       loadQueueData();
       
-      // Set up real-time subscriptions for queue changes
+      // Set up real-time subscriptions for queue changes (with debouncing)
       const queueSubscription = supabase
         .channel('admin-queue-changes')
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'computer_queue'
-        }, () => {
-          console.log('Queue data changed, refreshing admin view...');
-          loadQueueData();
+        }, (payload) => {
+          console.log(`📡 Queue data changed (${payload.eventType}), refreshing admin view...`);
+          debouncedLoadQueueData(); // Use debounced version
         })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'queue_settings'
-        }, () => {
-          console.log('Queue settings changed, refreshing admin view...');
-          loadQueueData();
-        })
+        // Removed queue_settings subscription - the monitor handles this automatically
         .subscribe();
       
-      // Backup polling every 30 seconds (reduced frequency since we have realtime)
-      const interval = setInterval(loadQueueData, 30000);
+      // Backup polling every 60 seconds (reduced frequency since we have realtime + debouncing)
+      const interval = setInterval(loadQueueData, 60000);
       
       return () => {
         queueSubscription.unsubscribe();
         clearInterval(interval);
+        // Clean up any pending debounced calls
+        if (refreshTimeout) {
+          clearTimeout(refreshTimeout);
+        }
       };
     }
   }, [user, supabase]);

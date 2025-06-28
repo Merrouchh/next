@@ -85,6 +85,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Cannot find person to swap with' });
     }
 
+    // Perform position swap
+
     // Perform the swap using a transaction-like approach
     // First, move current person to a temporary position
     const tempPosition = totalInQueue + 1;
@@ -105,6 +107,8 @@ export default async function handler(req, res) {
       .from('computer_queue')
       .update({ position: newPosition })
       .eq('id', personId);
+
+    // Positions successfully swapped
 
     return res.status(200).json({
       success: true,

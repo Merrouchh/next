@@ -1,27 +1,45 @@
 #!/usr/bin/env node
 
 /**
- * Queue Monitor Script
+ * Queue Monitor Script with WhatsApp Notifications
  * 
  * This script monitors active user sessions and automatically removes users
- * from the queue when they are logged into a computer.
+ * from the queue when they are logged into a computer. It also provides
+ * real-time WhatsApp notifications for queue position changes.
  * 
- * How it works:
- * 1. Fetches all active user sessions from the gaming system
- * 2. Fetches all users currently in the queue
- * 3. Cross-references to find users who are both in queue AND logged in
- * 4. Automatically removes those users from the queue
+ * Features:
+ * 1. Auto-removal: Removes users from queue when they log into computers
+ * 2. WhatsApp notifications: Sends position updates and "your turn" messages
+ * 3. Real-time monitoring: Uses Supabase subscriptions for instant updates
+ * 4. Automatic mode: Auto-starts/stops queue system based on occupancy
  * 
- * Run this script every 1-2 minutes as a cron job or keep it running continuously
+ * Execution Modes:
  * 
- * Usage:
- * node scripts/queue-monitor.js
+ * 1. Periodic Mode (default):
+ *    node scripts/queue-monitor.js
+ *    - Runs auto-removal every 60 seconds
+ *    - Basic WhatsApp notifications on position changes
+ * 
+ * 2. Real-time Mode (recommended):
+ *    node scripts/queue-monitor.js --realtime
+ *    - Auto-removal every 30 seconds (more responsive)
+ *    - Real-time WhatsApp notifications via Supabase subscriptions
+ *    - Instant position updates when queue changes
+ * 
+ * 3. Single Execution:
+ *    node scripts/queue-monitor.js --once
+ *    - Runs once and exits (good for cron jobs)
  * 
  * Environment variables required:
- * - SUPABASE_URL
+ * - NEXT_PUBLIC_SUPABASE_URL
  * - SUPABASE_SERVICE_ROLE_KEY
  * - API_BASE_URL (Gizmo API)
  * - API_AUTH (Gizmo API credentials)
+ * - INFOBIP_API_KEY (optional - for WhatsApp notifications)
+ * 
+ * WhatsApp Templates Required (in Infobip dashboard):
+ * - client_queue: "👋 Hi {{1}}, here's your current queue status: 📍 Position: [#{{2}} in queue]"
+ * - your_turn_has_come: "🎮 {{1}}, your turn has come! ✅ We are logging you in now..."
  */
 
 // Load environment variables from .env files
@@ -30,13 +48,23 @@ require('dotenv').config({ path: '.env' });
 
 const { createClient } = require('@supabase/supabase-js');
 
+// Use built-in fetch (Node.js 18+) or import node-fetch
+async function getFetch() {
+  if (typeof globalThis.fetch !== 'undefined') {
+    return globalThis.fetch;
+  }
+  const nodeFetch = await import('node-fetch');
+  return nodeFetch.default;
+}
+
 // Configuration - try both naming conventions
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const API_BASE_URL = process.env.API_BASE_URL;
 const API_AUTH = process.env.API_AUTH;
+const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY;
 
-// Validate environment variables
+// Validate required environment variables
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !API_BASE_URL || !API_AUTH) {
   console.error('❌ Missing required environment variables:');
   console.error('- NEXT_PUBLIC_SUPABASE_URL:', !!SUPABASE_URL);
@@ -54,14 +82,351 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !API_BASE_URL || !API_AUTH) {
   process.exit(1);
 }
 
+// Optional WhatsApp notifications
+if (!INFOBIP_API_KEY) {
+  console.log('⚠️ INFOBIP_API_KEY not found - WhatsApp notifications will be disabled');
+} else {
+  console.log('📱 WhatsApp notifications enabled via Infobip');
+}
+
 // Initialize Supabase client with service role key for admin access
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Queue state tracking for WhatsApp notifications
+let queueSnapshot = new Map();
+let updateTimeout = null;
+let recentNotifications = new Map(); // Track recent notifications to prevent duplicates
+let processingBatchId = null; // Prevent duplicate batch processing
+
+/**
+ * Send WhatsApp notification using Infobip templates
+ */
+async function sendWhatsAppQueueNotification(phoneNumber, templateType, params = {}) {
+  if (!INFOBIP_API_KEY) {
+    console.log('📱 WhatsApp notifications disabled (no API key)');
+    return { success: false, reason: 'no_api_key' };
+  }
+
+  if (!phoneNumber) {
+    console.log('📱 No phone number provided, skipping WhatsApp notification');
+    return { success: false, reason: 'no_phone' };
+  }
+
+  try {
+    // Format phone number (remove + if present for Infobip)
+    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber.substring(1) : phoneNumber;
+    
+    let payload;
+    
+    switch (templateType) {
+      case 'queue_joined':
+        // Template: client_queue - has {{1}} = userName, {{2}} = position
+        payload = {
+          messages: [
+            {
+              from: "447860098167",
+              to: formattedPhone,
+              content: {
+                templateName: "client_queue",
+                templateData: {
+                  body: {
+                    placeholders: [
+                      params.userName || "there", // {{1}} - user name
+                      params.position ? params.position.toString() : "1" // {{2}} - position number
+                    ]
+                  }
+                },
+                language: "en"
+              }
+            }
+          ]
+        };
+        break;
+        
+      case 'your_turn':
+        // Template: your_turn_has_come - has {{1}} = userName, static phone button
+        const userName = params.userName || "there";
+        
+        payload = {
+          messages: [
+            {
+              from: "447860098167",
+              to: formattedPhone,
+              content: {
+                templateName: "your_turn_has_come",
+                templateData: {
+                  body: {
+                    placeholders: [userName] // {{1}} - user name
+                  }
+                },
+                language: "en"
+              }
+            }
+          ]
+        };
+        break;
+        
+      default:
+        throw new Error(`Unknown template type: ${templateType}`);
+    }
+
+    console.log(`📱 Sending WhatsApp ${templateType} notification to ${formattedPhone}`);
+
+    // Call Infobip API
+    const fetch = await getFetch();
+    const response = await fetch('https://m3y3xw.api.infobip.com/whatsapp/1/message/template', {
+      method: 'POST',
+      headers: {
+        'Authorization': `App ${INFOBIP_API_KEY}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ Error from Infobip API:', JSON.stringify(responseData, null, 2));
+      throw new Error(`Failed to send WhatsApp message: ${responseData.error || responseData.message || 'Unknown error'}`);
+    }
+
+    console.log(`✅ WhatsApp ${templateType} notification sent successfully to ${formattedPhone}`);
+    return { 
+      success: true, 
+      messageId: responseData.messages?.[0]?.messageId,
+      response: responseData 
+    };
+
+  } catch (error) {
+    console.error(`❌ Error sending WhatsApp ${templateType} notification:`, error);
+    return { 
+      success: false, 
+      error: error.message,
+      reason: 'send_failed' 
+    };
+  }
+}
+
+/**
+ * Notify user when they join the queue
+ */
+async function notifyQueueJoined(phoneNumber, position, computerType = 'any', userName = 'there') {
+  return await sendWhatsAppQueueNotification(phoneNumber, 'queue_joined', {
+    userName,
+    position,
+    computerType
+  });
+}
+
+/**
+ * Notify user when it's their turn
+ */
+async function notifyYourTurn(phoneNumber, userName, computerType = 'any') {
+  return await sendWhatsAppQueueNotification(phoneNumber, 'your_turn', {
+    userName,
+    computerType
+  });
+}
+
+/**
+ * Check if we recently sent a notification to prevent duplicates
+ */
+function wasRecentlySent(userId, newPosition, userName = '') {
+  const notificationKey = `${userId}_${newPosition}`;
+  const lastSent = recentNotifications.get(notificationKey);
+  const now = Date.now();
+  
+  // Consider "recent" as within the last 15 seconds (increased from 10)
+  if (lastSent && (now - lastSent) < 15000) {
+    console.log(`🚫 Duplicate notification blocked for ${userName} (position ${newPosition}) - sent ${Math.round((now - lastSent)/1000)}s ago`);
+    return true;
+  }
+  
+  // Mark as sent
+  recentNotifications.set(notificationKey, now);
+  console.log(`✅ Notification allowed for ${userName} (position ${newPosition})`);
+  
+  // Clean up old entries (older than 60 seconds)
+  for (const [key, timestamp] of recentNotifications.entries()) {
+    if (now - timestamp > 60000) {
+      recentNotifications.delete(key);
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Update queue snapshot and detect position changes for WhatsApp notifications
+ */
+async function updateQueueSnapshot() {
+  if (!INFOBIP_API_KEY) {
+    return; // Skip if WhatsApp is disabled
+  }
+
+  // Prevent processing the same batch multiple times
+  const currentBatchId = Date.now();
+  if (processingBatchId && (currentBatchId - processingBatchId) < 2000) {
+    console.log(`📱 Skipping duplicate batch processing (${Math.round((currentBatchId - processingBatchId)/1000)}s ago)`);
+    return;
+  }
+  processingBatchId = currentBatchId;
+
+  try {
+    const { data: currentQueue, error } = await supabase
+      .from('computer_queue')
+      .select('id, user_name, phone_number, computer_type, position')
+      .eq('status', 'waiting')
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error fetching current queue for notifications:', error);
+      return;
+    }
+
+    const newSnapshot = new Map();
+    const positionChanges = [];
+    const newJoiners = [];
+
+    // Build new snapshot and detect changes
+    currentQueue.forEach(person => {
+      newSnapshot.set(person.id, person);
+      
+      const oldPerson = queueSnapshot.get(person.id);
+      
+      if (!oldPerson) {
+        // NEW person joining the queue
+        newJoiners.push(person);
+      } else if (oldPerson.position !== person.position) {
+        // EXISTING person with position change
+        positionChanges.push({
+          person,
+          oldPosition: oldPerson.position,
+          newPosition: person.position
+        });
+      }
+    });
+
+    // Send notifications to NEW people joining the queue
+    for (const person of newJoiners) {
+      if (!person.phone_number) {
+        console.log(`📱 ${person.user_name} joined queue at position ${person.position} but no phone number`);
+        continue;
+      }
+
+      // Check if we recently sent a notification for this person/position
+      if (wasRecentlySent(person.id, person.position, person.user_name)) {
+        console.log(`📱 ${person.user_name} joined queue at position ${person.position} - skipping (duplicate)`);
+        continue;
+      }
+
+      try {
+        let result;
+        if (person.position === 1) {
+          console.log(`📱 ${person.user_name} joined queue at position 1 - sending "your turn" notification`);
+          result = await notifyYourTurn(person.phone_number, person.user_name, person.computer_type);
+        } else {
+          console.log(`📱 ${person.user_name} joined queue at position ${person.position} - sending "queue joined" notification`);
+          result = await notifyQueueJoined(person.phone_number, person.position, person.computer_type, person.user_name);
+        }
+        
+        if (result.success) {
+          console.log(`✅ Welcome notification sent to ${person.user_name}: ${result.messageId}`);
+        } else {
+          console.log(`❌ Failed to welcome ${person.user_name}: ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error welcoming ${person.user_name}:`, error);
+      }
+    }
+
+    // Send notifications for position changes (with deduplication)
+    for (const change of positionChanges) {
+      const { person, oldPosition, newPosition } = change;
+      
+      if (!person.phone_number) {
+        console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} but no phone number`);
+        continue;
+      }
+
+      // Check if we recently sent a notification for this person/position
+      if (wasRecentlySent(person.id, newPosition, person.user_name)) {
+        console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} - skipping (duplicate)`);
+        continue;
+      }
+
+      try {
+        let result;
+        if (newPosition === 1) {
+          console.log(`📱 ${person.user_name} moved to position 1 - sending "your turn" notification`);
+          result = await notifyYourTurn(person.phone_number, person.user_name, person.computer_type);
+        } else {
+          console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} - sending queue update`);
+          result = await notifyQueueJoined(person.phone_number, newPosition, person.computer_type, person.user_name);
+        }
+        
+        if (result.success) {
+          console.log(`✅ Notification sent to ${person.user_name}: ${result.messageId}`);
+        } else {
+          console.log(`❌ Failed to notify ${person.user_name}: ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error notifying ${person.user_name}:`, error);
+      }
+    }
+
+    // Update snapshot
+    queueSnapshot = newSnapshot;
+    
+    if (newJoiners.length > 0 || positionChanges.length > 0) {
+      console.log(`📋 Processed ${newJoiners.length} new joiners and ${positionChanges.length} position changes for notifications`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error updating queue snapshot for notifications:', error);
+  }
+}
+
+/**
+ * Initialize queue snapshot for WhatsApp notifications
+ */
+async function initializeQueueSnapshot() {
+  if (!INFOBIP_API_KEY) {
+    return; // Skip if WhatsApp is disabled
+  }
+
+  try {
+    console.log('🚀 Initializing queue snapshot for WhatsApp notifications...');
+    
+    const { data: currentQueue, error } = await supabase
+      .from('computer_queue')
+      .select('id, user_name, phone_number, computer_type, position')
+      .eq('status', 'waiting')
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error initializing queue snapshot:', error);
+      return;
+    }
+
+    queueSnapshot = new Map();
+    currentQueue.forEach(person => {
+      queueSnapshot.set(person.id, person);
+    });
+
+    console.log(`✅ Initialized WhatsApp monitoring with ${queueSnapshot.size} people in queue`);
+  } catch (error) {
+    console.error('❌ Error in initializeQueueSnapshot:', error);
+  }
+}
 
 /**
  * Fetch active user sessions from Gizmo API
  */
 async function fetchActiveUserSessions() {
   try {
+    const fetch = await getFetch();
     const response = await fetch(`${API_BASE_URL}/usersessions/active`, {
       headers: {
         'Authorization': `Basic ${Buffer.from(API_AUTH).toString('base64')}`,
@@ -154,6 +519,7 @@ async function getActiveSessionUsernames(activeSessions) {
     if (!session.userId) continue;
     
     try {
+      const fetch = await getFetch();
       const response = await fetch(`${API_BASE_URL}/users/${session.userId}`, {
         headers: {
           'Authorization': `Basic ${Buffer.from(API_AUTH).toString('base64')}`,
@@ -349,6 +715,9 @@ async function monitorQueue() {
       // Calculate remaining queue count after removals
       const remainingQueueCount = queueEntries.length - usersToRemove.length;
       
+      // Update WhatsApp notifications for position changes after removals
+      await updateQueueSnapshot();
+      
       // Check automatic mode after changes
       await handleAutomaticMode(remainingQueueCount);
 
@@ -381,6 +750,42 @@ function setupGracefulShutdown() {
 }
 
 /**
+ * Start real-time queue monitoring with Supabase subscriptions
+ */
+async function startRealTimeMonitoring() {
+  console.log('📡 Starting real-time queue monitoring...');
+  
+  // Initialize WhatsApp queue snapshot
+  await initializeQueueSnapshot();
+  
+  // Set up real-time subscription to monitor queue changes with debouncing
+  const subscription = supabase
+    .channel('queue-changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'computer_queue'
+    }, async (payload) => {
+      console.log(`📡 Queue change detected: ${payload.eventType}`);
+      
+      // Debounce rapid changes - clear existing timeout and set new one
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+      
+      updateTimeout = setTimeout(async () => {
+        console.log('📱 Processing batched queue changes for notifications...');
+        await updateQueueSnapshot();
+        updateTimeout = null;
+      }, 3000); // Wait 3 seconds for all related changes to complete
+    })
+    .subscribe();
+
+  console.log('✅ Real-time WhatsApp notifications enabled');
+  return subscription;
+}
+
+/**
  * Main execution
  */
 async function main() {
@@ -389,17 +794,52 @@ async function main() {
   
   setupGracefulShutdown();
 
-  // Check if we should run once or continuously
+  // Check execution mode
   const runOnce = process.argv.includes('--once');
+  const realTime = process.argv.includes('--realtime');
   
   if (runOnce) {
     console.log('🔄 Running in single-execution mode');
     await monitorQueue();
     console.log('✅ Single execution completed');
     process.exit(0);
+  } else if (realTime) {
+    console.log('🔄 Running in real-time mode with WhatsApp notifications');
+    console.log('💡 Use Ctrl+C to stop\n');
+    
+    // Start real-time monitoring for WhatsApp notifications
+    const subscription = await startRealTimeMonitoring();
+    
+    // Run user removal check immediately and then every 30 seconds
+    await monitorQueue();
+    const interval = setInterval(async () => {
+      await monitorQueue();
+    }, 30000); // 30 seconds for more responsive auto-removal
+    
+    // Cleanup on shutdown
+    process.on('SIGINT', () => {
+      console.log('\n🛑 Shutting down real-time monitoring...');
+      clearInterval(interval);
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+      subscription.unsubscribe();
+      console.log('✅ Stopped gracefully');
+      process.exit(0);
+    });
+    
+    // Keep the process alive
+    console.log('📋 Features enabled:');
+    console.log('  • Auto-removal of logged-in users (every 30s)');
+    console.log('  • Real-time WhatsApp position notifications');
+    console.log('  • Queue automatic mode management');
+    
   } else {
-    console.log('🔄 Running in continuous mode (every 60 seconds)');
-    console.log('💡 Use Ctrl+C to stop or add --once flag for single execution\n');
+    console.log('🔄 Running in periodic mode (every 60 seconds)');
+    console.log('💡 Use Ctrl+C to stop, --once for single execution, or --realtime for WhatsApp notifications\n');
+    
+    // Initialize WhatsApp monitoring for periodic mode too
+    await initializeQueueSnapshot();
     
     // Run immediately
     await monitorQueue();
