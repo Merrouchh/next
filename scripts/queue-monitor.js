@@ -230,6 +230,73 @@ async function notifyYourTurn(phoneNumber, userName, computerType = 'any') {
 }
 
 /**
+ * Enhance queue data with phone numbers from users table
+ */
+async function enhanceQueueWithPhoneNumbers(queueData) {
+  if (!queueData || queueData.length === 0) {
+    return queueData;
+  }
+
+  // Get user IDs that have no phone_number but have user_id
+  const userIdsToFetch = queueData
+    .filter(person => !person.phone_number && person.user_id)
+    .map(person => person.user_id);
+
+  if (userIdsToFetch.length === 0) {
+    return queueData; // No need to fetch additional phone numbers
+  }
+
+  try {
+    // Fetch phone numbers from users table
+    const { data: userPhones, error } = await supabase
+      .from('users')
+      .select('id, phone')
+      .in('id', userIdsToFetch);
+
+    if (error) {
+      console.error('❌ Error fetching user phone numbers:', error);
+      return queueData; // Return original data if fetch fails
+    }
+
+    // Create a map of user_id -> phone
+    const phoneMap = {};
+    if (userPhones) {
+      userPhones.forEach(user => {
+        if (user.phone) {
+          phoneMap[user.id] = user.phone;
+        }
+      });
+    }
+
+    // Enhance queue data with phone numbers
+    return queueData.map(person => ({
+      ...person,
+      user_phone: phoneMap[person.user_id] || null
+    }));
+
+  } catch (error) {
+    console.error('❌ Error in enhanceQueueWithPhoneNumbers:', error);
+    return queueData; // Return original data if enhancement fails
+  }
+}
+
+/**
+ * Get the effective phone number from multiple sources
+ */
+function getEffectivePhoneNumber(person) {
+  // Priority: direct phone_number field first, then user_phone field
+  if (person.phone_number) {
+    return person.phone_number;
+  }
+  
+  if (person.user_phone) {
+    return person.user_phone;
+  }
+  
+  return null;
+}
+
+/**
  * Check if we recently sent a notification to prevent duplicates
  */
 function wasRecentlySent(userId, newPosition, userName = '') {
@@ -281,7 +348,7 @@ async function updateQueueSnapshot() {
   try {
     const { data: currentQueue, error } = await supabase
       .from('computer_queue')
-      .select('id, user_name, phone_number, computer_type, position')
+      .select('id, user_name, phone_number, computer_type, position, user_id')
       .eq('status', 'waiting')
       .order('position', { ascending: true });
 
@@ -290,16 +357,21 @@ async function updateQueueSnapshot() {
       return;
     }
 
+    // Enhance queue data with phone numbers from users table
+    const enhancedQueue = await enhanceQueueWithPhoneNumbers(currentQueue);
+
     console.log(`\n📊 CURRENT STATE COMPARISON:`);
-    console.log(`   📋 Current queue from DB: ${currentQueue.length} people`);
+    console.log(`   📋 Current queue from DB: ${enhancedQueue.length} people`);
     console.log(`   💾 Snapshot in memory: ${queueSnapshot.size} people`);
     console.log(`   📋 Current queue details:`);
-    currentQueue.forEach(p => {
-      console.log(`      - ID: ${p.id}, Name: ${p.user_name}, Position: ${p.position}, Phone: ${p.phone_number || 'none'}`);
+    enhancedQueue.forEach(p => {
+      const phoneNumber = getEffectivePhoneNumber(p);
+      console.log(`      - ID: ${p.id}, Name: ${p.user_name}, Position: ${p.position}, Phone: ${phoneNumber || 'none'}`);
     });
     console.log(`   💾 Snapshot details:`);
     Array.from(queueSnapshot.entries()).forEach(([id, person]) => {
-      console.log(`      - ID: ${id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${person.phone_number || 'none'}`);
+      const phoneNumber = getEffectivePhoneNumber(person);
+      console.log(`      - ID: ${id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${phoneNumber || 'none'}`);
     });
 
     const newSnapshot = new Map();
@@ -310,8 +382,8 @@ async function updateQueueSnapshot() {
     console.log(`   Looking for new joiners and position changes...`);
 
     // Build new snapshot and detect changes
-    currentQueue.forEach((person, index) => {
-      console.log(`\n   👤 Processing person ${index + 1}/${currentQueue.length}:`);
+    enhancedQueue.forEach((person, index) => {
+      console.log(`\n   👤 Processing person ${index + 1}/${enhancedQueue.length}:`);
       console.log(`      ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}`);
       
       newSnapshot.set(person.id, person);
@@ -322,7 +394,8 @@ async function updateQueueSnapshot() {
       if (!oldPerson) {
         // NEW person joining the queue
         console.log(`      ✅ RESULT: NEW JOINER detected!`);
-        console.log(`🆕 DETECTED NEW JOINER - ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${person.phone_number || 'none'}`);
+        const phoneNumber = getEffectivePhoneNumber(person);
+        console.log(`🆕 DETECTED NEW JOINER - ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${phoneNumber || 'none'}`);
         newJoiners.push(person);
       } else if (oldPerson.position !== person.position) {
         // EXISTING person with position change
@@ -340,7 +413,9 @@ async function updateQueueSnapshot() {
 
     // Send notifications to NEW people joining the queue
     for (const person of newJoiners) {
-      if (!person.phone_number) {
+      const effectivePhone = getEffectivePhoneNumber(person);
+      
+      if (!effectivePhone) {
         console.log(`📱 ${person.user_name} joined queue at position ${person.position} but no phone number`);
         continue;
       }
@@ -355,10 +430,10 @@ async function updateQueueSnapshot() {
         let result;
         if (person.position === 1) {
           console.log(`📱 ${person.user_name} joined queue at position 1 - sending "your turn" notification`);
-          result = await notifyYourTurn(person.phone_number, person.user_name, person.computer_type);
+          result = await notifyYourTurn(effectivePhone, person.user_name, person.computer_type);
         } else {
           console.log(`📱 ${person.user_name} joined queue at position ${person.position} - sending "queue joined" notification`);
-          result = await notifyQueueJoined(person.phone_number, person.position, person.computer_type, person.user_name);
+          result = await notifyQueueJoined(effectivePhone, person.position, person.computer_type, person.user_name);
         }
         
         if (result.success) {
@@ -374,8 +449,9 @@ async function updateQueueSnapshot() {
     // Send notifications for position changes (with deduplication)
     for (const change of positionChanges) {
       const { person, oldPosition, newPosition } = change;
+      const effectivePhone = getEffectivePhoneNumber(person);
       
-      if (!person.phone_number) {
+      if (!effectivePhone) {
         console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} but no phone number`);
         continue;
       }
@@ -390,10 +466,10 @@ async function updateQueueSnapshot() {
         let result;
         if (newPosition === 1) {
           console.log(`📱 ${person.user_name} moved to position 1 - sending "your turn" notification`);
-          result = await notifyYourTurn(person.phone_number, person.user_name, person.computer_type);
+          result = await notifyYourTurn(effectivePhone, person.user_name, person.computer_type);
         } else {
           console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} - sending queue update`);
-          result = await notifyQueueJoined(person.phone_number, newPosition, person.computer_type, person.user_name);
+          result = await notifyQueueJoined(effectivePhone, newPosition, person.computer_type, person.user_name);
         }
         
         if (result.success) {
@@ -419,7 +495,8 @@ async function updateQueueSnapshot() {
     if (newJoiners.length > 0) {
       console.log(`   📝 New joiners list:`);
       newJoiners.forEach(person => {
-        console.log(`      - ${person.user_name} (ID: ${person.id}, Position: ${person.position}, Phone: ${person.phone_number || 'none'})`);
+        const phoneNumber = getEffectivePhoneNumber(person);
+        console.log(`      - ${person.user_name} (ID: ${person.id}, Position: ${person.position}, Phone: ${phoneNumber || 'none'})`);
       });
     }
     
@@ -457,7 +534,7 @@ async function initializeQueueSnapshot() {
     
     const { data: currentQueue, error } = await supabase
       .from('computer_queue')
-      .select('id, user_name, phone_number, computer_type, position')
+      .select('id, user_name, phone_number, computer_type, position, user_id')
       .eq('status', 'waiting')
       .order('position', { ascending: true });
 
@@ -466,8 +543,11 @@ async function initializeQueueSnapshot() {
       return;
     }
 
+    // Enhance queue data with phone numbers from users table
+    const enhancedQueue = await enhanceQueueWithPhoneNumbers(currentQueue);
+
     queueSnapshot = new Map();
-    currentQueue.forEach(person => {
+    enhancedQueue.forEach(person => {
       queueSnapshot.set(person.id, person);
     });
 
