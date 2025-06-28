@@ -261,7 +261,11 @@ function wasRecentlySent(userId, newPosition, userName = '') {
  * Update queue snapshot and detect position changes for WhatsApp notifications
  */
 async function updateQueueSnapshot() {
+  console.log(`\n🔄 ===== updateQueueSnapshot() START =====`);
+  console.log(`🕐 Timestamp: ${new Date().toLocaleTimeString()}`);
+  
   if (!INFOBIP_API_KEY) {
+    console.log(`❌ INFOBIP_API_KEY not found - skipping WhatsApp notifications`);
     return; // Skip if WhatsApp is disabled
   }
 
@@ -272,6 +276,7 @@ async function updateQueueSnapshot() {
     return;
   }
   processingBatchId = currentBatchId;
+  console.log(`✅ Processing batch ID: ${currentBatchId}`);
 
   try {
     const { data: currentQueue, error } = await supabase
@@ -285,26 +290,51 @@ async function updateQueueSnapshot() {
       return;
     }
 
+    console.log(`\n📊 CURRENT STATE COMPARISON:`);
+    console.log(`   📋 Current queue from DB: ${currentQueue.length} people`);
+    console.log(`   💾 Snapshot in memory: ${queueSnapshot.size} people`);
+    console.log(`   📋 Current queue details:`);
+    currentQueue.forEach(p => {
+      console.log(`      - ID: ${p.id}, Name: ${p.user_name}, Position: ${p.position}, Phone: ${p.phone_number || 'none'}`);
+    });
+    console.log(`   💾 Snapshot details:`);
+    Array.from(queueSnapshot.entries()).forEach(([id, person]) => {
+      console.log(`      - ID: ${id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${person.phone_number || 'none'}`);
+    });
+
     const newSnapshot = new Map();
     const positionChanges = [];
     const newJoiners = [];
+    
+    console.log(`\n🔍 ANALYZING CHANGES:`);
+    console.log(`   Looking for new joiners and position changes...`);
 
     // Build new snapshot and detect changes
-    currentQueue.forEach(person => {
+    currentQueue.forEach((person, index) => {
+      console.log(`\n   👤 Processing person ${index + 1}/${currentQueue.length}:`);
+      console.log(`      ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}`);
+      
       newSnapshot.set(person.id, person);
       
       const oldPerson = queueSnapshot.get(person.id);
+      console.log(`      Old person in snapshot: ${oldPerson ? 'EXISTS' : 'NOT FOUND'}`);
       
       if (!oldPerson) {
         // NEW person joining the queue
+        console.log(`      ✅ RESULT: NEW JOINER detected!`);
+        console.log(`🆕 DETECTED NEW JOINER - ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${person.phone_number || 'none'}`);
         newJoiners.push(person);
       } else if (oldPerson.position !== person.position) {
         // EXISTING person with position change
+        console.log(`      ✅ RESULT: POSITION CHANGE detected! (${oldPerson.position} → ${person.position})`);
+        console.log(`📍 DETECTED POSITION CHANGE - ID: ${person.id}, Name: ${person.user_name}, ${oldPerson.position} → ${person.position}`);
         positionChanges.push({
           person,
           oldPosition: oldPerson.position,
           newPosition: person.position
         });
+      } else {
+        console.log(`      ➖ RESULT: No change (position ${person.position})`);
       }
     });
 
@@ -377,14 +407,40 @@ async function updateQueueSnapshot() {
     }
 
     // Update snapshot
+    console.log(`\n💾 UPDATING SNAPSHOT:`);
+    console.log(`   Old snapshot size: ${queueSnapshot.size}`);
     queueSnapshot = newSnapshot;
+    console.log(`   New snapshot size: ${queueSnapshot.size}`);
+    
+    console.log(`\n📊 FINAL RESULTS:`);
+    console.log(`   🆕 New joiners: ${newJoiners.length}`);
+    console.log(`   📍 Position changes: ${positionChanges.length}`);
+    
+    if (newJoiners.length > 0) {
+      console.log(`   📝 New joiners list:`);
+      newJoiners.forEach(person => {
+        console.log(`      - ${person.user_name} (ID: ${person.id}, Position: ${person.position}, Phone: ${person.phone_number || 'none'})`);
+      });
+    }
+    
+    if (positionChanges.length > 0) {
+      console.log(`   📝 Position changes list:`);
+      positionChanges.forEach(change => {
+        console.log(`      - ${change.person.user_name} (${change.oldPosition} → ${change.newPosition})`);
+      });
+    }
     
     if (newJoiners.length > 0 || positionChanges.length > 0) {
       console.log(`📋 Processed ${newJoiners.length} new joiners and ${positionChanges.length} position changes for notifications`);
+    } else {
+      console.log(`📋 No changes detected - no notifications needed`);
     }
+    
+    console.log(`🔄 ===== updateQueueSnapshot() END =====\n`);
 
   } catch (error) {
     console.error('❌ Error updating queue snapshot for notifications:', error);
+    console.log(`🔄 ===== updateQueueSnapshot() END (ERROR) =====\n`);
   }
 }
 
@@ -766,10 +822,23 @@ async function startRealTimeMonitoring() {
       schema: 'public',
       table: 'computer_queue'
     }, async (payload) => {
-      console.log(`📡 Queue change detected: ${payload.eventType}`);
+      console.log(`\n🔔 ===== REAL-TIME EVENT RECEIVED =====`);
+      console.log(`📡 Event Type: ${payload.eventType}`);
+      console.log(`🕐 Event Time: ${new Date().toLocaleTimeString()}`);
+      console.log(`📄 Payload Details:`);
+      console.log(`   Schema: ${payload.schema}`);
+      console.log(`   Table: ${payload.table}`);
+      if (payload.new) {
+        console.log(`   New Record: ID ${payload.new.id}, User: ${payload.new.user_name}, Position: ${payload.new.position}`);
+      }
+      if (payload.old) {
+        console.log(`   Old Record: ID ${payload.old.id}, User: ${payload.old.user_name}, Position: ${payload.old.position}`);
+      }
+      console.log(`🔔 ===== REAL-TIME EVENT END =====\n`);
       
       // Debounce rapid changes - clear existing timeout and set new one
       if (updateTimeout) {
+        console.log(`⏱️ Clearing existing timeout - batching multiple events`);
         clearTimeout(updateTimeout);
       }
       
