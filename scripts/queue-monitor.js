@@ -48,13 +48,32 @@ require('dotenv').config({ path: '.env' });
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Use built-in fetch (Node.js 18+) or import node-fetch
+// Use built-in fetch (Node.js 18+) or import node-fetch with timeout wrapper
 async function getFetch() {
-  if (typeof globalThis.fetch !== 'undefined') {
-    return globalThis.fetch;
-  }
-  const nodeFetch = await import('node-fetch');
-  return nodeFetch.default;
+  const baseFetch = (typeof globalThis.fetch !== 'undefined') 
+    ? globalThis.fetch 
+    : (await import('node-fetch')).default;
+  
+  // Return fetch with timeout wrapper
+  return async (url, options = {}) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), options.timeout || 30000); // 30s default timeout
+    
+    try {
+      const response = await baseFetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${(options.timeout || 30000)/1000}s: ${url}`);
+      }
+      throw error;
+    }
+  };
 }
 
 // Configuration - try both naming conventions
@@ -97,6 +116,34 @@ let queueSnapshot = new Map();
 let updateTimeout = null;
 let recentNotifications = new Map(); // Track recent notifications to prevent duplicates
 let processingBatchId = null; // Prevent duplicate batch processing
+let isProcessing = false; // Additional protection against concurrent processing
+let activeSubscription = null; // Track active subscription for cleanup
+let lastHealthCheck = 0; // Track last health check time
+let consecutiveErrors = 0; // Track consecutive errors for circuit breaker
+let whatsappRateLimit = { calls: 0, resetTime: 0 }; // Rate limiting for WhatsApp API
+
+/**
+ * Check and apply rate limiting for WhatsApp API
+ */
+function checkWhatsAppRateLimit() {
+  const now = Date.now();
+  const maxCallsPerMinute = 10; // Limit to 10 calls per minute
+  
+  // Reset counter every minute
+  if (now > whatsappRateLimit.resetTime) {
+    whatsappRateLimit.calls = 0;
+    whatsappRateLimit.resetTime = now + 60000; // Next minute
+  }
+  
+  if (whatsappRateLimit.calls >= maxCallsPerMinute) {
+    const waitTime = Math.ceil((whatsappRateLimit.resetTime - now) / 1000);
+    console.log(`🚫 WhatsApp rate limit reached (${maxCallsPerMinute}/min), waiting ${waitTime}s`);
+    return false;
+  }
+  
+  whatsappRateLimit.calls++;
+  return true;
+}
 
 /**
  * Send WhatsApp notification using Infobip templates
@@ -110,6 +157,11 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
   if (!phoneNumber) {
     console.log('📱 No phone number provided, skipping WhatsApp notification');
     return { success: false, reason: 'no_phone' };
+  }
+
+  // Apply rate limiting
+  if (!checkWhatsAppRateLimit()) {
+    return { success: false, reason: 'rate_limited' };
   }
 
   try {
@@ -304,6 +356,9 @@ function wasRecentlySent(userId, newPosition, userName = '') {
   const lastSent = recentNotifications.get(notificationKey);
   const now = Date.now();
   
+  // Clean up old entries first to prevent memory leaks
+  cleanupRecentNotifications(now);
+  
   // Consider "recent" as within the last 15 seconds (increased from 10)
   if (lastSent && (now - lastSent) < 15000) {
     console.log(`🚫 Duplicate notification blocked for ${userName} (position ${newPosition}) - sent ${Math.round((now - lastSent)/1000)}s ago`);
@@ -314,14 +369,40 @@ function wasRecentlySent(userId, newPosition, userName = '') {
   recentNotifications.set(notificationKey, now);
   console.log(`✅ Notification allowed for ${userName} (position ${newPosition})`);
   
-  // Clean up old entries (older than 60 seconds)
+  return false;
+}
+
+/**
+ * Clean up old notification entries to prevent memory leaks
+ */
+function cleanupRecentNotifications(now = Date.now()) {
+  const cleanupThreshold = 60000; // 60 seconds
+  const maxEntries = 1000; // Prevent unbounded growth
+  
+  // Remove old entries
+  let removedCount = 0;
   for (const [key, timestamp] of recentNotifications.entries()) {
-    if (now - timestamp > 60000) {
+    if (now - timestamp > cleanupThreshold) {
       recentNotifications.delete(key);
+      removedCount++;
     }
   }
   
-  return false;
+  // If still too many entries, remove oldest ones
+  if (recentNotifications.size > maxEntries) {
+    const entries = Array.from(recentNotifications.entries())
+      .sort((a, b) => a[1] - b[1]); // Sort by timestamp
+    
+    const entriesToRemove = entries.slice(0, recentNotifications.size - maxEntries);
+    entriesToRemove.forEach(([key]) => {
+      recentNotifications.delete(key);
+      removedCount++;
+    });
+  }
+  
+  if (removedCount > 0) {
+    console.log(`🧹 Cleaned up ${removedCount} old notification entries (${recentNotifications.size} remaining)`);
+  }
 }
 
 /**
@@ -336,12 +417,26 @@ async function updateQueueSnapshot() {
     return; // Skip if WhatsApp is disabled
   }
 
-  // Prevent processing the same batch multiple times
+  // Prevent concurrent processing with better protection
+  if (isProcessing) {
+    console.log(`📱 Already processing queue snapshot, skipping this call`);
+    return;
+  }
+
   const currentBatchId = Date.now();
+  // Reset stale processing batch IDs (older than 30 seconds)
+  if (processingBatchId && (currentBatchId - processingBatchId) > 30000) {
+    console.log(`⚠️ Resetting stale processing batch ID (${Math.round((currentBatchId - processingBatchId)/1000)}s old)`);
+    processingBatchId = null;
+  }
+  
+  // Prevent processing the same batch multiple times
   if (processingBatchId && (currentBatchId - processingBatchId) < 2000) {
     console.log(`📱 Skipping duplicate batch processing (${Math.round((currentBatchId - processingBatchId)/1000)}s ago)`);
     return;
   }
+  
+  isProcessing = true;
   processingBatchId = currentBatchId;
   console.log(`✅ Processing batch ID: ${currentBatchId}`);
 
@@ -518,6 +613,23 @@ async function updateQueueSnapshot() {
   } catch (error) {
     console.error('❌ Error updating queue snapshot for notifications:', error);
     console.log(`🔄 ===== updateQueueSnapshot() END (ERROR) =====\n`);
+  } finally {
+    // Always reset processing flag to prevent permanent blocking
+    isProcessing = false;
+    // Reset batch ID after processing completes (success or error)
+    processingBatchId = null;
+  }
+}
+
+/**
+ * Clean up queue snapshot to prevent memory leaks
+ */
+function cleanupQueueSnapshot() {
+  const maxSnapshotSize = 500; // Prevent unbounded growth
+  
+  if (queueSnapshot.size > maxSnapshotSize) {
+    console.log(`🧹 Queue snapshot too large (${queueSnapshot.size}), clearing to prevent memory leak`);
+    queueSnapshot.clear();
   }
 }
 
@@ -531,6 +643,9 @@ async function initializeQueueSnapshot() {
 
   try {
     console.log('🚀 Initializing queue snapshot for WhatsApp notifications...');
+    
+    // Clean up any existing snapshot first
+    cleanupQueueSnapshot();
     
     const { data: currentQueue, error } = await supabase
       .from('computer_queue')
@@ -567,17 +682,18 @@ async function fetchActiveUserSessions() {
       headers: {
         'Authorization': `Basic ${Buffer.from(API_AUTH).toString('base64')}`,
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 15000 // 15 second timeout for API calls
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch active sessions: ${response.status}`);
+      throw new Error(`Failed to fetch active sessions: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.result || [];
   } catch (error) {
-    console.error('Error fetching active sessions:', error);
+    console.error('❌ Error fetching active sessions:', error);
     return [];
   }
 }
@@ -768,6 +884,13 @@ async function handleAutomaticMode(currentQueueCount) {
 async function monitorQueue() {
   console.log(`\n🔍 [${new Date().toLocaleTimeString()}] Starting queue monitoring...`);
 
+  // Perform health check before processing
+  const isHealthy = await performHealthCheck();
+  if (!isHealthy && consecutiveErrors >= 3) {
+    console.log('⚠️ Skipping this monitoring cycle due to health check failures');
+    return;
+  }
+
   try {
     // 1. Fetch active sessions and current queue in parallel
     const [activeSessions, queueEntries] = await Promise.all([
@@ -871,17 +994,131 @@ async function monitorQueue() {
 }
 
 /**
+ * Health check function to verify system connectivity
+ */
+async function performHealthCheck() {
+  const now = Date.now();
+  
+  // Only check every 5 minutes
+  if (now - lastHealthCheck < 300000) {
+    return true;
+  }
+  
+  try {
+    console.log('🏥 Performing health check...');
+    
+    // Test database connectivity
+    const { error } = await supabase
+      .from('computer_queue')
+      .select('count(*)')
+      .limit(1);
+    
+    if (error) {
+      throw new Error(`Database health check failed: ${error.message}`);
+    }
+    
+    // Test API connectivity
+    const fetch = await getFetch();
+    const response = await fetch(`${API_BASE_URL}/usersessions/active`, {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(API_AUTH).toString('base64')}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000 // 10 second timeout for health check
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API health check failed: ${response.status}`);
+    }
+    
+    consecutiveErrors = 0; // Reset error counter on success
+    lastHealthCheck = now;
+    console.log('✅ Health check passed');
+    return true;
+    
+  } catch (error) {
+    consecutiveErrors++;
+    console.error(`❌ Health check failed (${consecutiveErrors} consecutive):`, error.message);
+    
+    // Circuit breaker: if too many consecutive errors, pause monitoring
+    if (consecutiveErrors >= 5) {
+      console.error('🚨 Circuit breaker activated - too many consecutive failures');
+      console.log('⏸️ Pausing monitoring for 2 minutes...');
+      await new Promise(resolve => setTimeout(resolve, 120000)); // 2 minute pause
+      consecutiveErrors = 0; // Reset after pause
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Clean up all resources to prevent memory leaks
+ */
+async function cleanupResources() {
+  console.log('🧹 Cleaning up resources...');
+  
+  // Clear timers
+  if (updateTimeout) {
+    clearTimeout(updateTimeout);
+    updateTimeout = null;
+  }
+  
+  // Clean up subscriptions
+  if (activeSubscription) {
+    try {
+      await activeSubscription.unsubscribe();
+    } catch (error) {
+      console.error('❌ Error unsubscribing:', error);
+    }
+    activeSubscription = null;
+  }
+  
+  // Clear memory maps
+  queueSnapshot.clear();
+  recentNotifications.clear();
+  
+  // Reset processing flags
+  isProcessing = false;
+  processingBatchId = null;
+  
+  // Reset health check and rate limiting
+  lastHealthCheck = 0;
+  consecutiveErrors = 0;
+  whatsappRateLimit = { calls: 0, resetTime: 0 };
+  
+  console.log('✅ Resources cleaned up');
+}
+
+/**
  * Handle graceful shutdown
  */
 function setupGracefulShutdown() {
-  process.on('SIGINT', () => {
-    console.log('\n🛑 Received SIGINT, shutting down gracefully...');
-    process.exit(0);
-  });
+  const handleShutdown = async (signal) => {
+    console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+    
+    try {
+      await cleanupResources();
+      console.log('✅ Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Error during shutdown:', error);
+      process.exit(1);
+    }
+  };
 
-  process.on('SIGTERM', () => {
-    console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
-    process.exit(0);
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+  
+  // Handle uncaught exceptions to prevent crashes
+  process.on('uncaughtException', (error) => {
+    console.error('💥 Uncaught Exception:', error);
+    handleShutdown('UNCAUGHT_EXCEPTION');
+  });
+  
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    handleShutdown('UNHANDLED_REJECTION');
   });
 }
 
@@ -890,6 +1127,13 @@ function setupGracefulShutdown() {
  */
 async function startRealTimeMonitoring() {
   console.log('📡 Starting real-time queue monitoring...');
+  
+  // Clean up any existing subscription first
+  if (activeSubscription) {
+    console.log('🧹 Cleaning up existing subscription...');
+    await activeSubscription.unsubscribe();
+    activeSubscription = null;
+  }
   
   // Initialize WhatsApp queue snapshot
   await initializeQueueSnapshot();
@@ -902,34 +1146,47 @@ async function startRealTimeMonitoring() {
       schema: 'public',
       table: 'computer_queue'
     }, async (payload) => {
-      console.log(`\n🔔 ===== REAL-TIME EVENT RECEIVED =====`);
-      console.log(`📡 Event Type: ${payload.eventType}`);
-      console.log(`🕐 Event Time: ${new Date().toLocaleTimeString()}`);
-      console.log(`📄 Payload Details:`);
-      console.log(`   Schema: ${payload.schema}`);
-      console.log(`   Table: ${payload.table}`);
-      if (payload.new) {
-        console.log(`   New Record: ID ${payload.new.id}, User: ${payload.new.user_name}, Position: ${payload.new.position}`);
+      try {
+        console.log(`\n🔔 ===== REAL-TIME EVENT RECEIVED =====`);
+        console.log(`📡 Event Type: ${payload.eventType}`);
+        console.log(`🕐 Event Time: ${new Date().toLocaleTimeString()}`);
+        console.log(`📄 Payload Details:`);
+        console.log(`   Schema: ${payload.schema}`);
+        console.log(`   Table: ${payload.table}`);
+        if (payload.new) {
+          console.log(`   New Record: ID ${payload.new.id}, User: ${payload.new.user_name}, Position: ${payload.new.position}`);
+        }
+        if (payload.old) {
+          console.log(`   Old Record: ID ${payload.old.id}, User: ${payload.old.user_name}, Position: ${payload.old.position}`);
+        }
+        console.log(`🔔 ===== REAL-TIME EVENT END =====\n`);
+        
+        // Debounce rapid changes - clear existing timeout and set new one
+        if (updateTimeout) {
+          console.log(`⏱️ Clearing existing timeout - batching multiple events`);
+          clearTimeout(updateTimeout);
+        }
+        
+        updateTimeout = setTimeout(async () => {
+          try {
+            console.log('📱 Processing batched queue changes for notifications...');
+            await updateQueueSnapshot();
+          } catch (error) {
+            console.error('❌ Error processing queue changes:', error);
+          } finally {
+            updateTimeout = null;
+          }
+        }, 3000); // Wait 3 seconds for all related changes to complete
+        
+      } catch (error) {
+        console.error('❌ Error handling real-time event:', error);
       }
-      if (payload.old) {
-        console.log(`   Old Record: ID ${payload.old.id}, User: ${payload.old.user_name}, Position: ${payload.old.position}`);
-      }
-      console.log(`🔔 ===== REAL-TIME EVENT END =====\n`);
-      
-      // Debounce rapid changes - clear existing timeout and set new one
-      if (updateTimeout) {
-        console.log(`⏱️ Clearing existing timeout - batching multiple events`);
-        clearTimeout(updateTimeout);
-      }
-      
-      updateTimeout = setTimeout(async () => {
-        console.log('📱 Processing batched queue changes for notifications...');
-        await updateQueueSnapshot();
-        updateTimeout = null;
-      }, 3000); // Wait 3 seconds for all related changes to complete
     })
     .subscribe();
 
+  // Store active subscription for cleanup
+  activeSubscription = subscription;
+  
   console.log('✅ Real-time WhatsApp notifications enabled');
   return subscription;
 }
@@ -965,14 +1222,26 @@ async function main() {
       await monitorQueue();
     }, 30000); // 30 seconds for more responsive auto-removal
     
+    // Set up periodic cleanup to prevent memory leaks during long runs
+    const cleanupInterval = setInterval(() => {
+      cleanupRecentNotifications();
+      cleanupQueueSnapshot();
+    }, 300000); // Every 5 minutes
+    
     // Cleanup on shutdown
-    process.on('SIGINT', () => {
+    process.on('SIGINT', async () => {
       console.log('\n🛑 Shutting down real-time monitoring...');
       clearInterval(interval);
+      clearInterval(cleanupInterval);
       if (updateTimeout) {
         clearTimeout(updateTimeout);
       }
-      subscription.unsubscribe();
+      try {
+        await subscription.unsubscribe();
+      } catch (error) {
+        console.error('❌ Error during subscription cleanup:', error);
+      }
+      await cleanupResources();
       console.log('✅ Stopped gracefully');
       process.exit(0);
     });
@@ -994,9 +1263,30 @@ async function main() {
     await monitorQueue();
     
     // Then run every 60 seconds
-    setInterval(async () => {
+    const periodicInterval = setInterval(async () => {
       await monitorQueue();
     }, 60000); // 60 seconds
+    
+    // Set up periodic cleanup for periodic mode too
+    const periodicCleanupInterval = setInterval(() => {
+      cleanupRecentNotifications();
+      cleanupQueueSnapshot();
+    }, 300000); // Every 5 minutes
+    
+    // Enhanced cleanup for periodic mode
+    process.on('SIGINT', async () => {
+      console.log('\n🛑 Shutting down periodic monitoring...');
+      clearInterval(periodicInterval);
+      clearInterval(periodicCleanupInterval);
+      await cleanupResources();
+      console.log('✅ Stopped gracefully');
+      process.exit(0);
+    });
+    
+    console.log('📋 Features enabled:');
+    console.log('  • Auto-removal of logged-in users (every 60s)');
+    console.log('  • Periodic memory cleanup');
+    console.log('  • Queue automatic mode management');
   }
 }
 

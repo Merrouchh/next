@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     totalUsers: 0,
     profilesCount: 0,
     gizmoUsersCount: 0,
-    activeUsers: 0,
+    phoneUsers: 0,
     totalEvents: 0,
     activeSessions: [],
     loading: true
@@ -95,24 +95,21 @@ export default function AdminDashboard() {
         console.error('Error fetching users count:', usersError);
       }
       
-      // Get active users (users with activity in the last 24 hours)
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-      
-      const { count: activeUsersCount, error: activeUsersError } = await supabase
-        .from('user_sessions')
-        .select('user_id', { count: 'exact', head: true })
-        .gt('created_at', oneDayAgo.toISOString())
+      // Get users with phone numbers (verified or added)
+      const { count: phoneUsersCount, error: phoneUsersError } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .not('phone', 'is', null)
         .abortSignal(signal);
         
-      if (activeUsersError && activeUsersError.code !== 'AbortError') {
-        console.error('Error fetching active users count:', activeUsersError);
+      if (phoneUsersError && phoneUsersError.code !== 'AbortError') {
+        console.error('Error fetching phone users count:', phoneUsersError);
       }
       
       // Update stats without changing loading state for refresh
       setStats(prev => ({
         totalUsers: usersCount || prev.totalUsers,
-        activeUsers: activeUsersCount || prev.activeUsers,
+        phoneUsers: phoneUsersCount || prev.phoneUsers,
         totalEvents: eventsCount || prev.totalEvents,
         activeSessions: sessionsWithDetails || prev.activeSessions,
         loading: false // Always set loading to false
@@ -293,11 +290,11 @@ export default function AdminDashboard() {
                 <FaUsers style={{ color: '#FBBC05' }} />
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statTitle}>Active Users</div>
+                <div className={styles.statTitle}>Phone Verified</div>
                 <div className={styles.statValue}>
-                  {stats.activeUsers}
+                  {stats.phoneUsers} / {stats.totalUsers}
                 </div>
-                <div className={styles.statSubtext}>In the last 24 hours</div>
+                <div className={styles.statSubtext}>Verified / Total users</div>
               </div>
             </div>
           </div>
