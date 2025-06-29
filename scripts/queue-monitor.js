@@ -1010,7 +1010,7 @@ async function performHealthCheck() {
     // Test database connectivity
     const { error } = await supabase
       .from('computer_queue')
-      .select('count(*)')
+      .select('id')
       .limit(1);
     
     if (error) {
