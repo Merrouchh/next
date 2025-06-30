@@ -1,0 +1,32 @@
+[2025-06-30T20:19:17.344Z] [INFO] Queue Monitor starting up
+[2025-06-30T20:19:17.349Z] [SUCCESS] WhatsApp notifications enabled via Infobip
+[2025-06-30T20:19:17.386Z] [SUCCESS] Queue Monitor started
+[2025-06-30T20:19:17.387Z] [INFO] Auto-removal system for logged-in users initialized
+[2025-06-30T20:19:17.388Z] [SUCCESS] Running in real-time mode with WhatsApp notifications
+[2025-06-30T20:19:17.388Z] [INFO] Use Ctrl+C to stop
+[2025-06-30T20:19:17.389Z] [INFO] Starting real-time queue monitoring...
+[2025-06-30T20:19:17.389Z] [INFO] Initializing queue snapshot for WhatsApp notifications...
+[2025-06-30T20:19:17.607Z] [SUCCESS] Initialized WhatsApp monitoring with 0 people in queue
+[2025-06-30T20:19:17.613Z] [SUCCESS] Real-time WhatsApp notifications enabled
+[2025-06-30T20:19:17.614Z] [DEBUG] Starting queue monitoring cycle
+[2025-06-30T20:19:17.615Z] [DEBUG] Performing health check
+[2025-06-30T20:19:17.825Z] [DEBUG] Health check passed
+[2025-06-30T20:19:17.934Z] [INFO] Found 12 active sessions and 0 people in queue
+[2025-06-30T20:19:17.935Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:19:18.005Z] [SUCCESS] Features enabled: Auto-removal (30s), Real-time WhatsApp, Automatic mode
+[2025-06-30T20:19:48.017Z] [DEBUG] Starting queue monitoring cycle
+[2025-06-30T20:19:48.155Z] [INFO] Found 12 active sessions and 0 people in queue
+[2025-06-30T20:19:48.155Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:20:18.027Z] [DEBUG] Starting queue monitoring cycle
+[2025-06-30T20:20:18.155Z] [INFO] Found 12 active sessions and 0 people in queue
+[2025-06-30T20:20:18.156Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:20:48.033Z] [DEBUG] Starting queue monitoring cycle
+[2025-06-30T20:20:48.222Z] [INFO] Found 12 active sessions and 0 people in queue
+[2025-06-30T20:20:48.222Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:21:07.453Z] [INFO] Received SIGINT, shutting down gracefully...
+[2025-06-30T20:21:07.453Z] [INFO] Cleaning up resources...
+[2025-06-30T20:21:07.455Z] [INFO] Shutting down real-time monitoring...
+[2025-06-30T20:21:07.455Z] [SUCCESS] Resources cleaned up
+[2025-06-30T20:21:07.456Z] [INFO] Cleaning up resources...
+[2025-06-30T20:21:07.456Z] [SUCCESS] Resources cleaned up
+[2025-06-30T20:21:07.457Z] [SUCCESS] Graceful shutdown completed

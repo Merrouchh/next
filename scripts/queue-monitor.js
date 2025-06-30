@@ -47,6 +47,95 @@ require('dotenv').config({ path: '.env.local' });
 require('dotenv').config({ path: '.env' });
 
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
+
+// ===== LOGGING SYSTEM =====
+const LOG_DIR = path.join(__dirname, '..', 'logs');
+const ERROR_LOG = path.join(LOG_DIR, 'queue-monitor-errors.log');
+const INFO_LOG = path.join(LOG_DIR, 'queue-monitor-info.log');
+const MAX_LOG_SIZE = 10 * 1024 * 1024; // 10MB max per log file
+
+// Ensure logs directory exists
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+/**
+ * Simple logging system with file rotation
+ */
+class Logger {
+  static rotateLogIfNeeded(logPath) {
+    if (fs.existsSync(logPath)) {
+      const stats = fs.statSync(logPath);
+      if (stats.size > MAX_LOG_SIZE) {
+        const backupPath = logPath.replace('.log', `-${Date.now()}.log`);
+        fs.renameSync(logPath, backupPath);
+        // Keep only last 5 backup files
+        const logDir = path.dirname(logPath);
+        const baseName = path.basename(logPath, '.log');
+        const files = fs.readdirSync(logDir)
+          .filter(f => f.startsWith(baseName) && f.includes('-'))
+          .sort()
+          .reverse();
+        files.slice(5).forEach(f => {
+          fs.unlinkSync(path.join(logDir, f));
+        });
+      }
+    }
+  }
+
+  static writeLog(level, message, logPath) {
+    try {
+      this.rotateLogIfNeeded(logPath);
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] [${level}] ${message}\n`;
+      fs.appendFileSync(logPath, logEntry);
+    } catch (error) {
+      // Fallback to console if file logging fails
+      console.error('Logging failed:', error.message);
+    }
+  }
+
+  static error(message, error = null) {
+    const fullMessage = error ? `${message}: ${error.message}` : message;
+    this.writeLog('ERROR', fullMessage, ERROR_LOG);
+    console.error(`❌ ${fullMessage}`); // Keep critical errors in console
+  }
+
+  static warn(message) {
+    this.writeLog('WARN', message, INFO_LOG);
+    // Only show warnings in console during development
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`⚠️ ${message}`);
+    }
+  }
+
+  static info(message, showInConsole = false) {
+    this.writeLog('INFO', message, INFO_LOG);
+    if (showInConsole || process.env.NODE_ENV !== 'production') {
+      console.log(`ℹ️ ${message}`);
+    }
+  }
+
+  static success(message, showInConsole = true) {
+    this.writeLog('SUCCESS', message, INFO_LOG);
+    if (showInConsole) {
+      console.log(`✅ ${message}`);
+    }
+  }
+
+  static debug(message) {
+    // Only log debug messages in development
+    if (process.env.NODE_ENV !== 'production') {
+      this.writeLog('DEBUG', message, INFO_LOG);
+      console.log(`🔍 ${message}`);
+    }
+  }
+}
+
+// Log startup
+Logger.info('Queue Monitor starting up', true);
 
 // Use built-in fetch (Node.js 18+) or import node-fetch with timeout wrapper
 async function getFetch() {
@@ -85,27 +174,20 @@ const INFOBIP_API_KEY = process.env.INFOBIP_API_KEY;
 
 // Validate required environment variables
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !API_BASE_URL || !API_AUTH) {
-  console.error('❌ Missing required environment variables:');
-  console.error('- NEXT_PUBLIC_SUPABASE_URL:', !!SUPABASE_URL);
-  console.error('- SUPABASE_SERVICE_ROLE_KEY:', !!SUPABASE_SERVICE_KEY);
-  console.error('- API_BASE_URL:', !!API_BASE_URL);
-  console.error('- API_AUTH:', !!API_AUTH);
-  console.error('\n💡 Create a .env.local file in your project root with these variables:');
-  console.error('NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url');
-  console.error('SUPABASE_SERVICE_ROLE_KEY=your_service_role_key');
-  console.error('API_BASE_URL=your_gizmo_api_base_url');
-  console.error('API_AUTH=your_gizmo_api_credentials');
-  console.error('\n📝 You can find these values in:');
-  console.error('- Supabase: Project Settings > API > Project URL & service_role key');
-  console.error('- Gizmo: Your existing .env.local file or Gizmo API documentation');
+  Logger.error('Missing required environment variables');
+  Logger.error(`NEXT_PUBLIC_SUPABASE_URL: ${!!SUPABASE_URL}`);
+  Logger.error(`SUPABASE_SERVICE_ROLE_KEY: ${!!SUPABASE_SERVICE_KEY}`);
+  Logger.error(`API_BASE_URL: ${!!API_BASE_URL}`);
+  Logger.error(`API_AUTH: ${!!API_AUTH}`);
+  Logger.error('Create a .env.local file with required variables - check logs for details');
   process.exit(1);
 }
 
 // Optional WhatsApp notifications
 if (!INFOBIP_API_KEY) {
-  console.log('⚠️ INFOBIP_API_KEY not found - WhatsApp notifications will be disabled');
+  Logger.warn('INFOBIP_API_KEY not found - WhatsApp notifications will be disabled');
 } else {
-  console.log('📱 WhatsApp notifications enabled via Infobip');
+  Logger.success('WhatsApp notifications enabled via Infobip');
 }
 
 // Initialize Supabase client with service role key for admin access
@@ -141,7 +223,7 @@ function checkWhatsAppRateLimit() {
   if (now > whatsappRateLimit.dailyResetTime) {
     whatsappRateLimit.dailyCalls = 0;
     whatsappRateLimit.dailyResetTime = now + (24 * 60 * 60 * 1000); // Next day
-    console.log('🔄 Daily WhatsApp rate limit reset');
+    Logger.info('Daily WhatsApp rate limit reset');
   }
   
   // Reset minute counter
@@ -152,21 +234,21 @@ function checkWhatsAppRateLimit() {
   
   // Check if too many consecutive failures (circuit breaker)
   if (whatsappRateLimit.consecutiveFailures >= 10) {
-    console.log(`🚫 WhatsApp temporarily disabled due to ${whatsappRateLimit.consecutiveFailures} consecutive failures`);
+    Logger.warn(`WhatsApp temporarily disabled due to ${whatsappRateLimit.consecutiveFailures} consecutive failures`);
     return false;
   }
   
   // Check daily limit
   if (whatsappRateLimit.dailyCalls >= maxCallsPerDay) {
     const hoursLeft = Math.ceil((whatsappRateLimit.dailyResetTime - now) / (60 * 60 * 1000));
-    console.log(`🚫 Daily WhatsApp limit reached (${maxCallsPerDay}/day), ${hoursLeft}h until reset`);
+    Logger.warn(`Daily WhatsApp limit reached (${maxCallsPerDay}/day), ${hoursLeft}h until reset`);
     return false;
   }
   
   // Check per-minute limit
   if (whatsappRateLimit.calls >= maxCallsPerMinute) {
     const waitTime = Math.ceil((whatsappRateLimit.resetTime - now) / 1000);
-    console.log(`🚫 WhatsApp rate limit reached (${maxCallsPerMinute}/min), waiting ${waitTime}s`);
+    Logger.warn(`WhatsApp rate limit reached (${maxCallsPerMinute}/min), waiting ${waitTime}s`);
     return false;
   }
   
@@ -180,12 +262,12 @@ function checkWhatsAppRateLimit() {
  */
 async function sendWhatsAppQueueNotification(phoneNumber, templateType, params = {}) {
   if (!INFOBIP_API_KEY) {
-    console.log('📱 WhatsApp notifications disabled (no API key)');
+    Logger.debug('WhatsApp notifications disabled (no API key)');
     return { success: false, reason: 'no_api_key' };
   }
 
   if (!phoneNumber) {
-    console.log('📱 No phone number provided, skipping WhatsApp notification');
+    Logger.debug('No phone number provided, skipping WhatsApp notification');
     return { success: false, reason: 'no_phone' };
   }
 
@@ -252,7 +334,7 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
         throw new Error(`Unknown template type: ${templateType}`);
     }
 
-    console.log(`📱 Sending WhatsApp ${templateType} notification to ${formattedPhone}`);
+    Logger.info(`Sending WhatsApp ${templateType} notification to ${formattedPhone}`);
 
     // Call Infobip API
     const fetch = await getFetch();
@@ -269,11 +351,11 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
     const responseData = await response.json();
 
     if (!response.ok) {
-      console.error('❌ Error from Infobip API:', JSON.stringify(responseData, null, 2));
+      Logger.error('Error from Infobip API', new Error(JSON.stringify(responseData, null, 2)));
       throw new Error(`Failed to send WhatsApp message: ${responseData.error || responseData.message || 'Unknown error'}`);
     }
 
-    console.log(`✅ WhatsApp ${templateType} notification sent successfully to ${formattedPhone}`);
+    Logger.success(`WhatsApp ${templateType} notification sent successfully to ${formattedPhone}`, false);
     
     // Reset consecutive failures on success
     whatsappRateLimit.consecutiveFailures = 0;
@@ -285,11 +367,11 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
     };
 
   } catch (error) {
-    console.error(`❌ Error sending WhatsApp ${templateType} notification:`, error);
+    Logger.error(`Error sending WhatsApp ${templateType} notification`, error);
     
     // Increment consecutive failures
     whatsappRateLimit.consecutiveFailures++;
-    console.log(`⚠️ WhatsApp consecutive failures: ${whatsappRateLimit.consecutiveFailures}/10`);
+    Logger.warn(`WhatsApp consecutive failures: ${whatsappRateLimit.consecutiveFailures}/10`);
     
     return { 
       success: false, 
@@ -345,7 +427,7 @@ async function enhanceQueueWithPhoneNumbers(queueData) {
       .in('id', userIdsToFetch);
 
     if (error) {
-      console.error('❌ Error fetching user phone numbers:', error);
+      Logger.error('Error fetching user phone numbers', error);
       return queueData; // Return original data if fetch fails
     }
 
@@ -366,7 +448,7 @@ async function enhanceQueueWithPhoneNumbers(queueData) {
     }));
 
   } catch (error) {
-    console.error('❌ Error in enhanceQueueWithPhoneNumbers:', error);
+    Logger.error('Error in enhanceQueueWithPhoneNumbers', error);
     return queueData; // Return original data if enhancement fails
   }
 }
@@ -400,13 +482,13 @@ function wasRecentlySent(userId, newPosition, userName = '') {
   
   // Consider "recent" as within the last 15 seconds (increased from 10)
   if (lastSent && (now - lastSent) < 15000) {
-    console.log(`🚫 Duplicate notification blocked for ${userName} (position ${newPosition}) - sent ${Math.round((now - lastSent)/1000)}s ago`);
+    Logger.debug(`Duplicate notification blocked for ${userName} (position ${newPosition}) - sent ${Math.round((now - lastSent)/1000)}s ago`);
     return true;
   }
   
   // Mark as sent
   recentNotifications.set(notificationKey, now);
-  console.log(`✅ Notification allowed for ${userName} (position ${newPosition})`);
+  Logger.debug(`Notification allowed for ${userName} (position ${newPosition})`);
   
   return false;
 }
@@ -440,7 +522,7 @@ function cleanupRecentNotifications(now = Date.now()) {
   }
   
   if (removedCount > 0) {
-    console.log(`🧹 Cleaned up ${removedCount} old notification entries (${recentNotifications.size} remaining)`);
+    Logger.debug(`Cleaned up ${removedCount} old notification entries (${recentNotifications.size} remaining)`);
   }
 }
 
@@ -449,7 +531,7 @@ function cleanupRecentNotifications(now = Date.now()) {
  */
 function resetWhatsAppFailures() {
   if (whatsappRateLimit.consecutiveFailures > 0) {
-    console.log(`🔄 Resetting WhatsApp consecutive failures from ${whatsappRateLimit.consecutiveFailures} to 0`);
+    Logger.debug(`Resetting WhatsApp consecutive failures from ${whatsappRateLimit.consecutiveFailures} to 0`);
     whatsappRateLimit.consecutiveFailures = Math.max(0, whatsappRateLimit.consecutiveFailures - 3);
   }
 }
@@ -466,8 +548,8 @@ async function checkSubscriptionHealth() {
   
   // If no events for too long, assume subscription is stale
   if (subscriptionLastEvent > 0 && timeSinceLastEvent > maxIdleTime) {
-    console.log(`⚠️ Subscription appears stale (${Math.round(timeSinceLastEvent/1000/60)}min since last event)`);
-    console.log('🔄 Attempting to reconnect subscription...');
+    Logger.warn(`Subscription appears stale (${Math.round(timeSinceLastEvent/1000/60)}min since last event)`);
+    Logger.info('Attempting to reconnect subscription...');
     
     try {
       // Unsubscribe from old connection
@@ -479,11 +561,11 @@ async function checkSubscriptionHealth() {
       
       // Reconnect
       const newSubscription = await startRealTimeMonitoring();
-      console.log('✅ Successfully reconnected subscription');
+      Logger.success('Successfully reconnected subscription');
       return true;
       
     } catch (error) {
-      console.error('❌ Failed to reconnect subscription:', error);
+      Logger.error('Failed to reconnect subscription', error);
       return false;
     }
   }
@@ -495,36 +577,35 @@ async function checkSubscriptionHealth() {
  * Update queue snapshot and detect position changes for WhatsApp notifications
  */
 async function updateQueueSnapshot() {
-  console.log(`\n🔄 ===== updateQueueSnapshot() START =====`);
-  console.log(`🕐 Timestamp: ${new Date().toLocaleTimeString()}`);
+  Logger.debug('updateQueueSnapshot() starting');
   
   if (!INFOBIP_API_KEY) {
-    console.log(`❌ INFOBIP_API_KEY not found - skipping WhatsApp notifications`);
+    Logger.debug('INFOBIP_API_KEY not found - skipping WhatsApp notifications');
     return; // Skip if WhatsApp is disabled
   }
 
   // Prevent concurrent processing with better protection
   if (isProcessing) {
-    console.log(`📱 Already processing queue snapshot, skipping this call`);
+    Logger.debug('Already processing queue snapshot, skipping this call');
     return;
   }
 
   const currentBatchId = Date.now();
   // Reset stale processing batch IDs (older than 30 seconds)
   if (processingBatchId && (currentBatchId - processingBatchId) > 30000) {
-    console.log(`⚠️ Resetting stale processing batch ID (${Math.round((currentBatchId - processingBatchId)/1000)}s old)`);
+    Logger.warn(`Resetting stale processing batch ID (${Math.round((currentBatchId - processingBatchId)/1000)}s old)`);
     processingBatchId = null;
   }
   
   // Prevent processing the same batch multiple times
   if (processingBatchId && (currentBatchId - processingBatchId) < 2000) {
-    console.log(`📱 Skipping duplicate batch processing (${Math.round((currentBatchId - processingBatchId)/1000)}s ago)`);
+    Logger.debug(`Skipping duplicate batch processing (${Math.round((currentBatchId - processingBatchId)/1000)}s ago)`);
     return;
   }
   
   isProcessing = true;
   processingBatchId = currentBatchId;
-  console.log(`✅ Processing batch ID: ${currentBatchId}`);
+  Logger.debug(`Processing batch ID: ${currentBatchId}`);
 
   try {
     const { data: currentQueue, error } = await supabase
@@ -534,61 +615,39 @@ async function updateQueueSnapshot() {
       .order('position', { ascending: true });
 
     if (error) {
-      console.error('❌ Error fetching current queue for notifications:', error);
+      Logger.error('Error fetching current queue for notifications', error);
       return;
     }
 
     // Enhance queue data with phone numbers from users table
     const enhancedQueue = await enhanceQueueWithPhoneNumbers(currentQueue);
 
-    console.log(`\n📊 CURRENT STATE COMPARISON:`);
-    console.log(`   📋 Current queue from DB: ${enhancedQueue.length} people`);
-    console.log(`   💾 Snapshot in memory: ${queueSnapshot.size} people`);
-    console.log(`   📋 Current queue details:`);
-    enhancedQueue.forEach(p => {
-      const phoneNumber = getEffectivePhoneNumber(p);
-      console.log(`      - ID: ${p.id}, Name: ${p.user_name}, Position: ${p.position}, Phone: ${phoneNumber || 'none'}`);
-    });
-    console.log(`   💾 Snapshot details:`);
-    Array.from(queueSnapshot.entries()).forEach(([id, person]) => {
-      const phoneNumber = getEffectivePhoneNumber(person);
-      console.log(`      - ID: ${id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${phoneNumber || 'none'}`);
-    });
+    Logger.debug(`Queue comparison: ${enhancedQueue.length} current vs ${queueSnapshot.size} in snapshot`);
 
     const newSnapshot = new Map();
     const positionChanges = [];
     const newJoiners = [];
     
-    console.log(`\n🔍 ANALYZING CHANGES:`);
-    console.log(`   Looking for new joiners and position changes...`);
+    Logger.debug('Analyzing queue changes...');
 
     // Build new snapshot and detect changes
     enhancedQueue.forEach((person, index) => {
-      console.log(`\n   👤 Processing person ${index + 1}/${enhancedQueue.length}:`);
-      console.log(`      ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}`);
-      
       newSnapshot.set(person.id, person);
       
       const oldPerson = queueSnapshot.get(person.id);
-      console.log(`      Old person in snapshot: ${oldPerson ? 'EXISTS' : 'NOT FOUND'}`);
       
       if (!oldPerson) {
         // NEW person joining the queue
-        console.log(`      ✅ RESULT: NEW JOINER detected!`);
-        const phoneNumber = getEffectivePhoneNumber(person);
-        console.log(`🆕 DETECTED NEW JOINER - ID: ${person.id}, Name: ${person.user_name}, Position: ${person.position}, Phone: ${phoneNumber || 'none'}`);
+        Logger.info(`New joiner detected: ${person.user_name} at position ${person.position}`);
         newJoiners.push(person);
       } else if (oldPerson.position !== person.position) {
         // EXISTING person with position change
-        console.log(`      ✅ RESULT: POSITION CHANGE detected! (${oldPerson.position} → ${person.position})`);
-        console.log(`📍 DETECTED POSITION CHANGE - ID: ${person.id}, Name: ${person.user_name}, ${oldPerson.position} → ${person.position}`);
+        Logger.info(`Position change: ${person.user_name} from ${oldPerson.position} to ${person.position}`);
         positionChanges.push({
           person,
           oldPosition: oldPerson.position,
           newPosition: person.position
         });
-      } else {
-        console.log(`      ➖ RESULT: No change (position ${person.position})`);
       }
     });
 
@@ -597,33 +656,33 @@ async function updateQueueSnapshot() {
       const effectivePhone = getEffectivePhoneNumber(person);
       
       if (!effectivePhone) {
-        console.log(`📱 ${person.user_name} joined queue at position ${person.position} but no phone number`);
+        Logger.debug(`${person.user_name} joined queue but no phone number`);
         continue;
       }
 
       // Check if we recently sent a notification for this person/position
       if (wasRecentlySent(person.id, person.position, person.user_name)) {
-        console.log(`📱 ${person.user_name} joined queue at position ${person.position} - skipping (duplicate)`);
+        Logger.debug(`${person.user_name} notification skipped (duplicate)`);
         continue;
       }
 
       try {
         let result;
         if (person.position === 1) {
-          console.log(`📱 ${person.user_name} joined queue at position 1 - sending "your turn" notification`);
+          Logger.info(`Sending "your turn" notification to ${person.user_name}`);
           result = await notifyYourTurn(effectivePhone, person.user_name, person.computer_type);
         } else {
-          console.log(`📱 ${person.user_name} joined queue at position ${person.position} - sending "queue joined" notification`);
+          Logger.info(`Sending "queue joined" notification to ${person.user_name} (position ${person.position})`);
           result = await notifyQueueJoined(effectivePhone, person.position, person.computer_type, person.user_name);
         }
         
         if (result.success) {
-          console.log(`✅ Welcome notification sent to ${person.user_name}: ${result.messageId}`);
+          Logger.success(`Welcome notification sent to ${person.user_name}`, false);
         } else {
-          console.log(`❌ Failed to welcome ${person.user_name}: ${result.error}`);
+          Logger.warn(`Failed to welcome ${person.user_name}: ${result.error || result.reason}`);
         }
       } catch (error) {
-        console.error(`❌ Error welcoming ${person.user_name}:`, error);
+        Logger.error(`Error welcoming ${person.user_name}`, error);
       }
     }
 
@@ -633,72 +692,47 @@ async function updateQueueSnapshot() {
       const effectivePhone = getEffectivePhoneNumber(person);
       
       if (!effectivePhone) {
-        console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} but no phone number`);
+        Logger.debug(`${person.user_name} position changed but no phone number`);
         continue;
       }
 
       // Check if we recently sent a notification for this person/position
       if (wasRecentlySent(person.id, newPosition, person.user_name)) {
-        console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} - skipping (duplicate)`);
+        Logger.debug(`${person.user_name} position change notification skipped (duplicate)`);
         continue;
       }
 
       try {
         let result;
         if (newPosition === 1) {
-          console.log(`📱 ${person.user_name} moved to position 1 - sending "your turn" notification`);
+          Logger.info(`Sending "your turn" notification to ${person.user_name} (moved to position 1)`);
           result = await notifyYourTurn(effectivePhone, person.user_name, person.computer_type);
         } else {
-          console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} - sending queue update`);
+          Logger.info(`Sending position update to ${person.user_name} (${oldPosition}→${newPosition})`);
           result = await notifyQueueJoined(effectivePhone, newPosition, person.computer_type, person.user_name);
         }
         
         if (result.success) {
-          console.log(`✅ Notification sent to ${person.user_name}: ${result.messageId}`);
+          Logger.success(`Position notification sent to ${person.user_name}`, false);
         } else {
-          console.log(`❌ Failed to notify ${person.user_name}: ${result.error}`);
+          Logger.warn(`Failed to notify ${person.user_name}: ${result.error || result.reason}`);
         }
       } catch (error) {
-        console.error(`❌ Error notifying ${person.user_name}:`, error);
+        Logger.error(`Error notifying ${person.user_name}`, error);
       }
     }
 
     // Update snapshot
-    console.log(`\n💾 UPDATING SNAPSHOT:`);
-    console.log(`   Old snapshot size: ${queueSnapshot.size}`);
     queueSnapshot = newSnapshot;
-    console.log(`   New snapshot size: ${queueSnapshot.size}`);
-    
-    console.log(`\n📊 FINAL RESULTS:`);
-    console.log(`   🆕 New joiners: ${newJoiners.length}`);
-    console.log(`   📍 Position changes: ${positionChanges.length}`);
-    
-    if (newJoiners.length > 0) {
-      console.log(`   📝 New joiners list:`);
-      newJoiners.forEach(person => {
-        const phoneNumber = getEffectivePhoneNumber(person);
-        console.log(`      - ${person.user_name} (ID: ${person.id}, Position: ${person.position}, Phone: ${phoneNumber || 'none'})`);
-      });
-    }
-    
-    if (positionChanges.length > 0) {
-      console.log(`   📝 Position changes list:`);
-      positionChanges.forEach(change => {
-        console.log(`      - ${change.person.user_name} (${change.oldPosition} → ${change.newPosition})`);
-      });
-    }
     
     if (newJoiners.length > 0 || positionChanges.length > 0) {
-      console.log(`📋 Processed ${newJoiners.length} new joiners and ${positionChanges.length} position changes for notifications`);
+      Logger.info(`Processed ${newJoiners.length} new joiners and ${positionChanges.length} position changes`);
     } else {
-      console.log(`📋 No changes detected - no notifications needed`);
+      Logger.debug('No queue changes detected');
     }
-    
-    console.log(`🔄 ===== updateQueueSnapshot() END =====\n`);
 
   } catch (error) {
-    console.error('❌ Error updating queue snapshot for notifications:', error);
-    console.log(`🔄 ===== updateQueueSnapshot() END (ERROR) =====\n`);
+    Logger.error('Error updating queue snapshot for notifications', error);
   } finally {
     // Always reset processing flag to prevent permanent blocking
     isProcessing = false;
@@ -714,7 +748,7 @@ function cleanupQueueSnapshot() {
   const maxSnapshotSize = 500; // Prevent unbounded growth
   
   if (queueSnapshot.size > maxSnapshotSize) {
-    console.log(`🧹 Queue snapshot too large (${queueSnapshot.size}), clearing to prevent memory leak`);
+    Logger.warn(`Queue snapshot too large (${queueSnapshot.size}), clearing to prevent memory leak`);
     queueSnapshot.clear();
   }
 }
@@ -728,7 +762,7 @@ async function initializeQueueSnapshot() {
   }
 
   try {
-    console.log('🚀 Initializing queue snapshot for WhatsApp notifications...');
+    Logger.info('Initializing queue snapshot for WhatsApp notifications...');
     
     // Clean up any existing snapshot first
     cleanupQueueSnapshot();
@@ -740,7 +774,7 @@ async function initializeQueueSnapshot() {
       .order('position', { ascending: true });
 
     if (error) {
-      console.error('❌ Error initializing queue snapshot:', error);
+      Logger.error('Error initializing queue snapshot', error);
       return;
     }
 
@@ -752,9 +786,9 @@ async function initializeQueueSnapshot() {
       queueSnapshot.set(person.id, person);
     });
 
-    console.log(`✅ Initialized WhatsApp monitoring with ${queueSnapshot.size} people in queue`);
+    Logger.success(`Initialized WhatsApp monitoring with ${queueSnapshot.size} people in queue`);
   } catch (error) {
-    console.error('❌ Error in initializeQueueSnapshot:', error);
+    Logger.error('Error in initializeQueueSnapshot', error);
   }
 }
 
@@ -779,7 +813,7 @@ async function fetchActiveUserSessions() {
     const data = await response.json();
     return data.result || [];
   } catch (error) {
-    console.error('❌ Error fetching active sessions:', error);
+    Logger.error('Error fetching active sessions', error);
     return [];
   }
 }
@@ -801,7 +835,7 @@ async function fetchCurrentQueue() {
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching queue:', error);
+    Logger.error('Error fetching queue', error);
     return [];
   }
 }
@@ -837,7 +871,7 @@ async function getUserGizmoIds(queueEntries) {
 
     return gizmoIdMap;
   } catch (error) {
-    console.error('Error fetching user gizmo IDs:', error);
+    Logger.error('Error fetching user gizmo IDs', error);
     return {};
   }
 }
@@ -872,11 +906,11 @@ async function getActiveSessionUsernames(activeSessions) {
         if (username) {
           // Map: gizmo_id -> username
           usernameMap[session.userId] = username.toLowerCase();
-          console.log(`🔗 Found username "${username}" for gizmo_id ${session.userId}`);
+          Logger.debug(`Found username "${username}" for gizmo_id ${session.userId}`);
         }
       }
     } catch (error) {
-      console.error(`Error fetching username for gizmo_id ${session.userId}:`, error);
+      Logger.error(`Error fetching username for gizmo_id ${session.userId}`, error);
     }
     
     // Small delay to avoid overwhelming the API
@@ -900,10 +934,10 @@ async function removeUserFromQueue(queueEntryId, userName, reason) {
       throw error;
     }
 
-    console.log(`✅ Removed ${userName} from queue (${reason})`);
+    Logger.success(`Removed ${userName} from queue (${reason})`);
     return true;
   } catch (error) {
-    console.error(`❌ Failed to remove ${userName} from queue:`, error);
+    Logger.error(`Failed to remove ${userName} from queue`, error);
     return false;
   }
 }
@@ -921,12 +955,12 @@ async function handleAutomaticMode(currentQueueCount) {
       .single();
 
     if (error || !settings) {
-      console.log('ℹ️ Could not fetch queue settings for automatic mode check');
+      Logger.debug('Could not fetch queue settings for automatic mode check');
       return;
     }
 
     if (!settings.automatic_mode) {
-      console.log('ℹ️ Automatic mode is disabled, skipping auto-control');
+      Logger.debug('Automatic mode is disabled, skipping auto-control');
       return;
     }
 
@@ -934,33 +968,33 @@ async function handleAutomaticMode(currentQueueCount) {
     
     if (shouldBeActive && !settings.is_active) {
       // Auto-start queue when people join
-      console.log('🔄 Automatic mode: Starting queue (people in queue)');
+      Logger.info('Automatic mode: Starting queue (people in queue)');
       const { error: updateError } = await supabase
         .from('queue_settings')
         .update({ is_active: true })
         .eq('id', 1);
         
       if (updateError) {
-        console.error('❌ Failed to auto-start queue:', updateError);
+        Logger.error('Failed to auto-start queue', updateError);
       } else {
-        console.log('✅ Auto-started queue system');
+        Logger.success('Auto-started queue system');
       }
     } else if (!shouldBeActive && settings.is_active) {
       // Auto-stop queue when empty
-      console.log('🔄 Automatic mode: Stopping queue (queue is empty)');
+      Logger.info('Automatic mode: Stopping queue (queue is empty)');
       const { error: updateError } = await supabase
         .from('queue_settings')
         .update({ is_active: false })
         .eq('id', 1);
         
       if (updateError) {
-        console.error('❌ Failed to auto-stop queue:', updateError);
+        Logger.error('Failed to auto-stop queue', updateError);
       } else {
-        console.log('✅ Auto-stopped queue system');
+        Logger.success('Auto-stopped queue system');
       }
     }
   } catch (error) {
-    console.error('❌ Error handling automatic mode:', error);
+    Logger.error('Error handling automatic mode', error);
   }
 }
 
@@ -968,12 +1002,12 @@ async function handleAutomaticMode(currentQueueCount) {
  * Main monitoring function
  */
 async function monitorQueue() {
-  console.log(`\n🔍 [${new Date().toLocaleTimeString()}] Starting queue monitoring...`);
+  Logger.debug('Starting queue monitoring cycle');
 
   // Perform health check before processing
   const isHealthy = await performHealthCheck();
   if (!isHealthy && consecutiveErrors >= 3) {
-    console.log('⚠️ Skipping this monitoring cycle due to health check failures');
+    Logger.warn('Skipping monitoring cycle due to health check failures');
     return;
   }
 
@@ -984,10 +1018,10 @@ async function monitorQueue() {
       fetchCurrentQueue()
     ]);
 
-    console.log(`📊 Found ${activeSessions.length} active sessions and ${queueEntries.length} people in queue`);
+    Logger.info(`Found ${activeSessions.length} active sessions and ${queueEntries.length} people in queue`, true);
 
     if (queueEntries.length === 0) {
-      console.log('✅ Queue is empty, checking automatic mode...');
+      Logger.info('Queue is empty, checking automatic mode');
       // Even if queue is empty, check if we need to auto-stop the queue system
       await handleAutomaticMode(0);
       return;
@@ -995,11 +1029,11 @@ async function monitorQueue() {
 
     // 2. Get gizmo_ids for users in queue (users with website accounts)
     const userGizmoIds = await getUserGizmoIds(queueEntries);
-    console.log(`🔗 Found ${Object.keys(userGizmoIds).length} queue users with linked website accounts`);
+    Logger.debug(`Found ${Object.keys(userGizmoIds).length} queue users with linked website accounts`);
 
     // 3. Get usernames for active sessions (for manual entries without website accounts)
     const activeSessionUsernames = await getActiveSessionUsernames(activeSessions);
-    console.log(`👤 Found ${Object.keys(activeSessionUsernames).length} active session usernames`);
+    Logger.debug(`Found ${Object.keys(activeSessionUsernames).length} active session usernames`);
 
     // 4. Find users who are both in queue AND logged in
     const usersToRemove = [];
@@ -1044,11 +1078,8 @@ async function monitorQueue() {
       }
     });
 
-    console.log(`🎯 Found ${usersToRemove.length} users to remove from queue`);
-
-    // 4. Remove users from queue
     if (usersToRemove.length > 0) {
-      console.log('\n🚮 Removing users from queue:');
+      Logger.info(`Found ${usersToRemove.length} users to remove from queue`, true);
       
       for (const { queueEntry, reason } of usersToRemove) {
         await removeUserFromQueue(queueEntry.id, queueEntry.user_name, reason);
@@ -1066,16 +1097,16 @@ async function monitorQueue() {
       // Check automatic mode after changes
       await handleAutomaticMode(remainingQueueCount);
 
-      console.log(`\n✨ Queue monitoring complete - removed ${usersToRemove.length} users`);
+      Logger.success(`Queue monitoring complete - removed ${usersToRemove.length} users`);
     } else {
-      console.log('✅ No users need to be removed from queue');
+      Logger.debug('No users need to be removed from queue');
       
       // Still check automatic mode in case queue state needs updating
       await handleAutomaticMode(queueEntries.length);
     }
 
   } catch (error) {
-    console.error('❌ Error during queue monitoring:', error);
+    Logger.error('Error during queue monitoring', error);
   }
 }
 
@@ -1091,7 +1122,7 @@ async function performHealthCheck() {
   }
   
   try {
-    console.log('🏥 Performing health check...');
+    Logger.debug('Performing health check');
     
     // Test database connectivity
     const { error } = await supabase
@@ -1119,17 +1150,17 @@ async function performHealthCheck() {
     
     consecutiveErrors = 0; // Reset error counter on success
     lastHealthCheck = now;
-    console.log('✅ Health check passed');
+    Logger.debug('Health check passed');
     return true;
     
   } catch (error) {
     consecutiveErrors++;
-    console.error(`❌ Health check failed (${consecutiveErrors} consecutive):`, error.message);
+    Logger.error(`Health check failed (${consecutiveErrors} consecutive)`, error);
     
     // Circuit breaker: if too many consecutive errors, pause monitoring
     if (consecutiveErrors >= 5) {
-      console.error('🚨 Circuit breaker activated - too many consecutive failures');
-      console.log('⏸️ Pausing monitoring for 2 minutes...');
+      Logger.error('Circuit breaker activated - too many consecutive failures');
+      Logger.warn('Pausing monitoring for 2 minutes...');
       await new Promise(resolve => setTimeout(resolve, 120000)); // 2 minute pause
       consecutiveErrors = 0; // Reset after pause
     }
@@ -1142,7 +1173,7 @@ async function performHealthCheck() {
  * Clean up all resources to prevent memory leaks
  */
 async function cleanupResources() {
-  console.log('🧹 Cleaning up resources...');
+  Logger.info('Cleaning up resources...');
   
   // Clear timers
   if (updateTimeout) {
@@ -1155,7 +1186,7 @@ async function cleanupResources() {
     try {
       await activeSubscription.unsubscribe();
     } catch (error) {
-      console.error('❌ Error unsubscribing:', error);
+      Logger.error('Error unsubscribing', error);
     }
     activeSubscription = null;
   }
@@ -1180,7 +1211,7 @@ async function cleanupResources() {
     consecutiveFailures: 0
   };
   
-  console.log('✅ Resources cleaned up');
+  Logger.success('Resources cleaned up');
 }
 
 /**
@@ -1188,14 +1219,14 @@ async function cleanupResources() {
  */
 function setupGracefulShutdown() {
   const handleShutdown = async (signal) => {
-    console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+    Logger.info(`Received ${signal}, shutting down gracefully...`);
     
     try {
       await cleanupResources();
-      console.log('✅ Graceful shutdown completed');
+      Logger.success('Graceful shutdown completed');
       process.exit(0);
     } catch (error) {
-      console.error('❌ Error during shutdown:', error);
+      Logger.error('Error during shutdown', error);
       process.exit(1);
     }
   };
@@ -1205,12 +1236,12 @@ function setupGracefulShutdown() {
   
   // Handle uncaught exceptions to prevent crashes
   process.on('uncaughtException', (error) => {
-    console.error('💥 Uncaught Exception:', error);
+    Logger.error('Uncaught Exception', error);
     handleShutdown('UNCAUGHT_EXCEPTION');
   });
   
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+    Logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
     handleShutdown('UNHANDLED_REJECTION');
   });
 }
@@ -1219,11 +1250,11 @@ function setupGracefulShutdown() {
  * Start real-time queue monitoring with Supabase subscriptions
  */
 async function startRealTimeMonitoring() {
-  console.log('📡 Starting real-time queue monitoring...');
+  Logger.info('Starting real-time queue monitoring...');
   
   // Clean up any existing subscription first
   if (activeSubscription) {
-    console.log('🧹 Cleaning up existing subscription...');
+    Logger.debug('Cleaning up existing subscription...');
     await activeSubscription.unsubscribe();
     activeSubscription = null;
   }
@@ -1246,39 +1277,27 @@ async function startRealTimeMonitoring() {
         // Update last event timestamp for health monitoring
         subscriptionLastEvent = Date.now();
         
-        console.log(`\n🔔 ===== REAL-TIME EVENT RECEIVED =====`);
-        console.log(`📡 Event Type: ${payload.eventType}`);
-        console.log(`🕐 Event Time: ${new Date().toLocaleTimeString()}`);
-        console.log(`📄 Payload Details:`);
-        console.log(`   Schema: ${payload.schema}`);
-        console.log(`   Table: ${payload.table}`);
-        if (payload.new) {
-          console.log(`   New Record: ID ${payload.new.id}, User: ${payload.new.user_name}, Position: ${payload.new.position}`);
-        }
-        if (payload.old) {
-          console.log(`   Old Record: ID ${payload.old.id}, User: ${payload.old.user_name}, Position: ${payload.old.position}`);
-        }
-        console.log(`🔔 ===== REAL-TIME EVENT END =====\n`);
+        Logger.debug(`Real-time event: ${payload.eventType} on ${payload.table}`);
         
         // Debounce rapid changes - clear existing timeout and set new one
         if (updateTimeout) {
-          console.log(`⏱️ Clearing existing timeout - batching multiple events`);
+          Logger.debug('Clearing existing timeout - batching multiple events');
           clearTimeout(updateTimeout);
         }
         
         updateTimeout = setTimeout(async () => {
           try {
-            console.log('📱 Processing batched queue changes for notifications...');
+            Logger.debug('Processing batched queue changes for notifications...');
             await updateQueueSnapshot();
           } catch (error) {
-            console.error('❌ Error processing queue changes:', error);
+            Logger.error('Error processing queue changes', error);
           } finally {
             updateTimeout = null;
           }
         }, 3000); // Wait 3 seconds for all related changes to complete
         
       } catch (error) {
-        console.error('❌ Error handling real-time event:', error);
+        Logger.error('Error handling real-time event', error);
       }
     })
     .subscribe();
@@ -1286,7 +1305,7 @@ async function startRealTimeMonitoring() {
   // Store active subscription for cleanup
   activeSubscription = subscription;
   
-  console.log('✅ Real-time WhatsApp notifications enabled');
+  Logger.success('Real-time WhatsApp notifications enabled');
   return subscription;
 }
 
@@ -1294,8 +1313,8 @@ async function startRealTimeMonitoring() {
  * Main execution
  */
 async function main() {
-  console.log('🚀 Queue Monitor started');
-  console.log('📋 This script will automatically remove users from the queue when they log into computers');
+  Logger.success('Queue Monitor started');
+  Logger.info('Auto-removal system for logged-in users initialized');
   
   setupGracefulShutdown();
 
@@ -1304,13 +1323,13 @@ async function main() {
   const realTime = process.argv.includes('--realtime');
   
   if (runOnce) {
-    console.log('🔄 Running in single-execution mode');
+    Logger.info('Running in single-execution mode');
     await monitorQueue();
-    console.log('✅ Single execution completed');
+    Logger.success('Single execution completed');
     process.exit(0);
   } else if (realTime) {
-    console.log('🔄 Running in real-time mode with WhatsApp notifications');
-    console.log('💡 Use Ctrl+C to stop\n');
+    Logger.success('Running in real-time mode with WhatsApp notifications');
+    Logger.info('Use Ctrl+C to stop');
     
     // Start real-time monitoring for WhatsApp notifications
     const subscription = await startRealTimeMonitoring();
@@ -1331,7 +1350,7 @@ async function main() {
     
     // Cleanup on shutdown
     process.on('SIGINT', async () => {
-      console.log('\n🛑 Shutting down real-time monitoring...');
+      Logger.info('Shutting down real-time monitoring...');
       clearInterval(interval);
       clearInterval(cleanupInterval);
       if (updateTimeout) {
@@ -1340,22 +1359,19 @@ async function main() {
       try {
         await subscription.unsubscribe();
       } catch (error) {
-        console.error('❌ Error during subscription cleanup:', error);
+        Logger.error('Error during subscription cleanup', error);
       }
       await cleanupResources();
-      console.log('✅ Stopped gracefully');
+      Logger.success('Stopped gracefully');
       process.exit(0);
     });
     
     // Keep the process alive
-    console.log('📋 Features enabled:');
-    console.log('  • Auto-removal of logged-in users (every 30s)');
-    console.log('  • Real-time WhatsApp position notifications');
-    console.log('  • Queue automatic mode management');
+    Logger.success('Features enabled: Auto-removal (30s), Real-time WhatsApp, Automatic mode');
     
   } else {
-    console.log('🔄 Running in periodic mode (every 60 seconds)');
-    console.log('💡 Use Ctrl+C to stop, --once for single execution, or --realtime for WhatsApp notifications\n');
+    Logger.success('Running in periodic mode (every 60 seconds)');
+    Logger.info('Use Ctrl+C to stop, --once for single execution, or --realtime for WhatsApp notifications');
     
     // Initialize WhatsApp monitoring for periodic mode too
     await initializeQueueSnapshot();
@@ -1377,25 +1393,22 @@ async function main() {
     
     // Enhanced cleanup for periodic mode
     process.on('SIGINT', async () => {
-      console.log('\n🛑 Shutting down periodic monitoring...');
+      Logger.info('Shutting down periodic monitoring...');
       clearInterval(periodicInterval);
       clearInterval(periodicCleanupInterval);
       await cleanupResources();
-      console.log('✅ Stopped gracefully');
+      Logger.success('Stopped gracefully');
       process.exit(0);
     });
     
-    console.log('📋 Features enabled:');
-    console.log('  • Auto-removal of logged-in users (every 60s)');
-    console.log('  • Periodic memory cleanup');
-    console.log('  • Queue automatic mode management');
+    Logger.success('Features enabled: Auto-removal (60s), Memory cleanup, Automatic mode');
   }
 }
 
 // Run the script
 if (require.main === module) {
   main().catch(error => {
-    console.error('💥 Fatal error:', error);
+    Logger.error('Fatal error - shutting down', error);
     process.exit(1);
   });
 }
