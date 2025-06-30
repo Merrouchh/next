@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'nextjs-server',
       script: 'npm',
-      args: 'run start:server-only',
+      args: 'start',
       cwd: './',
       instances: 'max',
       exec_mode: 'cluster',
