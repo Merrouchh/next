@@ -1,0 +1,8 @@
+2025-06-30T21:22:02: ℹ️ Queue Monitor starting up
+2025-06-30T21:22:02: ✅ WhatsApp notifications enabled via Infobip
+2025-06-30T21:22:02: ✅ Queue Monitor started
+2025-06-30T21:22:02: ✅ Running in real-time mode with WhatsApp notifications
+2025-06-30T21:22:03: ✅ Initialized WhatsApp monitoring with 0 people in queue
+2025-06-30T21:22:03: ✅ Real-time WhatsApp notifications enabled
+2025-06-30T21:22:03: ℹ️ Found 12 active sessions and 0 people in queue
+2025-06-30T21:22:03: ✅ Features enabled: Auto-removal (30s), Real-time WhatsApp, Automatic mode

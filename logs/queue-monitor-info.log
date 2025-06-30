@@ -30,3 +30,16 @@
 [2025-06-30T20:21:07.456Z] [INFO] Cleaning up resources...
 [2025-06-30T20:21:07.456Z] [SUCCESS] Resources cleaned up
 [2025-06-30T20:21:07.457Z] [SUCCESS] Graceful shutdown completed
+[2025-06-30T20:22:02.840Z] [INFO] Queue Monitor starting up
+[2025-06-30T20:22:02.843Z] [SUCCESS] WhatsApp notifications enabled via Infobip
+[2025-06-30T20:22:02.877Z] [SUCCESS] Queue Monitor started
+[2025-06-30T20:22:02.877Z] [INFO] Auto-removal system for logged-in users initialized
+[2025-06-30T20:22:02.878Z] [SUCCESS] Running in real-time mode with WhatsApp notifications
+[2025-06-30T20:22:02.878Z] [INFO] Use Ctrl+C to stop
+[2025-06-30T20:22:02.879Z] [INFO] Starting real-time queue monitoring...
+[2025-06-30T20:22:02.879Z] [INFO] Initializing queue snapshot for WhatsApp notifications...
+[2025-06-30T20:22:03.122Z] [SUCCESS] Initialized WhatsApp monitoring with 0 people in queue
+[2025-06-30T20:22:03.128Z] [SUCCESS] Real-time WhatsApp notifications enabled
+[2025-06-30T20:22:03.453Z] [INFO] Found 12 active sessions and 0 people in queue
+[2025-06-30T20:22:03.453Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:22:03.535Z] [SUCCESS] Features enabled: Auto-removal (30s), Real-time WhatsApp, Automatic mode
