@@ -118,9 +118,16 @@ let recentNotifications = new Map(); // Track recent notifications to prevent du
 let processingBatchId = null; // Prevent duplicate batch processing
 let isProcessing = false; // Additional protection against concurrent processing
 let activeSubscription = null; // Track active subscription for cleanup
+let subscriptionLastEvent = 0; // Track last subscription event time
 let lastHealthCheck = 0; // Track last health check time
 let consecutiveErrors = 0; // Track consecutive errors for circuit breaker
-let whatsappRateLimit = { calls: 0, resetTime: 0 }; // Rate limiting for WhatsApp API
+let whatsappRateLimit = { 
+  calls: 0, 
+  resetTime: 0,
+  dailyCalls: 0,
+  dailyResetTime: 0,
+  consecutiveFailures: 0
+}; // Rate limiting for WhatsApp API
 
 /**
  * Check and apply rate limiting for WhatsApp API
@@ -128,13 +135,35 @@ let whatsappRateLimit = { calls: 0, resetTime: 0 }; // Rate limiting for WhatsAp
 function checkWhatsAppRateLimit() {
   const now = Date.now();
   const maxCallsPerMinute = 10; // Limit to 10 calls per minute
+  const maxCallsPerDay = 1000; // Limit to 1000 calls per day (adjust based on your plan)
   
-  // Reset counter every minute
+  // Reset daily counter (every 24 hours)
+  if (now > whatsappRateLimit.dailyResetTime) {
+    whatsappRateLimit.dailyCalls = 0;
+    whatsappRateLimit.dailyResetTime = now + (24 * 60 * 60 * 1000); // Next day
+    console.log('🔄 Daily WhatsApp rate limit reset');
+  }
+  
+  // Reset minute counter
   if (now > whatsappRateLimit.resetTime) {
     whatsappRateLimit.calls = 0;
     whatsappRateLimit.resetTime = now + 60000; // Next minute
   }
   
+  // Check if too many consecutive failures (circuit breaker)
+  if (whatsappRateLimit.consecutiveFailures >= 10) {
+    console.log(`🚫 WhatsApp temporarily disabled due to ${whatsappRateLimit.consecutiveFailures} consecutive failures`);
+    return false;
+  }
+  
+  // Check daily limit
+  if (whatsappRateLimit.dailyCalls >= maxCallsPerDay) {
+    const hoursLeft = Math.ceil((whatsappRateLimit.dailyResetTime - now) / (60 * 60 * 1000));
+    console.log(`🚫 Daily WhatsApp limit reached (${maxCallsPerDay}/day), ${hoursLeft}h until reset`);
+    return false;
+  }
+  
+  // Check per-minute limit
   if (whatsappRateLimit.calls >= maxCallsPerMinute) {
     const waitTime = Math.ceil((whatsappRateLimit.resetTime - now) / 1000);
     console.log(`🚫 WhatsApp rate limit reached (${maxCallsPerMinute}/min), waiting ${waitTime}s`);
@@ -142,6 +171,7 @@ function checkWhatsAppRateLimit() {
   }
   
   whatsappRateLimit.calls++;
+  whatsappRateLimit.dailyCalls++;
   return true;
 }
 
@@ -244,6 +274,10 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
     }
 
     console.log(`✅ WhatsApp ${templateType} notification sent successfully to ${formattedPhone}`);
+    
+    // Reset consecutive failures on success
+    whatsappRateLimit.consecutiveFailures = 0;
+    
     return { 
       success: true, 
       messageId: responseData.messages?.[0]?.messageId,
@@ -252,6 +286,11 @@ async function sendWhatsAppQueueNotification(phoneNumber, templateType, params =
 
   } catch (error) {
     console.error(`❌ Error sending WhatsApp ${templateType} notification:`, error);
+    
+    // Increment consecutive failures
+    whatsappRateLimit.consecutiveFailures++;
+    console.log(`⚠️ WhatsApp consecutive failures: ${whatsappRateLimit.consecutiveFailures}/10`);
+    
     return { 
       success: false, 
       error: error.message,
@@ -403,6 +442,53 @@ function cleanupRecentNotifications(now = Date.now()) {
   if (removedCount > 0) {
     console.log(`🧹 Cleaned up ${removedCount} old notification entries (${recentNotifications.size} remaining)`);
   }
+}
+
+/**
+ * Reset WhatsApp consecutive failures periodically
+ */
+function resetWhatsAppFailures() {
+  if (whatsappRateLimit.consecutiveFailures > 0) {
+    console.log(`🔄 Resetting WhatsApp consecutive failures from ${whatsappRateLimit.consecutiveFailures} to 0`);
+    whatsappRateLimit.consecutiveFailures = Math.max(0, whatsappRateLimit.consecutiveFailures - 3);
+  }
+}
+
+/**
+ * Check subscription health and reconnect if needed
+ */
+async function checkSubscriptionHealth() {
+  if (!activeSubscription) return true;
+  
+  const now = Date.now();
+  const timeSinceLastEvent = now - subscriptionLastEvent;
+  const maxIdleTime = 60 * 60 * 1000; // 1 hour of no events is suspicious
+  
+  // If no events for too long, assume subscription is stale
+  if (subscriptionLastEvent > 0 && timeSinceLastEvent > maxIdleTime) {
+    console.log(`⚠️ Subscription appears stale (${Math.round(timeSinceLastEvent/1000/60)}min since last event)`);
+    console.log('🔄 Attempting to reconnect subscription...');
+    
+    try {
+      // Unsubscribe from old connection
+      await activeSubscription.unsubscribe();
+      activeSubscription = null;
+      
+      // Wait a bit before reconnecting
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Reconnect
+      const newSubscription = await startRealTimeMonitoring();
+      console.log('✅ Successfully reconnected subscription');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Failed to reconnect subscription:', error);
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -1085,7 +1171,14 @@ async function cleanupResources() {
   // Reset health check and rate limiting
   lastHealthCheck = 0;
   consecutiveErrors = 0;
-  whatsappRateLimit = { calls: 0, resetTime: 0 };
+  subscriptionLastEvent = 0;
+  whatsappRateLimit = { 
+    calls: 0, 
+    resetTime: 0,
+    dailyCalls: 0,
+    dailyResetTime: 0,
+    consecutiveFailures: 0
+  };
   
   console.log('✅ Resources cleaned up');
 }
@@ -1138,6 +1231,9 @@ async function startRealTimeMonitoring() {
   // Initialize WhatsApp queue snapshot
   await initializeQueueSnapshot();
   
+  // Initialize subscription health tracking
+  subscriptionLastEvent = Date.now();
+  
   // Set up real-time subscription to monitor queue changes with debouncing
   const subscription = supabase
     .channel('queue-changes')
@@ -1147,6 +1243,9 @@ async function startRealTimeMonitoring() {
       table: 'computer_queue'
     }, async (payload) => {
       try {
+        // Update last event timestamp for health monitoring
+        subscriptionLastEvent = Date.now();
+        
         console.log(`\n🔔 ===== REAL-TIME EVENT RECEIVED =====`);
         console.log(`📡 Event Type: ${payload.eventType}`);
         console.log(`🕐 Event Time: ${new Date().toLocaleTimeString()}`);
@@ -1223,9 +1322,11 @@ async function main() {
     }, 30000); // 30 seconds for more responsive auto-removal
     
     // Set up periodic cleanup to prevent memory leaks during long runs
-    const cleanupInterval = setInterval(() => {
+    const cleanupInterval = setInterval(async () => {
       cleanupRecentNotifications();
       cleanupQueueSnapshot();
+      resetWhatsAppFailures();
+      await checkSubscriptionHealth();
     }, 300000); // Every 5 minutes
     
     // Cleanup on shutdown
@@ -1271,6 +1372,7 @@ async function main() {
     const periodicCleanupInterval = setInterval(() => {
       cleanupRecentNotifications();
       cleanupQueueSnapshot();
+      resetWhatsAppFailures();
     }, 300000); // Every 5 minutes
     
     // Enhanced cleanup for periodic mode
