@@ -289,3 +289,40 @@
 [2025-06-30T21:21:34.970Z] [INFO] Queue is empty, checking automatic mode
 [2025-06-30T21:22:04.895Z] [INFO] Found 11 active sessions and 0 people in queue
 [2025-06-30T21:22:04.895Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:22:34.668Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:22:34.668Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:23:04.700Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:23:04.700Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:23:34.873Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:23:34.874Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:24:04.720Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:24:04.720Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:24:34.733Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:24:34.733Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:25:04.741Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:25:04.742Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:25:34.730Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:25:34.731Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:26:05.257Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:26:05.257Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:26:34.754Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T21:26:34.755Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:26:43.475Z] [INFO] New joiner detected: admin2 at position 1
+[2025-06-30T21:26:43.475Z] [INFO] Sending "your turn" notification to admin2
+[2025-06-30T21:26:43.475Z] [INFO] Sending WhatsApp your_turn notification to 212656053641
+[2025-06-30T21:26:43.717Z] [SUCCESS] WhatsApp your_turn notification sent successfully to 212656053641
+[2025-06-30T21:26:43.717Z] [SUCCESS] Welcome notification sent to admin2
+[2025-06-30T21:26:43.718Z] [INFO] Processed 1 new joiners and 0 position changes
+[2025-06-30T21:27:05.089Z] [INFO] Found 11 active sessions and 1 people in queue
+[2025-06-30T21:27:35.444Z] [INFO] Found 11 active sessions and 1 people in queue
+[2025-06-30T21:28:15.250Z] [INFO] Found 0 active sessions and 0 people in queue
+[2025-06-30T21:28:15.250Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:28:36.642Z] [INFO] Found 11 active sessions and 1 people in queue
+[2025-06-30T21:29:04.816Z] [INFO] Found 11 active sessions and 1 people in queue
+[2025-06-30T21:29:04.845Z] [INFO] New joiner detected: admin2 at position 1
+[2025-06-30T21:29:04.845Z] [INFO] Sending "your turn" notification to admin2
+[2025-06-30T21:29:04.846Z] [INFO] Sending WhatsApp your_turn notification to 212656053641
+[2025-06-30T21:29:05.088Z] [SUCCESS] WhatsApp your_turn notification sent successfully to 212656053641
+[2025-06-30T21:29:05.089Z] [SUCCESS] Welcome notification sent to admin2
+[2025-06-30T21:29:05.089Z] [INFO] Processed 1 new joiners and 0 position changes
+[2025-06-30T21:29:34.841Z] [INFO] Found 11 active sessions and 1 people in queue

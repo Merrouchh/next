@@ -5,7 +5,7 @@ module.exports = {
       script: 'npm',
       args: 'start',
       cwd: './',
-      instances: 'max',
+      instances: 1,
       exec_mode: 'cluster',
       autorestart: true,
       watch: false,

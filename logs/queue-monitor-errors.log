@@ -1,2 +1,4 @@
 [2025-06-30T20:57:44.826Z] [ERROR] Error fetching active sessions: fetch failed
 [2025-06-30T20:57:44.827Z] [ERROR] Error fetching queue: TypeError: fetch failed
+[2025-06-30T21:28:15.249Z] [ERROR] Error fetching active sessions: fetch failed
+[2025-06-30T21:28:15.249Z] [ERROR] Error fetching queue: TypeError: fetch failed
