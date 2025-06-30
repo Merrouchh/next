@@ -1,2 +1,4 @@
 2025-06-30T21:22:02: (node:21528) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 (Use `node --trace-deprecation ...` to show where the warning was created)
+2025-06-30T21:57:44: ❌ Error fetching active sessions: fetch failed
+2025-06-30T21:57:44: ❌ Error fetching queue: TypeError: fetch failed

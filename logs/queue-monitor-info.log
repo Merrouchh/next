@@ -45,3 +45,209 @@
 [2025-06-30T20:22:03.535Z] [SUCCESS] Features enabled: Auto-removal (30s), Real-time WhatsApp, Automatic mode
 [2025-06-30T20:22:33.694Z] [INFO] Found 11 active sessions and 0 people in queue
 [2025-06-30T20:22:33.695Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:23:03.691Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:23:03.692Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:23:33.784Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:23:33.785Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:24:03.758Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:24:03.758Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:24:33.810Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:24:33.811Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:24:50.367Z] [INFO] New joiner detected: admin2 at position 1
+[2025-06-30T20:24:50.368Z] [INFO] Sending "your turn" notification to admin2
+[2025-06-30T20:24:50.368Z] [INFO] Daily WhatsApp rate limit reset
+[2025-06-30T20:24:50.368Z] [INFO] Sending WhatsApp your_turn notification to 212656053641
+[2025-06-30T20:24:50.592Z] [SUCCESS] WhatsApp your_turn notification sent successfully to 212656053641
+[2025-06-30T20:24:50.592Z] [SUCCESS] Welcome notification sent to admin2
+[2025-06-30T20:24:50.593Z] [INFO] Processed 1 new joiners and 0 position changes
+[2025-06-30T20:25:03.751Z] [INFO] Found 11 active sessions and 1 people in queue
+[2025-06-30T20:25:33.735Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:25:33.735Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:26:03.820Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:26:03.821Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:26:33.809Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:26:33.809Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:27:04.022Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:27:04.023Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:27:33.777Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:27:33.778Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:28:03.827Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:28:03.828Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:28:34.010Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:28:34.010Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:29:03.828Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:29:03.828Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:29:33.838Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:29:33.839Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:30:03.893Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:30:03.894Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:30:33.827Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:30:33.827Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:31:03.863Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:31:03.864Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:31:33.881Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:31:33.882Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:32:04.164Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:32:04.164Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:32:33.863Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:32:33.863Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:33:03.955Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:33:03.955Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:33:33.901Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:33:33.901Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:34:03.939Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:34:03.940Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:34:33.923Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:34:33.924Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:35:03.946Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:35:03.946Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:35:33.928Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:35:33.928Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:36:04.197Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:36:04.198Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:36:33.936Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:36:33.937Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:37:04.178Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:37:04.179Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:37:34.025Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:37:34.026Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:38:04.006Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:38:04.006Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:38:33.957Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:38:33.957Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:39:03.994Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:39:03.995Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:39:34.024Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:39:34.025Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:40:04.034Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:40:04.035Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:40:34.053Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:40:34.054Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:41:04.094Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:41:04.094Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:41:34.104Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:41:34.105Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:42:04.286Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:42:04.287Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:42:34.051Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:42:34.052Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:43:04.071Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:43:04.072Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:43:34.045Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:43:34.046Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:44:04.085Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:44:04.086Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:44:34.055Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:44:34.055Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:45:04.080Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:45:04.080Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:45:34.081Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:45:34.082Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:46:04.135Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:46:04.135Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:46:34.084Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:46:34.085Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:47:04.322Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:47:04.323Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:47:34.160Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:47:34.161Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:48:04.138Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:48:04.138Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:48:34.106Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:48:34.106Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:49:04.257Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:49:04.258Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:49:46.825Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:49:46.826Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:50:11.928Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:50:11.929Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:50:34.922Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:50:34.922Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:51:08.425Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:51:08.426Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:51:34.305Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:51:34.305Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:52:04.400Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:52:04.401Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:52:34.168Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:52:34.168Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:53:04.229Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:53:04.230Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:53:34.209Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:53:34.210Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:54:04.198Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:54:04.199Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:54:34.237Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:54:34.238Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:55:04.238Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:55:04.239Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:55:34.378Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:55:34.378Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:56:04.253Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:56:04.253Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:56:34.266Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:56:34.267Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:57:04.504Z] [INFO] Found 11 active sessions and 0 people in queue
+[2025-06-30T20:57:04.505Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:57:44.828Z] [INFO] Found 0 active sessions and 0 people in queue
+[2025-06-30T20:57:44.828Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:58:04.430Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:58:04.431Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:58:34.414Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T20:58:34.414Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:59:04.281Z] [INFO] Found 9 active sessions and 0 people in queue
+[2025-06-30T20:59:04.282Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T20:59:34.402Z] [INFO] Found 9 active sessions and 0 people in queue
+[2025-06-30T20:59:34.402Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:00:05.552Z] [INFO] Found 9 active sessions and 0 people in queue
+[2025-06-30T21:00:05.552Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:00:34.304Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T21:00:34.304Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:01:04.337Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T21:01:04.337Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:01:34.362Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T21:01:34.363Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:02:04.669Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T21:02:04.670Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:02:34.401Z] [INFO] Found 10 active sessions and 0 people in queue
+[2025-06-30T21:02:34.401Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:03:04.359Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:03:04.359Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:03:34.424Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:03:34.425Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:04:04.402Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:04:04.402Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:04:34.829Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:04:34.829Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:05:04.395Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:05:04.395Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:05:34.447Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:05:34.447Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:06:04.475Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:06:04.476Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:06:34.418Z] [INFO] Found 8 active sessions and 0 people in queue
+[2025-06-30T21:06:34.419Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:07:04.687Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:07:04.688Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:07:34.435Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:07:34.435Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:08:04.454Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:08:04.455Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:08:34.432Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:08:34.432Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:09:04.455Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:09:04.456Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:09:34.495Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:09:34.495Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:10:04.470Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:10:04.470Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:10:34.478Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:10:34.478Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:11:04.505Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:11:04.506Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:11:34.556Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:11:34.556Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:12:04.829Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:12:04.830Z] [INFO] Queue is empty, checking automatic mode
+[2025-06-30T21:12:34.534Z] [INFO] Found 7 active sessions and 0 people in queue
+[2025-06-30T21:12:34.535Z] [INFO] Queue is empty, checking automatic mode
