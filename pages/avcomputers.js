@@ -271,6 +271,7 @@ const TopComputers = ({
 const useQueueSystem = (user, supabase) => {
   const [queueStatus, setQueueStatus] = useState(null);
   const [userInQueue, setUserInQueue] = useState(null);
+  const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
   
   const fetchQueueStatus = useCallback(async () => {
     if (!user) return;
@@ -340,6 +341,20 @@ const useQueueSystem = (user, supabase) => {
   }, [user, supabase, fetchQueueStatus]);
 
   const joinQueue = async (computerType = 'any') => {
+    // Prevent multiple simultaneous joins
+    if (isJoiningQueue) {
+      console.log('Already joining queue, preventing duplicate request');
+      return false;
+    }
+
+    // Check if user is already in queue (immediate local check)
+    if (userInQueue) {
+      alert('You are already in the queue!');
+      return false;
+    }
+
+    setIsJoiningQueue(true);
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -356,6 +371,12 @@ const useQueueSystem = (user, supabase) => {
       const result = await response.json();
       
       if (response.ok) {
+        // Immediately update local state to prevent duplicate joins
+        setUserInQueue({ 
+          position: result.position || 1, 
+          computer_type: computerType,
+          id: result.id 
+        });
         alert('You have been added to the queue! We\'ll notify you when a computer becomes available.');
         return true;
       } else {
@@ -366,6 +387,8 @@ const useQueueSystem = (user, supabase) => {
       console.error('Error joining queue:', error);
       alert('Error joining queue');
       return false;
+    } finally {
+      setIsJoiningQueue(false);
     }
   };
 
@@ -403,7 +426,8 @@ const useQueueSystem = (user, supabase) => {
     userInQueue,
     fetchQueueStatus,
     joinQueue,
-    leaveQueue
+    leaveQueue,
+    isJoiningQueue
   };
 };
 
@@ -486,10 +510,13 @@ const AvailableComputers = ({ metaData }) => {
   }, [user, supabase]);
 
   // Queue management
-  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue } = useQueueSystem(user, supabase);
+  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase);
 
   // Handle queue type selection - show confirmation modal
   const handleQueueSelection = (queueType) => {
+    // Prevent selection if already joining
+    if (isJoiningQueue) return;
+    
     setSelectedQueueType(queueType);
     setShowQueueModal(false);
     setShowQueueConfirmation(true);
@@ -501,6 +528,8 @@ const AvailableComputers = ({ metaData }) => {
     if (success) {
       setShowQueueConfirmation(false);
       setSelectedQueueType(null);
+      // Refresh queue status to get updated data
+      fetchQueueStatus();
     }
   };
 
@@ -901,8 +930,12 @@ const AvailableComputers = ({ metaData }) => {
                 <div className={styles.queueInfo}>
                   <span>{queueStatus.current_queue_size} people waiting</span>
                   {queueStatus.allow_online_joining && (
-                    <button className={styles.joinQueueButton} onClick={() => setShowQueueModal(true)}>
-                      Join Queue
+                    <button 
+                      className={styles.joinQueueButton} 
+                      onClick={() => setShowQueueModal(true)}
+                      disabled={isJoiningQueue}
+                    >
+                      {isJoiningQueue ? 'Joining...' : 'Join Queue'}
                     </button>
                   )}
                 </div>
@@ -932,8 +965,9 @@ const AvailableComputers = ({ metaData }) => {
               <button 
                 className={styles.joinWaitingListButton}
                 onClick={() => setShowQueueModal(true)}
+                disabled={isJoiningQueue}
               >
-                📋 Join Waiting List
+                {isJoiningQueue ? '📋 Joining...' : '📋 Join Waiting List'}
               </button>
             </div>
             <div className={styles.waitingListInfo}>
@@ -999,6 +1033,7 @@ const AvailableComputers = ({ metaData }) => {
                   <button 
                     className={styles.preferenceButton}
                     onClick={() => handleQueueSelection('any')}
+                    disabled={isJoiningQueue}
                   >
                     <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
                     <div className={styles.preferenceSubtitle}>Get the next available computer</div>
@@ -1011,6 +1046,7 @@ const AvailableComputers = ({ metaData }) => {
                   <button 
                     className={styles.preferenceButton}
                     onClick={() => handleQueueSelection('bottom')}
+                    disabled={isJoiningQueue}
                   >
                     <div className={styles.preferenceTitle}>⬇️ Bottom Floor Only</div>
                     <div className={styles.preferenceSubtitle}>Bottom floor gaming PCs (PC 1-8)</div>
@@ -1023,6 +1059,7 @@ const AvailableComputers = ({ metaData }) => {
                   <button 
                     className={styles.preferenceButton}
                     onClick={() => handleQueueSelection('top')}
+                    disabled={isJoiningQueue}
                   >
                     <div className={styles.preferenceTitle}>⬆️ Top Floor Only</div>
                     <div className={styles.preferenceSubtitle}>Top floor gaming PCs (PC 9-14)</div>
@@ -1089,8 +1126,9 @@ const AvailableComputers = ({ metaData }) => {
                 <button 
                   className={styles.queueConfirmButton}
                   onClick={handleQueueConfirmation}
+                  disabled={isJoiningQueue}
                 >
-                  Confirm & Join Queue
+                  {isJoiningQueue ? 'Joining...' : 'Confirm & Join Queue'}
                 </button>
               </div>
             </div>
