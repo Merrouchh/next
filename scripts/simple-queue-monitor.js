@@ -306,6 +306,134 @@ async function updateNotificationStatus(queueId, currentPosition) {
 }
 
 /**
+ * Handle automatic mode - turn queue on/off based on queue count
+ */
+async function handleAutomaticMode(queueCount) {
+  try {
+    // Get current queue settings
+    const { data: settings, error } = await supabase
+      .from('queue_settings')
+      .select('is_active, automatic_mode')
+      .eq('id', 1)
+      .single();
+
+    if (error || !settings) {
+      Logger.info('Could not fetch queue settings for automatic mode check');
+      return;
+    }
+
+    if (!settings.automatic_mode) {
+      Logger.debug('Automatic mode is disabled, skipping auto-control');
+      return;
+    }
+
+    const shouldBeActive = queueCount > 0;
+    
+    Logger.info(`🔧 Auto-control check: Queue count=${queueCount}, Currently active=${settings.is_active}, Automatic mode=${settings.automatic_mode}`);
+
+    if (shouldBeActive && !settings.is_active) {
+      // Auto-start queue when people join
+      Logger.info('🚀 Auto-control: Starting queue system (people joined)');
+      const { error: updateError } = await supabase
+        .from('queue_settings')
+        .update({ is_active: true })
+        .eq('id', 1);
+        
+      if (updateError) {
+        Logger.error('❌ Auto-control: Failed to start queue', updateError);
+      } else {
+        Logger.success('✅ Auto-control: Queue system started');
+      }
+    } else if (!shouldBeActive && settings.is_active) {
+      // Auto-stop queue when empty
+      Logger.info('🛑 Auto-control: Stopping queue system (queue empty)');
+      const { error: updateError } = await supabase
+        .from('queue_settings')
+        .update({ is_active: false })
+        .eq('id', 1);
+        
+      if (updateError) {
+        Logger.error('❌ Auto-control: Failed to stop queue', updateError);
+      } else {
+        Logger.success('✅ Auto-control: Queue system stopped');
+      }
+    } else {
+      Logger.debug('✅ Auto-control: Queue state is correct, no changes needed');
+    }
+  } catch (error) {
+    Logger.error('Error handling automatic mode', error);
+  }
+}
+
+/**
+ * Debug function to check queue status and settings
+ */
+async function debugQueueStatus() {
+  try {
+    Logger.info('🔍 DEBUG: Checking queue status and settings...');
+    
+    // Get queue settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('queue_settings')
+      .select('*')
+      .eq('id', 1)
+      .single();
+
+    if (settingsError) {
+      Logger.error('❌ DEBUG: Could not fetch queue settings', settingsError);
+      return;
+    }
+
+    Logger.info(`📊 DEBUG: Queue Settings - Active: ${settings.is_active}, Automatic Mode: ${settings.automatic_mode}`);
+
+    // Get current queue
+    const { data: queueEntries, error: queueError } = await supabase
+      .from('computer_queue')
+      .select('id, user_name, position, status')
+      .eq('status', 'waiting')
+      .order('position');
+
+    if (queueError) {
+      Logger.error('❌ DEBUG: Could not fetch queue entries', queueError);
+      return;
+    }
+
+    Logger.info(`📋 DEBUG: Queue Entries - Count: ${queueEntries.length}`);
+    if (queueEntries.length > 0) {
+      queueEntries.forEach((entry, index) => {
+        Logger.info(`   ${index + 1}. ${entry.user_name} (Position: ${entry.position})`);
+      });
+    }
+
+    // Check if automatic mode should be active
+    const shouldBeActive = queueEntries.length > 0;
+    const automaticModeActive = settings.automatic_mode;
+    const currentlyActive = settings.is_active;
+
+    Logger.info(`🔧 DEBUG: Automatic Mode Analysis:`);
+    Logger.info(`   - Queue count: ${queueEntries.length}`);
+    Logger.info(`   - Should be active: ${shouldBeActive}`);
+    Logger.info(`   - Automatic mode enabled: ${automaticModeActive}`);
+    Logger.info(`   - Currently active: ${currentlyActive}`);
+
+    if (automaticModeActive) {
+      if (shouldBeActive && !currentlyActive) {
+        Logger.info(`⚠️  DEBUG: Queue should be ACTIVE but is INACTIVE`);
+      } else if (!shouldBeActive && currentlyActive) {
+        Logger.info(`⚠️  DEBUG: Queue should be INACTIVE but is ACTIVE`);
+      } else {
+        Logger.info(`✅ DEBUG: Queue state is correct`);
+      }
+    } else {
+      Logger.info(`ℹ️  DEBUG: Automatic mode is disabled`);
+    }
+
+  } catch (error) {
+    Logger.error('❌ DEBUG: Error checking queue status', error);
+  }
+}
+
+/**
  * Main monitoring function - simple and reliable
  */
 async function monitorQueue() {
@@ -325,6 +453,9 @@ async function monitorQueue() {
     ]);
 
     Logger.info(`Found ${activeSessions.length} active sessions and ${queueEntries.length} queue entries`);
+
+    // Handle automatic mode first
+    await handleAutomaticMode(queueEntries.length);
 
     if (queueEntries.length === 0) {
       Logger.info('Queue is empty');
@@ -353,6 +484,13 @@ async function monitorQueue() {
       Logger.info(`Removing ${toRemove.length} logged-in users`);
       for (const { entry, reason } of toRemove) {
         await removeFromQueue(entry.id, entry.user_name, reason);
+      }
+      
+      // Re-check automatic mode after removals
+      const remainingCount = queueEntries.length - toRemove.length;
+      if (remainingCount !== queueEntries.length) {
+        Logger.info(`Queue count changed from ${queueEntries.length} to ${remainingCount}, re-checking automatic mode`);
+        await handleAutomaticMode(remainingCount);
       }
     }
 
@@ -439,12 +577,28 @@ async function main() {
   Logger.success('🚀 Simple Queue Monitor Started');
   Logger.info('📊 Polling every 10 seconds - simple and reliable');
 
+  // Check if debug mode is enabled
+  const debugMode = process.argv.includes('--debug');
+  if (debugMode) {
+    Logger.info('🔍 DEBUG MODE ENABLED - will show detailed logs');
+  }
+
+  // Initial debug check if in debug mode
+  if (debugMode) {
+    await debugQueueStatus();
+  }
+
   // Initial run
   await monitorQueue();
 
   // Set up interval
   const interval = setInterval(async () => {
     await monitorQueue();
+    
+    // Run debug check every 5 minutes in debug mode
+    if (debugMode && Math.random() < 0.1) { // ~10% chance each cycle (roughly every 5 minutes)
+      await debugQueueStatus();
+    }
   }, 10000); // Every 10 seconds
 
   // Graceful shutdown
@@ -456,6 +610,8 @@ async function main() {
   });
 
   Logger.success('✅ System ready - monitoring every 10 seconds');
+  Logger.info('💡 Use --debug flag for detailed logging');
+  Logger.info('💡 Features: Auto-removal, WhatsApp notifications, Automatic mode control');
 }
 
 // Run the script
@@ -464,4 +620,12 @@ if (require.main === module) {
     Logger.error('Fatal error', error);
     process.exit(1);
   });
-} 
+}
+
+module.exports = {
+  monitorQueue,
+  handleAutomaticMode,
+  debugQueueStatus,
+  fetchQueue,
+  fetchActiveSessions
+}; 
