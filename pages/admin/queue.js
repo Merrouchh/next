@@ -120,11 +120,6 @@ export default function AdminQueue() {
         
         const newQueueList = data.queue || [];
         setQueueList(newQueueList);
-        
-        // Auto-control queue if automatic mode is enabled
-        if (status.automatic_mode) {
-          autoControlQueue(newQueueList.length, status.automatic_mode);
-        }
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -240,64 +235,6 @@ export default function AdminQueue() {
     }
   };
 
-  // Auto-control queue system based on queue count (when automatic mode is on)
-  const autoControlQueue = async (currentQueueCount, isAutomaticMode = automaticMode) => {
-    if (!isAutomaticMode) {
-      console.log('🔧 Auto-control skipped: Automatic mode is disabled');
-      return;
-    }
-
-    console.log(`🔧 Auto-control check: Queue count=${currentQueueCount}, Currently active=${queueActive}, Automatic mode=${isAutomaticMode}`);
-
-    const shouldBeActive = currentQueueCount > 0;
-    
-    if (shouldBeActive && !queueActive) {
-      // Auto-start queue when people join
-      console.log('🚀 Auto-control: Starting queue system (people joined)');
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const response = await fetch('/api/queue/manage', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData?.session?.access_token}`
-          },
-          body: JSON.stringify({ isActive: true })
-        });
-        if (response.ok) {
-          setQueueActive(true);
-          console.log('✅ Auto-control: Queue system started');
-          toast.success('Queue system auto-started');
-        }
-      } catch (error) {
-        console.error('❌ Auto-control: Failed to start queue:', error);
-      }
-    } else if (!shouldBeActive && queueActive) {
-      // Auto-stop queue when empty
-      console.log('🛑 Auto-control: Stopping queue system (queue empty)');
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const response = await fetch('/api/queue/manage', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData?.session?.access_token}`
-          },
-          body: JSON.stringify({ isActive: false })
-        });
-        if (response.ok) {
-          setQueueActive(false);
-          console.log('✅ Auto-control: Queue system stopped');
-          toast.success('Queue system auto-stopped');
-        }
-      } catch (error) {
-        console.error('❌ Auto-control: Failed to stop queue:', error);
-      }
-    } else {
-      console.log('✅ Auto-control: Queue state is correct, no changes needed');
-    }
-  };
-
   // =============================================================================
   // 4. ALLOW/BLOCK ONLINE USERS FROM JOINING - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
@@ -394,24 +331,6 @@ export default function AdminQueue() {
       return;
     }
 
-    // If automatic mode is on and queue is not active, start it first
-    if (automaticMode && !queueActive) {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        await fetch('/api/queue/manage', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData?.session?.access_token}`
-          },
-          body: JSON.stringify({ isActive: true })
-        });
-        setQueueActive(true);
-      } catch (error) {
-        console.error('Error auto-starting queue:', error);
-      }
-    }
-
     setAddingPerson(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -476,28 +395,6 @@ export default function AdminQueue() {
 
       if (response.ok) {
         showModal('success', 'Person Removed', `${name} has been successfully removed from the queue.`);
-        
-        // Check automatic mode immediately if queue becomes empty
-        if (automaticMode && updatedQueue.length === 0 && queueActive) {
-          console.log('🔄 Automatic mode: Queue is now empty, turning off system...');
-          try {
-            const autoResponse = await fetch('/api/queue/manage', {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionData?.session?.access_token}`
-              },
-              body: JSON.stringify({ isActive: false })
-            });
-            
-            if (autoResponse.ok) {
-              console.log('✅ Automatic mode: Queue system auto-stopped (queue empty)');
-              toast.success('Queue system auto-stopped (queue empty)');
-            }
-          } catch (error) {
-            console.error('Error in automatic mode check:', error);
-          }
-        }
         
         // Refresh to ensure positions are correct
         setTimeout(() => {
@@ -617,36 +514,9 @@ export default function AdminQueue() {
       // Reduced backup polling frequency since we have better real-time updates
       const interval = setInterval(() => loadQueueData(0, false), 30000); // Every 30 seconds
       
-      // Add automatic mode check interval - handles case when queue monitor isn't running
-      const automaticModeInterval = setInterval(async () => {
-        if (automaticModeRef.current && queueListRef.current.length === 0 && queueActiveRef.current) {
-          console.log('🔄 Automatic mode: Queue is empty, checking if system should be turned off...');
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            const response = await fetch('/api/queue/manage', {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionData?.session?.access_token}`
-              },
-              body: JSON.stringify({ isActive: false })
-            });
-            
-            if (response.ok) {
-              console.log('✅ Automatic mode: Queue system auto-stopped (queue empty)');
-              // Don't set state here since it will be updated by the real-time subscription
-              toast.success('Queue system auto-stopped (queue empty)');
-            }
-          } catch (error) {
-            console.error('Error in automatic mode check:', error);
-          }
-        }
-      }, 30000); // Every 30 seconds
-      
       return () => {
         queueSubscription.unsubscribe();
         clearInterval(interval);
-        clearInterval(automaticModeInterval);
       };
     }
   }, [user, supabase]);
