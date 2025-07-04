@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import QueueAdminModal from '../../components/QueueAdminModal';
@@ -42,6 +42,24 @@ export default function AdminQueue() {
   // Add loading states for individual operations
   const [movingPerson, setMovingPerson] = useState(null);
   const [removingPerson, setRemovingPerson] = useState(null);
+  
+  // Add refs for automatic mode check to avoid recreating intervals
+  const automaticModeRef = useRef(automaticMode);
+  const queueListRef = useRef(queueList);
+  const queueActiveRef = useRef(queueActive);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    automaticModeRef.current = automaticMode;
+  }, [automaticMode]);
+  
+  useEffect(() => {
+    queueListRef.current = queueList;
+  }, [queueList]);
+  
+  useEffect(() => {
+    queueActiveRef.current = queueActive;
+  }, [queueActive]);
   
   // Modal state
   const [modal, setModal] = useState({
@@ -224,12 +242,18 @@ export default function AdminQueue() {
 
   // Auto-control queue system based on queue count (when automatic mode is on)
   const autoControlQueue = async (currentQueueCount, isAutomaticMode = automaticMode) => {
-    if (!isAutomaticMode) return;
+    if (!isAutomaticMode) {
+      console.log('🔧 Auto-control skipped: Automatic mode is disabled');
+      return;
+    }
+
+    console.log(`🔧 Auto-control check: Queue count=${currentQueueCount}, Currently active=${queueActive}, Automatic mode=${isAutomaticMode}`);
 
     const shouldBeActive = currentQueueCount > 0;
     
     if (shouldBeActive && !queueActive) {
       // Auto-start queue when people join
+      console.log('🚀 Auto-control: Starting queue system (people joined)');
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const response = await fetch('/api/queue/manage', {
@@ -242,12 +266,15 @@ export default function AdminQueue() {
         });
         if (response.ok) {
           setQueueActive(true);
+          console.log('✅ Auto-control: Queue system started');
+          toast.success('Queue system auto-started');
         }
       } catch (error) {
-        console.error('Auto-start queue error:', error);
+        console.error('❌ Auto-control: Failed to start queue:', error);
       }
     } else if (!shouldBeActive && queueActive) {
       // Auto-stop queue when empty
+      console.log('🛑 Auto-control: Stopping queue system (queue empty)');
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const response = await fetch('/api/queue/manage', {
@@ -260,10 +287,14 @@ export default function AdminQueue() {
         });
         if (response.ok) {
           setQueueActive(false);
+          console.log('✅ Auto-control: Queue system stopped');
+          toast.success('Queue system auto-stopped');
         }
       } catch (error) {
-        console.error('Auto-stop queue error:', error);
+        console.error('❌ Auto-control: Failed to stop queue:', error);
       }
+    } else {
+      console.log('✅ Auto-control: Queue state is correct, no changes needed');
     }
   };
 
@@ -433,7 +464,8 @@ export default function AdminQueue() {
     
     // Optimistic update - remove from UI immediately
     const previousQueueList = [...queueList];
-    setQueueList(prev => prev.filter(person => person.id !== id));
+    const updatedQueue = previousQueueList.filter(person => person.id !== id);
+    setQueueList(updatedQueue);
     
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -444,6 +476,28 @@ export default function AdminQueue() {
 
       if (response.ok) {
         showModal('success', 'Person Removed', `${name} has been successfully removed from the queue.`);
+        
+        // Check automatic mode immediately if queue becomes empty
+        if (automaticMode && updatedQueue.length === 0 && queueActive) {
+          console.log('🔄 Automatic mode: Queue is now empty, turning off system...');
+          try {
+            const autoResponse = await fetch('/api/queue/manage', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionData?.session?.access_token}`
+              },
+              body: JSON.stringify({ isActive: false })
+            });
+            
+            if (autoResponse.ok) {
+              console.log('✅ Automatic mode: Queue system auto-stopped (queue empty)');
+              toast.success('Queue system auto-stopped (queue empty)');
+            }
+          } catch (error) {
+            console.error('Error in automatic mode check:', error);
+          }
+        }
         
         // Refresh to ensure positions are correct
         setTimeout(() => {
@@ -563,9 +617,36 @@ export default function AdminQueue() {
       // Reduced backup polling frequency since we have better real-time updates
       const interval = setInterval(() => loadQueueData(0, false), 30000); // Every 30 seconds
       
+      // Add automatic mode check interval - handles case when queue monitor isn't running
+      const automaticModeInterval = setInterval(async () => {
+        if (automaticModeRef.current && queueListRef.current.length === 0 && queueActiveRef.current) {
+          console.log('🔄 Automatic mode: Queue is empty, checking if system should be turned off...');
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const response = await fetch('/api/queue/manage', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionData?.session?.access_token}`
+              },
+              body: JSON.stringify({ isActive: false })
+            });
+            
+            if (response.ok) {
+              console.log('✅ Automatic mode: Queue system auto-stopped (queue empty)');
+              // Don't set state here since it will be updated by the real-time subscription
+              toast.success('Queue system auto-stopped (queue empty)');
+            }
+          } catch (error) {
+            console.error('Error in automatic mode check:', error);
+          }
+        }
+      }, 30000); // Every 30 seconds
+      
       return () => {
         queueSubscription.unsubscribe();
         clearInterval(interval);
+        clearInterval(automaticModeInterval);
       };
     }
   }, [user, supabase]);
