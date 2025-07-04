@@ -1,0 +1,255 @@
+[2025-07-04T19:16:47.177Z] [SUCCESS] 🚀 Simple Queue Monitor Started
+[2025-07-04T19:16:47.191Z] [INFO] 📊 Polling every 10 seconds - simple and reliable
+[2025-07-04T19:16:47.192Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:16:47.569Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:16:47.720Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:16:47.721Z] [SUCCESS] ✅ System ready - monitoring every 10 seconds
+[2025-07-04T19:16:57.730Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:16:57.980Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:16:58.071Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:07.744Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:07.854Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:17:07.927Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:17.748Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:17.972Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:17:18.214Z] [INFO] 📱 Sending notification to admin2 (position 4)
+[2025-07-04T19:17:18.215Z] [INFO] 📱 Sending client_queue to admin2 (position 4)
+[2025-07-04T19:17:18.541Z] [SUCCESS] WhatsApp sent to admin2
+[2025-07-04T19:17:19.702Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:27.759Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:27.941Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:17:28.034Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:37.763Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:38.145Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:17:38.284Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:47.764Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:47.890Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:17:47.981Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:17:57.774Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:17:57.948Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:17:58.150Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:07.779Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:07.944Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:18:08.039Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:17.785Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:18.219Z] [INFO] Found 10 active sessions and 5 queue entries
+[2025-07-04T19:18:18.376Z] [INFO] Removing 1 logged-in users
+[2025-07-04T19:18:18.523Z] [SUCCESS] Removed natris from queue (logged_in_to_computer)
+[2025-07-04T19:18:18.524Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:27.788Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:28.189Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:18:28.296Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:37.799Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:38.026Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:18:38.137Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:47.800Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:48.055Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:18:48.204Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:18:57.807Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:18:57.978Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:18:58.069Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:19:07.810Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:19:07.975Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:19:08.064Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:19:17.823Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:19:18.023Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:19:18.111Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:19:27.831Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:19:28.103Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:19:28.233Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:19:37.833Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:19:38.787Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:19:38.887Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:19:47.839Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:19:48.008Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:19:48.097Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:20:59.317Z] [SUCCESS] 🚀 Simple Queue Monitor Started
+[2025-07-04T19:20:59.319Z] [INFO] 📊 Polling every 10 seconds - simple and reliable
+[2025-07-04T19:20:59.320Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:20:59.722Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:20:59.857Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:20:59.858Z] [SUCCESS] ✅ System ready - monitoring every 10 seconds
+[2025-07-04T19:21:09.869Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:21:10.033Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:21:10.120Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:21:19.878Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:21:20.462Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:21:20.664Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:21:29.884Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:21:30.358Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:21:30.503Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:21:39.897Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:21:40.100Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:21:40.190Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:21:49.907Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:21:50.185Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:21:50.293Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:21:59.921Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:00.357Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:22:00.447Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:09.932Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:10.261Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:22:10.347Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:19.944Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:20.614Z] [INFO] Found 10 active sessions and 4 queue entries
+[2025-07-04T19:22:21.449Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:29.953Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:31.420Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:22:31.668Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:39.960Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:40.132Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:22:40.332Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:49.962Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:22:50.331Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:22:50.421Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:22:59.963Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:01.174Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:01.257Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:23:09.973Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:10.153Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:10.355Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:23:19.975Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:20.431Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:20.629Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:23:29.981Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:30.775Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:31.032Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:23:39.995Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:40.189Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:40.280Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:23:49.997Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:23:50.655Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:23:50.887Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:00.005Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:00.675Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:00.914Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:10.019Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:10.200Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:10.403Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:20.021Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:20.389Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:20.826Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:30.035Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:30.202Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:30.291Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:40.036Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:40.238Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:40.318Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:24:50.050Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:24:50.508Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:24:50.586Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:00.061Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:00.438Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:00.884Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:10.075Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:10.323Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:10.415Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:20.077Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:21.234Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:21.314Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:30.088Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:31.283Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:31.365Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:40.088Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:40.258Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:40.343Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:25:50.093Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:25:50.262Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:25:50.404Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:00.105Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:00.314Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:26:00.413Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:10.115Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:10.278Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:26:10.361Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:20.115Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:20.281Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:26:20.374Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:30.118Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:30.391Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:26:30.480Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:40.128Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:40.754Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:26:40.848Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:26:50.136Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:26:50.447Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:26:50.548Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:00.150Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:00.515Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:27:00.605Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:10.160Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:10.598Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:27:10.700Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:20.163Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:20.575Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:27:20.673Z] [INFO] 📱 Sending notification to admin2 (position 3) - Reason: periodic_update
+[2025-07-04T19:27:20.674Z] [INFO] 📱 Sending client_queue to admin2 (position 3)
+[2025-07-04T19:27:21.229Z] [SUCCESS] WhatsApp sent to admin2
+[2025-07-04T19:27:21.331Z] [SUCCESS] ✅ Notified admin2 about periodic_update
+[2025-07-04T19:27:22.331Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:30.172Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:30.591Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:27:30.678Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:40.175Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:40.353Z] [INFO] Found 9 active sessions and 3 queue entries
+[2025-07-04T19:27:40.449Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:27:50.182Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:27:50.616Z] [INFO] Found 10 active sessions and 3 queue entries
+[2025-07-04T19:27:50.719Z] [INFO] Removing 1 logged-in users
+[2025-07-04T19:27:50.835Z] [SUCCESS] Removed urhusband from queue (logged_in_to_computer)
+[2025-07-04T19:27:50.836Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:00.197Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:00.427Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:00.512Z] [INFO] 📱 Sending notification to admin2 (position 2) - Reason: advanced_from_3_to_2
+[2025-07-04T19:28:00.513Z] [INFO] 📱 Sending client_queue to admin2 (position 2)
+[2025-07-04T19:28:00.830Z] [SUCCESS] WhatsApp sent to admin2
+[2025-07-04T19:28:00.915Z] [SUCCESS] ✅ Notified admin2 about advanced_from_3_to_2
+[2025-07-04T19:28:01.917Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:10.198Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:10.661Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:10.850Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:20.207Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:20.419Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:20.629Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:30.216Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:30.389Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:30.568Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:40.219Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:40.403Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:40.473Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:28:50.225Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:28:50.419Z] [INFO] Found 10 active sessions and 2 queue entries
+[2025-07-04T19:28:50.492Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:00.234Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:00.402Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:00.497Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:10.240Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:10.777Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:10.994Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:20.249Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:20.521Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:20.612Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:30.250Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:30.566Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:30.654Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:40.254Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:40.493Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:40.593Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:29:50.255Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:29:50.566Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:29:50.682Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:30:00.262Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:30:00.543Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:30:00.639Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:30:10.271Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:30:10.718Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:30:10.803Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:30:20.280Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:30:20.847Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:30:20.932Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:30:30.282Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:30:31.198Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:30:31.274Z] [SUCCESS] Queue monitoring cycle completed
+[2025-07-04T19:30:40.290Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-07-04T19:30:40.727Z] [INFO] Found 11 active sessions and 2 queue entries
+[2025-07-04T19:30:40.812Z] [SUCCESS] Queue monitoring cycle completed

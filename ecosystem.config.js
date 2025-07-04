@@ -21,24 +21,23 @@ module.exports = {
       merge_logs: true
     },
     {
-      name: 'queue-monitor-realtime',
-      script: './scripts/queue-monitor.js',
-      args: '--realtime',
+      name: 'simple-queue-monitor',
+      script: './scripts/simple-queue-monitor.js',
       cwd: './',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      max_memory_restart: '800M',
+      max_memory_restart: '512M',
       min_uptime: '10s',
-      max_restarts: 5,
-      restart_delay: 4000,
+      max_restarts: 3,
+      restart_delay: 5000,
       env: {
         NODE_ENV: 'production'
       },
-      error_file: './logs/queue-monitor-pm2-error.log',
-      out_file: './logs/queue-monitor-pm2-out.log',
-      log_file: './logs/queue-monitor-pm2-combined.log',
+      error_file: './logs/simple-queue-monitor-error.log',
+      out_file: './logs/simple-queue-monitor-out.log',
+      log_file: './logs/simple-queue-monitor-combined.log',
       time: true,
       merge_logs: true
     },
