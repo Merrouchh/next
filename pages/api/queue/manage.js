@@ -118,11 +118,11 @@ export default async function handler(req, res) {
   }
 }
 
-// Add someone to the queue (physical waiter)
+// Add someone to the queue (physical waiter) - IMPROVED
 async function handleAddToQueue(req, res, admin) {
   const { userName, phoneNumber, notes, computerType = 'any', isPhysical = true, userId } = req.body;
 
-  if (!userName) {
+  if (!userName || !userName.trim()) {
     return res.status(400).json({ error: 'Username is required' });
   }
 
@@ -136,7 +136,7 @@ async function handleAddToQueue(req, res, admin) {
       const { data: userData } = await supabase
         .from('users')
         .select('id, username, phone')
-        .eq('username', userName.toLowerCase())
+        .eq('username', userName.trim().toLowerCase())
         .single();
 
       if (userData) {
@@ -152,26 +152,67 @@ async function handleAddToQueue(req, res, admin) {
     if (finalUserId) {
       const { data: existingEntry } = await supabase
         .from('computer_queue')
-        .select('id')
+        .select('id, position, user_name')
         .eq('user_id', finalUserId)
         .eq('status', 'waiting')
         .single();
 
       if (existingEntry) {
-        return res.status(400).json({ error: 'User is already in the queue' });
+        return res.status(400).json({ 
+          error: `User ${existingEntry.user_name} is already in the queue at position ${existingEntry.position}` 
+        });
       }
     }
 
-    // Get next position
-    const { data: nextPos } = await supabase.rpc('get_next_queue_position');
+    // Also check by username to prevent duplicates
+    const { data: duplicateCheck } = await supabase
+      .from('computer_queue')
+      .select('id, position, user_name')
+      .eq('user_name', userName.trim())
+      .eq('status', 'waiting')
+      .single();
 
-    // Add to queue
+    if (duplicateCheck) {
+      return res.status(400).json({ 
+        error: `Username ${duplicateCheck.user_name} is already in the queue at position ${duplicateCheck.position}` 
+      });
+    }
+
+    // Get next position with retry logic
+    let nextPos;
+    let retries = 3;
+    
+    while (retries > 0) {
+      try {
+        const { data: nextPosData, error: posError } = await supabase.rpc('get_next_queue_position');
+        
+        if (posError) {
+          console.error('Error getting next position:', posError);
+          throw posError;
+        }
+        
+        nextPos = nextPosData;
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    if (!nextPos) {
+      return res.status(500).json({ error: 'Failed to get next queue position' });
+    }
+
+    // Add to queue with validation
     const { data: queueEntry, error: insertError } = await supabase
       .from('computer_queue')
       .insert({
-        user_name: userName,
-        phone_number: finalPhoneNumber,
-        notes: notes,
+        user_name: userName.trim(),
+        phone_number: finalPhoneNumber?.trim() || null,
+        notes: notes?.trim() || null,
         computer_type: computerType,
         position: nextPos,
         is_physical: isPhysical,
@@ -183,10 +224,21 @@ async function handleAddToQueue(req, res, admin) {
 
     if (insertError) {
       console.error('Error adding to queue:', insertError);
+      if (insertError.code === '23505') { // Unique constraint violation
+        return res.status(400).json({ error: 'User is already in the queue' });
+      }
       return res.status(500).json({ error: 'Failed to add to queue' });
     }
 
-    // Queue entry added successfully
+    // Verify the addition was successful
+    if (!queueEntry) {
+      return res.status(500).json({ error: 'Failed to add to queue - no entry returned' });
+    }
+
+    // Add small delay to ensure database consistency
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log(`Queue addition successful: ${userName} added at position ${nextPos}`);
 
     // Check and handle automatic mode after addition
     await handleAutomaticModeAfterChange();
@@ -267,10 +319,10 @@ async function handleRemoveFromQueue(req, res, admin) {
   }
 
   try {
-    // Get the entry being removed to check if it was position 1
+    // Get the entry being removed with more details
     const { data: removedEntry, error: fetchError } = await supabase
       .from('computer_queue')
-      .select('position, user_name')
+      .select('id, position, user_name, status')
       .eq('id', id)
       .single();
 
@@ -279,32 +331,79 @@ async function handleRemoveFromQueue(req, res, admin) {
       return res.status(500).json({ error: 'Failed to find queue entry' });
     }
 
-    const wasPosition1 = removedEntry?.position === 1;
+    if (!removedEntry) {
+      return res.status(404).json({ error: 'Queue entry not found' });
+    }
 
-    // Remove from queue
+    if (removedEntry.status !== 'waiting') {
+      return res.status(400).json({ error: 'Cannot remove entry that is not waiting' });
+    }
+
+    const wasPosition1 = removedEntry.position === 1;
+    const removedPosition = removedEntry.position;
+
+    // Remove from queue with better error handling
     const { error: deleteError } = await supabase
       .from('computer_queue')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'waiting'); // Extra safety check
 
     if (deleteError) {
       console.error('Error removing from queue:', deleteError);
       return res.status(500).json({ error: 'Failed to remove from queue' });
     }
 
-    // Add a small delay to ensure database operations are complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Verify the removal was successful
+    const { data: verifyRemoval } = await supabase
+      .from('computer_queue')
+      .select('id')
+      .eq('id', id)
+      .single();
 
-    // Queue positions will be automatically updated by database triggers
+    if (verifyRemoval) {
+      console.error('Queue entry still exists after deletion attempt');
+      return res.status(500).json({ error: 'Failed to remove from queue - entry still exists' });
+    }
 
+    // Add delay to allow database triggers to complete position reordering
+    await new Promise(resolve => setTimeout(resolve, 200));
 
+    // Verify position reordering worked correctly
+    const { data: remainingQueue } = await supabase
+      .from('computer_queue')
+      .select('id, position')
+      .eq('status', 'waiting')
+      .order('position');
+
+    if (remainingQueue && remainingQueue.length > 0) {
+      // Check if positions are sequential starting from 1
+      const expectedPositions = remainingQueue.map((_, index) => index + 1);
+      const actualPositions = remainingQueue.map(entry => entry.position);
+      
+      if (JSON.stringify(expectedPositions) !== JSON.stringify(actualPositions)) {
+        console.warn('Position reordering may not be complete:', {
+          expected: expectedPositions,
+          actual: actualPositions
+        });
+      }
+    }
+
+    console.log(`Queue removal successful: ${removedEntry.user_name} removed from position ${removedPosition}`);
 
     // Check and handle automatic mode after removal
     await handleAutomaticModeAfterChange();
 
     return res.status(200).json({
       success: true,
-      message: 'Removed from queue'
+      message: 'Removed from queue successfully',
+      data: {
+        removed: {
+          id: id,
+          name: removedEntry.user_name,
+          position: removedPosition
+        }
+      }
     });
 
   } catch (error) {

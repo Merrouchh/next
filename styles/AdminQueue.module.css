@@ -204,11 +204,11 @@
   background: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   gap: 15px;
-  border-left: 4px solid #007bff;
+  border: 2px solid #f0f0f0;
 }
 
 .statCard svg {
@@ -218,15 +218,117 @@
 
 .statNumber {
   font-size: 2.5rem;
-  font-weight: bold;
+  font-weight: 700;
   color: #333;
-  line-height: 1;
+  margin: 0;
 }
 
 .statLabel {
   font-size: 0.9rem;
   color: #666;
-  margin-top: 2px;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================================================== */
+/* REFRESH INDICATOR AND LOADING STATES */
+/* =========================================================================== */
+
+.refreshIndicator {
+  color: #007bff;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.refreshIndicator:before {
+  content: "⟳";
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.queueHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* =========================================================================== */
+/* QUEUE PERSON OPERATION STATES */
+/* =========================================================================== */
+
+.queuePerson.removing {
+  opacity: 0.6;
+  background: #ffe6e6;
+  border-color: #ffcccc;
+  transform: scale(0.98);
+  transition: all 0.3s ease;
+}
+
+.queuePerson.moving {
+  background: #e6f3ff;
+  border-color: #cce6ff;
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+.operationStatus {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.queuePerson.removing .operationStatus {
+  background: #dc3545;
+}
+
+.queuePerson.moving .operationStatus {
+  background: #28a745;
+}
+
+/* =========================================================================== */
+/* ENHANCED BUTTON STATES */
+/* =========================================================================== */
+
+.positionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.removeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.addSubmitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Form field disabled states */
+.formGroup input:disabled,
+.formGroup select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
 }
 
 /* =========================================================================== */

@@ -17,8 +17,8 @@ export default function AdminQueue() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // Debouncing for API calls
-  const [refreshTimeout, setRefreshTimeout] = useState(null);
+  // Remove debouncing - use immediate updates instead
+  const [refreshing, setRefreshing] = useState(false);
   
   // Queue system state
   const [queueActive, setQueueActive] = useState(false);
@@ -38,6 +38,10 @@ export default function AdminQueue() {
   const [foundUser, setFoundUser] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Add loading states for individual operations
+  const [movingPerson, setMovingPerson] = useState(null);
+  const [removingPerson, setRemovingPerson] = useState(null);
   
   // Modal state
   const [modal, setModal] = useState({
@@ -70,61 +74,36 @@ export default function AdminQueue() {
   };
 
   // =============================================================================
-  // 1. LOAD QUEUE DATA (runs when page loads)
+  // 1. LOAD QUEUE DATA (runs when page loads) - IMPROVED VERSION
   // =============================================================================
   
-  // Debounced version to prevent API spam
-  const debouncedLoadQueueData = () => {
-    if (refreshTimeout) {
-      clearTimeout(refreshTimeout);
+  // Immediate refresh function - no debouncing
+  const loadQueueData = async (retryCount = 0, showLoader = true) => {
+    if (showLoader && !refreshing) {
+      setRefreshing(true);
     }
     
-    const timeoutId = setTimeout(() => {
-      console.log('📱 Loading queue data (debounced)...');
-      loadQueueData();
-      setRefreshTimeout(null);
-    }, 1000); // Wait 1 second for rapid changes to settle
-    
-    setRefreshTimeout(timeoutId);
-  };
-
-  const loadQueueData = async (retryCount = 0) => {
     try {
       const response = await fetch('/api/queue/status');
       if (response.ok) {
         const data = await response.json();
-        console.log('Queue status response:', data.status); // Debug log
+        console.log('Queue status response:', data.status);
         
         // The status is an array, get the first element
         const status = Array.isArray(data.status) ? data.status[0] : data.status;
-        console.log('Status object:', status); // Debug log
         
         setQueueActive(status.is_active);
         setOnlineJoiningAllowed(status.allow_online_joining);
         
         // Load automatic mode setting from database
-        console.log('Automatic mode from DB:', status.automatic_mode); // Debug log
         if (status.automatic_mode !== undefined) {
           setAutomaticMode(status.automatic_mode);
-          console.log('Set automatic mode to:', status.automatic_mode);
-        } else {
-          console.log('automatic_mode field not found in response');
         }
         
         const newQueueList = data.queue || [];
-        // Debug: Log first person's fields to see what phone fields are available
-        if (newQueueList.length > 0) {
-          console.log('Person object fields:', Object.keys(newQueueList[0]));
-          console.log('Phone-related fields:', {
-            phone: newQueueList[0].phone,
-            phone_number: newQueueList[0].phone_number,
-            user_phone: newQueueList[0].user_phone
-          });
-        }
         setQueueList(newQueueList);
         
         // Auto-control queue if automatic mode is enabled
-        // Use the automatic mode from the database response
         if (status.automatic_mode) {
           autoControlQueue(newQueueList.length, status.automatic_mode);
         }
@@ -142,8 +121,8 @@ export default function AdminQueue() {
       )) {
         console.log(`🔄 Retrying queue data load... (attempt ${retryCount + 1})`);
         setTimeout(() => {
-          loadQueueData(retryCount + 1);
-        }, (retryCount + 1) * 2000); // Exponential backoff: 2s, 4s
+          loadQueueData(retryCount + 1, false);
+        }, (retryCount + 1) * 1000); // Exponential backoff: 1s, 2s
         return;
       }
       
@@ -153,14 +132,20 @@ export default function AdminQueue() {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   // =============================================================================
-  // 2. START/STOP QUEUE SYSTEM
+  // 2. START/STOP QUEUE SYSTEM - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
   const toggleQueueSystem = async () => {
     setSaving(true);
+    
+    // Optimistic update
+    const previousState = queueActive;
+    setQueueActive(!queueActive);
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch('/api/queue/manage', {
@@ -169,22 +154,25 @@ export default function AdminQueue() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionData?.session?.access_token}`
         },
-        body: JSON.stringify({ isActive: !queueActive })
+        body: JSON.stringify({ isActive: !previousState })
       });
 
       if (response.ok) {
-        setQueueActive(!queueActive);
         showModal('success', 'Queue System Updated', 
-          queueActive ? 'Queue system has been stopped.' : 'Queue system has been started.');
+          previousState ? 'Queue system has been stopped.' : 'Queue system has been started.');
         
-        // Force refresh of queue data to ensure all pages sync
+        // Force refresh to ensure all data is in sync
         setTimeout(() => {
-          loadQueueData();
-        }, 1000);
+          loadQueueData(0, false);
+        }, 500);
       } else {
+        // Revert optimistic update on error
+        setQueueActive(previousState);
         showModal('error', 'Error', 'Failed to update queue system. Please try again.');
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setQueueActive(previousState);
       showModal('error', 'Error', 'Failed to update queue system. Please try again.');
     } finally {
       setSaving(false);
@@ -192,10 +180,15 @@ export default function AdminQueue() {
   };
 
   // =============================================================================
-  // 3. TOGGLE AUTOMATIC MODE (auto on/off based on queue count)
+  // 3. TOGGLE AUTOMATIC MODE - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
   const toggleAutomaticMode = async () => {
     setSaving(true);
+    
+    // Optimistic update
+    const previousState = automaticMode;
+    setAutomaticMode(!automaticMode);
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch('/api/queue/manage', {
@@ -204,12 +197,11 @@ export default function AdminQueue() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionData?.session?.access_token}`
         },
-        body: JSON.stringify({ automaticMode: !automaticMode })
+        body: JSON.stringify({ automaticMode: !previousState })
       });
 
       if (response.ok) {
-        setAutomaticMode(!automaticMode);
-        if (!automaticMode) {
+        if (!previousState) {
           showModal('success', 'Automatic Mode Enabled', 
             'Queue will automatically turn ON when people join and OFF when empty.');
         } else {
@@ -217,9 +209,13 @@ export default function AdminQueue() {
             'Manual control has been restored. You can now manually start/stop the queue.');
         }
       } else {
+        // Revert optimistic update on error
+        setAutomaticMode(previousState);
         showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setAutomaticMode(previousState);
       showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
     } finally {
       setSaving(false);
@@ -272,10 +268,15 @@ export default function AdminQueue() {
   };
 
   // =============================================================================
-  // 4. ALLOW/BLOCK ONLINE USERS FROM JOINING
+  // 4. ALLOW/BLOCK ONLINE USERS FROM JOINING - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
   const toggleOnlineJoining = async () => {
     setSaving(true);
+    
+    // Optimistic update
+    const previousState = onlineJoiningAllowed;
+    setOnlineJoiningAllowed(!onlineJoiningAllowed);
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch('/api/queue/manage', {
@@ -284,17 +285,20 @@ export default function AdminQueue() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${sessionData?.session?.access_token}`
         },
-        body: JSON.stringify({ allowOnlineJoining: !onlineJoiningAllowed })
+        body: JSON.stringify({ allowOnlineJoining: !previousState })
       });
 
       if (response.ok) {
-        setOnlineJoiningAllowed(!onlineJoiningAllowed);
         showModal('success', 'Online Joining Updated', 
-          onlineJoiningAllowed ? 'Online joining has been blocked.' : 'Online joining has been allowed.');
+          previousState ? 'Online joining has been blocked.' : 'Online joining has been allowed.');
       } else {
+        // Revert optimistic update on error
+        setOnlineJoiningAllowed(previousState);
         showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setOnlineJoiningAllowed(previousState);
       showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
     } finally {
       setSaving(false);
@@ -349,7 +353,7 @@ export default function AdminQueue() {
   };
 
   // =============================================================================
-  // 5. ADD PERSON TO QUEUE (they're physically here)
+  // 5. ADD PERSON TO QUEUE - IMPROVED ERROR HANDLING
   // =============================================================================
   const addPersonToQueue = async (e) => {
     e.preventDefault();
@@ -401,7 +405,9 @@ export default function AdminQueue() {
         setNewPersonForm({ username: '', phone: '', notes: '', computerType: 'any' });
         setFoundUser(null);
         setShowAddForm(false);
-        loadQueueData(); // Refresh the list
+        
+        // Immediate refresh
+        loadQueueData(0, false);
       } else {
         const error = await response.json();
         showModal('error', 'Failed to Add Person', error.error || 'An error occurred while adding person to queue.');
@@ -414,7 +420,7 @@ export default function AdminQueue() {
   };
 
   // =============================================================================
-  // 6. REMOVE PERSON FROM QUEUE
+  // 6. REMOVE PERSON FROM QUEUE - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
   const removePerson = (id, name) => {
     showModal('confirm', 'Remove Person', `Are you sure you want to remove ${name} from the queue?`, () => {
@@ -423,6 +429,12 @@ export default function AdminQueue() {
   };
 
   const executeRemovePerson = async (id, name) => {
+    setRemovingPerson(id);
+    
+    // Optimistic update - remove from UI immediately
+    const previousQueueList = [...queueList];
+    setQueueList(prev => prev.filter(person => person.id !== id));
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch(`/api/queue/manage?id=${id}`, {
@@ -432,19 +444,52 @@ export default function AdminQueue() {
 
       if (response.ok) {
         showModal('success', 'Person Removed', `${name} has been successfully removed from the queue.`);
-        loadQueueData(); // Refresh the list
+        
+        // Refresh to ensure positions are correct
+        setTimeout(() => {
+          loadQueueData(0, false);
+        }, 500);
       } else {
+        // Revert optimistic update on error
+        setQueueList(previousQueueList);
         showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setQueueList(previousQueueList);
       showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
+    } finally {
+      setRemovingPerson(null);
     }
   };
 
   // =============================================================================
-  // 6. REORDER QUEUE MANUALLY
+  // 7. REORDER QUEUE MANUALLY - IMPROVED WITH OPTIMISTIC UPDATES
   // =============================================================================
   const movePersonInQueue = async (personId, direction) => {
+    setMovingPerson(personId);
+    
+    // Optimistic update - swap positions immediately in UI
+    const currentIndex = queueList.findIndex(p => p.id === personId);
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    if (newIndex < 0 || newIndex >= queueList.length) {
+      setMovingPerson(null);
+      return;
+    }
+    
+    const previousQueueList = [...queueList];
+    const newQueueList = [...queueList];
+    
+    // Swap the two people
+    [newQueueList[currentIndex], newQueueList[newIndex]] = [newQueueList[newIndex], newQueueList[currentIndex]];
+    
+    // Update positions
+    newQueueList[currentIndex].position = currentIndex + 1;
+    newQueueList[newIndex].position = newIndex + 1;
+    
+    setQueueList(newQueueList);
+    
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch('/api/queue/reorder', {
@@ -455,22 +500,29 @@ export default function AdminQueue() {
         },
         body: JSON.stringify({ 
           personId, 
-          direction // 'up' or 'down'
+          direction
         })
       });
 
       if (response.ok) {
-        loadQueueData(); // Refresh the list
+        // Refresh to ensure data is in sync
+        setTimeout(() => {
+          loadQueueData(0, false);
+        }, 500);
       } else {
+        // Revert optimistic update on error
+        setQueueList(previousQueueList);
         showModal('error', 'Reorder Failed', 'Failed to reorder queue. Please try again.');
       }
     } catch (error) {
       console.error('Error reordering queue:', error);
+      // Revert optimistic update on error
+      setQueueList(previousQueueList);
       showModal('error', 'Reorder Failed', 'Failed to reorder queue. Please try again.');
+    } finally {
+      setMovingPerson(null);
     }
   };
-
-
 
   // Check authentication and admin/staff permissions
   useEffect(() => {
@@ -480,12 +532,12 @@ export default function AdminQueue() {
     }
   }, [user, authLoading, router]);
 
-  // Load data when page opens and set up real-time subscriptions
+  // Load data when page opens and set up real-time subscriptions - IMPROVED
   useEffect(() => {
     if (user && supabase) {
       loadQueueData();
       
-      // Set up real-time subscriptions for queue changes (with debouncing)
+      // Set up real-time subscriptions for queue changes - IMMEDIATE UPDATES
       const queueSubscription = supabase
         .channel('admin-queue-changes')
         .on('postgres_changes', {
@@ -494,21 +546,26 @@ export default function AdminQueue() {
           table: 'computer_queue'
         }, (payload) => {
           console.log(`📡 Queue data changed (${payload.eventType}), refreshing admin view...`);
-          debouncedLoadQueueData(); // Use debounced version
+          // Immediate refresh - no debouncing
+          loadQueueData(0, false);
         })
-        // Removed queue_settings subscription - the monitor handles this automatically
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'queue_settings'
+        }, (payload) => {
+          console.log(`📡 Queue settings changed (${payload.eventType}), refreshing admin view...`);
+          // Immediate refresh - no debouncing
+          loadQueueData(0, false);
+        })
         .subscribe();
       
-      // Backup polling every 60 seconds (reduced frequency since we have realtime + debouncing)
-      const interval = setInterval(loadQueueData, 60000);
+      // Reduced backup polling frequency since we have better real-time updates
+      const interval = setInterval(() => loadQueueData(0, false), 30000); // Every 30 seconds
       
       return () => {
         queueSubscription.unsubscribe();
         clearInterval(interval);
-        // Clean up any pending debounced calls
-        if (refreshTimeout) {
-          clearTimeout(refreshTimeout);
-        }
       };
     }
   }, [user, supabase]);
@@ -632,6 +689,16 @@ export default function AdminQueue() {
               <div className={styles.statLabel}>Online Waiters</div>
             </div>
           </div>
+          
+          {/* Add refresh indicator */}
+          {refreshing && (
+            <div className={styles.statCard}>
+              <div className={styles.spinner}></div>
+              <div>
+                <div className={styles.statLabel}>Refreshing...</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* =================================================================== */}
@@ -688,6 +755,7 @@ export default function AdminQueue() {
                         }}
                         placeholder="Type to search for username..."
                         required
+                        disabled={addingPerson}
                       />
                       
                       {/* Dropdown list of matching users */}
@@ -724,6 +792,7 @@ export default function AdminQueue() {
                       value={newPersonForm.phone}
                       onChange={(e) => setNewPersonForm({ ...newPersonForm, phone: e.target.value })}
                       placeholder={foundUser ? "Auto-filled" : "Optional phone number"}
+                      disabled={addingPerson}
                     />
                   </div>
                 </div>
@@ -734,6 +803,7 @@ export default function AdminQueue() {
                     <select
                       value={newPersonForm.computerType}
                       onChange={(e) => setNewPersonForm({ ...newPersonForm, computerType: e.target.value })}
+                      disabled={addingPerson}
                     >
                       <option value="any">Any Available Computer</option>
                       <option value="top">Top Floor Only</option>
@@ -748,6 +818,7 @@ export default function AdminQueue() {
                       value={newPersonForm.notes}
                       onChange={(e) => setNewPersonForm({ ...newPersonForm, notes: e.target.value })}
                       placeholder="Any special notes (optional)"
+                      disabled={addingPerson}
                     />
                   </div>
                 </div>
@@ -766,6 +837,7 @@ export default function AdminQueue() {
         <div className={styles.queueSection}>
           <div className={styles.queueHeader}>
             <h3>Current Queue ({queueList.length} people waiting)</h3>
+            {refreshing && <div className={styles.refreshIndicator}>Updating...</div>}
           </div>
           
           {queueList.length === 0 ? (
@@ -775,7 +847,10 @@ export default function AdminQueue() {
           ) : (
             <div className={styles.queueList}>
               {queueList.map((person, index) => (
-                <div key={person.id} className={styles.queuePerson}>
+                <div 
+                  key={person.id} 
+                  className={`${styles.queuePerson} ${removingPerson === person.id ? styles.removing : ''} ${movingPerson === person.id ? styles.moving : ''}`}
+                >
                   <div className={styles.personPosition}>
                     {person.position}
                   </div>
@@ -801,6 +876,14 @@ export default function AdminQueue() {
                     {person.notes && (
                       <div className={styles.personNotes}>📝 {person.notes}</div>
                     )}
+                    
+                    {/* Show operation status */}
+                    {removingPerson === person.id && (
+                      <div className={styles.operationStatus}>Removing...</div>
+                    )}
+                    {movingPerson === person.id && (
+                      <div className={styles.operationStatus}>Moving...</div>
+                    )}
                   </div>
                   
                   <div className={styles.queueActions}>
@@ -810,18 +893,18 @@ export default function AdminQueue() {
                         <button
                           className={styles.positionButton}
                           onClick={() => movePersonInQueue(person.id, 'up')}
-                          disabled={index === 0}
+                          disabled={index === 0 || movingPerson === person.id || removingPerson === person.id}
                           title={`Move ${person.user_name} to position ${person.position - 1}`}
                         >
-                          ↑ Move Up
+                          {movingPerson === person.id ? '...' : '↑ Move Up'}
                         </button>
                         <button
                           className={`${styles.positionButton} ${styles.moveDown}`}
                           onClick={() => movePersonInQueue(person.id, 'down')}
-                          disabled={index === queueList.length - 1}
+                          disabled={index === queueList.length - 1 || movingPerson === person.id || removingPerson === person.id}
                           title={`Move ${person.user_name} to position ${person.position + 1}`}
                         >
-                          ↓ Move Down
+                          {movingPerson === person.id ? '...' : '↓ Move Down'}
                         </button>
                       </div>
                     )}
@@ -830,8 +913,9 @@ export default function AdminQueue() {
                       className={styles.removeButton}
                       onClick={() => removePerson(person.id, person.user_name)}
                       title={`Remove ${person.user_name} from queue`}
+                      disabled={removingPerson === person.id || movingPerson === person.id}
                     >
-                      <FaTrash /> Remove
+                      <FaTrash /> {removingPerson === person.id ? 'Removing...' : 'Remove'}
                     </button>
                   </div>
                 </div>

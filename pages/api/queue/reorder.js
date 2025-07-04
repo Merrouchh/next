@@ -85,34 +85,96 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Cannot find person to swap with' });
     }
 
-    // Perform position swap
-
-    // Perform the swap using a transaction-like approach
-    // First, move current person to a temporary position
-    const tempPosition = totalInQueue + 1;
+    // IMPROVED: Use a more atomic approach with better error handling
+    // Instead of temporary positions, we'll use a more reliable swap method
     
-    await supabase
-      .from('computer_queue')
-      .update({ position: tempPosition })
-      .eq('id', personId);
+    try {
+      // Step 1: Move current person to a safe temporary position (9999)
+      const { error: tempError } = await supabase
+        .from('computer_queue')
+        .update({ position: 9999 })
+        .eq('id', personId);
 
-    // Move the other person to current person's position
-    await supabase
-      .from('computer_queue')
-      .update({ position: currentPosition })
-      .eq('id', swapPerson.id);
+      if (tempError) {
+        console.error('Error moving to temp position:', tempError);
+        throw new Error('Failed to move to temporary position');
+      }
 
-    // Move current person to new position
-    await supabase
-      .from('computer_queue')
-      .update({ position: newPosition })
-      .eq('id', personId);
+      // Step 2: Move the other person to current person's old position
+      const { error: swapError1 } = await supabase
+        .from('computer_queue')
+        .update({ position: currentPosition })
+        .eq('id', swapPerson.id);
 
-    // Positions successfully swapped
+      if (swapError1) {
+        console.error('Error moving swap person:', swapError1);
+        // Try to revert the first move
+        await supabase
+          .from('computer_queue')
+          .update({ position: currentPosition })
+          .eq('id', personId);
+        throw new Error('Failed to move swap person');
+      }
+
+      // Step 3: Move current person to new position
+      const { error: finalError } = await supabase
+        .from('computer_queue')
+        .update({ position: newPosition })
+        .eq('id', personId);
+
+      if (finalError) {
+        console.error('Error moving to final position:', finalError);
+        // Try to revert both moves
+        await supabase
+          .from('computer_queue')
+          .update({ position: newPosition })
+          .eq('id', swapPerson.id);
+        await supabase
+          .from('computer_queue')
+          .update({ position: currentPosition })
+          .eq('id', personId);
+        throw new Error('Failed to move to final position');
+      }
+
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify the swap was successful
+      const { data: verification } = await supabase
+        .from('computer_queue')
+        .select('id, position')
+        .in('id', [personId, swapPerson.id])
+        .eq('status', 'waiting');
+
+      if (!verification || verification.length !== 2) {
+        throw new Error('Position verification failed');
+      }
+
+      const currentPersonNew = verification.find(p => p.id === personId);
+      const swapPersonNew = verification.find(p => p.id === swapPerson.id);
+
+      if (currentPersonNew.position !== newPosition || swapPersonNew.position !== currentPosition) {
+        console.error('Position verification failed:', {
+          expected: { current: newPosition, swap: currentPosition },
+          actual: { current: currentPersonNew.position, swap: swapPersonNew.position }
+        });
+        throw new Error('Position swap verification failed');
+      }
+
+      console.log(`Queue reorder successful: Person ${personId} moved from ${currentPosition} to ${newPosition}`);
+
+    } catch (swapError) {
+      console.error('Queue reorder failed:', swapError);
+      return res.status(500).json({ error: 'Position swap failed. Please try again.' });
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Queue positions updated'
+      message: 'Queue positions updated successfully',
+      data: {
+        moved: { id: personId, from: currentPosition, to: newPosition },
+        swapped: { id: swapPerson.id, from: newPosition, to: currentPosition }
+      }
     });
 
   } catch (error) {
