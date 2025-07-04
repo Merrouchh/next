@@ -1052,7 +1052,7 @@ async function main() {
     }, 60000); // 60 seconds
     
     // Set up periodic cleanup for periodic mode too
-    const periodicCleanupInterval = setInterval(() => {
+    const periodicCleanupInterval = setInterval(async () => {
       await checkForNotifications();
     }, 300000); // Every 5 minutes
     
