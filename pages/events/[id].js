@@ -318,7 +318,7 @@ export async function getServerSideProps({ params, res }) {
   }
 }
 
-export default function EventDetail({ metaData }) {
+export default function EventDetail({ metaData = {} }) {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registrationStatus, setRegistrationStatus] = useState({
@@ -1276,7 +1276,29 @@ export default function EventDetail({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} excludeFromAppSeo={true} />
+      {/* Direct meta tags in Head */}
+      <Head>
+        <title>{metaData?.title || "Event | Merrouch Gaming"}</title>
+        <meta name="description" content={metaData?.description || "Gaming event at Merrouch Gaming Center"} />
+        <meta property="og:title" content={metaData?.title || "Event | Merrouch Gaming"} />
+        <meta property="og:description" content={metaData?.description || "Gaming event at Merrouch Gaming Center"} />
+        <meta property="og:image" content={metaData?.image || "https://merrouchgaming.com/events.jpg"} />
+        <meta property="og:url" content={metaData?.url || `https://merrouchgaming.com/events/${id}`} />
+        <meta property="og:type" content="event" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaData?.title || "Event | Merrouch Gaming"} />
+        <meta name="twitter:description" content={metaData?.description || "Gaming event at Merrouch Gaming Center"} />
+        <meta name="twitter:image" content={metaData?.image || "https://merrouchgaming.com/events.jpg"} />
+      </Head>
+      
+      <DynamicMeta 
+        title={metaData?.title || "Event | Merrouch Gaming"}
+        description={metaData?.description || "Gaming event at Merrouch Gaming Center"}
+        image={metaData?.image || "https://merrouchgaming.com/events.jpg"}
+        url={metaData?.url || `https://merrouchgaming.com/events/${id}`}
+        {...metaData} 
+        excludeFromAppSeo={true} 
+      />
 
       <div className={styles.container}>
         <Link href="/events" className={styles.backLink}>

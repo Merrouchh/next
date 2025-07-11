@@ -102,33 +102,45 @@ export default function DynamicMeta({
   return (
     <>
       <Head>
-        {/* Override default title and description */}
-        <title>{title}</title>
-        <meta name="description" content={description} />
+        {/* Override default title and description with key to ensure replacement */}
+        <title key="title">{title}</title>
+        <meta key="description" name="description" content={description} />
         
-        {/* Override OpenGraph tags */}
-        <meta property="og:title" content={finalOpenGraph.title} />
-        <meta property="og:description" content={finalOpenGraph.description} />
-        <meta property="og:type" content={finalOpenGraph.type} />
-        <meta property="og:url" content={finalOpenGraph.url || url} />
+        {/* Override OpenGraph tags with keys */}
+        <meta key="og:title" property="og:title" content={finalOpenGraph.title} />
+        <meta key="og:description" property="og:description" content={finalOpenGraph.description} />
+        <meta key="og:type" property="og:type" content={finalOpenGraph.type} />
+        <meta key="og:url" property="og:url" content={finalOpenGraph.url || url} />
+        <meta key="og:site_name" property="og:site_name" content="Merrouch Gaming" />
         
         {/* Set explicit itemprop image to ensure consistency */}
         <meta itemProp="image" content={primaryImageUrl} />
         
         {/* Force OG image with higher precedence */}
-        <meta property="og:image" content={primaryImageUrl} />
-        <meta property="og:image:secure_url" content={primaryImageUrl} />
+        <meta key="og:image" property="og:image" content={primaryImageUrl} />
+        <meta key="og:image:secure_url" property="og:image:secure_url" content={primaryImageUrl} />
+        <meta key="og:image:width" property="og:image:width" content="1200" />
+        <meta key="og:image:height" property="og:image:height" content="630" />
+        <meta key="og:image:alt" property="og:image:alt" content={`${title} - Gaming Tournament`} />
         
-        {/* Force Twitter image */}
-        <meta name="twitter:image" content={primaryImageUrl} />
-        <meta name="twitter:title" content={finalTwitter.title || title} />
-        <meta name="twitter:description" content={finalTwitter.description || description} />
+        {/* Force Twitter tags with keys */}
+        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+        <meta key="twitter:site" name="twitter:site" content="@merrouchgaming" />
+        <meta key="twitter:title" name="twitter:title" content={finalTwitter.title || title} />
+        <meta key="twitter:description" name="twitter:description" content={finalTwitter.description || description} />
+        <meta key="twitter:image" name="twitter:image" content={primaryImageUrl} />
+        
+        {/* Canonical URL */}
+        <link key="canonical" rel="canonical" href={url} />
 
+        {/* Keywords meta tag */}
+        <meta key="keywords" name="keywords" content={`gaming center tangier, ${(title || '').toLowerCase()}, gaming morocco`} />
+        
+        {/* Robots meta tag */}
+        {noindex && <meta key="robots" name="robots" content="noindex,nofollow" />}
+        
         {/* Add a flag for the app-level component to detect */}
         {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
-        
-        {/* Add a flag for structured data removal (meta tag instead of script) */}
-        <meta name="x-remove-previous-ld-json" content="true" />
         
         {/* Add structured data as regular HTML script tags - only if mounted */}
         {mounted && finalStructuredData && (
@@ -175,24 +187,6 @@ export default function DynamicMeta({
           </>
         )}
       </Head>
-      
-      <NextSeo
-        title={title}
-        description={description}
-        canonical={url}
-        noindex={noindex}
-        openGraph={finalOpenGraph}
-        twitter={finalTwitter}
-        additionalMetaTags={[
-          {
-            name: 'keywords',
-            content: `gaming center tangier, ${(title || '').toLowerCase()}, gaming morocco`
-          }
-        ]}
-        // Force override of default SEO
-        titleTemplate="%s"
-        defaultTitle={title}
-      />
     </>
   );
 } 

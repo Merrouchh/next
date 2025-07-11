@@ -7,10 +7,9 @@ import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
-import { DefaultSeo } from 'next-seo';
-import { defaultSEO } from '../utils/seo-config';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
+import DefaultMeta from '../components/DefaultMeta';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -101,7 +100,6 @@ function MyApp({ Component, pageProps }) {
             <link rel="icon" href="/favicon.ico" />
             <meta name="theme-color" content="#FFD700" />
           </Head>
-          <DefaultSeo {...defaultSEO} />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -123,7 +121,8 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        <DefaultSeo {...defaultSEO} />
+        {/* Only render DefaultMeta for pages that don't have custom meta */}
+        {!isAuthPage && !router.pathname.startsWith('/events/') && <DefaultMeta />}
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>
