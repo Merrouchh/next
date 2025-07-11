@@ -181,10 +181,6 @@ const TopUsers = ({ metaData }) => {
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
       <div className={styles.container}>
-        <Head>
-          <title>Top Users</title>
-          <meta name="robots" content="index, follow" />
-        </Head>
         <main className={styles.main}>
           <h2 className={styles.heading}>Community Leaderboard</h2>
           <p className={styles.counterText}>
