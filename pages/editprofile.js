@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/EditProfile.module.css';
 import { AiOutlineUser, AiOutlineMail, AiOutlinePhone, AiOutlineLock } from 'react-icons/ai';
 import { FaGamepad } from 'react-icons/fa';
-import Head from 'next/head';
+import DynamicMeta from '../components/DynamicMeta';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useRouter } from 'next/router';
 import EmailSection from '../components/EditProfile/EmailSection';
@@ -160,9 +160,12 @@ const EditProfile = () => {
 
   return (
     <ProtectedPageWrapper>
-      <Head>
-        <title>Edit Profile - Merrouch Gaming</title>
-      </Head>
+      <DynamicMeta 
+        title="Edit Profile - Merrouch Gaming"
+        description="Edit your gaming profile and account settings"
+        image="https://merrouchgaming.com/top.jpg"
+        noindex={true}
+      />
       <div className={styles.container}>
         <h1 className={styles.mainTitle}>Edit Profile</h1>
         

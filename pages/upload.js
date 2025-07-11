@@ -5,6 +5,7 @@ import styles from '../styles/Upload.module.css';
 import { MdGamepad, MdPublic, MdLock, MdCloudUpload, MdWarning } from 'react-icons/md';
 import Head from 'next/head';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import DynamicMeta from '../components/DynamicMeta';
 import { useDropzone } from 'react-dropzone';
 import UploadProgress from '../components/UploadProgress';
 import dynamic from 'next/dynamic';
@@ -67,12 +68,31 @@ export async function getServerSideProps({ _req, _res }) {
   // This makes the page dynamic and prevents static generation
   return {
     props: {
-      // You can pass any initial props here if needed
+      metaData: {
+        title: "Upload Gaming Clips | Merrouch Gaming Center",
+        description: "Upload and share your best gaming moments. Record highlights from RTX 3070 gaming sessions and share with the community.",
+        image: "https://merrouchgaming.com/top.jpg",
+        url: "https://merrouchgaming.com/upload",
+        type: "website",
+        noindex: true, // Private page
+        openGraph: {
+          title: "Upload Gaming Clips | Merrouch Gaming Center",
+          description: "Share your gaming highlights with the community",
+          images: [
+            {
+              url: "https://merrouchgaming.com/top.jpg",
+              width: 1200,
+              height: 630,
+              alt: "Upload Gaming Clips"
+            }
+          ]
+        }
+      }
     }
   };
 }
 
-const UploadPage = () => {
+const UploadPage = ({ metaData }) => {
   const [title, setTitle] = useState('');
   const [game, setGame] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -691,10 +711,7 @@ const UploadPage = () => {
 
   return (
     <ProtectedPageWrapper>
-      <Head>
-        <title>Upload Clip - MerrouchGaming</title>
-        <meta name="description" content="Upload your gameplay clips" />
-      </Head>
+      <DynamicMeta {...metaData} />
       <div className={styles.uploadMain}>
         {user && <PendingUploadsBanner userId={user.id} key={bannerKey} />}
         

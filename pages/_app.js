@@ -136,8 +136,8 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        {/* Only use DefaultSeo if the page doesn't have its own metaData */}
-        {!pageProps.metaData && <DefaultSeo {...defaultSEO} />}
+        {/* Disable DefaultSeo to prevent conflicts with DynamicMeta */}
+        {/* {!pageProps.metaData && <DefaultSeo {...defaultSEO} />} */}
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import Head from 'next/head';
+import DynamicMeta from '../components/DynamicMeta';
 import { createClient } from '@supabase/supabase-js';
 
 export default function MagicLogin() {
@@ -140,9 +140,12 @@ export default function MagicLogin() {
       background: '#111',
       color: '#fff'
     }}>
-      <Head>
-        <title>{error ? 'Login Failed' : 'Logging In'} - Merrouch Gaming</title>
-      </Head>
+      <DynamicMeta 
+        title={`${error ? 'Login Failed' : 'Logging In'} - Merrouch Gaming`}
+        description="Processing magic link login"
+        image="https://merrouchgaming.com/top.jpg"
+        noindex={true}
+      />
       
       {error ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>

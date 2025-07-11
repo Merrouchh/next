@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import styles from '../styles/Error.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import Head from 'next/head';
+import DynamicMeta from '../components/DynamicMeta';
 
 const Custom404 = () => {
   const router = useRouter();
@@ -17,10 +17,12 @@ const Custom404 = () => {
 
   return (
     <>
-      <Head>
-        <title>404 - Page Not Found | Merrouch Gaming</title>
-        <meta name="description" content="The page you're looking for doesn't exist." />
-      </Head>
+      <DynamicMeta 
+        title="404 - Page Not Found | Merrouch Gaming"
+        description="The page you're looking for doesn't exist."
+        image="https://merrouchgaming.com/top.jpg"
+        noindex={true}
+      />
       
       <ProtectedPageWrapper>
         <div className={styles.errorContainer}>
