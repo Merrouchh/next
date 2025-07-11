@@ -32,14 +32,6 @@ export default function DynamicMeta({
     setMounted(true);
   }, []);
   
-  // For social media crawlers, avoid adding timestamps to images
-  // Only add timestamps for browser cache busting, not for social media
-  const isBot = typeof navigator !== 'undefined' && 
-    /bot|crawler|spider|crawling/i.test(navigator.userAgent);
-  
-  // Don't add timestamp to image URLs for bots or if already has parameters
-  const imageWithTimestamp = (finalImage.includes('?') || isBot) ? finalImage : `${finalImage}?t=${Date.now()}`;
-
   // Only return null if both title and description are completely empty
   if ((!title || title.trim() === '') && (!description || description.trim() === '')) {
     return null;
@@ -50,6 +42,14 @@ export default function DynamicMeta({
   const finalDescription = description || 'Premium gaming center in Tangier with RTX 3070 PCs';
   const finalImage = image || 'https://merrouchgaming.com/top.jpg';
   const finalUrl = url || 'https://merrouchgaming.com';
+  
+  // For social media crawlers, avoid adding timestamps to images
+  // Only add timestamps for browser cache busting, not for social media
+  const isBot = typeof navigator !== 'undefined' && 
+    /bot|crawler|spider|crawling/i.test(navigator.userAgent);
+  
+  // Don't add timestamp to image URLs for bots or if already has parameters
+  const imageWithTimestamp = (finalImage.includes('?') || isBot) ? finalImage : `${finalImage}?t=${Date.now()}`;
 
   // Create default OpenGraph object if none provided
   const defaultOpenGraph = {
