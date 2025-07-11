@@ -358,17 +358,12 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
     return () => setMounted(false);
   }, []);
 
-  if (!mounted) {
-    return (
-      <ProtectedPageWrapper>
-        <LoadingSpinner message="Loading discover page..." />
-      </ProtectedPageWrapper>
-    );
-  }
-
   return (
     <ProtectedPageWrapper>
       <DynamicMeta {...metaData} />
+      {!mounted ? (
+        <LoadingSpinner message="Loading discover page..." />
+      ) : (
       <main className={styles.discoverMain}>
         <header className={styles.discoverHeader}>
           <h1 className={styles.discoverTitle}>Gaming Highlights</h1>
@@ -410,6 +405,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
           </div>
         </section>
       </main>
+      )}
     </ProtectedPageWrapper>
   );
 };

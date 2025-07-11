@@ -622,45 +622,43 @@ const Dashboard = ({ _initialClips, metaData }) => {
     initialize();
   }, [user?.gizmo_id]); // Remove pageState.data from dependencies to allow re-runs
 
-  // Show loading state when no data or during auth
-  if (authLoading || !pageState.data) {
-    return (
-      <ProtectedPageWrapper>
-          {pageState.error ? (
-            <div className={styles.errorMessage}>
-              <p>{pageState.error}</p>
-              <div className={styles.contactInfo}>
-                <p>You can reach us on:</p>
-                <a 
-                  href="https://wa.me/212656053641" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={styles.whatsappLink}
-                >
-                  WhatsApp: +212 656-053641
-                </a>
-              </div>
-              <div className={styles.retryActions}>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className={styles.retryButton}
-                >
-                  <AiOutlineReload /> Refresh Page
-                </button>
-                <SessionRefreshButton />
-              </div>
+  return (
+    <ProtectedPageWrapper>
+      <DynamicMeta {...metaData} />
+      
+      {/* Show loading state when no data or during auth */}
+      {(authLoading || !pageState.data) ? (
+        pageState.error ? (
+          <div className={styles.errorMessage}>
+            <p>{pageState.error}</p>
+            <div className={styles.contactInfo}>
+              <p>You can reach us on:</p>
+              <a 
+                href="https://wa.me/212656053641" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.whatsappLink}
+              >
+                WhatsApp: +212 656-053641
+              </a>
             </div>
-          ) : (
+            <div className={styles.retryActions}>
+              <button 
+                onClick={() => window.location.reload()}
+                className={styles.retryButton}
+              >
+                <AiOutlineReload /> Refresh Page
+              </button>
+              <SessionRefreshButton />
+            </div>
+          </div>
+        ) : (
           <LoadingSpinner />
-          )}
-      </ProtectedPageWrapper>
-    );
-  }
-
-  // Show setup required state
-  if (pageState.data?.needsProfileSetup) {
-    return (
-      <ProtectedPageWrapper>
+        )
+      ) : 
+      
+      /* Show setup required state */
+      pageState.data?.needsProfileSetup ? (
         <div className={styles.setupRequired}>
           <h2>Profile Setup Required</h2>
           <p>Please complete your profile setup to access the dashboard.</p>
@@ -671,10 +669,21 @@ const Dashboard = ({ _initialClips, metaData }) => {
             Complete Setup
           </button>
         </div>
-      </ProtectedPageWrapper>
-    );
-  }
+             ) : (
+        <DashboardContent 
+          pageState={pageState}
+          user={user}
+          router={router}
+          isRefreshing={isRefreshing}
+          handleRefresh={handleRefresh}
+        />
+      )}
+    </ProtectedPageWrapper>
+  );
+};
 
+const DashboardContent = ({ pageState, user, router, isRefreshing, handleRefresh }) => {
+  const { refreshSession, authLoading, initialized } = useAuth();
   const getPointsColor = (points) => {
     return points < 73 ? styles.lowPoints : styles.highPoints;
   };
@@ -711,13 +720,8 @@ const Dashboard = ({ _initialClips, metaData }) => {
     router.push('/editprofile');
   };
 
-
-
   return (
-    <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
-      
-      <main className={styles.dashboardMain}>
+    <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
                           <h1 className={styles.welcomeText}>
@@ -866,7 +870,6 @@ const Dashboard = ({ _initialClips, metaData }) => {
            router={router} 
          />
       </main>
-    </ProtectedPageWrapper>
   );
 };
 
