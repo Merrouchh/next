@@ -7,9 +7,10 @@ import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
+import { DefaultSeo } from 'next-seo';
+import { defaultSEO } from '../utils/seo-config';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
-import DefaultMeta from '../components/DefaultMeta';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -84,12 +85,28 @@ function MyApp({ Component, pageProps }) {
 
   const getLayout = Component.getLayout || ((page) => <Layout>{page}</Layout>);
 
-  // Remove the mounted check to allow server-side rendering
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#000000'
+      }}>
+        <div style={{ color: '#FFD700' }}>Loading...</div>
+      </div>
+    );
+  }
 
   const isAuthPage = router.pathname.startsWith('/auth/');
   const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
                       router.pathname.startsWith('/events/') || 
                       router.pathname.startsWith('/profile/');
+
+  // Check if page has dynamic metadata
+  const hasDynamicMeta = pageProps.metaData && (pageProps.metaData.title || pageProps.metaData.description);
 
   if (isAuthPage) {
     return (
@@ -100,6 +117,8 @@ function MyApp({ Component, pageProps }) {
             <link rel="icon" href="/favicon.ico" />
             <meta name="theme-color" content="#FFD700" />
           </Head>
+          {/* Only use DefaultSeo if page doesn't have dynamic metadata */}
+          {!hasDynamicMeta && <DefaultSeo {...defaultSEO} />}
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -121,8 +140,8 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        {/* Only render DefaultMeta for pages that don't have custom meta */}
-        {!isAuthPage && !router.pathname.startsWith('/events/') && <DefaultMeta />}
+        {/* Only use DefaultSeo if page doesn't have dynamic metadata */}
+        {!hasDynamicMeta && <DefaultSeo {...defaultSEO} />}
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>

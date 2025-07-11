@@ -31,125 +31,104 @@ export async function getServerSideProps({ params, req, res }) {
   };
   
   try {
-    // Use direct Supabase connection instead of API calls
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    // Fetch event data directly from database
-    const { data: event, error: eventError } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (eventError || !event) {
-      console.error('Event not found:', eventError);
+    // Helper function to fetch with error handling
+    const fetchWithErrorHandling = async (url, options = {}) => {
+      try {
+        const response = await fetch(url, options);
+        if (response.ok) {
+          const data = await response.json();
+          return { success: true, data };
+        }
+        return { success: false, error: `Failed with status ${response.status}` };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    };
+    
+    // Try fetching event data
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+    let eventResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}`);
+    
+    // If that fails, try with relative URL
+    if (!eventResult.success) {
+      eventResult = await fetchWithErrorHandling(`/api/events/${id}`, {
+        headers: { 'x-forwarded-host': 'localhost:3000' }
+      });
+    }
+    
+    // If both fail, return not found
+    if (!eventResult.success) {
       return { props: { metaData: notFoundMetadata } };
     }
-
+    
+    // Extract event data
+    const event = eventResult.data.event || eventResult.data;
+    
     // Try to fetch bracket data for SEO info
-    let bracketData = null;
-    let participants = [];
-    let hasWinner = false;
+    let bracketResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}/bracket`);
+    
+    // If that fails, try relative URL
+    if (!bracketResult.success) {
+      bracketResult = await fetchWithErrorHandling(`/api/events/${id}/bracket`, {
+        headers: { 'x-forwarded-host': 'localhost:3000' }
+      });
+    }
+    
+    // Check for champion information in bracket data
     let champion = null;
-
-    try {
-      // Fetch bracket data directly
-      const { data: bracket, error: bracketError } = await supabase
-        .from('event_brackets')
-        .select('matches')
-        .eq('event_id', id)
-        .single();
-
-      // Fetch participants directly
-      const { data: participantData, error: participantsError } = await supabase
-        .from('event_registrations')
-        .select(`
-          id, 
-          user_id, 
-          username,
-          event_team_members (
-            id,
-            user_id,
-            username
-          ),
-          team_name
-        `)
-        .eq('event_id', id)
-        .eq('status', 'registered');
-
-      if (!bracketError && bracket?.matches) {
-        bracketData = bracket.matches;
-      }
-
-      if (!participantsError && participantData) {
-        participants = participantData;
-      }
-
-      // Check for winner if we have bracket data
-      if (bracketData && bracketData.length > 0 && participants.length > 0) {
-        const finalRound = bracketData[bracketData.length - 1];
+    let hasWinner = false;
+    
+    if (bracketResult.success) {
+      const bracketData = bracketResult.data;
+      if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
+        const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
         if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
           hasWinner = true;
-          champion = participants.find(p => p.id === finalRound[0].winnerId);
+          champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
         }
       }
-    } catch (error) {
-      console.error('Error fetching bracket data:', error);
-      // Continue without bracket data
-    }
-
-    // Generate metadata based on available information
-    let pageTitle = `${event.title} Tournament Bracket | Merrouch Gaming`;
-    let pageDescription = `View the tournament bracket for ${event.title}. `;
-    
-    // Add event type and game info
-    if (event.team_type) {
-      const teamTypeText = event.team_type === 'solo' ? 'solo' : 
-                          event.team_type === 'duo' ? 'duo team' : 'team';
-      pageDescription += `This ${teamTypeText} competition `;
     }
     
-    if (event.game) {
-      pageDescription += `for ${event.game} `;
-    }
+    // Generate appropriate title based on event type and winner status
+    let pageTitle;
+    let pageDescription;
     
-    pageDescription += `features ${participants.length} participants. `;
-
-    // Enhance metadata based on tournament status
-    let ogTitle = pageTitle;
-    let ogDescription = pageDescription;
-    
-    if (hasWinner && champion) {
-      if (event.team_type === 'duo' && champion.event_team_members && champion.event_team_members.length > 0) {
-        const partner = champion.event_team_members[0];
-        pageTitle = `${champion.username} & ${partner.username} Win ${event.title} | Tournament Bracket`;
-        pageDescription += `Congratulations to ${champion.username} & ${partner.username} for winning this tournament! View the complete bracket and match results.`;
-        ogTitle = `${champion.username} & ${partner.username} Win ${event.title}`;
-        ogDescription = `${champion.username} & ${partner.username} claimed victory in the ${event.title} tournament. View the complete bracket and match results.`;
-      } else if (event.team_type === 'team' && champion.team_name) {
-        pageTitle = `${champion.team_name} Wins ${event.title} | Tournament Bracket`;
-        pageDescription += `Congratulations to ${champion.team_name} for winning this tournament! View the complete bracket and match results.`;
-        ogTitle = `${champion.team_name} Wins ${event.title}`;
-        ogDescription = `${champion.team_name} claimed victory in the ${event.title} tournament. View the complete bracket and match results.`;
+    if (hasWinner) {
+      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
+        // For duo events with a winner, include both team members in the title
+        const partnerName = champion.members[0]?.name || '';
+        pageTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Bracket`;
+        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament.`;
       } else {
-        pageTitle = `${champion.username} Wins ${event.title} | Tournament Bracket`;
-        pageDescription += `Congratulations to ${champion.username} for winning this tournament! View the complete bracket and match results.`;
-        ogTitle = `${champion.username} Wins ${event.title}`;
-        ogDescription = `${champion.username} claimed victory in the ${event.title} tournament. View the complete bracket and match results.`;
+        // For solo or team events with a winner
+        pageTitle = `${champion.name} Won ${event.title} | Tournament Bracket`;
+        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} claimed victory in this ${event.game || 'gaming'} tournament.`;
       }
-    } else if (event.status === 'In Progress') {
-      pageTitle = `${event.title} - Live Tournament Bracket | Merrouch Gaming`;
-      pageDescription += `Tournament is currently in progress. Follow the live bracket and see who advances to the next round!`;
-      ogTitle = `${event.title} - Live Tournament Bracket`;
-      ogDescription = `Follow the live tournament bracket for ${event.title}. See match results and track who advances to the finals!`;
-    } else if (event.status === 'Upcoming') {
-      pageDescription += `Tournament bracket will be generated once registration closes. Check back soon!`;
-    } else if (!bracketData) {
-      pageDescription += `Bracket has not been generated yet. Check back soon for the tournament structure!`;
+    } else {
+      // No winner yet
+      pageTitle = `${event.title} | Tournament Bracket | Merrouch Gaming`;
+      pageDescription = `View the tournament bracket for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} tournament at Merrouch Gaming. Follow the matches and discover who comes out on top.`;
+    }
+    
+    // Generate appropriate OpenGraph title and description
+    let ogTitle;
+    let ogDescription;
+    
+    if (hasWinner) {
+      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
+        // For duo events with a winner, include both team members
+        const partnerName = champion.members[0]?.name || '';
+        ogTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Results`;
+        ogDescription = `${champion.name} & ${partnerName} have won the ${event.game || 'gaming'} duo tournament! View the complete bracket and tournament results.`;
+      } else {
+        // For solo or team events with a winner
+        ogTitle = `${champion.name} Won ${event.title} | Tournament Results`;
+        ogDescription = `${champion.name} has won the ${event.game || 'gaming'} tournament! View the complete bracket and tournament results.`;
+      }
+    } else {
+      // No winner yet
+      ogTitle = `${event.title} | Tournament Bracket`;
+      ogDescription = `Check out the tournament bracket for ${event.title}. Follow the matches in this ${event.team_type} ${event.game || 'gaming'} tournament.`;
     }
     
     // Create full metadata object
@@ -198,31 +177,25 @@ export async function getServerSideProps({ params, req, res }) {
     
     // Add winner information to structured data if available
     if (hasWinner && champion) {
-      if (event.team_type === 'duo' && champion.event_team_members && champion.event_team_members.length > 0) {
-        const partner = champion.event_team_members[0];
+      if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
         metadata.structuredData.winner = {
           "@type": "Team",
-          "name": `${champion.username} & ${partner.username}`,
+          "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
           "member": [
             {
               "@type": "Person",
-              "name": champion.username
+              "name": champion.name
             },
             {
               "@type": "Person",
-              "name": partner.username
+              "name": champion.members[0]?.name || ''
             }
           ]
-        };
-      } else if (event.team_type === 'team' && champion.team_name) {
-        metadata.structuredData.winner = {
-          "@type": "Team",
-          "name": champion.team_name
         };
       } else {
         metadata.structuredData.winner = {
           "@type": "Person",
-          "name": champion.username
+          "name": champion.name
         };
       }
     }
