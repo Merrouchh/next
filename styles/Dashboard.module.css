@@ -1091,6 +1091,41 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.clickableMatch {
+  cursor: pointer !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.clickableMatch:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-yellow);
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2);
+  background: var(--primary-black-light);
+}
+
+.clickableMatch:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+}
+
+.clickableMatch:focus {
+  outline: 2px solid var(--primary-yellow);
+  outline-offset: 2px;
+}
+
+/* Ensure all elements inside clickable match show pointer cursor */
+.clickableMatch * {
+  cursor: pointer !important;
+}
+
+.clickableMatch span,
+.clickableMatch div {
+  cursor: pointer !important;
+}
+
 .matchEventInfo {
   display: flex;
   justify-content: space-between;
@@ -1104,6 +1139,10 @@
   font-weight: 600;
   color: var(--text-light);
   font-size: 1rem;
+}
+
+.clickableMatch .eventTitle {
+  cursor: pointer !important;
 }
 
 .readyBadge, .notReadyBadge {
@@ -1143,9 +1182,48 @@
   font-size: 0.9rem;
 }
 
+.clickableMatch .roundLabel {
+  cursor: pointer !important;
+}
+
 .matchLabel {
   font-size: 0.8rem;
   color: var(--text-light-muted);
+}
+
+.clickableMatch .matchLabel {
+  cursor: pointer !important;
+}
+
+.matchupInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.matchNotes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.notesLabel {
+  color: var(--text-light-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.notesText {
+  color: var(--primary-yellow);
+  font-weight: 500;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.clickableMatch .notesText {
+  cursor: pointer !important;
 }
 
 .opponentInfo {
@@ -1162,6 +1240,10 @@
 .opponentName {
   color: var(--text-light);
   font-weight: 600;
+}
+
+.clickableMatch .opponentName {
+  cursor: pointer !important;
 }
 
 .matchScheduleInfo {

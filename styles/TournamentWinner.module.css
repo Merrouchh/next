@@ -81,6 +81,7 @@
 .bracketLink:hover {
   background: #444;
   border-color: #FFD700;
+  cursor: pointer;
 }
 
 /* Compact version for profile page */

@@ -1,13 +1,9 @@
 import { FaUsers } from 'react-icons/fa';
 import styles from '../../styles/Bracket.module.css';
+import { getParticipantDisplayName } from '../../utils/participantUtils';
 
 const ParticipantsList = ({ participants, eventType }) => {
   if (!participants || participants.length === 0) return null;
-
-  // Group participants by type for better layout
-  const duoParticipants = eventType === 'duo' ? participants : [];
-  const teamParticipants = eventType === 'team' ? participants : [];
-  const soloParticipants = eventType === 'solo' ? participants : [];
 
   return (
     <div className={styles.participantsSection}>
@@ -18,27 +14,34 @@ const ParticipantsList = ({ participants, eventType }) => {
       
       <div className={styles.participantsList}>
         {/* Render solo participants */}
-        {soloParticipants.map((participant, index) => (
+        {eventType === 'solo' && participants.map((participant, index) => (
           <div key={`participant-${participant.id}`} className={`${styles.participantItem} ${styles.soloItem}`}>
             <span className={styles.participantNumber}>{index + 1}</span>
             <div className={styles.participantInfo}>
-              <span className={styles.participantName}>{participant.name}</span>
+              {getParticipantDisplayName(participant, eventType, {
+                format: 'jsx',
+                className: styles.participantName,
+                styles: { participantName: styles.participantName }
+              })}
             </div>
           </div>
         ))}
         
-        {/* Render team participants */}
-        {teamParticipants.map((participant, index) => {
+        {/* Render team participants with detailed member info */}
+        {eventType === 'team' && participants.map((participant, index) => {
           // Check if this is a team with multiple members
           const isTeam = participant.members && participant.members.length > 0;
-          const teamName = participant.team_name || participant.name;
           
           return (
             <div key={`participant-${participant.id}`} className={`${styles.participantItem} ${styles.teamItem}`}>
               <span className={styles.participantNumber}>{index + 1}</span>
               <div className={styles.participantInfo}>
                 <div className={styles.teamHeader}>
-                  <span className={styles.teamNameLarge}>{teamName}</span>
+                  {getParticipantDisplayName(participant, eventType, {
+                    format: 'jsx',
+                    className: styles.teamNameLarge,
+                    styles: { teamName: styles.teamNameLarge }
+                  })}
                   <span className={styles.captainBadge}>Captain: {participant.name}</span>
                 </div>
                 
@@ -59,15 +62,15 @@ const ParticipantsList = ({ participants, eventType }) => {
           );
         })}
         
-        {/* Render duo participants */}
-        {duoParticipants.map((participant, index) => {
+        {/* Render duo participants with detailed partner info */}
+        {eventType === 'duo' && participants.map((participant, index) => {
           // Get partner info for duo events
           const hasPartner = (participant.members && participant.members.length > 0) || participant.partner;
           
           // Get partner name from either members array or partner property
           const partnerName = hasPartner ? 
             (participant.members && participant.members.length > 0 ? 
-              participant.members[0]?.name : participant.partner) : null;
+              participant.members[0]?.name || participant.members[0]?.username : participant.partner) : null;
               
           return (
             <div key={`participant-${participant.id}`} className={styles.participantItem}>
@@ -75,8 +78,13 @@ const ParticipantsList = ({ participants, eventType }) => {
               <div className={styles.participantInfo}>
                 {participant.team_name ? (
                   <>
-                    {/* Display team name alone if it's the same as one of the usernames */}
-                    <div className={styles.teamNameLarge}>{participant.team_name}</div>
+                    {/* Display team name using centralized utility */}
+                    {getParticipantDisplayName(participant, eventType, {
+                      format: 'jsx',
+                      className: styles.teamNameLarge,
+                      styles: { teamName: styles.teamNameLarge },
+                      showPartnerNames: false // Only show team name, not individual names
+                    })}
                     
                     {/* Only display the usernames if they're different from the team name */}
                     {(participant.team_name.toLowerCase() !== participant.name.toLowerCase() && 
@@ -93,16 +101,16 @@ const ParticipantsList = ({ participants, eventType }) => {
                     )}
                   </>
                 ) : (
-                  /* Only show usernames if no team name */
-                  <div className={styles.duoParticipantNames}>
-                    <span className={styles.participantName}>{participant.name}</span>
-                    {hasPartner && (
-                      <>
-                        <span className={styles.duoSeparator}>&</span>
-                        <span className={styles.participantName}>{partnerName}</span>
-                      </>
-                    )}
-                  </div>
+                  /* Only show usernames if no team name - using centralized utility */
+                  getParticipantDisplayName(participant, eventType, {
+                    format: 'jsx',
+                    className: styles.duoParticipantNames,
+                    styles: {
+                      duoNames: styles.duoParticipantNames,
+                      separator: styles.duoSeparator,
+                      participantName: styles.participantName
+                    }
+                  })
                 )}
               </div>
             </div>

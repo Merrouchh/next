@@ -309,6 +309,7 @@
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .inputContainer:hover {
@@ -325,6 +326,10 @@
   padding: 0;
   margin-right: 10px;
   cursor: pointer;
+  min-width: 0; /* Allow input to shrink */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inputContainer input:focus {
@@ -338,6 +343,28 @@
 }
 
 .inputContainer:hover .copyIcon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.inputContainer::after {
+  content: "Click to copy";
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.inputContainer:hover::after {
   opacity: 1;
 }
 
@@ -523,6 +550,24 @@
 
   .bankTransferDetails {
     margin-bottom: 60px;
+  }
+  
+  .inputContainer {
+    padding: 6px 8px;
+  }
+  
+  .inputContainer input {
+    font-size: 0.9rem;
+    margin-right: 8px;
+  }
+  
+  .copyIcon {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+  }
+  
+  .inputContainer::after {
+    display: none; /* Hide tooltip on mobile */
   }
 }
 

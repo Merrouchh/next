@@ -27,6 +27,16 @@ const UpcomingMatches = ({ userId }) => {
         setError(null);
         
         const matches = await fetchUserUpcomingMatches(userId);
+        console.log('Fetched matches:', matches);
+        matches.forEach((m, i) => {
+          console.log(`Match #${i + 1}:`, {
+            matchId: m.matchId,
+            scheduledTime: m.scheduledTime,
+            eventTitle: m.eventTitle,
+            roundName: m.roundName,
+            opponentName: m.opponentName
+          });
+        });
         setUpcomingMatches(matches);
         setHasNoMatches(matches.length === 0);
       } catch (err) {
@@ -112,10 +122,7 @@ const UpcomingMatches = ({ userId }) => {
   const hasMoreMatches = upcomingMatches.length > 3;
 
   return (
-    <div className={`${styles.statCard} ${styles.mediumCard} ${sharedStyles.clickableCard}`}
-      onClick={() => router.push('/events')}
-      role="button"
-      aria-label="View all upcoming matches"
+    <div className={`${styles.statCard} ${styles.mediumCard}`}
     >
       <div className={styles.statHeader}>
         <div className={styles.statIcon}>
@@ -126,7 +133,20 @@ const UpcomingMatches = ({ userId }) => {
       
       <div className={styles.upcomingMatchesList}>
         {displayMatches.map((match, index) => (
-          <div key={`${match.eventId}_${match.matchId}`} className={styles.matchItem}>
+          <div 
+            key={`${match.eventId}_${match.matchId}`} 
+            className={`${styles.matchItem} ${styles.clickableMatch}`}
+            onClick={() => router.push(`/events/${match.eventId}/bracket`)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                router.push(`/events/${match.eventId}/bracket`);
+              }
+            }}
+            aria-label={`View bracket for ${match.eventTitle}`}
+          >
             <div className={styles.matchEventInfo}>
               <span className={styles.eventTitle}>{match.eventTitle}</span>
               <span className={match.isReady ? styles.readyBadge : styles.notReadyBadge}>
@@ -140,9 +160,17 @@ const UpcomingMatches = ({ userId }) => {
                 <span className={styles.matchLabel}>Match #{match.matchId}</span>
               </div>
               
-              <div className={styles.opponentInfo}>
-                <span className={styles.vsLabel}>VS</span>
-                <span className={styles.opponentName}>{match.opponentName}</span>
+              <div className={styles.matchupInfo}>
+                {match.notes && (
+                  <div className={styles.matchNotes}>
+                    <span className={styles.notesLabel}>Notes:</span>
+                    <span className={styles.notesText}>{match.notes}</span>
+                  </div>
+                )}
+                <div className={styles.opponentInfo}>
+                  <span className={styles.vsLabel}>VS</span>
+                  <span className={styles.opponentName}>{match.opponentName}</span>
+                </div>
               </div>
             </div>
             

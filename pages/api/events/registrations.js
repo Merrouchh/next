@@ -234,17 +234,18 @@ async function getEventRegistrations(req, res, supabase, user) {
           // Get user data for team members
           const { data: teamMemberUsers, error: teamMemberUsersError } = await supabase
             .from('users')
-            .select('id, email, username')
+            .select('id, email, username, phone')
             .in('id', teamMemberUserIds);
           
           if (!teamMemberUsersError && teamMemberUsers && teamMemberUsers.length > 0) {
             console.log('Successfully fetched team member user data:', teamMemberUsers);
             
-            // Add email information to team members
+            // Add email and phone information to team members
             teamMembers.forEach(member => {
               const userData = teamMemberUsers.find(user => user.id === member.user_id);
               if (userData) {
                 member.email = userData.email;
+                member.phone = userData.phone;
               }
             });
           } else {
@@ -273,7 +274,8 @@ async function getEventRegistrations(req, res, supabase, user) {
                 partnerRelationships[partnerRegistration.id] = {
                   registeredBy: registrantUsername,
                   registrationId: member.registration_id,
-                  email: member.email // Add email to the relationship data
+                  email: member.email, // Add email to the relationship data
+                  phone: member.phone // Add phone to the relationship data
                 };
               }
             }
@@ -317,6 +319,9 @@ async function getEventRegistrations(req, res, supabase, user) {
         if (partnerEmail) {
           console.log(`Partner ${registration.username} has email: ${partnerEmail}`);
         }
+        if (partnerRelationships[registration.id].phone) {
+          console.log(`Partner ${registration.username} has phone: ${partnerRelationships[registration.id].phone}`);
+        }
       }
       
       // For duo events, if we have team members, this is likely a main registrant
@@ -334,8 +339,8 @@ async function getEventRegistrations(req, res, supabase, user) {
           email: partnerEmail || userData?.email || 'No email found',
           // Use username from registration record as it's more reliable
           username: registration.username || userData?.username || 'Unknown User',
-          // Include phone number if available
-          phone: userData?.phone || null,
+          // Include phone number if available, or partner phone if this is a partner
+          phone: partnerRelationships[registration.id]?.phone || userData?.phone || null,
           // We don't have avatar_url yet
           avatar_url: null
         },
@@ -385,7 +390,7 @@ async function getEventRegistrations(req, res, supabase, user) {
           if (!existingPartner) {
             console.log(`Creating virtual partner registration for team member ${teamMember.username}`);
             
-            // Find the user data for this team member to get their email
+            // Find the user data for this team member to get their email and phone
             const teamMemberUserData = usersData.find(u => u.id === teamMember.user_id);
             
             // Create a virtual partner registration
@@ -402,6 +407,7 @@ async function getEventRegistrations(req, res, supabase, user) {
                 id: teamMember.user_id,
                 email: teamMember.email || teamMemberUserData?.email || 'No email found',
                 username: teamMember.username,
+                phone: teamMember.phone || teamMemberUserData?.phone || null,
                 avatar_url: null
               },
               teamMembers: [{
@@ -439,7 +445,7 @@ async function getEventRegistrations(req, res, supabase, user) {
         if (leader.teamMembers && leader.teamMembers.length > 0) {
           console.log(`Processing team members for leader ${leader.username} (${leader.id})`);
           
-          // Update each team member with email information
+          // Update each team member with email and phone information
           leader.teamMembers.forEach(member => {
             // Find user data for this team member
             const memberUserData = usersData.find(u => u.id === member.user_id);
@@ -449,6 +455,13 @@ async function getEventRegistrations(req, res, supabase, user) {
               console.log(`Added email ${memberUserData.email} to team member ${member.username}`);
             } else {
               console.log(`No email found for team member ${member.username}`);
+            }
+            
+            if (memberUserData && memberUserData.phone) {
+              member.phone = memberUserData.phone;
+              console.log(`Added phone ${memberUserData.phone} to team member ${member.username}`);
+            } else {
+              console.log(`No phone found for team member ${member.username}`);
             }
             
             // Add additional information to team member

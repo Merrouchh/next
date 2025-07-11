@@ -383,6 +383,41 @@
   justify-content: center; /* Center content */
 }
 
+/* Participant names within bracket matches */
+.participant .participantName,
+.participant span {
+  color: #fff !important;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+/* Team names in bracket matches */
+.participant .teamName {
+  color: #FFD700 !important;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(255,215,0,0.4);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Duo player names in bracket matches */
+.participant .duoPlayerNames {
+  color: #fff !important;
+  font-weight: bold;
+}
+
+.participant .duoPlayerNames span {
+  color: #fff !important;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(255,255,255,0.3);
+}
+
+.participant .duoSeparator {
+  color: #aaa !important;
+  margin: 0 3px;
+}
+
 .participant:last-child {
   border-bottom: none;
 }
@@ -391,6 +426,19 @@
   background-color: rgba(255, 215, 0, 0.2);
   font-weight: bold;
   color: #FFD700;
+}
+
+/* Winner participant names styling */
+.participant.winner .participantName,
+.participant.winner span {
+  color: #FFD700 !important;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(255,215,0,0.6);
+}
+
+.participant.winner .teamName {
+  color: #FFD700 !important;
+  text-shadow: 0 0 12px rgba(255,215,0,0.8);
 }
 
 .matchFooter {
@@ -651,13 +699,16 @@
   color: #FFD700;
   font-size: 1.2rem;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
   text-transform: uppercase;
   margin-bottom: 4px;
   display: flex;
   align-items: center;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow:
+    0 2px 8px #FFD700,
+    0 0px 1px #000,
+    0 0 16px rgba(255,215,0,0.25);
 }
 
 .captainBadge {
@@ -715,15 +766,15 @@
 
 /* Enhanced duo team display styles */
 .duoParticipantNames {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-  background-color: rgba(255, 215, 0, 0.05);
-  padding: 4px 8px;
-  border-radius: 4px;
-  border-left: 2px solid rgba(255, 215, 0, 0.3);
-  height: 35px; /* Fixed height */
+  display: inline;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(255,255,255,0.18), 0 0px 1px #000;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .duoSeparator {
@@ -1093,10 +1144,10 @@
 
 .participantName {
   font-weight: bold;
-  color: #FFD700;
+  color: #fff !important;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+  text-shadow: 0 0 5px rgba(255,255,255,0.3) !important;
 }
 
 .teamMember {
@@ -1442,4 +1493,10 @@
   .mobileControls {
     gap: 10px;
   }
+}
+
+.duoParticipantNames,
+.duoParticipantNames * {
+  color: #fff !important;
+  text-shadow: 0 1px 8px rgba(255,255,255,0.18), 0 0px 1px #000 !important;
 }

@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
-import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers, FaTrophy } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers, FaTrophy, FaEye, FaCode } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminEvents.module.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -29,6 +32,7 @@ export default function AdminEvents() {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const router = useRouter();
   const { user, supabase } = useAuth();
 
@@ -668,16 +672,86 @@ export default function AdminEvents() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="description">Description</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter event description"
-                  rows="4"
-                  className={formErrors.description ? styles.inputError : ''}
-                ></textarea>
+                <div className={styles.labelWithButtons}>
+                  <label htmlFor="description">Description</label>
+                  <div className={styles.previewButtons}>
+                    <button
+                      type="button"
+                      className={`${styles.previewButton} ${!showPreview ? styles.active : ''}`}
+                      onClick={() => setShowPreview(false)}
+                    >
+                      <FaCode /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.previewButton} ${showPreview ? styles.active : ''}`}
+                      onClick={() => setShowPreview(true)}
+                    >
+                      <FaEye /> Preview
+                    </button>
+                  </div>
+                </div>
+                
+                {!showPreview ? (
+                  <div className={styles.textareaContainer}>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      placeholder="Enter event description (supports Markdown formatting)&#10;&#10;Examples:&#10;**Bold text**&#10;*Italic text*&#10;[Link text](https://example.com)&#10;- Bullet points&#10;1. Numbered lists&#10;> Quotes&#10;`code`"
+                      rows="6"
+                      className={formErrors.description ? styles.inputError : ''}
+                    ></textarea>
+                    <div className={styles.markdownHelp}>
+                      <small>
+                        <strong>Markdown supported:</strong> **bold**, *italic*, [links](url), lists, quotes, `code`, and more
+                      </small>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.previewContainer}>
+                    {formData.description ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={{
+                          a: ({ node, ...props }) => {
+                            const isExternal = props.href?.startsWith('http');
+                            return (
+                              <a 
+                                {...props} 
+                                target={isExternal ? '_blank' : undefined}
+                                rel={isExternal ? 'noopener noreferrer' : undefined}
+                                className={styles.previewLink}
+                              />
+                            );
+                          },
+                          h1: ({ node, ...props }) => <h1 className={styles.previewH1} {...props} />,
+                          h2: ({ node, ...props }) => <h2 className={styles.previewH2} {...props} />,
+                          h3: ({ node, ...props }) => <h3 className={styles.previewH3} {...props} />,
+                          ul: ({ node, ...props }) => <ul className={styles.previewList} {...props} />,
+                          ol: ({ node, ...props }) => <ol className={styles.previewList} {...props} />,
+                          code: ({ node, inline, ...props }) => (
+                            inline ? 
+                              <code className={styles.previewInlineCode} {...props} /> :
+                              <code className={styles.previewCode} {...props} />
+                          ),
+                          blockquote: ({ node, ...props }) => <blockquote className={styles.previewBlockquote} {...props} />,
+                          table: ({ node, ...props }) => <table className={styles.previewTable} {...props} />,
+                          th: ({ node, ...props }) => <th className={styles.previewTh} {...props} />,
+                          td: ({ node, ...props }) => <td className={styles.previewTd} {...props} />,
+                        }}
+                      >
+                        {formData.description}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className={styles.previewEmpty}>
+                        <p>No description to preview. Switch to Edit mode to add content.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {formErrors.description && <div className={styles.errorMessage}>{formErrors.description}</div>}
               </div>
 

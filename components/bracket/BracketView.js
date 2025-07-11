@@ -3,6 +3,7 @@ import { FaTrophy, FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-
 import styles from '../../styles/Bracket.module.css';
 import ZoomControls from './ZoomControls';
 import TournamentWinner from '../shared/TournamentWinner';
+import { getParticipantNameById, getParticipantDisplayName } from '../../utils/participantUtils';
 
 const BracketView = ({ 
   bracketData, 
@@ -553,66 +554,10 @@ const BracketView = ({
     }
   }, [bracketData, hasInteracted]);
 
-  // Get participant name by ID with duo partner support
-  const getParticipantName = (participantId) => {
-    if (!participantId) return 'TBD';
-    const participant = participants.find(p => p.id === participantId);
-    return participant ? participant.name : 'Unknown';
-  };
-
   // Get full participant information including duo partner
   const getParticipantInfo = (participantId) => {
     if (!participantId) return null;
     return participants.find(p => p.id === participantId);
-  };
-
-  // Format participant display name based on event type
-  const formatParticipantName = (participant, eventTypeParam = null) => {
-    if (!participant) return 'TBD';
-    
-    // Use passed event type or component state if not provided
-    const currentEventType = eventTypeParam || eventType;
-    
-    // For duo events
-    if (currentEventType === 'duo') {
-      // If there's a team name, only show the team name
-      if (participant.team_name) {
-        return <span className={styles.teamName}>{participant.team_name}</span>;
-      }
-      
-      // If no team name, show both players
-      const hasPartner = (participant.members && participant.members.length > 0) || participant.partner;
-      
-      // Get partner name from either members array or partner property
-      const partnerName = hasPartner ? 
-        (participant.members && participant.members.length > 0 ? 
-          participant.members[0]?.name || participant.members[0]?.username : participant.partner) : null;
-      
-      // If there's no partner, just show the main player's name
-      if (!partnerName) {
-        return <span>{participant.name}</span>;
-      }
-      
-      // Show both names with & between them
-      return (
-        <div className={styles.duoPlayerNames}>
-          <span>{participant.name}</span>
-          <span className={styles.duoSeparator}>&</span>
-          <span>{partnerName}</span>
-        </div>
-      );
-    } 
-    
-    // For team events
-    if (currentEventType === 'team') {
-      // Just display the team name
-      if (participant.team_name) {
-        return <span className={styles.teamName}>{participant.team_name}</span>;
-      }
-    }
-    
-    // Default for solo or fallback
-    return <span>{participant.name}</span>;
   };
 
   // Calculate spacing based on number of rounds
@@ -829,13 +774,29 @@ const BracketView = ({
                         </div>
                         <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
                           {match.participant1Id ? 
-                            formatParticipantName(participant1, eventType) : 
+                            getParticipantDisplayName(participant1, eventType, {
+                              format: 'jsx',
+                              className: styles.participantName,
+                              styles: {
+                                teamName: styles.teamName,
+                                duoNames: styles.duoPlayerNames,
+                                separator: styles.duoSeparator
+                              }
+                            }) : 
                             <span>{match.participant1Name || 'TBD'}</span>
                           }
                         </div>
                         <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
                           {match.participant2Id ? 
-                            formatParticipantName(participant2, eventType) : 
+                            getParticipantDisplayName(participant2, eventType, {
+                              format: 'jsx',
+                              className: styles.participantName,
+                              styles: {
+                                teamName: styles.teamName,
+                                duoNames: styles.duoPlayerNames,
+                                separator: styles.duoSeparator
+                              }
+                            }) : 
                             <span>{match.participant2Name || 'TBD'}</span>
                           }
                         </div>
@@ -849,7 +810,7 @@ const BracketView = ({
                         {match.winnerId && match.nextMatchId && (
                           <div className={styles.matchFooter}>
                             <span className={styles.advanceInfo}>
-                              {participants.find(p => p.id === match.winnerId)?.name || 'Winner'} advanced to Match {match.nextMatchId}
+                              {getParticipantNameById(match.winnerId, participants, eventType, { format: 'text' })} advanced to Match {match.nextMatchId}
                             </span>
                           </div>
                         )}

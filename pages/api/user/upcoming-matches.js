@@ -89,6 +89,31 @@ export default async function handler(req, res) {
       .eq('user_id', userId)
       .in('status', ['registered', 'confirmed']);
 
+    // --- NEW: Also get registrations where user is a team member ---
+    const { data: teamMemberRegs, error: teamMemberError } = await supabase
+      .from('event_team_members')
+      .select('registration_id')
+      .eq('user_id', userId);
+    const teamRegistrationIds = teamMemberRegs?.map(reg => reg.registration_id) || [];
+    let teamEventIds = [];
+    let teamRegistrations = [];
+    if (teamRegistrationIds.length > 0) {
+      const { data: teamRegs, error: teamRegsError } = await supabase
+        .from('event_registrations')
+        .select('id, event_id, status, events (*)')
+        .in('id', teamRegistrationIds)
+        .in('status', ['registered', 'confirmed']);
+      if (teamRegs) {
+        teamEventIds = teamRegs.map(reg => reg.event_id);
+        teamRegistrations = teamRegs;
+      }
+    }
+    // --- END NEW ---
+
+    // Merge all registrations and event IDs
+    const allRegistrations = [...userRegistrations, ...teamRegistrations];
+    const allEventIds = allRegistrations.map(reg => reg.event_id);
+
     if (registrationsError) {
       console.error('Error fetching registrations:', registrationsError);
       return res.status(500).json({ error: 'Failed to fetch registrations: ' + registrationsError.message });
@@ -102,7 +127,7 @@ export default async function handler(req, res) {
     }
 
     // Filter to only include upcoming or in-progress events
-    const relevantRegistrations = userRegistrations.filter(reg => {
+    const relevantRegistrations = allRegistrations.filter(reg => {
       const eventStatus = reg.events?.status?.toLowerCase?.() || '';
       console.log(`Checking event ${reg.event_id} status:`, reg.events?.status, 'Normalized:', eventStatus);
       
@@ -119,7 +144,7 @@ export default async function handler(req, res) {
     });
 
     // Log all user registrations to debug
-    console.log('All user registrations:', userRegistrations.map(reg => ({
+    console.log('All user registrations:', allRegistrations.map(reg => ({
       id: reg.id,
       eventId: reg.event_id,
       eventStatus: reg.events?.status,
@@ -139,7 +164,7 @@ export default async function handler(req, res) {
     const { data: eventBrackets, error: bracketsError } = await supabase
       .from('event_brackets')
       .select('event_id, matches')
-      .in('event_id', eventIds);
+      .in('event_id', allEventIds);
 
     if (bracketsError) {
       console.error('Error fetching brackets:', bracketsError);
@@ -153,11 +178,59 @@ export default async function handler(req, res) {
       return res.status(200).json({ matches: [] });
     }
 
-    // 4. Get match details for additional information
+    // 4. Get all registrations with team names for proper name display
+    const { data: allRegistrationsWithTeams, error: allRegistrationsError } = await supabase
+      .from('event_registrations')
+      .select(`
+        id,
+        event_id,
+        user_id,
+        username,
+        team_name,
+        event_team_members (
+          id,
+          user_id,
+          username
+        )
+      `)
+      .in('event_id', allEventIds)
+      .eq('status', 'registered');
+
+    if (allRegistrationsError) {
+      console.error('Error fetching registrations with teams:', allRegistrationsError);
+      // Continue anyway, we'll use fallback names
+    }
+
+    // Create a lookup map for participant names by registration ID
+    const participantNameMap = {};
+    if (allRegistrationsWithTeams && allRegistrationsWithTeams.length > 0) {
+      allRegistrationsWithTeams.forEach(reg => {
+        const eventInfo = relevantRegistrations.find(r => r.event_id === reg.event_id)?.events;
+        const eventType = eventInfo?.team_type || 'solo';
+        
+        let displayName = reg.username; // fallback
+        
+        if (eventType === 'team' && reg.team_name) {
+          displayName = reg.team_name;
+        } else if (eventType === 'duo' && reg.team_name) {
+          displayName = reg.team_name;
+        } else if (eventType === 'duo' && reg.event_team_members && reg.event_team_members.length > 0) {
+          // For duo without team name, show both names
+          const partner = reg.event_team_members[0];
+          displayName = `${reg.username} & ${partner.username}`;
+        }
+        
+        participantNameMap[reg.id] = displayName;
+      });
+    }
+
+    console.log('Participant name map:', participantNameMap);
+
+    // 5. Get match details for additional information
     const { data: matchDetails, error: matchDetailsError } = await supabase
       .from('event_match_details')
       .select('*')
-      .in('event_id', eventIds);
+      .in('event_id', allEventIds);
 
     if (matchDetailsError) {
       console.error('Error fetching match details:', matchDetailsError);
@@ -174,7 +247,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. Find user's upcoming matches in each bracket
+    // 6. Find user's upcoming matches in each bracket
     const upcomingMatches = [];
 
     // Process each event that has a bracket
@@ -217,7 +290,7 @@ export default async function handler(req, res) {
           }
 
           // Get user registration for this event
-          const userRegistration = userRegistrations.find(reg => reg.event_id === eventId);
+          const userRegistration = allRegistrations.find(reg => reg.event_id === eventId);
           
           // Log the current match to debug
           console.log('Checking match for user participation:', {
@@ -263,12 +336,18 @@ export default async function handler(req, res) {
             readyToPlay = false;
           }
 
-          // Get opponent information
+          // Get opponent information and user's team name using proper team names
           let opponentName = "TBD";
-          if (isParticipant1 && match.participant2Name) {
-            opponentName = match.participant2Name;
-          } else if (isParticipant2 && match.participant1Name) {
-            opponentName = match.participant1Name;
+          let userTeamName = "TBD";
+          
+          if (isParticipant1) {
+            // User is participant 1, opponent is participant 2
+            opponentName = participantNameMap[match.participant2Id] || match.participant2Name || "TBD";
+            userTeamName = participantNameMap[match.participant1Id] || match.participant1Name || "TBD";
+          } else if (isParticipant2) {
+            // User is participant 2, opponent is participant 1
+            opponentName = participantNameMap[match.participant1Id] || match.participant1Name || "TBD";
+            userTeamName = participantNameMap[match.participant2Id] || match.participant2Name || "TBD";
           }
 
           // Check if match details exist
@@ -285,6 +364,7 @@ export default async function handler(req, res) {
             roundNumber: roundIndex + 1,
             roundName: getRoundName(matchesData.length, roundIndex),
             opponentName,
+            userTeamName, // Add user's team name
             isReady: readyToPlay,
             scheduledTime: matchDetail?.scheduled_time || null,
             location: matchDetail?.location || null,

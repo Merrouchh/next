@@ -1,3 +1,36 @@
+/* ===== EVENT DETAIL PAGE STYLES ===== */
+
+/* Global Text Selection Override */
+.eventDetail *,
+.eventDetail {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  cursor: text;
+}
+
+/* Override cursor for interactive elements */
+.eventDetail button,
+.eventDetail a,
+.eventDetail input,
+.eventDetail textarea,
+.eventDetail select,
+.eventDetail .viewRegistrationsButton,
+.eventDetail .adminEditButton,
+.eventDetail .stepButton,
+.eventDetail .closeButton,
+.eventDetail .removeMember,
+.eventDetail .teamMember {
+  cursor: pointer !important;
+}
+
+.eventDetail input,
+.eventDetail textarea {
+  cursor: text !important;
+}
+
+/* ===== LAYOUT CONTAINERS ===== */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -7,6 +40,31 @@
   overflow-x: hidden;
 }
 
+.eventDetail {
+  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.eventHeader {
+  display: flex;
+  flex-direction: column;
+}
+
+.eventInfo {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+.eventContent {
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* ===== NAVIGATION ===== */
 .backLink {
   display: inline-block;
   margin-bottom: 2rem;
@@ -20,7 +78,19 @@
   color: #FFD700;
 }
 
-/* Loading and Not Found States */
+.backButton {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #FFD700;
+  color: #121212;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+/* ===== LOADING & ERROR STATES ===== */
 .loadingContainer,
 .notFoundContainer {
   display: flex;
@@ -46,36 +116,107 @@
   100% { transform: rotate(360deg); }
 }
 
-.backButton {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #FFD700;
-  color: #121212;
-  border-radius: 4px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.backButton:hover {
-  background-color: #FFD700;
-  color: #121212;
-}
-
-/* Event Detail Layout */
-.eventDetail {
-  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
-  border: none;
+/* ===== EVENT IMAGE ===== */
+.eventImageContainer {
   position: relative;
-  transition: all 0.3s ease;
-  margin-bottom: 2.5rem;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+  background-color: #141414;
+  border-radius: 4px;
 }
 
-/* Add styled section titles for Event Details */
+.eventImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.5s ease;
+}
+
+.eventImage:hover {
+  transform: scale(1.03);
+}
+
+.eventImagePlaceholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+}
+
+.placeholderText {
+  font-size: 6rem;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.fallbackImage {
+  background: linear-gradient(135deg, #252438 0%, #1e1e24 100%);
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fallbackImage::after {
+  content: '🎮';
+  font-size: 5rem;
+  filter: drop-shadow(0 0 10px rgba(98, 0, 234, 0.5));
+}
+
+/* ===== STATUS BADGE ===== */
+.eventStatusBadge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  z-index: 5;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+}
+
+.statusUpcoming {
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+}
+
+.statusInProgress {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  color: white;
+}
+
+.statusCompleted {
+  background: linear-gradient(135deg, #455a64 0%, #37474f 100%);
+  color: white;
+}
+
+/* ===== TYPOGRAPHY ===== */
+.eventTitle {
+  margin: 0 0 1rem 0;
+  font-size: 1.8rem;
+  color: #FFD700;
+}
+
 .sectionHeading {
   font-size: 1.5rem;
   color: #FFD700;
@@ -104,219 +245,92 @@
   color: #FFD700;
 }
 
-/* Add shine effect to event detail */
-.eventDetail::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: rotate(30deg);
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0.3;
-  animation: shineEffect 8s infinite linear;
+/* ===== EVENT INFORMATION ===== */
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-@keyframes shineEffect {
-  0% { transform: rotate(30deg) translateY(0%); }
-  50% { transform: rotate(30deg) translateY(-10%); }
-  100% { transform: rotate(30deg) translateY(0%); }
+.metaItem {
+  display: flex;
+  align-items: center;
+  color: #b0b0b0;
+  font-size: 0.9rem;
 }
 
-/* Add subtle glow to event detail */
-.eventDetail::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(98, 0, 234, 0.05) 0%, rgba(55, 0, 179, 0.08) 100%);
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 1;
+.metaIcon {
+  margin-right: 0.5rem;
 }
 
-.eventHeader {
+.infoItem {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: baseline;
+}
+
+.infoLabel {
+  font-weight: 600;
+  min-width: 120px;
+  color: #495057;
+}
+
+.partnerName {
+  color: #FFD700;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.partnerName::before {
+  content: "👤";
+  margin-right: 6px;
+}
+
+.teamLeaderBadge {
+  color: #FFD700;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.teamLeaderBadge::before {
+  content: "👑";
+  margin-right: 6px;
+}
+
+.teamMembersChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.teamMemberChip {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #333;
+}
+
+.teamMemberChip::before {
+  content: "👤";
+  margin-right: 6px;
+  font-size: 0.9rem;
+}
+
+.teamMembersInline {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
 }
 
-@media (min-width: 768px) {
-  .eventHeader {
-    flex-direction: row;
-    align-items: flex-start;
-  }
-}
-
-.eventImageContainer {
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%; /* Creates a square aspect ratio (1:1) */
-  overflow: hidden;
-  background-color: #141414;
-  border: none;
-  box-shadow: inset 0 0 20px rgba(98, 0, 234, 0.1);
-  border-radius: 4px;
-}
-
-@media (min-width: 768px) {
-  .eventImageContainer {
-    width: 40%;
-    min-width: 40%;
-    padding-bottom: 40%; /* Maintains square aspect ratio at 40% width */
-    margin-right: 0;
-    border-top-left-radius: 12px;
-    border-bottom-left-radius: 12px;
-    border-right: none;
-  }
-}
-
-.eventImage {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transition: transform 0.5s ease;
-  will-change: transform;
-}
-
-.eventImage:hover {
-  transform: scale(1.03);
-}
-
-.eventImagePlaceholder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
-  color: white;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
-}
-
-.placeholderText {
-  font-size: 6rem;
-  font-weight: 800;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-.fallbackImage {
-  background: linear-gradient(135deg, #252438 0%, #1e1e24 100%);
-  position: absolute !important;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 30px rgba(98, 0, 234, 0.1);
-  border: none;
-}
-
-.fallbackImage::after {
-  content: '🎮';
-  font-size: 5rem;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  filter: drop-shadow(0 0 10px rgba(98, 0, 234, 0.5));
-}
-
-/* Add a subtle shimmer effect to the image container */
-.eventImageContainer::before {
-  content: '';
-  position: absolute;
-  top: -150%;
-  left: -150%;
-  width: 400%;
-  height: 400%;
-  background: linear-gradient(
-    to right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
-  transform: rotate(30deg);
-  animation: shimmerEffect 12s infinite linear;
-  z-index: 1;
-  pointer-events: none;
-}
-
-@keyframes shimmerEffect {
-  0% { transform: rotate(30deg) translate(-30%, -30%); }
-  100% { transform: rotate(30deg) translate(30%, 30%); }
-}
-
-.eventStatusBadge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  padding: 0.35rem 0.85rem;
-  border-radius: 30px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  z-index: 5;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(4px);
-}
-
-.statusUpcoming {
-  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
-  color: white;
-  border: none;
-}
-
-.statusInProgress {
-  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
-  color: white;
-  border: none;
-}
-
-.statusCompleted {
-  background: linear-gradient(135deg, #455a64 0%, #37474f 100%);
-  color: white;
-  border: none;
-}
-
-.eventInfo {
-  padding: 1.5rem;
-  flex: 1;
-}
-
-.eventTitle {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.8rem;
-  color: #FFD700;
-}
-
-/* Registration status indicator */
+/* ===== REGISTRATION STATUS ===== */
 .registrationStatusIndicator {
   margin-bottom: 1.5rem;
   padding: 0.75rem 1rem;
@@ -342,35 +356,7 @@
   font-size: 1.1rem;
 }
 
-.eventMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.metaItem {
-  display: flex;
-  align-items: center;
-  color: #b0b0b0;
-  font-size: 0.9rem;
-}
-
-.metaIcon {
-  margin-right: 0.5rem;
-}
-
-.registrationLimit {
-  font-weight: 600;
-  color: #4CAF50;
-  margin-left: 0.5rem;
-}
-
-.eventContent {
-  padding: 1.5rem;
-  margin-top: 1rem;
-}
-
+/* ===== CONTENT SECTIONS ===== */
 .eventDescriptionSection {
   margin-bottom: 2.5rem;
 }
@@ -383,6 +369,135 @@
 
 .eventDescription p {
   margin-bottom: 1rem;
+}
+
+/* ===== MARKDOWN STYLES ===== */
+.markdownLink {
+  color: #FFD700;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s, text-shadow 0.2s;
+  cursor: pointer !important;
+}
+
+.markdownLink:hover {
+  color: #FFF700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  text-decoration: underline;
+}
+
+.markdownH1 {
+  color: #FFD700;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1.5rem 0 1rem 0;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.markdownH2 {
+  color: #e0e0e0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.75rem 0;
+  text-shadow: 0 0 5px rgba(224, 224, 224, 0.2);
+}
+
+.markdownH3 {
+  color: #c0c0c0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.markdownList {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.markdownList li {
+  margin-bottom: 0.5rem;
+  color: #e0e0e0;
+}
+
+.markdownList li::marker {
+  color: #FFD700;
+}
+
+.markdownInlineCode {
+  background-color: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.markdownCode {
+  background-color: rgba(30, 30, 36, 0.8);
+  color: #e0e0e0;
+  padding: 1rem;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  overflow-x: auto;
+  display: block;
+  margin: 1rem 0;
+}
+
+.markdownBlockquote {
+  border-left: 4px solid #FFD700;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #c0c0c0;
+  font-style: italic;
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem;
+}
+
+.markdownTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background-color: rgba(30, 30, 36, 0.5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdownTh {
+  background-color: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.markdownTd {
+  padding: 0.75rem;
+  color: #e0e0e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.markdownTd:last-child,
+.markdownTh:last-child {
+  border-right: none;
+}
+
+/* Strong and emphasis styles */
+.eventDescription strong {
+  color: #FFD700;
+  font-weight: 700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+}
+
+.eventDescription em {
+  color: #f0f0f0;
+  font-style: italic;
 }
 
 .registrationSection {
@@ -401,6 +516,21 @@
   background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.2) 50%, rgba(255, 215, 0, 0.05) 100%);
 }
 
+.registrationInfo {
+  background-color: #141414;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.registrationInfo h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #e0e0e0;
+}
+
+/* ===== BUTTONS & ACTIONS ===== */
 .eventActions {
   display: flex;
   flex-wrap: wrap;
@@ -410,7 +540,6 @@
   justify-content: flex-start;
 }
 
-/* Registration Button Styles */
 .registerButton, 
 .bracketButton,
 .cancelButton {
@@ -446,24 +575,20 @@
   opacity: 0.7;
 }
 
-.completedButton {
-  background-color: #6c757d;
-  color: white;
+.bracketButton {
+  background-color: #202020;
+  color: #FFD700;
+  border: 1px solid #FFD700;
 }
 
-.inProgressButton {
-  background-color: #17a2b8;
-  color: white;
+.bracketButton:hover {
+  background-color: rgba(255, 215, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .cancelButton {
   background-color: #dc3545;
   color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
 }
 
 .cancelButton:hover:not(:disabled) {
@@ -473,18 +598,6 @@
 .cancelButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
-}
-
-.disabledCancelButton {
-  background-color: #6c757d;
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.disabledCancelButton:hover {
-  background-color: #6c757d;
-  transform: none;
 }
 
 .cancelButton::before {
@@ -501,10 +614,6 @@
   justify-content: center;
   gap: 0.5rem;
   font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 .registeredButton::before {
@@ -520,15 +629,21 @@
   justify-content: center;
   gap: 0.5rem;
   font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 .teamMemberButton::before {
   content: "👤";
   font-weight: bold;
+}
+
+.completedButton {
+  background-color: #6c757d;
+  color: white;
+}
+
+.inProgressButton {
+  background-color: #17a2b8;
+  color: white;
 }
 
 .fullButton {
@@ -551,27 +666,82 @@
   background-color: #2d3748;
 }
 
-.bracketButton {
-  padding: 0.75rem 1.5rem;
-  background-color: #202020;
-  color: #FFD700;
-  border: 1px solid #FFD700;
-  border-radius: 4px;
-  font-weight: 500;
-  text-decoration: none;
+/* ===== TOURNAMENT BRACKET ===== */
+.tournamentBracketButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 220px;
 }
 
-.bracketButton:hover {
-  background-color: rgba(255, 215, 0, 0.1);
-  transform: translateY(-2px);
+.tournamentBracketButton:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5);
+  color: white;
 }
 
-/* Primary bracket button for completed events when it's the only action */
+.tournamentBracketButton .bracketIcon {
+  font-size: 1.3rem;
+  margin-right: 10px;
+  color: white;
+}
+
+.endedEventActions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.championsContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.bracketWinner {
+  background-color: #FFD700;
+  color: #111;
+  padding: 0.75rem 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  border-radius: 50px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
+  width: auto;
+}
+
+.winnerPartner {
+  color: #111;
+  font-weight: bold;
+}
+
+.trophyIcon {
+  color: #111;
+  margin-right: 0.75rem;
+  font-size: 1.5rem;
+}
+
+/* ===== MISSING BUTTON STYLES ===== */
 .primaryBracketButton {
   background-color: #FFD700;
   color: #121212;
@@ -587,75 +757,152 @@
   transform: translateY(-2px);
 }
 
-/* Prominent bracket button for in-progress events */
 .prominentBracketButton {
   background-color: rgba(255, 215, 0, 0.15);
   border-width: 2px;
   font-weight: 600;
 }
 
-.registrationConfirmation {
+.generateBracketButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.2);
+}
+
+.generateBracketButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(23, 162, 184, 0.3);
+}
+
+.generateBracketButton:disabled {
+  opacity: 0.6;
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.deleteBracketButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+}
+
+.deleteBracketButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(220, 53, 69, 0.3);
+}
+
+.deleteBracketButton:disabled {
+  opacity: 0.6;
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.bracketIcon {
+  margin-right: 12px;
+  font-size: 1.25rem;
+  color: inherit;
+}
+
+.deleteBracketButton .bracketIcon,
+.generateBracketButton .bracketIcon {
+  color: white;
+}
+
+.loginButton {
+  padding: 0.5rem 1.5rem;
+  background-color: #FFD700;
+  color: #121212;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.loginButton:hover {
+  background-color: #FFC107;
+  transform: translateY(-2px);
+}
+
+.loginPrompt {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  color: #28a745;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.loginPrompt p {
+  color: #e0e0e0;
   font-weight: 500;
+  margin: 0;
 }
 
-.registeredByBadge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background-color: #28a745;
-  color: white;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.eventStatusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: rgba(108, 117, 125, 0.1);
+  border-left: 4px solid #6c757d;
 }
 
-.registeredByInfo {
-  margin-top: 0.5rem;
-  font-size: 1rem;
-  color: #FFD700;
-  font-style: italic;
-  padding: 0.5rem;
-  background-color: rgba(255, 215, 0, 0.1);
-  border-radius: 4px;
-  border-left: 3px solid #FFD700;
+.eventStatusMessage p {
+  color: #e0e0e0;
+  font-weight: 500;
+  margin: 0;
 }
 
-/* Registration Information */
-.registrationInfo {
+.registrationInfoLoading {
   background-color: #141414;
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 2rem;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.registrationInfo h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #e0e0e0;
-}
-
-.progressBarContainer {
-  width: 100%;
-  height: 10px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  overflow: hidden;
-  margin-top: 1rem;
-}
-
-.progressBar {
-  height: 100%;
-  border-radius: 5px;
-  transition: width 0.3s ease;
-}
-
-/* Admin Section */
+/* ===== ADMIN SECTION ===== */
 .adminSection {
   background-color: #141414;
   padding: 1.5rem;
@@ -716,6 +963,7 @@
   text-decoration: none;
   transition: all 0.2s;
   width: 100%;
+  cursor: pointer;
 }
 
 .viewRegistrationsButton:hover {
@@ -740,6 +988,7 @@
   transition: all 0.2s;
   width: 100%;
   gap: 0.5rem;
+  cursor: pointer;
 }
 
 .adminEditButton:hover {
@@ -748,171 +997,7 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive styles */
-@media (max-width: 767px) {
-  .eventImageContainer {
-    width: 100%;
-    padding-bottom: 100%; /* Maintain square aspect ratio */
-    max-height: none;
-  }
-  
-  .eventTitle {
-    font-size: 2rem;
-  }
-  
-  .eventMeta {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .eventActions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .eventActions button,
-  .eventActions a {
-    width: 100%;
-    text-align: center;
-    justify-content: center;
-  }
-  
-  .registerButton {
-    max-width: 100%;
-  }
-}
-
-/* Team Member Selection */
-.teamMemberSelection,
-.teamMemberDisplay {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.teamMemberSelection h3,
-.teamMemberDisplay h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #333;
-}
-
-.teamMembersList {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-top: 1rem;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.teamMember {
-  display: flex;
-  align-items: center;
-  background-color: #2c2c2c;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.teamMember:hover {
-  background-color: #333;
-  border-color: rgba(255, 215, 0, 0.3);
-}
-
-.teamMember.selected {
-  background-color: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.5);
-}
-
-.checkmark {
-  color: #FFD700;
-  font-weight: bold;
-  font-size: 1.2rem;
-}
-
-.teamNote {
-  margin-top: 1rem;
-  font-size: 0.9rem;
-  color: #6c757d;
-  font-style: italic;
-}
-
-/* Info Items */
-.infoItem {
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: baseline;
-}
-
-.infoLabel {
-  font-weight: 600;
-  min-width: 120px;
-  color: #495057;
-}
-
-.partnerName {
-  color: #FFD700;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-}
-
-.partnerName::before {
-  content: "👤";
-  margin-right: 6px;
-}
-
-/* Team members inline display */
-.teamMembersInline {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.teamLeaderBadge {
-  color: #FFD700;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-}
-
-.teamLeaderBadge::before {
-  content: "👑";
-  margin-right: 6px;
-}
-
-.teamMembersChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.teamMemberChip {
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #333;
-}
-
-.teamMemberChip::before {
-  content: "👤";
-  margin-right: 6px;
-  font-size: 0.9rem;
-}
-
-/* Modal Styles */
+/* ===== MODAL STYLES ===== */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -923,10 +1008,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10000; /* Increased z-index to ensure it's above other elements */
+  z-index: 10000;
   padding: 1rem;
   backdrop-filter: blur(4px);
-  overflow: hidden; /* Prevent scrolling on the overlay itself */
 }
 
 .modal {
@@ -941,7 +1025,6 @@
   animation: modalFadeIn 0.3s ease;
   border: 1px solid #333;
   overflow: hidden;
-  position: relative; /* Ensure proper stacking context */
 }
 
 @keyframes modalFadeIn {
@@ -998,84 +1081,6 @@
   max-height: 50vh;
 }
 
-.searchContainer {
-  margin-bottom: 1rem;
-  position: relative;
-}
-
-.searchInput {
-  width: 100%;
-  padding: 0.85rem 1rem;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  background-color: #282828;
-  color: #fff;
-  font-size: 1rem;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: #FFD700;
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
-}
-
-/* Add these mobile styles for search input */
-@media (max-width: 767px) {
-  .searchInput {
-    font-size: 16px; /* Prevents zoom on iOS */
-    padding: 0.75rem;
-  }
-}
-
-.noResults {
-  padding: 1.5rem;
-  text-align: center;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  color: #e0e0e0;
-  font-size: 1rem;
-  margin: 1rem 0;
-}
-
-@media (max-width: 767px) {
-  .noResults {
-    padding: 1rem;
-    margin: 0.75rem 0;
-    font-size: 0.95rem;
-  }
-}
-
-.teamMembersList {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-top: 1rem;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.teamMember {
-  display: flex;
-  align-items: center;
-  background-color: #2c2c2c;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.teamMember:hover {
-  background-color: #333;
-  border-color: rgba(255, 215, 0, 0.3);
-}
-
-.teamMember.selected {
-  background-color: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.5);
-}
-
 .modalActions {
   padding: 1.25rem 1.5rem;
   border-top: 1px solid #2a2a2a;
@@ -1085,901 +1090,109 @@
   background-color: #1a1a1a;
 }
 
-/* Rest of the CSS remains the same */
+/* ===== MODAL STEP NAVIGATION ===== */
+.stepIndicator {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  gap: 0.5rem;
+}
 
-/* Bracket section styles */
-.bracketSection {
-  margin-top: 30px;
-  padding: 20px;
-  background-color: rgba(15, 15, 15, 0.9);
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  border: 1px solid #333;
+.stepDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #333;
+  transition: all 0.3s ease;
+}
+
+.stepDot.active {
+  background-color: #FFD700;
+  transform: scale(1.2);
+}
+
+.stepDot.completed {
+  background-color: #28a745;
+}
+
+.modalStep {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.modalStep.active {
+  display: block;
+}
+
+.stepButtons {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  border-top: 1px solid #333;
+  background-color: #1a1a1a;
+  gap: 1rem;
+}
+
+.stepButton {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.stepButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stepButton.primary {
+  background-color: #FFD700;
+  color: #121212;
+}
+
+.stepButton.primary:hover:not(:disabled) {
+  background-color: #FFC107;
+}
+
+.stepButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== MODAL SECTIONS ===== */
+.modalSection {
+  margin-bottom: 2rem;
+  padding: 1rem;
 }
 
 .sectionTitle {
-  display: flex;
-  align-items: center;
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-  color: #FFD700;
-  font-family: 'Orbitron', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.sectionIcon {
-  margin-right: 10px;
-  color: #FFD700;
-  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
-}
-
-.bracketPreview {
-  padding: 20px;
-  background-color: rgba(20, 20, 25, 0.9);
-  border-radius: 8px;
-  border: 1px solid #333;
-}
-
-.bracketPreviewLoading, .noBracketMessage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  text-align: center;
-  padding: 20px;
-  background-color: rgba(20, 20, 25, 0.9);
-  border-radius: 8px;
-  color: #e0e0e0;
-}
-
-.bracketPreviewLoading .loader {
-  border: 5px solid rgba(255, 255, 255, 0.1);
-  border-top: 5px solid #FFD700;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-.bracketWinner {
-  background-color: #FFD700;
-  color: #111;
-  padding: 0.75rem 2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  border-radius: 50px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
-  width: auto;
-}
-
-.winnerPartner {
-  color: #111;
-  font-weight: bold;
-}
-
-.trophyIcon {
-  color: #111;
-  margin-right: 0.75rem;
-  font-size: 1.5rem;
-}
-
-.bracketStats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.bracketStat {
-  flex: 1;
-  min-width: 120px;
-  padding: 10px;
-  background-color: rgba(20, 20, 25, 0.9);
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  border: 1px solid #333;
-}
-
-.statLabel {
-  display: block;
-  font-size: 0.9rem;
-  color: #e0e0e0;
-  margin-bottom: 5px;
-}
-
-.statValue {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #FFD700;
-}
-
-.viewBracketButton, .generateBracketButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 12px 20px;
-  background-color: #FFD700;
-  color: #111;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  margin-top: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.viewBracketButton:hover, .generateBracketButton:hover {
-  background-color: #FFD700;
-  box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
-  color: #111;
-}
-
-.bracketIcon {
-  margin-right: 8px;
-  color: white;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .bracketStats {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .bracketStat {
-    min-width: 100%;
-  }
-}
-
-.bracketActions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-/* Create a single consolidated deleteBracketButton style */
-.deleteBracketButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 0.85rem 1.5rem;
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
-}
-
-.deleteBracketButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(220, 53, 69, 0.3);
-}
-
-.deleteBracketButton:disabled {
-  opacity: 0.6;
-  background: #6c757d;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.bracketButton svg,
-.bracketIcon {
-  margin-right: 8px;
-  color: #111;
-}
-
-.editButton svg {
-  margin-right: 8px;
-}
-
-.generateBracketButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 12px 20px;
-  background-color: #17a2b8;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  margin-top: 10px;
-}
-
-.generateBracketButton:hover:not(:disabled) {
-  background-color: #138496;
-  transform: translateY(-2px);
-  box-shadow: 0 0 10px rgba(23, 162, 184, 0.3);
-}
-
-.generateBracketButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.generateBracketButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 0.85rem 1.5rem;
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 8px rgba(23, 162, 184, 0.2);
-  margin-top: 0;
-}
-
-.generateBracketButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(23, 162, 184, 0.3);
-}
-
-.generateBracketButton:disabled {
-  opacity: 0.6;
-  background: #6c757d;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Icon styles */
-.bracketIcon {
-  margin-right: 12px;
-  font-size: 1.25rem;
-  color: inherit;
-}
-
-/* Add specific styles for each button type's icon */
-.deleteBracketButton .bracketIcon,
-.generateBracketButton .bracketIcon {
-  color: white;
-}
-
-/* Team Member Display */
-.teamMemberDisplay {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background-color: #1a1a1a;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-left: 3px solid #FFD700;
-}
-
-.teamMemberDisplay h3 {
   margin-top: 0;
   margin-bottom: 1rem;
-  font-size: 1.2rem;
-  color: #FFD700;
-}
-
-.teamMemberDisplay h4 {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: #e0e0e0;
-  border-bottom: 1px solid #333;
-  padding-bottom: 0.5rem;
-}
-
-.teamRegisteredBy {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background-color: rgba(40, 167, 69, 0.1);
-  border-radius: 4px;
-  border-left: 3px solid #28a745;
-}
-
-.teamRegisteredBy p {
-  margin: 0;
-  color: #e0e0e0;
-  font-style: italic;
-}
-
-.teamRegisteredBy strong {
-  color: #FFD700;
-}
-
-.teamMembersSection {
-  margin-top: 1.5rem;
-}
-
-.noTeamMembers {
-  color: #b0b0b0;
-  font-style: italic;
-  text-align: center;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-  margin: 0;
-}
-
-/* Login prompt styles */
-.loginPrompt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  width: 100%;
-}
-
-.loginPrompt p {
-  color: #e0e0e0;
-  font-weight: 500;
-  margin: 0;
-}
-
-.loginButton {
-  padding: 0.5rem 1.5rem;
-  background-color: #FFD700;
-  color: #121212;
-  border-radius: 4px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.loginButton:hover {
-  background-color: #FFC107;
-  transform: translateY(-2px);
-}
-
-/* Event status message for completed or in-progress events */
-.eventStatusMessage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  width: 100%;
-  padding: 1rem;
-  border-radius: 6px;
-  background-color: rgba(108, 117, 125, 0.1);
-  border-left: 4px solid #6c757d;
-}
-
-.eventStatusMessage p {
-  color: #e0e0e0;
-  font-weight: 500;
-  margin: 0;
-}
-
-/* Tournament Bracket Button - improved design */
-.tournamentBracketButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 1.75rem;
-  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%); /* Purple gradient instead of blue */
-  color: white;
-  border: none;
-  border-radius: 8px; /* Slightly more rounded */
   font-size: 1.1rem;
+  color: #FFD700;
   font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3); /* Purple shadow */
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  min-width: 220px;
-  position: relative;
-  overflow: hidden;
 }
 
-.tournamentBracketButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
-  transform: translateX(-100%);
-  transition: transform 0.6s ease;
-}
-
-.tournamentBracketButton:hover {
-  transform: translateY(-3px) scale(1.03); /* Added scale effect */
-  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5); /* Purple shadow */
-  color: white;
-}
-
-.tournamentBracketButton:hover::before {
-  transform: translateX(100%);
-}
-
-.tournamentBracketButton .bracketIcon {
-  font-size: 1.3rem;
-  margin-right: 10px;
-  color: white;
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
-}
-
-/* Special container for ended event actions */
-.endedEventActions {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.endedEventActions .primaryBracketButton {
-  min-width: 250px;
-  text-align: center;
-  justify-content: center;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  letter-spacing: 0.5px;
-}
-
-.endedEventActions .tournamentBracketButton {
-  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%); /* Purple gradient */
-  color: white; /* White text instead of black */
-  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3); /* Purple shadow */
-  margin-top: 0.5rem; /* Added small top margin instead of 0 */
-  border-radius: 8px; /* Square corners instead of rounded */
-  max-width: fit-content;
-  padding: 0.85rem 2.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.endedEventActions .tournamentBracketButton:hover {
-  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5); /* Purple shadow */
-  color: white;
-  transform: translateY(-3px) scale(1.03); /* Added scale effect */
-}
-
-.endedEventActions .tournamentBracketButton .bracketIcon {
-  color: white; /* White icon */
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
-}
-
-/* Champions container for completed events */
-.championsContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  gap: 0.75rem; /* Reduced from 1.5rem to 0.75rem */
-  margin-bottom: 0.75rem; /* Added margin-bottom to reduce space */
-}
-
-.championsContainer .bracketWinner {
-  width: 100%;
-  max-width: 600px; /* Increased width here for better appearance */
-  display: inline-flex;
-  margin: 0 auto;
-  padding: 0.75rem 2rem;
-  border-radius: 50px; /* Keep rounded for champions */
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
-}
-
-/* participantsInfo section removed */
-
-/* Move bracket winner styles here from the removed bracket section */
-.bracketWinner {
-  background-color: #FFD700;
-  color: #111;
+.selectionSection {
   padding: 1rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  border-radius: 8px;
-  font-size: 1.25rem;
-  font-weight: bold;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-  width: 100%;
-}
-
-.winnerPartner {
-  color: #111;
-  font-weight: bold;
-}
-
-.trophyIcon {
-  color: #111;
-  margin-right: 0.75rem;
-  font-size: 1.5rem;
-}
-
-/* Participant stats */
-.bracketStats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 0.75rem;
-}
-
-.bracketStat {
-  flex: 1;
-  min-width: 100px;
-  padding: 10px;
-  background-color: rgba(20, 20, 25, 0.9);
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  border: 1px solid #333;
-}
-
-/* Gallery Container Styles */
-.galleryContainer {
-  margin: 3rem 0 1.5rem;
-  padding-top: 2rem;
-  contain: content;
-  position: relative;
-}
-
-.galleryContainer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.3) 50%, rgba(255, 215, 0, 0.05) 100%);
-}
-
-.galleryWrapper {
-  will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  isolation: isolate;
-  content-visibility: auto;
-  contain: layout paint;
-}
-
-.galleryHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.galleryTitle {
-  font-size: 1.5rem;
-  margin: 0;
-  color: #FFD700;
-  font-family: 'Orbitron', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  padding-bottom: 10px;
-}
-
-.galleryTitle::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 50px;
-  height: 2px;
-  background-color: #FFD700;
-}
-
-.galleryLoadingContainer {
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: #888;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  text-align: center;
-  padding: 2rem;
-}
-
-.galleryPreloadIndicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  transition: opacity 0.3s ease;
-}
-
-.galleryPreloadIndicator svg {
-  margin-bottom: 0.75rem;
-  color: #666;
-}
-
-.galleryPreloadIndicator p {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.galleryLoader {
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  border-top: 4px solid #2563eb;
-  width: 40px;
-  height: 40px;
-  margin-bottom: 1rem;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Responsive styles for the gallery */
-@media (max-width: 767px) {
-  .galleryContainer {
-    margin: 0.5rem 0;
-    padding-top: 0.75rem;
-  }
-  
-  .galleryTitle {
-    font-size: 1.25rem;
-  }
-  
-  .galleryLoadingContainer {
-    min-height: 150px;
-    padding: 1.5rem;
-  }
-}
-
-/* Add styles for the loading progress bar animation */
-.loadingProgressBar {
-  width: 100%;
   height: 100%;
-  border-radius: 5px;
-  background-color: rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
 }
 
-.loadingAnimation {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 215, 0, 0.5) 50%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  animation: loading 1.5s infinite linear;
-}
-
-@keyframes loading {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-/* Registration Info Loading */
-.registrationInfoLoading {
-  background-color: #141414;
-  padding: 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loadingPulse {
-  width: 50%;
-  height: 10px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  overflow: hidden;
-  position: relative;
-}
-
-.loadingPulse::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 215, 0, 0.2);
-  animation: pulse 1.5s infinite ease-in-out;
-  border-radius: 5px;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scaleX(0.1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: scaleX(0.5);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scaleX(0.1);
-    opacity: 0.3;
-  }
-}
-
-.gallerySection {
-  margin-top: 3rem;
-  margin-bottom: 2rem;
-  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
-  border: none;
-  position: relative;
-  transition: all 0.3s ease;
-  padding: 1.5rem;
-}
-
-/* Add the same shine effect to the gallery section */
-.gallerySection::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: rotate(30deg);
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0.3;
-  animation: shineEffect 8s infinite linear;
-}
-
-/* Add subtle glow to gallery section */
-.gallerySection::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(98, 0, 234, 0.05) 0%, rgba(55, 0, 179, 0.08) 100%);
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Improve the gallery title alignment */
-.gallerySection .sectionHeading {
-  margin-bottom: 2rem;
-  position: relative;
-  z-index: 5;
-}
-
-/* Adjust the gallery container to work within the new container */
-.gallerySection .galleryContainer {
-  position: relative;
-  z-index: 5;
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-}
-
-.gallerySection .galleryContainer::before {
-  display: none;
-}
-
-/* Team name input styles */
-.teamNameInput {
-  margin-bottom: 1rem;
-  margin-top: 1rem;
+.selectedSection {
   padding: 1rem;
-  background-color: rgba(255, 215, 0, 0.05);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 215, 0, 0.2);
+  background-color: rgba(40, 40, 40, 0.5);
+  border-top: 1px solid #333;
 }
-
-.teamNameInput label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #e0e0e0;
-}
-
-.teamNameInput input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  background-color: #282828;
-  color: #fff;
-  font-size: 1rem;
-}
-
-.teamNameInput input:focus {
-  outline: none;
-  border-color: #FFD700;
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
-}
-
-.teamNameInput small {
-  display: block;
-  margin-top: 0.5rem;
-  color: #b0b0b0;
-  font-size: 0.8rem;
-}
-
-/* Team name display */
-.teamNameDisplay {
-  margin-bottom: 1rem;
-  background-color: rgba(255, 215, 0, 0.1);
-  border-radius: 4px;
-  padding: 0.75rem;
-  border-left: 3px solid #FFD700;
-}
-
-.teamNameDisplay h4 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: #e0e0e0;
-}
-
-.teamName {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #FFD700;
-  word-break: break-word;
-}
-
-/* After .modalActions styling */
 
 .selectedMembers {
   margin-bottom: 1rem;
@@ -2026,12 +1239,72 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px; /* Fixed width to ensure tap target size */
-  min-height: 24px; /* Fixed height to ensure tap target size */
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .removeMember:hover {
   color: #FFD700;
+}
+
+.emptySelection {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+  font-style: italic;
+}
+
+/* ===== FORM INPUTS ===== */
+.teamNameInput {
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.teamNameInput label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.teamNameInput input,
+.input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #282828;
+  color: #fff;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.teamNameInput input:focus,
+.input:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
+}
+
+.inputError {
+  border-color: #dc3545 !important;
+}
+
+.inputErrorText {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.teamNameInput small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #b0b0b0;
+  font-size: 0.8rem;
 }
 
 .notesContainer {
@@ -2055,6 +1328,7 @@
   font-size: 1rem;
   min-height: 100px;
   resize: vertical;
+  box-sizing: border-box;
 }
 
 .notesInput:focus {
@@ -2063,11 +1337,128 @@
   box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
 }
 
-/* Fix for memberAvatar which was missing */
+/* ===== SUMMARY SECTION ===== */
+.summarySection {
+  padding: 1rem;
+}
+
+.summaryContent {
+  background-color: rgba(255, 215, 0, 0.05);
+  border-radius: 4px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.summaryItem {
+  margin-bottom: 1rem;
+}
+
+.summaryItem:last-child {
+  margin-bottom: 0;
+}
+
+.summaryMembers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.summaryMember {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 215, 0, 0.1);
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.summaryValue {
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.autoGenerated {
+  font-style: italic;
+  color: #888;
+}
+
+/* ===== VALIDATION MESSAGES ===== */
+.validationMessage {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.selectionRequired,
+.nameRequired {
+  color: #dc3545;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+}
+
+/* ===== TEAM MEMBER SELECTION ===== */
+.teamMemberSelection,
+.teamMemberDisplay {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.teamMemberSelection h3,
+.teamMemberDisplay h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.teamMembersList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.teamMember {
+  display: flex;
+  align-items: center;
+  background-color: #2c2c2c;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.teamMember:hover {
+  background-color: #333;
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.teamMember.selected {
+  background-color: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+
+.checkmark {
+  color: #FFD700;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
 .memberAvatar {
   width: 36px;
   height: 36px;
-  min-width: 36px; /* Ensure consistent width */
+  min-width: 36px;
   background-color: #333;
   border-radius: 50%;
   display: flex;
@@ -2082,280 +1473,255 @@
   flex: 1;
 }
 
-/* Modal styles for consistent sizing */
+.searchContainer {
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background-color: #282828;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #FFD700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
+}
+
+.noResults {
+  padding: 1.5rem;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 1rem;
+  margin: 1rem 0;
+}
+
+/* ===== GALLERY SECTION ===== */
+.gallerySection {
+  margin-top: 3rem;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 0 0 15px rgba(98, 0, 234, 0.15);
+  padding: 1.5rem;
+  position: relative;
+}
+
+.galleryContainer {
+  margin: 3rem 0 1.5rem;
+  padding-top: 2rem;
+  position: relative;
+}
+
+.galleryTitle {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.galleryTitle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background-color: #FFD700;
+}
+
+.galleryLoadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #888;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.galleryLoader {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #2563eb;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 1rem;
+  animation: spin 1s linear infinite;
+}
+
+/* ===== PROGRESS BARS ===== */
+.progressBarContainer {
+  width: 100%;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.loadingPulse {
+  width: 50%;
+  height: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loadingPulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 215, 0, 0.2);
+  animation: pulse 1.5s infinite ease-in-out;
+  border-radius: 5px;
+}
+
+@keyframes pulse {
+  0% { transform: scaleX(0.1); opacity: 0.3; }
+  50% { transform: scaleX(0.5); opacity: 0.5; }
+  100% { transform: scaleX(0.1); opacity: 0.3; }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (min-width: 768px) {
+  .eventHeader {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .eventImageContainer {
+    width: 40%;
+    min-width: 40%;
+    padding-bottom: 40%;
+    margin-right: 0;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-right: none;
+  }
+}
+
 @media (max-width: 767px) {
-  .modalOverlay {
+  .eventImageContainer {
+    width: 100%;
+    padding-bottom: 100%;
+  }
+  
+  .eventTitle {
+    font-size: 2rem;
+  }
+  
+  .eventMeta {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .eventActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .eventActions button,
+  .eventActions a {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+  
+  .searchInput {
+    font-size: 16px;
+    padding: 0.75rem;
+  }
+  
+  .noResults {
     padding: 1rem;
-    align-items: center;
-    padding-top: 0;
+    margin: 0.75rem 0;
+    font-size: 0.95rem;
+  }
+  
+  .galleryContainer {
+    margin: 0.5rem 0;
+    padding-top: 0.75rem;
+  }
+  
+  .galleryTitle {
+    font-size: 1.25rem;
+  }
+  
+  .galleryLoadingContainer {
+    min-height: 150px;
+    padding: 1.5rem;
+  }
+  
+  /* Mobile modal improvements */
+  .modalOverlay {
+    padding: 0.5rem;
+    align-items: flex-start;
+    padding-top: 2rem;
   }
 
   .modal {
     max-width: 100%;
-    max-height: 95vh;
-    height: 650px; /* Reduced height to better fit mobile screens */
-    border-radius: 8px;
+    max-height: 90vh;
     margin: 0;
-    display: flex;
-    flex-direction: column;
   }
   
   .modalHeader {
     padding: 1rem;
-    border-bottom: 1px solid #333;
-    flex-shrink: 0;
   }
   
   .modalBody {
-    flex: 1;
     padding: 0;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
-
-  .stepIndicator {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 0;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    flex-shrink: 0;
-    height: 30px;
-    box-sizing: border-box;
-  }
-  
-  .stepDot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #333;
-    margin: 0 5px;
-    transition: all 0.3s ease;
-  }
-  
-  .stepDot.active {
-    background-color: #FFD700;
-    transform: scale(1.2);
+    max-height: none;
   }
   
   .stepButtons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0;
-    padding: 1rem;
-    border-top: 1px solid #333;
-    flex-shrink: 0;
-    height: 70px;
-    box-sizing: border-box;
-    background-color: #1a1a1a;
-    position: absolute;
+    position: sticky;
     bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 5;
-  }
-  
-  .stepButton {
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    font-weight: 500;
-    font-size: 0.9rem;
-    background-color: #2a2a2a;
-    color: #e0e0e0;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .stepButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  .stepButton.primary {
-    background-color: #FFD700;
-    color: #121212;
-  }
-
-  /* Modal step styling */
-  .modalStep {
-    display: none;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    box-sizing: border-box;
-    padding-bottom: 70px; /* Make space for buttons at bottom */
-  }
-  
-  .modalStep.active {
-    display: block;
-  }
-  
-  /* Special styling for step 1 */
-  .modalStep.active[data-step="1"] {
-    display: flex;
-    flex-direction: column;
-    overflow-y: hidden;
-    padding: 0;
-    padding-bottom: 70px; /* Make space for buttons at bottom */
-  }
-
-  /* Selection section - modified to make search fixed */
-  .selectionSection {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    flex: 1;
-    position: relative;
-    overflow: hidden; /* Changed from overflow-y: auto to prevent whole section scrolling */
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Keep search container fixed at top */
-  .selectionSection .searchContainer {
-    position: sticky;
-    top: 0;
     z-index: 10;
-    background-color: #1a1a1a;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    margin-top: -0.5rem;
-    padding-top: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Add subtle shadow for depth */
   }
   
-  /* When split (has selections), make it smaller but keep single column layout */
-  .modalStep.active[data-step="1"].split .selectionSection {
-    height: 50%;
-    min-height: 250px;
-    border-bottom: 2px solid #333;
-    overflow: hidden; /* Prevent whole section scrolling */
+  .teamMembersList {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
   }
   
-  /* Specific styles for the team members list when split */
-  .modalStep.active[data-step="1"].split .teamMembersList {
-    max-height: none !important;
-    height: calc(100% - 60px); /* Account for search box */
-    overflow-y: auto;
-    margin-bottom: 0;
-    padding-bottom: 0.5rem;
-    display: grid;
-    grid-template-columns: 1fr; /* Single column layout */
-    gap: 0.75rem;
-  }
-  
-  /* Make sure team members list takes full height when no selections */
-  .modalStep.active[data-step="1"]:not(.split) .selectionSection {
-    height: calc(100% - 70px); /* Full height minus button area */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Use hidden instead of auto to prevent whole section scrolling */
-    -webkit-overflow-scrolling: touch;
-    background-color: #1a1a1a; /* Ensure consistent background color */
-  }
-  
-  /* Add a min-height to the list container to ensure it fills empty space */
-  .modalStep.active[data-step="1"]:not(.split) .teamMembersList {
-    flex: 1;
-    margin-bottom: 0;
-    max-height: none !important; /* Override the default max-height */
-    overflow-y: auto; /* Let the list scroll while search stays fixed */
-    padding-bottom: 1rem; /* Add padding at the bottom */
-    display: grid;
-    grid-template-columns: 1fr; /* Single column layout */
-    gap: 0.75rem;
-    align-content: start; /* Align items to the top */
-    background-color: #1a1a1a; /* Match the background color */
-  }
-  
-  /* Improve the appearance of the member cards */
   .teamMember {
-    min-height: 60px; /* Ensure consistent height */
-    display: flex;
-    align-items: center;
-    background-color: #2c2c2c;
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-    margin-bottom: 0.5rem; /* Add spacing between items */
-  }
-  
-  /* Add vertical space in the view when no members are selected */
-  .modalStep.active[data-step="1"]:not(.split) .searchContainer {
-    margin-bottom: 1rem;
-  }
-  
-  .modalStep.active[data-step="1"]:not(.split) .selectionSection::after {
-    content: '';
-    display: block;
-    height: 0.5rem; /* Add some space at the bottom */
-  }
-  
-  /* Make sure the registration summary is more mobile friendly */
-  .registrationSummary {
+    min-height: 60px;
     padding: 0.75rem;
-    margin-top: 1.25rem;
   }
   
-  .registrationSummary h4 {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .registrationSummary p {
-    font-size: 0.95rem;
-    margin: 0.4rem 0;
-  }
-
-  /* Selected section styling */
-  .selectedSection {
-    padding: 1rem;
-    background-color: rgba(40, 40, 40, 0.5);
-    min-height: 200px;
-    height: 50%;
-    display: flex;
+  .adminButtonsContainer {
     flex-direction: column;
-    animation: slideUp 0.3s ease;
-    overflow-y: auto;
   }
   
-  .selectedSection h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #FFD700;
-    font-size: 1.1rem;
-    text-align: center;
-    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
-    padding-bottom: 0.5rem;
-    position: sticky;
-    top: 0;
-    background-color: rgba(40, 40, 40, 0.9);
-    z-index: 5;
+  .adminButtonGroup {
+    min-width: 100%;
   }
-  
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  /* Specific styles for mobile team member items */
-  .modalStep.active[data-step="1"] .teamMember {
-    min-height: 60px; /* Ensure consistent height */
-    margin-bottom: 5px; /* Add more spacing between items */
-    border: 1px solid #333; /* Add visible border */
-  }
-  
-  /* Make sure at least a few items show */
-  .modalStep.active[data-step="1"] .teamMembersList {
-    padding-left: 0.25rem;
-    padding-right: 0.25rem;
-  }
-  
-  /* Additional mobile styling handled in the main memberAvatar styles */
 } 

@@ -132,25 +132,120 @@ const Shop = ({ metaData }) => {
     return (usd * conversionRate).toFixed(2);
   };
 
-  const copyToClipboard = (text, field) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${field} copied to clipboard!`, {
-        position: 'top-right',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #FFD700',
-        },
-        iconTheme: {
-          primary: '#FFD700',
-          secondary: '#333',
-        },
-      });
-    }).catch(() => {
-      toast.error('Failed to copy text', {
-        position: 'top-right'
-      });
-    });
+  const copyToClipboard = (text, field, event) => {
+    // Add visual feedback to the clicked element
+    const addVisualFeedback = (event) => {
+      if (!event || !event.currentTarget) {
+        console.warn('No event or currentTarget available for visual feedback');
+        return;
+      }
+      
+      const container = event.currentTarget;
+      if (!container || !container.style) {
+        console.warn('Container or container.style not available for visual feedback');
+        return;
+      }
+      
+      try {
+        container.style.transform = 'scale(0.95)';
+        container.style.backgroundColor = 'rgba(255, 215, 0, 0.1)';
+        
+        setTimeout(() => {
+          if (container && container.style) {
+            container.style.transform = '';
+            container.style.backgroundColor = '';
+          }
+        }, 200);
+      } catch (error) {
+        console.warn('Error applying visual feedback:', error);
+      }
+    };
+
+    // Simple fallback copy method
+    const fallbackCopy = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return true;
+      } catch (err) {
+        console.error('execCommand copy failed:', err);
+        document.body.removeChild(textArea);
+        return false;
+      }
+    };
+
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          addVisualFeedback(event);
+          toast.success(`${field} copied to clipboard!`, {
+            position: 'top-right',
+            style: {
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #FFD700',
+            },
+            iconTheme: {
+              primary: '#FFD700',
+              secondary: '#333',
+            },
+          });
+        })
+        .catch(() => {
+          // Modern API failed, try fallback
+          if (fallbackCopy()) {
+            addVisualFeedback(event);
+            toast.success(`${field} copied to clipboard!`, {
+              position: 'top-right',
+              style: {
+                background: '#333',
+                color: '#fff',
+                border: '1px solid #FFD700',
+              },
+              iconTheme: {
+                primary: '#FFD700',
+                secondary: '#333',
+              },
+            });
+          } else {
+            toast.error('Failed to copy text', {
+              position: 'top-right'
+            });
+          }
+        });
+    } else {
+      // Use fallback for older browsers
+      if (fallbackCopy()) {
+        addVisualFeedback(event);
+        toast.success(`${field} copied to clipboard!`, {
+          position: 'top-right',
+          style: {
+            background: '#333',
+            color: '#fff',
+            border: '1px solid #FFD700',
+          },
+          iconTheme: {
+            primary: '#FFD700',
+            secondary: '#333',
+          },
+        });
+      } else {
+        toast.error('Failed to copy text', {
+          position: 'top-right'
+        });
+      }
+    }
   };
 
   const handleTabClick = (tab) => {
@@ -516,7 +611,7 @@ const Shop = ({ metaData }) => {
                 <label>Name:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('MERROUCH MOKHTAR', 'Name')}
+                  onClick={(e) => copyToClipboard('MERROUCH MOKHTAR', 'Name', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="MERROUCH MOKHTAR" readOnly />
@@ -529,7 +624,7 @@ const Shop = ({ metaData }) => {
                 <label>Account Number:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('4273566211028100', 'Account Number')}
+                  onClick={(e) => copyToClipboard('4273566211028100', 'Account Number', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="4273566211028100" readOnly />
@@ -544,7 +639,7 @@ const Shop = ({ metaData }) => {
                 <label>Name:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('MOKHTAR MERROUCH', 'Name')}
+                  onClick={(e) => copyToClipboard('MOKHTAR MERROUCH', 'Name', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="MOKHTAR MERROUCH" readOnly />
@@ -557,7 +652,7 @@ const Shop = ({ metaData }) => {
                 <label>RIB:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('230 640 4273566211028100 66', 'RIB')}
+                  onClick={(e) => copyToClipboard('230 640 4273566211028100 66', 'RIB', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="230 640 4273566211028100 66" readOnly />
@@ -570,7 +665,7 @@ const Shop = ({ metaData }) => {
                 <label>IBAN:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066', 'IBAN')}
+                  onClick={(e) => copyToClipboard('MA64 2306 4042 7356 6211 0281 0066', 'IBAN', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="MA64 2306 4042 7356 6211 0281 0066" readOnly />
@@ -583,7 +678,7 @@ const Shop = ({ metaData }) => {
                 <label>Code SWIFT:</label>
                 <div 
                   className={styles.inputContainer}
-                  onClick={() => copyToClipboard('CIHMMAMC', 'Code SWIFT')}
+                  onClick={(e) => copyToClipboard('CIHMMAMC', 'Code SWIFT', e)}
                   title="Click to copy"
                 >
                   <input type="text" value="CIHMMAMC" readOnly />

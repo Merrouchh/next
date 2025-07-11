@@ -8,6 +8,7 @@ import sharedStyles from '../../../styles/Shared.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import AdminPageWrapper from '../../../components/AdminPageWrapper';
 import { toast } from 'react-hot-toast';
+import { getParticipantNameById, getParticipantDisplayName } from '../../../utils/participantUtils';
 
 export default function BracketManager() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function BracketManager() {
   const bracketSectionRef = useRef(null); // Reference to bracket section
   // Add state for tracking if all rounds are expanded
   const [allRoundsExpanded, setAllRoundsExpanded] = useState(false);
+  const [copiedTime, setCopiedTime] = useState('');
 
   // Helper to save the current scroll position
   const saveScrollPosition = () => {
@@ -607,34 +609,26 @@ export default function BracketManager() {
     return null;
   };
 
-  // Get participant name by ID with team member names for duos
+  // Get participant name by ID - using centralized utility
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
     
-    // Try string comparison for IDs to avoid type mismatch issues
-    const participant = participants.find(p => String(p.id) === String(participantId));
+    // Use centralized utility with fallback to match data
+    const name = getParticipantNameById(participantId, participants, selectedEvent?.team_type || 'solo', { format: 'text' });
     
-    if (!participant) {
-      console.log(`Participant not found for ID: ${participantId}`);
-      // Use user_id from the brackets data if the name isn't available
-      // We know the bracket API returns usernames so we'll use those
+    // If centralized utility returns a fallback, try to get from match data
+    if (name.startsWith('Player ')) {
       const matchWithParticipant = findMatchWithParticipant(participantId);
       if (matchWithParticipant) {
         if (String(matchWithParticipant.participant1Id) === String(participantId)) {
-          return matchWithParticipant.participant1Name || `Player ${participantId}`;
+          return matchWithParticipant.participant1Name || name;
         } else if (String(matchWithParticipant.participant2Id) === String(participantId)) {
-          return matchWithParticipant.participant2Name || `Player ${participantId}`;
+          return matchWithParticipant.participant2Name || name;
         }
       }
-      
-      return `Player ${participantId}`;  // Fallback
     }
     
-    if (participant.members && participant.members.length > 0) {
-      return `${participant.username || participant.name} & ${participant.members.map(m => m.username || m.name).join(', ')}`;
-    }
-    
-    return participant.username || participant.name;
+    return name;
   };
 
   // Helper function to find a match that contains a given participant
@@ -655,37 +649,15 @@ export default function BracketManager() {
 
   // Handle event selection
   const handleEventSelect = async (event) => {
-    if (!event.hasBracket) {
-      // If event doesn't have a bracket, prompt to create one
-      if (confirm(`No bracket exists for "${event.title}". Would you like to create one?`)) {
-        router.push(`/events/${event.id}/bracket`);
-      }
-      return;
-    }
-    
     setSelectedEvent(event);
-    await fetchBracketData(event.id);
-  };
-
-  // Helper function to find the previous match time
-  const findPreviousMatchTime = (matchId) => {
-    if (!bracketData) return '';
     
-    // Look for the previous match number (e.g., if current is 22, look for 21)
-    const previousMatchId = matchId - 1;
-    console.log('Looking for previous match:', previousMatchId);
-    
-    // Find the previous match in the bracket data
-    for (const round of bracketData) {
-      const previousMatch = round.find(m => m.id === previousMatchId);
-      if (previousMatch && previousMatch.scheduledTime) {
-        const formattedTime = formatDatetimeForInput(previousMatch.scheduledTime);
-        console.log('Found previous match with time:', formattedTime);
-        return formattedTime;
-      }
+    if (event.hasBracket) {
+      await fetchBracketData(event.id);
+    } else {
+      // Clear bracket data for events without brackets
+      setBracketData(null);
+      setParticipants([]);
     }
-    
-    return '';
   };
 
   // Handle match click for admin
@@ -710,9 +682,6 @@ export default function BracketManager() {
       }
     }
     
-    // Get previous match time using our helper function
-    const previousMatchTime = findPreviousMatchTime(match.id);
-    
     // First check if we have details in our matchDetailsMap
     const detailsFromMap = matchDetailsMap[match.id];
     
@@ -734,15 +703,6 @@ export default function BracketManager() {
       location: location,
       notes: notes
     });
-    
-    // If this match doesn't have a scheduled time yet, use previous match time as template
-    if (!formattedTime && previousMatchTime) {
-      console.log('Using previous match time as template');
-      setMatchDetails(prev => ({
-        ...prev,
-        scheduledTime: previousMatchTime
-      }));
-    }
   };
 
   // Fetch bracket data for a specific event
@@ -972,14 +932,6 @@ export default function BracketManager() {
     try {
       // Parse the date to extract components
       const dateObj = new Date(formattedValue);
-      
-      // Handle browser default time (12:00) by changing it to 16:00
-      if (dateObj.getHours() === 12 && dateObj.getMinutes() === 0) {
-        // Extract date part
-        const datePart = formattedValue.split('T')[0];
-        // Set time to 16:00 (4PM)
-        formattedValue = `${datePart}T16:00`;
-      }
       
       // Handle possible timezone issues by extracting time directly from input
       if (formattedValue.includes('T')) {
@@ -1407,9 +1359,6 @@ export default function BracketManager() {
     const participant1Name = getParticipantName(selectedMatch.participant1Id);
     const participant2Name = getParticipantName(selectedMatch.participant2Id);
     
-    // Get the last scheduled time from previous match
-    const previousMatchTime = findPreviousMatchTime(selectedMatch.id);
-    
     // Check if both participants are valid and neither is a bye
     const canSelectWinner = isMatchReadyToPlay(selectedMatch);
     
@@ -1537,14 +1486,27 @@ export default function BracketManager() {
             
             <div className={styles.formGroup}>
               <label>Scheduled Time</label>
-              <input 
-                type="datetime-local" 
-                value={matchDetails.scheduledTime} 
-                onChange={(e) => handleDatetimeInputChange(e.target.value)}
-                disabled={hasWinner}
-                pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
-                step="60"
-              />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input 
+                  type="datetime-local" 
+                  value={matchDetails.scheduledTime} 
+                  onChange={(e) => handleDatetimeInputChange(e.target.value)}
+                  disabled={hasWinner}
+                  pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
+                  step="60"
+                />
+                <button type="button" onClick={handleCopyTime} title="Copy this time">
+                  Copy
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handlePasteTime} 
+                  disabled={!copiedTime}
+                  title="Paste copied time"
+                >
+                  Paste
+                </button>
+              </div>
               <small className={styles.inputHelp}>
                 Format: YYYY-MM-DD HH:MM (24-hour time)
               </small>
@@ -1571,12 +1533,6 @@ export default function BracketManager() {
                 disabled={hasWinner}
               />
             </div>
-            
-            {previousMatchTime && !matchDetails.scheduledTime && (
-              <div className={styles.templateTimeInfo}>
-                Using previous match time as template
-              </div>
-            )}
             
             <div className={styles.modalActions}>
               {!hasWinner && (
@@ -1644,9 +1600,7 @@ export default function BracketManager() {
                 <div className={styles.noParticipants}>No available participants</div>
               ) : (
                 availableParticipants.map((participant) => {
-                  const displayName = participant.members && participant.members.length > 0 
-                    ? `${participant.name} & ${participant.members.map(m => m.name).join(', ')}`
-                    : participant.name;
+                  const displayName = getParticipantDisplayName(participant, selectedEvent?.team_type || 'solo', { format: 'text' });
                     
                   return (
                     <div 
@@ -1735,8 +1689,17 @@ export default function BracketManager() {
     const confirmText = prompt(`For safety, please type the name of the event to confirm deletion:\n\n"${selectedEvent.title}"`);
     
     // If user cancels or types incorrect name, abort
-    if (!confirmText || confirmText.trim() !== selectedEvent.title) {
-      toast.error('Bracket deletion canceled. The event name did not match.');
+    // Make comparison case-insensitive and handle whitespace
+    if (!confirmText || confirmText.trim().toLowerCase() !== selectedEvent.title.trim().toLowerCase()) {
+      console.log('Delete confirmation failed:', {
+        userInput: confirmText,
+        expectedTitle: selectedEvent.title,
+        userInputTrimmed: confirmText?.trim(),
+        expectedTitleTrimmed: selectedEvent.title.trim(),
+        userInputLower: confirmText?.trim().toLowerCase(),
+        expectedTitleLower: selectedEvent.title.trim().toLowerCase()
+      });
+      toast.error(`Bracket deletion canceled. Please type exactly: "${selectedEvent.title}" (case-insensitive)`);
       return;
     }
     
@@ -1806,8 +1769,14 @@ export default function BracketManager() {
       // For regeneration, also ask user to type the word "REGENERATE" to confirm
       const confirmText = prompt(`To confirm that you want to REGENERATE the bracket for "${selectedEvent.title}", please type REGENERATE (all caps):`);
       
-      if (!confirmText || confirmText !== "REGENERATE") {
-        toast.error('Bracket regeneration canceled.');
+      if (!confirmText || confirmText.trim().toUpperCase() !== "REGENERATE") {
+        console.log('Regenerate confirmation failed:', {
+          userInput: confirmText,
+          expected: "REGENERATE",
+          userInputTrimmed: confirmText?.trim(),
+          userInputUpper: confirmText?.trim().toUpperCase()
+        });
+        toast.error('Bracket regeneration canceled. Please type exactly: REGENERATE');
         return;
       }
       
@@ -2066,6 +2035,25 @@ export default function BracketManager() {
     }
   }, [selectedMatch, matchDetailsMap]);
 
+  const handleCopyTime = () => {
+    if (matchDetails.scheduledTime) {
+      setCopiedTime(matchDetails.scheduledTime);
+      toast.success('Match time copied!');
+    } else {
+      toast.error('No time to copy!');
+    }
+  };
+
+  const handlePasteTime = () => {
+    if (copiedTime) {
+      setMatchDetails(prev => ({
+        ...prev,
+        scheduledTime: copiedTime
+      }));
+      toast.success('Match time pasted!');
+    }
+  };
+
   return (
     <AdminPageWrapper title="Tournament Bracket Manager">
       <Head>
@@ -2218,13 +2206,18 @@ export default function BracketManager() {
               <div className={styles.error}>{error}</div>
             ) : !bracketData ? (
               <div className={styles.noBracket}>
-                <p>No bracket available for this event.</p>
-                <Link 
-                  href={`/events/${selectedEvent.id}/bracket`}
-                  className={sharedStyles.primaryButton}
-                >
-                  Generate Bracket
-                </Link>
+                <div className={styles.noBracketContent}>
+                  <FaTrophy className={styles.noBracketIcon} />
+                  <h3>No Tournament Bracket</h3>
+                  <p>This event doesn't have a bracket yet. Create one to start managing matches.</p>
+                  <button 
+                    className={styles.createBracketButton}
+                    onClick={handleGenerateBracket}
+                    disabled={loading}
+                  >
+                    <FaTrophy /> Create Tournament Bracket
+                  </button>
+                </div>
               </div>
             ) : (
               <div className={styles.bracketMatchesList} id="bracketMatchesList">
@@ -2293,3 +2286,4 @@ export default function BracketManager() {
     </AdminPageWrapper>
   );
 }
+
