@@ -38,17 +38,24 @@ export default function DynamicMeta({
     /bot|crawler|spider|crawling/i.test(navigator.userAgent);
   
   // Don't add timestamp to image URLs for bots or if already has parameters
-  const imageWithTimestamp = (image.includes('?') || isBot) ? image : `${image}?t=${Date.now()}`;
+  const imageWithTimestamp = (finalImage.includes('?') || isBot) ? finalImage : `${finalImage}?t=${Date.now()}`;
 
-  if (!title && !description) {
+  // Only return null if both title and description are completely empty
+  if ((!title || title.trim() === '') && (!description || description.trim() === '')) {
     return null;
   }
+  
+  // Ensure we have fallback values
+  const finalTitle = title || 'Merrouch Gaming';
+  const finalDescription = description || 'Premium gaming center in Tangier with RTX 3070 PCs';
+  const finalImage = image || 'https://merrouchgaming.com/top.jpg';
+  const finalUrl = url || 'https://merrouchgaming.com';
 
   // Create default OpenGraph object if none provided
   const defaultOpenGraph = {
-    title,
-    description,
-    url,
+    title: finalTitle,
+    description: finalDescription,
+    url: finalUrl,
     type,
     siteName: 'Merrouch Gaming',
     images: [
@@ -56,7 +63,7 @@ export default function DynamicMeta({
         url: imageWithTimestamp,
         width: 1200,
         height: 630,
-        alt: title || 'Merrouch Gaming',
+        alt: finalTitle,
         primary: true
       },
     ],
@@ -106,9 +113,9 @@ export default function DynamicMeta({
     <>
       <Head>
         {/* Essential meta tags for social media crawlers */}
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:url" content={url} />
+        <meta property="og:title" content={finalTitle} />
+        <meta property="og:description" content={finalDescription} />
+        <meta property="og:url" content={finalUrl} />
         <meta property="og:type" content={type} />
         <meta property="og:site_name" content="Merrouch Gaming" />
         
@@ -120,16 +127,16 @@ export default function DynamicMeta({
         <meta property="og:image:secure_url" content={primaryImageUrl} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={title || 'Merrouch Gaming'} />
+        <meta property="og:image:alt" content={finalTitle} />
         
         {/* Force Twitter image */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@merrouchgaming" />
         <meta name="twitter:creator" content="@merrouchgaming" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
+        <meta name="twitter:title" content={finalTitle} />
+        <meta name="twitter:description" content={finalDescription} />
         <meta name="twitter:image" content={primaryImageUrl} />
-        <meta name="twitter:image:alt" content={title || 'Merrouch Gaming'} />
+        <meta name="twitter:image:alt" content={finalTitle} />
 
         {/* Add a flag for the app-level component to detect */}
         {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
@@ -184,16 +191,16 @@ export default function DynamicMeta({
       </Head>
       
       <NextSeo
-        title={title}
-        description={description}
-        canonical={url}
+        title={finalTitle}
+        description={finalDescription}
+        canonical={finalUrl}
         noindex={noindex}
         openGraph={finalOpenGraph}
         twitter={finalTwitter}
         additionalMetaTags={[
           {
             name: 'keywords',
-            content: `gaming center tangier, ${(title || '').toLowerCase()}, gaming morocco`
+            content: `gaming center tangier, ${finalTitle.toLowerCase()}, gaming morocco`
           }
         ]}
       />
