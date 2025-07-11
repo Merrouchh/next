@@ -7,7 +7,6 @@ import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
-import { DefaultSeo } from 'next-seo';
 import { defaultSEO } from '../utils/seo-config';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
@@ -113,8 +112,22 @@ function MyApp({ Component, pageProps }) {
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <link rel="icon" href="/favicon.ico" />
             <meta name="theme-color" content="#FFD700" />
+            
+            {/* Default SEO for auth pages */}
+            <title>{defaultSEO.defaultTitle}</title>
+            <meta name="description" content={defaultSEO.description} />
+            <meta property="og:title" content={defaultSEO.defaultTitle} />
+            <meta property="og:description" content={defaultSEO.description} />
+            <meta property="og:image" content={defaultSEO.openGraph.images[0].url} />
+            <meta property="og:url" content={defaultSEO.openGraph.url} />
+            <meta property="og:type" content={defaultSEO.openGraph.type} />
+            <meta property="og:site_name" content={defaultSEO.openGraph.site_name} />
+            <meta name="twitter:card" content={defaultSEO.twitter.cardType} />
+            <meta name="twitter:site" content={defaultSEO.twitter.site} />
+            <meta name="twitter:title" content={defaultSEO.defaultTitle} />
+            <meta name="twitter:description" content={defaultSEO.description} />
+            <meta name="twitter:image" content={defaultSEO.openGraph.images[0].url} />
           </Head>
-          <DefaultSeo {...defaultSEO} />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -135,8 +148,22 @@ function MyApp({ Component, pageProps }) {
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
+          
+          {/* Default SEO for main pages - only if no DynamicMeta is present */}
+          <title>{defaultSEO.defaultTitle}</title>
+          <meta name="description" content={defaultSEO.description} />
+          <meta property="og:title" content={defaultSEO.defaultTitle} />
+          <meta property="og:description" content={defaultSEO.description} />
+          <meta property="og:image" content={defaultSEO.openGraph.images[0].url} />
+          <meta property="og:url" content={defaultSEO.openGraph.url} />
+          <meta property="og:type" content={defaultSEO.openGraph.type} />
+          <meta property="og:site_name" content={defaultSEO.openGraph.site_name} />
+          <meta name="twitter:card" content={defaultSEO.twitter.cardType} />
+          <meta name="twitter:site" content={defaultSEO.twitter.site} />
+          <meta name="twitter:title" content={defaultSEO.defaultTitle} />
+          <meta name="twitter:description" content={defaultSEO.description} />
+          <meta name="twitter:image" content={defaultSEO.openGraph.images[0].url} />
         </Head>
-        <DefaultSeo {...defaultSEO} />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>
