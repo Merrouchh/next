@@ -259,6 +259,11 @@ const Home = ({ metaData }) => {
 
   return (
     <>
+      <Head>
+        <title>Merrouch Gaming - Your Gaming Community</title>
+        <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
+      </Head>
+
       <DynamicMeta {...metaData} />
 
       <ProtectedPageWrapper>

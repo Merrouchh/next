@@ -85,20 +85,7 @@ function MyApp({ Component, pageProps }) {
 
   const getLayout = Component.getLayout || ((page) => <Layout>{page}</Layout>);
 
-  // Don't render until mounted to prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        backgroundColor: '#000000'
-      }}>
-        <div style={{ color: '#FFD700' }}>Loading...</div>
-      </div>
-    );
-  }
+  // Remove the mounted check to allow server-side rendering
 
   const isAuthPage = router.pathname.startsWith('/auth/');
   const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
@@ -136,8 +123,7 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        {/* Disable DefaultSeo to prevent conflicts with DynamicMeta */}
-        {/* {!pageProps.metaData && <DefaultSeo {...defaultSEO} />} */}
+        <DefaultSeo {...defaultSEO} />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>

@@ -32,27 +32,6 @@ const formatDate = (dateString) => {
   }
 };
 
-// Strip markdown syntax for metadata descriptions
-const stripMarkdownForMeta = (text, maxLength = 150) => {
-  if (!text) return '';
-  
-  // Strip markdown syntax
-  const stripped = text
-    .replace(/#{1,6}\s+/g, '') // Remove headers
-    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-    .replace(/\*(.*?)\*/g, '$1') // Remove italic
-    .replace(/`(.*?)`/g, '$1') // Remove inline code
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
-    .replace(/>/g, '') // Remove blockquotes
-    .replace(/[-*+]\s+/g, '') // Remove list markers
-    .replace(/\d+\.\s+/g, '') // Remove numbered list markers
-    .replace(/\n+/g, ' ') // Replace line breaks with spaces
-    .trim();
-  
-  if (stripped.length <= maxLength) return stripped;
-  return stripped.substring(0, maxLength) + '...';
-};
-
 // Memoize EventGallery component to prevent re-renders
 const MemoizedEventGallery = React.memo(EventGallery);
 
@@ -81,120 +60,131 @@ export async function getServerSideProps({ params, res }) {
   };
   
   try {
-    // Try fetching event data for SEO
-    let event = null;
-    
-    // Helper function to fetch with error handling
-    const fetchWithErrorHandling = async (url, options = {}) => {
-      try {
-        const response = await fetch(url, options);
-        if (response.ok) {
-          const data = await response.json();
-          return { success: true, data };
-        }
-        return { success: false, error: `Failed with status ${response.status}` };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    };
-    
-    // Try with absolute URL first
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
-    let result = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}`);
-    
-    // If that fails, try with relative URL
-    if (!result.success) {
-      result = await fetchWithErrorHandling(`/api/events/${id}`, {
-        headers: { 'x-forwarded-host': 'localhost:3000' }
-      });
-    }
-    
-    // If both fail, return not found
-    if (!result.success) {
+    // Use direct Supabase connection - working perfectly now
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // Fetch event data directly from database
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (eventError || !event) {
+      console.error('Event not found:', eventError);
       return { props: { metaData: notFoundMetadata } };
     }
-    
-    // Extract event data
-    event = result.data.event || result.data;
-    
+
     // For completed events, try to fetch bracket data to find champion
     let champion = null;
     let hasWinner = false;
     
     if (event.status === 'Completed') {
-      // Try to fetch bracket data
-      let bracketResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}/bracket`);
-      
-      // If that fails, try relative URL
-      if (!bracketResult.success) {
-        bracketResult = await fetchWithErrorHandling(`/api/events/${id}/bracket`, {
-          headers: { 'x-forwarded-host': 'localhost:3000' }
-        });
-      }
-      
-      // If successful, check for a winner
-      if (bracketResult.success) {
-        const bracketData = bracketResult.data;
-        if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
-          const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
+      // Fetch bracket data directly
+      const { data: bracketData, error: bracketError } = await supabase
+        .from('event_brackets')
+        .select('matches')
+        .eq('event_id', id)
+        .single();
+
+      // Fetch participants directly
+      const { data: participants, error: participantsError } = await supabase
+        .from('event_registrations')
+        .select(`
+          id, 
+          user_id, 
+          username,
+          event_team_members (
+            id,
+            user_id,
+            username
+          ),
+          team_name
+        `)
+        .eq('event_id', id)
+        .eq('status', 'registered');
+
+      if (!bracketError && bracketData?.matches && !participantsError && participants) {
+        const bracket = bracketData.matches;
+        if (bracket.length > 0) {
+          const finalRound = bracket[bracket.length - 1];
           if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
             hasWinner = true;
-            champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
+            champion = participants.find(p => p.id === finalRound[0].winnerId);
           }
         }
       }
     }
-    
+
     // Try to fetch gallery images for SEO
     let galleryImages = [];
     try {
-      const galleryResult = await fetchWithErrorHandling(`${baseUrl}/api/events/gallery?eventId=${id}`);
-      
-      // If that fails, try with relative URL
-      if (!galleryResult.success) {
-        const relativeGalleryResult = await fetchWithErrorHandling(`/api/events/gallery?eventId=${id}`, {
-          headers: { 'x-forwarded-host': 'localhost:3000' }
-        });
-        
-        if (relativeGalleryResult.success) {
-          galleryImages = relativeGalleryResult.data.images || [];
-        }
-      } else {
-        galleryImages = galleryResult.data.images || [];
+      const { data: images, error: galleryError } = await supabase
+        .from('event_gallery')
+        .select('*')
+        .eq('event_id', id)
+        .order('created_at', { ascending: false });
+
+      if (!galleryError && images) {
+        galleryImages = images;
       }
     } catch (error) {
       console.error('Error fetching gallery images for SEO:', error);
       // Continue without gallery images if there's an error
     }
-    
+
     // Format date for description
     const formattedDate = event.date ? formatDate(event.date) : 'TBD';
     
     // Generate basic metadata
     let title = `${event.title} | Gaming Event | Merrouch Gaming`;
-    let description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? stripMarkdownForMeta(event.description, 150) : 'Join our gaming event!'}`;
-    let ogTitle = `${event.title} | Gaming Tournament`;
-    let ogDescription = `${event.status} ${event.team_type} tournament for ${event.game || 'gamers'} on ${formattedDate} at ${event.time || 'TBD'}. ${event.description ? stripMarkdownForMeta(event.description, 100) : ''}`;
+    let description = `Join the ${event.title} gaming event at Merrouch Gaming Center. `;
     
-    // Enhance metadata for completed events with champion information
-    if (event.status === 'Completed' && hasWinner && champion) {
-      if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
-        // For duo events, include both team members
-        const partnerName = champion.members[0]?.name || '';
-        title = `${champion.name} & ${partnerName} Won ${event.title} | Merrouch Gaming`;
-        description = `${champion.name} & ${partnerName} won this ${event.game || 'gaming'} duo tournament on ${formattedDate}. Check out the complete bracket and results.`;
-        ogTitle = `${champion.name} & ${partnerName} Won ${event.title}`;
-        ogDescription = `${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament at Merrouch Gaming Center. View the full tournament results.`;
-      } else {
-        // For solo events
-        title = `${champion.name} Won ${event.title} | Merrouch Gaming`;
-        description = `${champion.name} won this ${event.game || 'gaming'} tournament on ${formattedDate}. Check out the complete bracket and results.`;
-        ogTitle = `${champion.name} Won ${event.title}`;
-        ogDescription = `${champion.name} claimed victory in this ${event.game || 'gaming'} tournament at Merrouch Gaming Center. View the full tournament results.`;
-      }
+    // Add event type info
+    if (event.team_type) {
+      const teamTypeText = event.team_type === 'solo' ? 'solo' : 
+                          event.team_type === 'duo' ? 'duo team' : 'team';
+      description += `This is a ${teamTypeText} competition `;
     }
     
+    // Add game info if available
+    if (event.game) {
+      description += `for ${event.game} `;
+    }
+    
+    // Add date info
+    description += `scheduled for ${formattedDate}. `;
+    
+    // Add status-specific info
+    if (event.status === 'Completed' && hasWinner && champion) {
+      if (event.team_type === 'duo' && champion.event_team_members && champion.event_team_members.length > 0) {
+        const partner = champion.event_team_members[0];
+        title = `${champion.username} & ${partner.username} Win ${event.title} | Merrouch Gaming`;
+        description += `Congratulations to ${champion.username} & ${partner.username} for winning this tournament!`;
+      } else if (event.team_type === 'team' && champion.team_name) {
+        title = `${champion.team_name} Wins ${event.title} | Merrouch Gaming`;
+        description += `Congratulations to ${champion.team_name} for winning this tournament!`;
+      } else {
+        title = `${champion.username} Wins ${event.title} | Merrouch Gaming`;
+        description += `Congratulations to ${champion.username} for winning this tournament!`;
+      }
+    } else if (event.status === 'In Progress') {
+      title = `${event.title} - Live Tournament | Merrouch Gaming`;
+      description += `Tournament is currently in progress. Follow the action live!`;
+    } else if (event.status === 'Upcoming') {
+      description += `Registration is open. Don't miss out on this exciting gaming competition!`;
+    }
+
+    // OpenGraph specific content
+    let ogTitle = title;
+    let ogDescription = description;
+    
     // Ensure image is a valid absolute URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
     const imageUrl = event.image && (event.image.startsWith('http') 
       ? event.image 
       : `${baseUrl}${event.image.startsWith('/') ? '' : '/'}${event.image}`);
@@ -232,16 +222,14 @@ export async function getServerSideProps({ params, res }) {
       },
       structuredData: {
         "@context": "https://schema.org",
-        "@type": "Event",
-        "@id": `https://merrouchgaming.com/events/${id}#event`,
-        "name": event.title,
-        "description": event.description ? stripMarkdownForMeta(event.description, 200) : `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
+        "@type": "SportsEvent",
+        "name": `${event.title} Tournament`,
+        "description": `Tournament for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} competition.`,
         "startDate": event.date,
         "endDate": event.date,
-        "eventStatus": event.status === "Upcoming" ? "https://schema.org/EventScheduled" : 
-                       event.status === "In Progress" ? "https://schema.org/EventInProgress" : 
-                       "https://schema.org/EventCompleted",
-        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+        "eventStatus": event.status === 'Completed' ? 'https://schema.org/EventCompleted' :
+                      event.status === 'In Progress' ? 'https://schema.org/EventScheduled' :
+                      'https://schema.org/EventScheduled',
         "location": {
           "@type": "Place",
           "name": event.location || "Merrouch Gaming Center",
@@ -251,56 +239,47 @@ export async function getServerSideProps({ params, res }) {
             "addressCountry": "MA"
           }
         },
-        "image": [
-          imageUrl || "https://merrouchgaming.com/events.jpg"
-        ],
+        "image": [imageUrl || "https://merrouchgaming.com/events.jpg"],
         "organizer": {
           "@type": "Organization",
           "name": "Merrouch Gaming",
           "url": "https://merrouchgaming.com"
-        },
-        "offers": {
-          "@type": "Offer",
-          "availability": event.status === "Upcoming" && 
-                         (event.registration_limit === null || 
-                          event.registered_count < event.registration_limit) ? 
-                         "https://schema.org/InStock" : 
-                         "https://schema.org/SoldOut",
-          "url": `https://merrouchgaming.com/events/${id}`,
-          "price": "0",
-          "priceCurrency": "MAD"
-        },
-        // Add a source comment to help debugging
-        "source": "event-id-page"
+        }
       }
     };
-    
-    // Add champion information to structured data if available
+
+    // Add winner information to structured data if available
     if (hasWinner && champion) {
-      if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
-        metadata.structuredData.performer = {
+      if (event.team_type === 'duo' && champion.event_team_members && champion.event_team_members.length > 0) {
+        const partner = champion.event_team_members[0];
+        metadata.structuredData.winner = {
           "@type": "Team",
-          "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
+          "name": `${champion.username} & ${partner.username}`,
           "member": [
             {
               "@type": "Person",
-              "name": champion.name
+              "name": champion.username
             },
             {
               "@type": "Person",
-              "name": champion.members[0]?.name || ''
+              "name": partner.username
             }
           ]
         };
+      } else if (event.team_type === 'team' && champion.team_name) {
+        metadata.structuredData.winner = {
+          "@type": "Team",
+          "name": champion.team_name
+        };
       } else {
-        metadata.structuredData.performer = {
+        metadata.structuredData.winner = {
           "@type": "Person",
-          "name": champion.name
+          "name": champion.username
         };
       }
     }
-    
-    // Add gallery images to structured data if available
+
+    // Enhanced gallery images handling
     if (galleryImages && galleryImages.length > 0) {
       // Enhance the event with associated media
       const allImageUrls = galleryImages.map(img => {
@@ -312,23 +291,6 @@ export async function getServerSideProps({ params, res }) {
       
       // Add all gallery images to the main image array in structured data
       metadata.structuredData.image = [...metadata.structuredData.image, ...allImageUrls];
-      
-      // DO NOT create any secondary structured data objects - they cause validation errors
-      // ONLY keep the main Event structured data which is valid
-      
-      // First, ensure we're using the latest primary image URL based on data we just set
-      const mainEventImage = metadata.image;
-      
-      // Additional safeguard - set main image again to ensure high priority
-      metadata.image = mainEventImage;
-      
-      // Ensure Twitter card explicitly uses the primary event image
-      if (metadata.twitter) {
-        metadata.twitter.image = mainEventImage;
-      }
-      
-      // Add flag to help metadata component prioritize main event image
-      metadata.prioritizeMainImage = true;
       
       // Add gallery images to OpenGraph for better social sharing - AFTER primary event image
       galleryImages.slice(0, 4).forEach(img => {
@@ -345,7 +307,7 @@ export async function getServerSideProps({ params, res }) {
         });
       });
     }
-    
+
     // Add flag to prevent duplicate structured data at the app level
     metadata.excludeFromAppSeo = true;
     

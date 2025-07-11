@@ -10,9 +10,6 @@ import { useModal } from '../contexts/ModalContext';
 import DynamicMeta from '../components/DynamicMeta';
 import Image from 'next/image';
 import { FaSearch, FaCalendarAlt, FaGamepad, FaTrophy, FaFilter } from 'react-icons/fa';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 
 // Format date for display - moved to a utility function outside components
 const formatDate = (dateString) => {
@@ -576,23 +573,8 @@ function EventCard({ event }) {
   };
   
   const truncateDescription = (text, maxLength = 120) => {
-    if (!text) return '';
-    
-    // Strip markdown syntax for preview
-    const stripped = text
-      .replace(/#{1,6}\s+/g, '') // Remove headers
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic
-      .replace(/`(.*?)`/g, '$1') // Remove inline code
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
-      .replace(/>/g, '') // Remove blockquotes
-      .replace(/[-*+]\s+/g, '') // Remove list markers
-      .replace(/\d+\.\s+/g, '') // Remove numbered list markers
-      .replace(/\n+/g, ' ') // Replace line breaks with spaces
-      .trim();
-    
-    if (stripped.length <= maxLength) return stripped;
-    return stripped.substring(0, maxLength) + '...';
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
   };
   
   const handleRegisterClick = () => {

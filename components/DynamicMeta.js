@@ -32,10 +32,10 @@ export default function DynamicMeta({
     setMounted(true);
   }, []);
   
-  const currentTime = Date.now();
+  const currentTime = new Date().toISOString();
   
-  // Force cache-busting for social media platforms
-  const imageWithTimestamp = image.includes('?') ? `${image}&v=${currentTime}` : `${image}?v=${currentTime}`;
+  // Don't add timestamp to image URLs that already have parameters
+  const imageWithTimestamp = image.includes('?') ? image : `${image}?t=${currentTime}`;
 
   if (!title && !description) {
     return null;
@@ -86,18 +86,10 @@ export default function DynamicMeta({
     }
   }
 
-  // Ensure all image URLs are absolute
-  const makeAbsoluteUrl = (url) => {
-    if (!url) return imageWithTimestamp;
-    if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://merrouchgaming.com';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-  };
-
   // Get the primary image URL for consistent use across all tags
   const primaryImageUrl = (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) 
-    ? makeAbsoluteUrl((finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0]).url)
-    : makeAbsoluteUrl(imageWithTimestamp);
+    ? (finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0]).url
+    : imageWithTimestamp;
 
   // Ensure Twitter image uses the primary image
   if (finalTwitter) {
@@ -110,6 +102,16 @@ export default function DynamicMeta({
   return (
     <>
       <Head>
+        {/* Override default title and description */}
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        
+        {/* Override OpenGraph tags */}
+        <meta property="og:title" content={finalOpenGraph.title} />
+        <meta property="og:description" content={finalOpenGraph.description} />
+        <meta property="og:type" content={finalOpenGraph.type} />
+        <meta property="og:url" content={finalOpenGraph.url || url} />
+        
         {/* Set explicit itemprop image to ensure consistency */}
         <meta itemProp="image" content={primaryImageUrl} />
         
@@ -119,6 +121,8 @@ export default function DynamicMeta({
         
         {/* Force Twitter image */}
         <meta name="twitter:image" content={primaryImageUrl} />
+        <meta name="twitter:title" content={finalTwitter.title || title} />
+        <meta name="twitter:description" content={finalTwitter.description || description} />
 
         {/* Add a flag for the app-level component to detect */}
         {excludeFromAppSeo && <meta name="x-dynamic-meta-active" content="true" />}
@@ -185,6 +189,9 @@ export default function DynamicMeta({
             content: `gaming center tangier, ${(title || '').toLowerCase()}, gaming morocco`
           }
         ]}
+        // Force override of default SEO
+        titleTemplate="%s"
+        defaultTitle={title}
       />
     </>
   );
