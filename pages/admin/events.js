@@ -492,6 +492,26 @@ export default function AdminEvents() {
     }
   };
 
+  const stripMarkdownForPreview = (text, maxLength = 60) => {
+    if (!text) return '';
+    
+    // Strip markdown syntax for preview
+    const stripped = text
+      .replace(/#{1,6}\s+/g, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/`(.*?)`/g, '$1') // Remove inline code
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+      .replace(/>/g, '') // Remove blockquotes
+      .replace(/[-*+]\s+/g, '') // Remove list markers
+      .replace(/\d+\.\s+/g, '') // Remove numbered list markers
+      .replace(/\n+/g, ' ') // Replace line breaks with spaces
+      .trim();
+    
+    if (stripped.length <= maxLength) return stripped;
+    return stripped.substring(0, maxLength) + '...';
+  };
+
   // Filter events by status
   const filteredEvents = statusFilter === 'All' 
     ? events 
@@ -591,9 +611,7 @@ export default function AdminEvents() {
                     <div className={styles.eventInfo}>
                       <div className={styles.eventTitle}>{event.title}</div>
                       <div className={styles.eventDescription}>
-                        {event.description.length > 60 
-                          ? `${event.description.substring(0, 60)}...` 
-                          : event.description}
+                        {stripMarkdownForPreview(event.description)}
                       </div>
                     </div>
                   </div>

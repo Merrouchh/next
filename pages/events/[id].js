@@ -32,6 +32,27 @@ const formatDate = (dateString) => {
   }
 };
 
+// Strip markdown syntax for metadata descriptions
+const stripMarkdownForMeta = (text, maxLength = 150) => {
+  if (!text) return '';
+  
+  // Strip markdown syntax
+  const stripped = text
+    .replace(/#{1,6}\s+/g, '') // Remove headers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+    .replace(/\*(.*?)\*/g, '$1') // Remove italic
+    .replace(/`(.*?)`/g, '$1') // Remove inline code
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+    .replace(/>/g, '') // Remove blockquotes
+    .replace(/[-*+]\s+/g, '') // Remove list markers
+    .replace(/\d+\.\s+/g, '') // Remove numbered list markers
+    .replace(/\n+/g, ' ') // Replace line breaks with spaces
+    .trim();
+  
+  if (stripped.length <= maxLength) return stripped;
+  return stripped.substring(0, maxLength) + '...';
+};
+
 // Memoize EventGallery component to prevent re-renders
 const MemoizedEventGallery = React.memo(EventGallery);
 
@@ -151,9 +172,9 @@ export async function getServerSideProps({ params, res }) {
     
     // Generate basic metadata
     let title = `${event.title} | Gaming Event | Merrouch Gaming`;
-    let description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? event.description.substring(0, 150) + '...' : 'Join our gaming event!'}`;
+    let description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? stripMarkdownForMeta(event.description, 150) : 'Join our gaming event!'}`;
     let ogTitle = `${event.title} | Gaming Tournament`;
-    let ogDescription = `${event.status} ${event.team_type} tournament for ${event.game || 'gamers'} on ${formattedDate} at ${event.time || 'TBD'}. ${event.description ? event.description.substring(0, 100) + '...' : ''}`;
+    let ogDescription = `${event.status} ${event.team_type} tournament for ${event.game || 'gamers'} on ${formattedDate} at ${event.time || 'TBD'}. ${event.description ? stripMarkdownForMeta(event.description, 100) : ''}`;
     
     // Enhance metadata for completed events with champion information
     if (event.status === 'Completed' && hasWinner && champion) {
@@ -214,7 +235,7 @@ export async function getServerSideProps({ params, res }) {
         "@type": "Event",
         "@id": `https://merrouchgaming.com/events/${id}#event`,
         "name": event.title,
-        "description": event.description || `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
+        "description": event.description ? stripMarkdownForMeta(event.description, 200) : `${event.game || 'Gaming'} tournament at Merrouch Gaming Center`,
         "startDate": event.date,
         "endDate": event.date,
         "eventStatus": event.status === "Upcoming" ? "https://schema.org/EventScheduled" : 

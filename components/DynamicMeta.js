@@ -32,10 +32,10 @@ export default function DynamicMeta({
     setMounted(true);
   }, []);
   
-  const currentTime = new Date().toISOString();
+  const currentTime = Date.now();
   
-  // Don't add timestamp to image URLs that already have parameters
-  const imageWithTimestamp = image.includes('?') ? image : `${image}?t=${currentTime}`;
+  // Force cache-busting for social media platforms
+  const imageWithTimestamp = image.includes('?') ? `${image}&v=${currentTime}` : `${image}?v=${currentTime}`;
 
   if (!title && !description) {
     return null;
@@ -86,10 +86,18 @@ export default function DynamicMeta({
     }
   }
 
+  // Ensure all image URLs are absolute
+  const makeAbsoluteUrl = (url) => {
+    if (!url) return imageWithTimestamp;
+    if (url.startsWith('http')) return url;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://merrouchgaming.com';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   // Get the primary image URL for consistent use across all tags
   const primaryImageUrl = (finalOpenGraph && finalOpenGraph.images && finalOpenGraph.images.length > 0) 
-    ? (finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0]).url
-    : imageWithTimestamp;
+    ? makeAbsoluteUrl((finalOpenGraph.images.find(img => img.primary === true) || finalOpenGraph.images[0]).url)
+    : makeAbsoluteUrl(imageWithTimestamp);
 
   // Ensure Twitter image uses the primary image
   if (finalTwitter) {

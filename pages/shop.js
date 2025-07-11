@@ -206,22 +206,22 @@ const Shop = ({ metaData }) => {
           // Modern API failed, try fallback
           if (fallbackCopy()) {
             addVisualFeedback(event);
-            toast.success(`${field} copied to clipboard!`, {
-              position: 'top-right',
-              style: {
-                background: '#333',
-                color: '#fff',
-                border: '1px solid #FFD700',
-              },
-              iconTheme: {
-                primary: '#FFD700',
-                secondary: '#333',
-              },
-            });
+      toast.success(`${field} copied to clipboard!`, {
+        position: 'top-right',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #FFD700',
+        },
+        iconTheme: {
+          primary: '#FFD700',
+          secondary: '#333',
+        },
+      });
           } else {
-            toast.error('Failed to copy text', {
-              position: 'top-right'
-            });
+      toast.error('Failed to copy text', {
+        position: 'top-right'
+      });
           }
         });
     } else {
