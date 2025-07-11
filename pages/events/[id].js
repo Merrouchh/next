@@ -306,6 +306,9 @@ export async function getServerSideProps({ params, res }) {
         metadata.twitter.image = mainEventImage;
       }
       
+      // Add flag to help metadata component prioritize main event image
+      metadata.prioritizeMainImage = true;
+      
       // Add gallery images to OpenGraph for better social sharing - AFTER primary event image
       galleryImages.slice(0, 4).forEach(img => {
         const imgUrl = img.image_url.startsWith('http') 
@@ -321,6 +324,9 @@ export async function getServerSideProps({ params, res }) {
         });
       });
     }
+    
+    // Add flag to prevent duplicate structured data at the app level
+    metadata.excludeFromAppSeo = true;
     
     return { props: { metaData: metadata } };
   } catch (error) {
@@ -1287,7 +1293,7 @@ export default function EventDetail({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+      <DynamicMeta {...metaData} excludeFromAppSeo={true} />
 
       <div className={styles.container}>
         <Link href="/events" className={styles.backLink}>

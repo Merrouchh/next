@@ -9,7 +9,7 @@ export const defaultSEO = {
     site_name: 'Merrouch Gaming',
     images: [
       {
-        url: '/top.jpg',
+        url: 'https://merrouchgaming.com/top.jpg',
         width: 1200,
         height: 630,
         alt: 'Best Gaming Center in Tangier - RTX 3070 Gaming PCs',

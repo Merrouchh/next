@@ -105,9 +105,6 @@ function MyApp({ Component, pageProps }) {
                       router.pathname.startsWith('/events/') || 
                       router.pathname.startsWith('/profile/');
 
-  // Check if page has dynamic metadata
-  const hasDynamicMeta = pageProps.metaData && (pageProps.metaData.title || pageProps.metaData.description);
-
   if (isAuthPage) {
     return (
       <StrictMode>
@@ -117,8 +114,7 @@ function MyApp({ Component, pageProps }) {
             <link rel="icon" href="/favicon.ico" />
             <meta name="theme-color" content="#FFD700" />
           </Head>
-          {/* Only use DefaultSeo if page doesn't have dynamic metadata */}
-          {!hasDynamicMeta && <DefaultSeo {...defaultSEO} />}
+          <DefaultSeo {...defaultSEO} />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -140,8 +136,7 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        {/* Only use DefaultSeo if page doesn't have dynamic metadata */}
-        {!hasDynamicMeta && <DefaultSeo {...defaultSEO} />}
+        <DefaultSeo {...defaultSEO} />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>
