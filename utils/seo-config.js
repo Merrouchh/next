@@ -11,7 +11,7 @@ export const businessInfo = {
     "https://merrouchgaming.com/top3.jpg"
   ],
   url: "https://merrouchgaming.com",
-  phone: "+212531098983",
+  phone: "+212656053641",
   address: "RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1",
   postalCode: "90060",
   latitude: 35.768787,

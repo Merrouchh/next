@@ -1,25 +1,76 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
+import Head from 'next/head';
 
 // Simple loading/message component to replace LoadingScreen
 const StyleWrapper = ({ message, type }) => {
   return (
-    <div className="auth-message-container" style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      width: '100%',
-      background: '#0f1119',
-      color: '#FFD700',
-      fontSize: '1.2rem',
-      textAlign: 'center',
-      flexDirection: 'column',
-      gap: '1rem'
-    }}>
-      <div>{message || "Processing, please wait..."}</div>
-    </div>
+    <>
+      <Head>
+        <title>Processing Authentication - Merrouch Gaming</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </Head>
+      <div className="auth-message-container" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        width: '100%',
+        background: '#0f1119',
+        color: '#FFD700',
+        fontSize: '1.2rem',
+        textAlign: 'center',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        padding: '2rem',
+        boxSizing: 'border-box',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: '2rem',
+          borderRadius: '12px',
+          border: '1px solid #333',
+          maxWidth: '400px',
+          width: '100%'
+        }}>
+          <div style={{
+            marginBottom: '1rem',
+            fontSize: '1.1rem',
+            lineHeight: '1.4'
+          }}>
+            {message || "Processing, please wait..."}
+          </div>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid rgba(255, 215, 0, 0.2)',
+            borderLeft: '3px solid #FFD700',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+        </div>
+        <style jsx>{`
+          body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background: #0f1119;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    </>
   );
 };
 
@@ -168,11 +219,31 @@ export default function AuthCallback() {
               if (currentUser) {
                 // Successfully authenticated, redirect to dashboard
                 console.log('Magic link authentication successful, redirecting to dashboard');
-                router.replace('/dashboard');
+                
+                // Use shorter delay for better mobile experience
+                setTimeout(() => {
+                  if (typeof window !== 'undefined') {
+                    try {
+                      router.replace('/dashboard');
+                    } catch (routerError) {
+                      console.log("Router failed, using window.location");
+                      window.location.href = '/dashboard';
+                    }
+                  }
+                }, 300);
               } else {
                 // Something went wrong
                 console.error('Failed to authenticate with magic link, no user found after verification');
-                router.replace('/');
+                setTimeout(() => {
+                  if (typeof window !== 'undefined') {
+                    try {
+                      router.replace('/');
+                    } catch (routerError) {
+                      console.log("Router failed, using window.location");
+                      window.location.href = '/';
+                    }
+                  }
+                }, 300);
               }
               return;
             } catch (error) {
@@ -229,12 +300,22 @@ export default function AuthCallback() {
             setTimeout(() => {
               if (user) {
                 // User is now logged in, redirect to the dashboard
-                router.replace('/dashboard');
+                try {
+                  router.replace('/dashboard');
+                } catch (routerError) {
+                  console.log("Router failed, using window.location");
+                  window.location.href = '/dashboard';
+                }
               } else {
                 // Still not logged in, try the home page
-                router.replace('/');
+                try {
+                  router.replace('/');
+                } catch (routerError) {
+                  console.log("Router failed, using window.location");
+                  window.location.href = '/';
+                }
               }
-            }, 2000);
+            }, 1000); // Reduced from 2000ms to 1000ms for better mobile experience
             return;
           }
         }
@@ -242,8 +323,14 @@ export default function AuthCallback() {
         // Default fallback
         console.log('No specific auth parameters found, redirecting to dashboard');
         setTimeout(() => {
-          router.replace(user ? '/dashboard' : '/');
-        }, 1000);
+          const destination = user ? '/dashboard' : '/';
+          try {
+            router.replace(destination);
+          } catch (routerError) {
+            console.log("Router failed, using window.location");
+            window.location.href = destination;
+          }
+        }, 500); // Reduced delay for better mobile experience
       } catch (error) {
         console.error('Error handling auth callback:', error);
         setError('An error occurred processing your verification');

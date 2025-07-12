@@ -627,7 +627,14 @@ export const AuthProvider = ({ children, onError }) => {
                 
                 // Redirect to dashboard only if on the homepage
                 if (router.pathname === '/') {
-                  router.replace('/dashboard');
+                  setTimeout(() => {
+                    try {
+                      router.replace('/dashboard');
+                    } catch (routerError) {
+                      console.log("Router failed, using window.location");
+                      window.location.href = '/dashboard';
+                    }
+                  }, 300);
                 }
                 
                 return; // Exit early on success

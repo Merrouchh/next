@@ -17,7 +17,19 @@ export default function MagicLogin() {
     // If already logged in, redirect to dashboard
     if (user) {
       console.log('User already logged in, redirecting to dashboard');
-      window.location.href = '/dashboard';
+      setStatus("You're already logged in! Redirecting...");
+      
+      // Use both methods for better mobile compatibility
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          try {
+            router.replace('/dashboard');
+          } catch (routerError) {
+            console.log("Router failed, using window.location");
+            window.location.href = '/dashboard';
+          }
+        }
+      }, 500);
       return;
     }
     
@@ -108,19 +120,36 @@ export default function MagicLogin() {
           
           // Even if the state reload failed, try redirecting to dashboard
           // The dashboard should still be able to pick up the session
+          // Use a shorter delay for mobile to reduce perceived loading time
           setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
+            // Use both methods for better mobile compatibility
+            if (typeof window !== 'undefined') {
+              try {
+                router.replace('/dashboard');
+              } catch (routerError) {
+                console.log("Router failed, using window.location");
+                window.location.href = '/dashboard';
+              }
+            }
+          }, 800);
           return;
         }
         
         console.log("Auth state reloaded successfully, redirecting to dashboard");
         setStatus("Login successful! Redirecting...");
         
-        // Redirect to dashboard with delay for UI feedback
+        // Redirect to dashboard with shorter delay for better mobile experience
         setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 1000);
+          if (typeof window !== 'undefined') {
+            try {
+              // Try router first for better UX
+              router.replace('/dashboard');
+            } catch (routerError) {
+              console.log("Router failed, using window.location");
+              window.location.href = '/dashboard';
+            }
+          }
+        }, 600);
       } catch (err) {
         console.error("Unexpected error during auth processing:", err);
         setError(`Authentication error: ${err.message}`);
@@ -137,18 +166,66 @@ export default function MagicLogin() {
       alignItems: 'center', 
       justifyContent: 'center',
       minHeight: '100vh',
+      minWidth: '100vw',
       background: '#111',
-      color: '#fff'
+      color: '#fff',
+      padding: '1rem',
+      boxSizing: 'border-box',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999
     }}>
       <Head>
         <title>{error ? 'Login Failed' : 'Logging In'} - Merrouch Gaming</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <style>{`
+          body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background: #111;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+          }
+        `}</style>
       </Head>
       
       {error ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <h1 style={{ color: '#FFD700', marginBottom: '1.5rem' }}>Login Failed</h1>
-          <p style={{ marginBottom: '1rem' }}>{error}</p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: '#888' }}>
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '2rem',
+          maxWidth: '400px',
+          width: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderRadius: '12px',
+          border: '1px solid #333'
+        }}>
+          <h1 style={{ 
+            color: '#FFD700', 
+            marginBottom: '1.5rem',
+            fontSize: '1.5rem',
+            fontWeight: '600'
+          }}>Login Failed</h1>
+          <p style={{ 
+            marginBottom: '1rem',
+            fontSize: '1rem',
+            lineHeight: '1.4'
+          }}>{error}</p>
+          <p style={{ 
+            fontSize: '0.9rem', 
+            marginBottom: '1.5rem', 
+            color: '#888',
+            lineHeight: '1.4'
+          }}>
             Please try logging in again or contact support if the problem persists.
           </p>
           <button 
@@ -158,11 +235,17 @@ export default function MagicLogin() {
               color: '#000',
               border: 'none',
               padding: '0.75rem 1.5rem',
-              borderRadius: '4px',
+              borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: 'bold',
-              marginTop: '1rem'
+              fontSize: '1rem',
+              width: '100%',
+              maxWidth: '200px',
+              transition: 'all 0.2s ease',
+              touchAction: 'manipulation'
             }}
+            onMouseOver={(e) => e.target.style.background = '#e6c200'}
+            onMouseOut={(e) => e.target.style.background = '#FFD700'}
           >
             Return to Homepage
           </button>
@@ -173,26 +256,44 @@ export default function MagicLogin() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '1rem',
+          gap: '1.5rem',
           padding: '2rem',
-          textAlign: 'center'
+          textAlign: 'center',
+          maxWidth: '400px',
+          width: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          borderRadius: '12px',
+          border: '1px solid #333'
         }}>
-          <h2 style={{ color: '#FFD700', marginBottom: '1rem' }}>Logging In</h2>
-          <p>{status}</p>
+          <h2 style={{ 
+            color: '#FFD700', 
+            marginBottom: '0.5rem',
+            fontSize: '1.5rem',
+            fontWeight: '600'
+          }}>Logging In</h2>
+          <p style={{ 
+            fontSize: '1rem',
+            lineHeight: '1.4',
+            color: '#ccc',
+            margin: '0'
+          }}>{status}</p>
           <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid rgba(255, 215, 0, 0.1)',
+            width: '50px',
+            height: '50px',
+            border: '4px solid rgba(255, 215, 0, 0.2)',
             borderLeft: '4px solid #FFD700',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
-            marginTop: '1rem'
+            marginTop: '0.5rem'
           }}></div>
-          <style jsx>{`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
+          <div style={{
+            fontSize: '0.9rem',
+            color: '#888',
+            animation: 'pulse 2s ease-in-out infinite',
+            marginTop: '1rem'
+          }}>
+            Please wait while we log you in...
+          </div>
         </div>
       )}
     </div>

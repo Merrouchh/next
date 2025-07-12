@@ -476,10 +476,10 @@ async function generateDiscoverMetadata(supabase) {
       : latestClip?.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
 
     const dynamicTitle = latestClip 
-      ? `${totalClips} Gaming Highlights | Latest: ${latestClip.title || latestClip.game || 'Gaming Clip'}`
-      : `Discover ${totalClips} Gaming Highlights | RTX 3070 Gaming Clips`;
+      ? `Gaming Highlights | Latest: ${latestClip.title || latestClip.game || 'Gaming Clip'}`
+      : `Discover Gaming Highlights | RTX 3070 Gaming Clips`;
 
-    let dynamicDescription = `Watch ${totalClips} amazing gaming moments from our community. High-quality clips recorded on RTX 3070 PCs at Merrouch Gaming Center.`;
+    let dynamicDescription = `Watch amazing gaming moments from our community. High-quality clips recorded on RTX 3070 PCs at Merrouch Gaming Center.`;
     
     if (latestClips?.length) {
       const recentGames = [...new Set(latestClips.map(clip => clip.game).filter(Boolean))].slice(0, 3);
@@ -644,10 +644,11 @@ async function generateClipMetadata(supabase, clipId) {
       .eq('id', clipId)
       .single();
 
+    // Handle clip not found or deleted
     if (!clip) {
       return {
         title: 'Clip Not Found | Merrouch Gaming',
-        description: 'This clip may have been deleted or does not exist.',
+        description: 'This gaming clip may have been deleted, moved, or does not exist. Explore our other amazing gaming moments from our RTX 3070 gaming PCs.',
         image: 'https://merrouchgaming.com/top.jpg',
         url: `https://merrouchgaming.com/clip/${clipId}`,
         type: 'website',
@@ -655,6 +656,53 @@ async function generateClipMetadata(supabase, clipId) {
       };
     }
 
+    // Handle private clips - don't expose private information
+    if (clip.visibility !== 'public') {
+      return {
+        title: 'Private Gaming Clip | Merrouch Gaming',
+        description: 'This gaming clip is private and not available for public viewing. Check out our other public gaming highlights from our RTX 3070 gaming PCs at Merrouch Gaming Center.',
+        image: 'https://merrouchgaming.com/top.jpg',
+        url: `https://merrouchgaming.com/clip/${clipId}`,
+        type: 'website',
+        keywords: 'private gaming clip, Merrouch Gaming, Tangier'
+      };
+    }
+
+    // Handle clips that might be processing or have issues
+    if (clip.status && clip.status !== 'ready' && clip.status !== 'published') {
+      // Handle different processing/error states
+      if (clip.status === 'processing' || clip.status === 'uploading') {
+        return {
+          title: 'Gaming Clip Processing | Merrouch Gaming',
+          description: 'This gaming clip is currently being processed. Please check back later to view this amazing gaming moment from our RTX 3070 gaming PCs.',
+          image: 'https://merrouchgaming.com/top.jpg',
+          url: `https://merrouchgaming.com/clip/${clipId}`,
+          type: 'website',
+          keywords: 'gaming clip processing, Merrouch Gaming, Tangier'
+        };
+      } else if (clip.status === 'failed' || clip.status === 'error') {
+        return {
+          title: 'Gaming Clip Unavailable | Merrouch Gaming',
+          description: 'This gaming clip is currently unavailable. Please try again later or explore our other amazing gaming moments from our RTX 3070 gaming PCs.',
+          image: 'https://merrouchgaming.com/top.jpg',
+          url: `https://merrouchgaming.com/clip/${clipId}`,
+          type: 'website',
+          keywords: 'gaming clip unavailable, Merrouch Gaming, Tangier'
+        };
+      } else {
+        // Generic fallback for other statuses
+        return {
+          title: 'Gaming Clip | Merrouch Gaming',
+          description: 'This gaming clip is not currently available for viewing. Check out our other amazing gaming highlights from our RTX 3070 gaming PCs.',
+          image: 'https://merrouchgaming.com/top.jpg',
+          url: `https://merrouchgaming.com/clip/${clipId}`,
+          type: 'website',
+          keywords: 'gaming clip, Merrouch Gaming, Tangier'
+        };
+      }
+    }
+
+    // Generate metadata for public, available clips
     const thumbnailUrl = clip.cloudflare_uid
       ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`
       : clip.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
