@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
 import UpcomingMatches from '../components/UpcomingMatches';
+import Head from 'next/head';
 import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
 import { AiOutlineDesktop, AiOutlineUser, AiOutlineClockCircle, AiOutlineTrophy, AiOutlineCamera, AiOutlineReload, AiOutlineDashboard } from 'react-icons/ai';
@@ -685,7 +686,11 @@ const Dashboard = ({ _initialClips }) => {
 
 
   return (
-    <ProtectedPageWrapper>
+    <>
+      <Head>
+        <title>Gaming Dashboard | Merrouch Gaming Center</title>
+      </Head>
+      <ProtectedPageWrapper>
               {/* DynamicMeta removed - metadata now handled in _document.js */}
       
       <main className={styles.dashboardMain}>
@@ -838,6 +843,7 @@ const Dashboard = ({ _initialClips }) => {
          />
       </main>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

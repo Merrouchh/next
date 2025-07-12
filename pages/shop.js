@@ -5,6 +5,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
+import Head from 'next/head';
 
 export async function getServerSideProps({ res }) {
   // Cache headers removed
@@ -228,8 +229,12 @@ const Shop = () => {
   };
 
   return (
-    <ProtectedPageWrapper>
-      <main className={styles.shopMain}>
+    <>
+      <Head>
+        <title>Gaming Shop | Buy Gaming Time & Products | Merrouch Gaming</title>
+      </Head>
+      <ProtectedPageWrapper>
+        <main className={styles.shopMain}>
         <h2 className={styles.heading}>Shop</h2>
 
         {/* Tab Icons */}
@@ -663,6 +668,7 @@ const Shop = () => {
         )}
       </main>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

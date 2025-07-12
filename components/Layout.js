@@ -6,17 +6,15 @@ import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
-import { isAuthPage } from '../utils/routeConfig';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { MdFileUpload } from 'react-icons/md';
 
 const Layout = ({ children }) => {
   const router = useRouter();
   const { initialized, user } = useAuth();
-  const [mounted, setMounted] = useState(false);
   const isHomePage = router.pathname === '/';
   const { isLoginModalOpen, closeLoginModal } = useModal();
-  const isVerificationPage = isAuthPage(router.pathname);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [ripple, setRipple] = useState(false);
   const [rippleStyle, setRippleStyle] = useState({});
   const uploadButtonRef = useRef(null);
@@ -32,65 +30,21 @@ const Layout = ({ children }) => {
       '/discover',
       '/topusers',
       '/events',
-      '/awards'
+      '/awards',
+      '/admin'
     ];
-
-    if (isVerificationPage) return true;
     
     const isProfilePage = router.pathname.startsWith('/profile/');
     const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
-    return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
-  }, [router?.pathname, isVerificationPage]);
-
-  // Initialize component
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  // Check if device is mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const isAuthPage = router.pathname.startsWith('/auth/');
+    const isAdminPage = router.pathname.startsWith('/admin');
     
-    // Initial check
-    checkIfMobile();
-    
-    // Add event listener for window resize
-    window.addEventListener('resize', checkIfMobile);
-    
-    // Cleanup
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []);
+    return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage || isAuthPage || isAdminPage;
+  }, [router?.pathname]);
 
-  if (!mounted || !initialized) {
-    return (
-      <>
-        <div className={styles.layoutWrapper}>
-          <div>
-            {/* Placeholder for empty initial state */}
-          </div>
-        </div>
-        <div id="modal-root" className={styles.modalRoot}></div>
-      </>
-    );
-  }
-
-  // For auth pages like verification, use a cleaner layout
-  if (isVerificationPage) {
-    return (
-      <>
-        <div className={`${styles.layoutWrapper} ${styles.authLayout}`}>
-          <div className={styles.layoutContent}>
-            <main className={styles.mainContent}>
-              {children}
-            </main>
-          </div>
-        </div>
-        <div id="modal-root" className={styles.modalRoot}></div>
-      </>
-    );
+  // Let _app.js handle initialization - no need for additional loading state here
+  if (!initialized) {
+    return null;
   }
 
   // Navigate to upload page with ripple effect

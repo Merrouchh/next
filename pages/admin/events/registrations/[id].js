@@ -1053,7 +1053,7 @@ export default function EventRegistrations() {
                                     fontSize: '14px',
                                     textTransform: 'uppercase',
                                     marginRight: '0',
-                                    border: `2px solid ${teamColor}`
+                                    border: `2px solid ${generateColorFromString(registration.username)}`
                                   }}
                                 >
                                   {getInitials(partner.username || 'Unknown')}

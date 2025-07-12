@@ -1,12 +1,12 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { getRouteConfig, isAuthPage, requiresAdmin } from '../utils/routeConfig';
+import { getRouteConfig, isAuthPage, requiresAdmin, allowsStaff } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import MobileHeader from './MobileHeader';
 import DashboardHeader from './DashboardHeader';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import UserSearch from './UserSearch';
 import { useModal } from '../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
@@ -20,43 +20,31 @@ const ProtectedPageWrapper = ({ children }) => {
   const routeConfig = getRouteConfig(router.pathname);
   const isVerificationPage = isAuthPage(router.pathname);
   const isAdminRequired = requiresAdmin(router.pathname);
-  const [initTimeout, setInitTimeout] = useState(false);
-
   const hasNavigation = routeConfig.showNavigation;
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
 
-  // Add timeout for auth initialization with retry logic
+  // Check if user has admin access (including staff for certain routes)
+  const hasAdminAccess = (user, pathname) => {
+    if (!user) return false;
+    
+    // Admin always has access
+    if (user.isAdmin) return true;
+    
+    // Staff can access routes that specifically allow staff
+    if (user.isStaff && allowsStaff(pathname)) return true;
+    
+    return false;
+  };
+
+  // Handle authentication-based routing (must be called before any early returns)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!initialized) {
-        console.warn('ProtectedPageWrapper: Auth initialization timeout');
-        setInitTimeout(true);
-        
-        // Try to force a session reload as a fallback
-        if (window.location.pathname !== '/') {
-          console.log('ProtectedPageWrapper: Attempting to force session reload');
-          // This would trigger a session check
-          window.dispatchEvent(new Event('focus'));
-        }
-      }
-    }, 3000); // Reduced to 3 seconds to match home page
-
-    return () => clearTimeout(timer);
-  }, [initialized]);
-
-  // If this is a verification page, don't wrap with navigation/headers
-  if (isVerificationPage) {
-    return children;
-  }
-
-  // Handle authentication-based routing
-  useEffect(() => {
+    // Don't run effect for verification pages
+    if (isVerificationPage) return;
     // Don't do anything if auth is not initialized yet
     if (!initialized) return;
 
     // If user is logged in and on home page, redirect to dashboard
-    // But only if we're not already in the middle of a redirect
     if (user && router.pathname === '/' && router.isReady) {
       console.log('User logged in, redirecting to dashboard');
       router.replace('/dashboard');
@@ -69,16 +57,21 @@ const ProtectedPageWrapper = ({ children }) => {
       return;
     }
     
-    // If admin access is required but user is not an admin, redirect to dashboard
-    if (isAdminRequired && user && !user.isAdmin && router.isReady) {
-      toast.error('You do not have admin access to this page');
+    // If admin access is required but user doesn't have access, redirect to dashboard
+    if (isAdminRequired && user && !hasAdminAccess(user, router.pathname) && router.isReady) {
+      toast.error('You do not have access to this page');
       router.replace('/dashboard');
       return;
     }
   }, [initialized, user, router, routeConfig.requireAuth, router.pathname, router.isReady, isVerificationPage, isAdminRequired]);
 
-  // Show loading while auth is initializing (unless timeout reached or it's the home page)
-  if (!initialized && !initTimeout && router.pathname !== '/') {
+  // If this is a verification page, don't wrap with navigation/headers
+  if (isVerificationPage) {
+    return children;
+  }
+
+  // Show loading while auth is initializing (except for home page which handles its own loading)
+  if (!initialized && router.pathname !== '/') {
     return <div style={{ 
       display: 'flex', 
       justifyContent: 'center', 
@@ -94,8 +87,8 @@ const ProtectedPageWrapper = ({ children }) => {
     return null;
   }
   
-  // Don't render admin content if user is not an admin
-  if (isAdminRequired && (!user || !user.isAdmin)) {
+  // Don't render admin content if user doesn't have admin access
+  if (isAdminRequired && (!user || !hasAdminAccess(user, router.pathname))) {
     return null;
   }
 

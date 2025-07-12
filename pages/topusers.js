@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
+import Head from 'next/head';
 
 export async function getServerSideProps({ res }) {
   // Cache headers removed
@@ -148,8 +149,12 @@ const TopUsers = () => {
   };
 
   return (
-    <ProtectedPageWrapper>
-      <div className={styles.container}>
+    <>
+      <Head>
+        <title>Top Gaming Users | Leaderboards | Merrouch Gaming Center</title>
+      </Head>
+      <ProtectedPageWrapper>
+        <div className={styles.container}>
         <main className={styles.main}>
           <h2 className={styles.heading}>Community Leaderboard</h2>
           <p className={styles.counterText}>
@@ -185,6 +190,7 @@ const TopUsers = () => {
         </main>
       </div>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

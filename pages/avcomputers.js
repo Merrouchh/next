@@ -876,9 +876,13 @@ const AvailableComputers = () => {
   }
 
   return (
-    <ProtectedPageWrapper>
+    <>
+      <Head>
+        <title>Available Gaming PCs | Real-time Status | Merrouch Gaming</title>
+      </Head>
+      <ProtectedPageWrapper>
               {/* DynamicMeta removed - metadata now handled in _document.js */}
-      <main className={styles.mainContainer}>
+        <main className={styles.mainContainer}>
         <div className={styles.liveIndicator}>
           <div className={styles.liveDot}></div>
           <span className={styles.liveText}>Live</span>
@@ -1107,8 +1111,9 @@ const AvailableComputers = () => {
             </div>
           </div>
         )}
-      </main>
+        </main>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

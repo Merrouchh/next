@@ -9,6 +9,7 @@ import UserClips from '../../components/profile/UserClips';
 import { FaVideo, FaGamepad, FaPlus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 
 // LoadingSpinner component
 const LoadingSpinner = ({ message = "Loading profile..." }) => (
@@ -544,7 +545,11 @@ const ProfilePage = ({ username }) => {
   }
 
   return (
-    <ProtectedPageWrapper>
+    <>
+      <Head>
+        <title>{userData?.username ? `${userData.username}'s Profile` : 'User Profile'} | Merrouch Gaming Center</title>
+      </Head>
+      <ProtectedPageWrapper>
               {/* DynamicMeta removed - metadata now handled in _document.js */}
       
       <main className={styles.profileContainer}>
@@ -596,6 +601,7 @@ const ProfilePage = ({ username }) => {
         </section>
       </main>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

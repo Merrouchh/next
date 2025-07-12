@@ -260,8 +260,8 @@ const Home = () => {
   return (
     <>
       <Head>
-        <title>Merrouch Gaming - Your Gaming Community</title>
-        <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
+        <title>Premium Gaming Center Tangier | RTX 3070 Gaming PCs & eSports</title>
+        <meta name="description" content="Top-rated gaming center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive prices. Gaming café près de vous à Tanger. مقهى الألعاب في طنجة. Join our gaming community!" />
       </Head>
 
       <ProtectedPageWrapper>

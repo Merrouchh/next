@@ -81,12 +81,11 @@ export const ROUTE_CONFIG = {
     hasSearchHeader: true
   },
 
-  // Admin pages
+  // Admin pages - Simplified permission structure
   '/admin': {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -95,7 +94,6 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -104,7 +102,6 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -113,16 +110,16 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
 
+  // Staff can access queue management
   '/admin/queue': {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    allowStaff: true, // Allow staff access to this page only
+    allowStaff: true,
     showNavigation: true,
     adminPage: true
   },
@@ -131,7 +128,6 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -140,7 +136,6 @@ export const ROUTE_CONFIG = {
     public: false,
     requireAuth: true,
     requireAdmin: true,
-    adminOnly: true, // Only admins, not staff
     showNavigation: true,
     adminPage: true
   },
@@ -153,7 +148,7 @@ export const ROUTE_CONFIG = {
     adminPage: true
   },
 
-  // Add auth verification pages
+  // Auth verification pages
   '/auth/verification-success': {
     public: true,
     requireAuth: false,
@@ -227,7 +222,6 @@ export const getRouteConfig = (pathname) => {
 
   // Special handling for auth pages
   if (pathname.startsWith('/auth/')) {
-    // Use specific config if available, otherwise use a general auth config
     return ROUTE_CONFIG[pathname] || {
       public: true,
       requireAuth: false,
@@ -249,26 +243,28 @@ export const isProtectedRoute = (pathname) => {
   return config.requireAuth;
 };
 
-// Add hasSearchHeader to the helper functions
 export const hasSearchHeader = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.hasSearchHeader || false;
 };
 
-// Add helper for auth pages
 export const isAuthPage = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.isAuthPage || false;
 };
 
-// Add helper for admin pages
 export const isAdminPage = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.adminPage || false;
 };
 
-// Add helper to check if route requires admin privileges
 export const requiresAdmin = (pathname) => {
   const config = getRouteConfig(pathname);
   return config.requireAdmin || false;
+};
+
+// Helper to check if staff can access a route
+export const allowsStaff = (pathname) => {
+  const config = getRouteConfig(pathname);
+  return config.allowStaff || false;
 }; 

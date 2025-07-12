@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
 import styles from '../styles/Awards.module.css';
+import Head from 'next/head';
 import { FaUnlock, FaStar, FaUserCircle } from 'react-icons/fa';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -527,8 +528,12 @@ const AwardsPage = () => {
   const claimedCount = countClaimedAchievements(achievements);
 
   return (
-    <ProtectedPageWrapper>
-      <div className={styles.awardsContainer}>
+    <>
+      <Head>
+        <title>Gaming Achievements & Awards | Merrouch Gaming Center</title>
+      </Head>
+      <ProtectedPageWrapper>
+        <div className={styles.awardsContainer}>
         <header className={styles.awardsHeader}>
           <h1 className={styles.awardsTitle}>YOUR ACHIEVEMENTS</h1>
           <div className={styles.awardsStats}>
@@ -564,6 +569,7 @@ const AwardsPage = () => {
         )}
       </div>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

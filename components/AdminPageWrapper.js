@@ -158,10 +158,6 @@ export default function AdminPageWrapper({ children, title }) {
         <main className={styles.adminMain}>
           {children}
         </main>
-
-        <footer className={styles.adminFooter}>
-          <p>Merrouch Gaming Center Admin Panel</p>
-        </footer>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import ClipCard from '../components/ClipCard';
 import styles from '../styles/Discover.module.css';
 import { fetchClips } from '../utils/api';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 
 const CLIPS_PER_PAGE = 5;
 
@@ -290,7 +291,11 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
   }, []);
 
   return (
-    <ProtectedPageWrapper>
+    <>
+      <Head>
+        <title>Discover Gaming Highlights | RTX 3070 Gaming Clips</title>
+      </Head>
+      <ProtectedPageWrapper>
         {!mounted ? (
           <LoadingSpinner message="Loading discover page..." />
         ) : (
@@ -337,6 +342,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
           </main>
         )}
       </ProtectedPageWrapper>
+    </>
   );
 };
 

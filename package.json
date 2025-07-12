@@ -19,8 +19,7 @@
     "start:all": "start.bat",
     "queue-monitor": "node scripts/queue-monitor.js",
     "queue-monitor:realtime": "node scripts/queue-monitor.js --realtime",
-    "queue-monitor:once": "node scripts/queue-monitor.js --once",
-    "test-metadata": "node scripts/metadata-tester.js"
+    "queue-monitor:once": "node scripts/queue-monitor.js --once"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",
@@ -63,7 +62,6 @@
     "nanoid": "^5.0.9",
     "next": "^15.3.4",
     "next-connect": "^1.0.0",
-    "next-seo": "^6.6.0",
     "nextjs-toploader": "^3.8.16",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",

@@ -7,9 +7,8 @@ import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
-import { DefaultSeo } from 'next-seo';
-import { defaultSEO } from '../utils/seo-config';
 import { ModalProvider } from '../contexts/ModalContext';
+import { isAuthPage } from '../utils/routeConfig';
 import Head from 'next/head';
 
 const inter = Inter({
@@ -45,34 +44,10 @@ function MyApp({ Component, pageProps }) {
   useEffect(() => {
     if (!mounted) return;
 
-    const handleScrollTop = () => {
-      try {
-        window.scrollTo({
-          top: 0,
-          behavior: 'instant'
-        });
-        
-        document.documentElement.scrollTo({
-          top: 0,
-          behavior: 'instant'
-        });
-        
-        document.body.scrollTo({
-          top: 0,
-          behavior: 'instant'
-        });
-
-        window.scrollY = 0;
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      } catch (e) {
-        window.scrollTo(0, 0);
-      }
-    };
-
     const handleRouteChange = () => {
+      // Simple scroll to top on route change
       setTimeout(() => {
-        handleScrollTop();
+        window.scrollTo(0, 0);
       }, 100);
     };
 
@@ -100,12 +75,10 @@ function MyApp({ Component, pageProps }) {
     );
   }
 
-  const isAuthPage = router.pathname.startsWith('/auth/');
-  const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
-                      router.pathname.startsWith('/events/') || 
-                      router.pathname.startsWith('/profile/');
+  // Use centralized route config for auth page detection
+  const isAuthPageRoute = isAuthPage(router.pathname);
 
-  if (isAuthPage) {
+  if (isAuthPageRoute) {
     return (
       <StrictMode>
         <ErrorBoundary>
@@ -114,7 +87,6 @@ function MyApp({ Component, pageProps }) {
             <link rel="icon" href="/favicon.ico" />
             <meta name="theme-color" content="#FFD700" />
           </Head>
-          <DefaultSeo {...defaultSEO} />
           <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
             <AuthProvider>
               <ModalProvider>
@@ -136,7 +108,6 @@ function MyApp({ Component, pageProps }) {
           <link rel="icon" href="/favicon.ico" />
           <meta name="theme-color" content="#FFD700" />
         </Head>
-        <DefaultSeo {...defaultSEO} />
         <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
           <AuthProvider>
             <ModalProvider>

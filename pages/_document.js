@@ -29,46 +29,95 @@ class MyDocument extends Document {
   render() {
     const { dynamicMetadata } = this.props;
     
+    // Default metadata for pages without dynamic metadata
+    const defaultMetadata = {
+      title: "Premium Gaming Center Tangier | RTX 3070 Gaming PCs & eSports",
+      description: "Top-rated gaming center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive prices. Gaming café près de vous à Tanger. مقهى الألعاب في طنجة. Join our gaming community!",
+      image: "https://merrouchgaming.com/top.jpg",
+      url: "https://merrouchgaming.com",
+      type: "website",
+      keywords: "gaming center tangier, cyber cafe tanger, RTX 3070 gaming, gaming cafe morocco, esports tangier, internet cafe near me, gaming center near me, cyber gaming tanger, salle de jeux tanger, قاعة العاب طنجة, مقهى الانترنت في طنجة, gaming pc rental tangier, competitive gaming morocco",
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "Cyber Merrouch Gaming Center",
+        "description": "Premium Gaming Center in Tangier offering RTX 3070 gaming PCs, 200Mbps internet, competitive eSports events, and professional gaming setups. Best gaming experience in Morocco.",
+        "image": "https://merrouchgaming.com/top.jpg",
+        "url": "https://merrouchgaming.com",
+        "telephone": "+212531098983",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1",
+          "addressLocality": "Tangier",
+          "addressRegion": "Tanger-Tetouan-Al Hoceima",
+          "postalCode": "90060",
+          "addressCountry": "MA"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 35.768787,
+          "longitude": -5.8102713
+        },
+        "priceRange": "$$",
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
+            "opens": "10:00",
+            "closes": "23:00"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Friday", "Saturday"],
+            "opens": "10:00",
+            "closes": "00:00"
+          }
+        ]
+      }
+    };
+
+    // Use dynamic metadata if available, otherwise use default
+    const metadata = dynamicMetadata || defaultMetadata;
+    
     return (
       <Html lang="en">
         <Head>
-          {/* UNIVERSAL DYNAMIC METADATA INJECTION - WORKS FOR ALL SOCIAL MEDIA CRAWLERS */}
-          {dynamicMetadata && (
-            <>
-              <title>{dynamicMetadata.title}</title>
-              <meta name="description" content={dynamicMetadata.description} />
-              
-              {/* Open Graph tags */}
-              <meta property="og:title" content={dynamicMetadata.title} />
-              <meta property="og:description" content={dynamicMetadata.description} />
-              <meta property="og:image" content={dynamicMetadata.image} />
-              <meta property="og:url" content={dynamicMetadata.url} />
-              <meta property="og:type" content={dynamicMetadata.type} />
-              <meta property="og:site_name" content="Merrouch Gaming" />
-              
-              {/* Twitter Card */}
-              <meta name="twitter:card" content="summary_large_image" />
-              <meta name="twitter:site" content="@merrouchgaming" />
-              <meta name="twitter:title" content={dynamicMetadata.title} />
-              <meta name="twitter:description" content={dynamicMetadata.description} />
-              <meta name="twitter:image" content={dynamicMetadata.image} />
-              
-              {/* Additional metadata */}
-              <meta name="keywords" content={dynamicMetadata.keywords} />
-              <meta name="robots" content="index, follow" />
-              <meta name="author" content="Merrouch Gaming" />
-              <link rel="canonical" href={dynamicMetadata.url} />
-              
-              {/* Structured Data */}
-              {dynamicMetadata.structuredData && (
-                <script 
-                  type="application/ld+json"
-                  dangerouslySetInnerHTML={{
-                    __html: JSON.stringify(dynamicMetadata.structuredData)
-                  }}
-                />
-              )}
-            </>
+          {/* UNIVERSAL METADATA INJECTION - WORKS FOR ALL SOCIAL MEDIA CRAWLERS */}
+          {/* Note: <title> is handled by Next.js Head component in pages, not _document.js */}
+          <meta name="description" content={metadata.description} />
+          
+          {/* Open Graph tags */}
+          <meta property="og:title" content={metadata.title} />
+          <meta property="og:description" content={metadata.description} />
+          <meta property="og:image" content={metadata.image} />
+          <meta property="og:url" content={metadata.url} />
+          <meta property="og:type" content={metadata.type} />
+          <meta property="og:site_name" content="Merrouch Gaming" />
+          
+          {/* Twitter Card */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:site" content="@merrouchgaming" />
+          <meta name="twitter:title" content={metadata.title} />
+          <meta name="twitter:description" content={metadata.description} />
+          <meta name="twitter:image" content={metadata.image} />
+          
+          {/* Additional metadata */}
+          <meta name="keywords" content={metadata.keywords} />
+          <meta name="robots" content="index, follow" />
+          <meta name="author" content="Merrouch Gaming" />
+          <meta name="geo.region" content="MA-01" />
+          <meta name="geo.placename" content="Tangier" />
+          <meta name="language" content="English, French, Arabic" />
+          <link rel="canonical" href={metadata.url} />
+          
+          {/* Structured Data */}
+          {metadata.structuredData && (
+            <script 
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(metadata.structuredData)
+              }}
+            />
           )}
           
           {/* Essential meta tags and resources */}
@@ -212,16 +261,180 @@ class MyDocument extends Document {
   }
 }
 
+// Static metadata generator for specific pages
+function generateStaticMetadata(page) {
+  const baseUrl = "https://merrouchgaming.com";
+  
+  const pageMetadata = {
+    dashboard: {
+      title: "Gaming Dashboard | Merrouch Gaming Center",
+      description: "Manage your gaming profile, view your clips, check your achievements, and stay updated with the latest gaming events at Merrouch Gaming Center in Tangier.",
+      keywords: "gaming dashboard, profile management, gaming achievements, Merrouch Gaming, Tangier"
+    },
+    shop: {
+      title: "Gaming Shop | Buy Gaming Time & Products | Merrouch Gaming",
+      description: "Purchase gaming time, energy drinks, snacks, and gaming accessories at Merrouch Gaming Center. Competitive prices and instant delivery to your gaming station.",
+      keywords: "gaming shop, buy gaming time, energy drinks, snacks, gaming accessories, Merrouch Gaming, Tangier"
+    },
+    events: {
+      title: "Gaming Events & Tournaments | Merrouch Gaming Center",
+      description: "Join exciting gaming tournaments and events at Merrouch Gaming Center in Tangier. Compete in popular games, win prizes, and connect with fellow gamers.",
+      keywords: "gaming events, tournaments, gaming competitions, esports events, Merrouch Gaming, Tangier"
+    },
+    upload: {
+      title: "Upload Gaming Clips | Share Your Best Moments | Merrouch Gaming",
+      description: "Upload and share your best gaming moments from your sessions at Merrouch Gaming Center. Show off your skills and connect with the gaming community.",
+      keywords: "upload gaming clips, share gaming moments, gaming highlights, Merrouch Gaming, Tangier"
+    },
+    awards: {
+      title: "Gaming Achievements & Awards | Merrouch Gaming Center",
+      description: "View your gaming achievements, unlock new awards, and track your progress at Merrouch Gaming Center. See what you've accomplished and what's next.",
+      keywords: "gaming achievements, awards, gaming progress, gaming milestones, Merrouch Gaming, Tangier"
+    },
+    avcomputers: {
+      title: "Available Gaming PCs | Real-time Status | Merrouch Gaming",
+      description: "Check real-time availability of our RTX 3070 gaming PCs, reserve your gaming station, and see current queue status at Merrouch Gaming Center in Tangier.",
+      keywords: "available gaming PCs, RTX 3070 availability, gaming station reservation, queue status, Merrouch Gaming, Tangier"
+    },
+    topusers: {
+      title: "Top Gaming Users | Leaderboards | Merrouch Gaming Center",
+      description: "Discover the top gaming users, view leaderboards, and see who's dominating the gaming scene at Merrouch Gaming Center in Tangier.",
+      keywords: "top gaming users, leaderboards, gaming rankings, best players, Merrouch Gaming, Tangier"
+    },
+    home: {
+      title: "Premium Gaming Center Tangier | RTX 3070 Gaming PCs & eSports",
+      description: "Top-rated gaming center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive prices. Gaming café près de vous à Tanger. مقهى الألعاب في طنجة. Join our gaming community!",
+      keywords: "gaming center tangier, cyber cafe tanger, RTX 3070 gaming, gaming cafe morocco, esports tangier, internet cafe near me, gaming center near me, cyber gaming tanger, salle de jeux tanger, قاعة العاب طنجة, مقهى الانترنت في طنجة, gaming pc rental tangier, competitive gaming morocco"
+    },
+    admin: {
+      title: "Admin Panel | Merrouch Gaming Center",
+      description: "Administrative panel for managing Merrouch Gaming Center operations, users, events, and system settings.",
+      keywords: "admin panel, gaming center management, system administration, Merrouch Gaming, Tangier"
+    }
+  };
+
+  const page_info = pageMetadata[page];
+  if (!page_info) return null;
+
+  // Use LocalBusiness schema for home page, WebPage for others
+  const structuredData = page === 'home' ? {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Cyber Merrouch Gaming Center",
+    "description": page_info.description,
+    "image": `${baseUrl}/top.jpg`,
+    "url": baseUrl,
+    "telephone": "+212531098983",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "RDC, Avenue Abi Elhassan Chadili, rue 1 Résidence Rania 1",
+      "addressLocality": "Tangier",
+      "addressRegion": "Tanger-Tetouan-Al Hoceima",
+      "postalCode": "90060",
+      "addressCountry": "MA"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 35.768787,
+      "longitude": -5.8102713
+    },
+    "priceRange": "$$",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Sunday"],
+        "opens": "10:00",
+        "closes": "23:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Friday", "Saturday"],
+        "opens": "10:00",
+        "closes": "00:00"
+      }
+    ]
+  } : {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": page_info.title,
+    "description": page_info.description,
+    "url": `${baseUrl}/${page}`,
+    "image": `${baseUrl}/top.jpg`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "Merrouch Gaming",
+      "url": baseUrl
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": baseUrl
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": page_info.title.split('|')[0].trim(),
+          "item": `${baseUrl}/${page}`
+        }
+      ]
+    }
+  };
+
+  return {
+    title: page_info.title,
+    description: page_info.description,
+    image: `${baseUrl}/top.jpg`,
+    url: page === 'home' ? baseUrl : `${baseUrl}/${page}`,
+    type: "website",
+    keywords: page_info.keywords,
+    structuredData
+  };
+}
+
 // Universal metadata generator for all dynamic pages
 async function generateDynamicMetadata(ctx) {
   const { pathname, query } = ctx;
   
   try {
-    // Import Supabase client
+    // Only attempt Supabase operations for dynamic pages that need database data
+    const needsDatabase = ['/discover', '/profile/[username]', '/clip/[id]', '/events/[id]', '/events/[id]/bracket'].includes(pathname);
+    
+    if (!needsDatabase) {
+      // For static pages, use static metadata generator
+      const pageMap = {
+        '/dashboard': 'dashboard',
+        '/shop': 'shop',
+        '/events': 'events',
+        '/upload': 'upload',
+        '/awards': 'awards',
+        '/avcomputers': 'avcomputers',
+        '/topusers': 'topusers',
+        '/': 'home'
+      };
+      
+      const pageName = pageMap[pathname] || (pathname.startsWith('/admin') ? 'admin' : null);
+      if (pageName) {
+        return generateStaticMetadata(pageName);
+      }
+      return null;
+    }
+
+    // Import Supabase client only for database-dependent pages
     const { createClient } = await import('../utils/supabase/server-props');
+    
+    // Add safety checks for request/response objects
+    if (!ctx.req || !ctx.res) {
+      console.warn('Missing req/res objects in _document.js getInitialProps');
+      return null;
+    }
+    
     const supabase = createClient({ req: ctx.req, res: ctx.res });
     
-    // Route-specific metadata generation
+    // Route-specific metadata generation for database-dependent pages
     if (pathname === '/discover') {
       return await generateDiscoverMetadata(supabase);
     } else if (pathname === '/profile/[username]') {
@@ -237,6 +450,7 @@ async function generateDynamicMetadata(ctx) {
     return null;
   } catch (error) {
     console.error('Error generating dynamic metadata:', error);
+    // Return null instead of crashing - fallback to default metadata
     return null;
   }
 }
@@ -244,10 +458,14 @@ async function generateDynamicMetadata(ctx) {
 // Discover page metadata
 async function generateDiscoverMetadata(supabase) {
   try {
+    // Add error handling for database queries
     const [{ count }, { data: latestClips }] = await Promise.all([
-      supabase.from('clips').select('id', { count: 'exact' }).eq('visibility', 'public'),
-      supabase.from('clips').select('thumbnail_path, cloudflare_uid, title, game, username, uploaded_at').eq('visibility', 'public').order('uploaded_at', { ascending: false }).limit(3)
-    ]);
+      supabase.from('clips').select('id', { count: 'exact' }).eq('visibility', 'public').then(result => result || { count: 0 }),
+      supabase.from('clips').select('thumbnail_path, cloudflare_uid, title, game, username, uploaded_at').eq('visibility', 'public').order('uploaded_at', { ascending: false }).limit(3).then(result => result || { data: [] })
+    ]).catch((error) => {
+      console.error('Database query error in generateDiscoverMetadata:', error);
+      return [{ count: 0 }, { data: [] }];
+    });
 
     const totalClips = count || 0;
     const latestClip = latestClips?.[0];

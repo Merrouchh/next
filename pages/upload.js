@@ -692,8 +692,8 @@ const UploadPage = () => {
   return (
     <ProtectedPageWrapper>
       <Head>
-        <title>Upload Clip - MerrouchGaming</title>
-        <meta name="description" content="Upload your gameplay clips" />
+        <title>Upload Gaming Clips | Share Your Best Moments | Merrouch Gaming</title>
+        <meta name="description" content="Upload and share your best gaming moments from your sessions at Merrouch Gaming Center. Show off your skills and connect with the gaming community." />
       </Head>
       <div className={styles.uploadMain}>
         {user && <PendingUploadsBanner userId={user.id} key={bannerKey} />}
