@@ -670,7 +670,7 @@ async function generateClipMetadata(supabase, clipId) {
 
     // Handle clips that might be processing or have issues
     // If status is null, undefined, or empty, treat as ready and proceed to generate full metadata
-    const validStatuses = ['ready', 'published', null, undefined, ''];
+    const validStatuses = ['ready', 'published', 'complete', null, undefined, ''];
     if (clip.status && !validStatuses.includes(clip.status)) {
       // Handle different processing/error states
       if (clip.status === 'processing' || clip.status === 'uploading') {
