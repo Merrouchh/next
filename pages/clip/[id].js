@@ -3,7 +3,6 @@ import { createClient as createServerClient } from '../../utils/supabase/server-
 import { createClient as createBrowserClient } from '../../utils/supabase/component';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
-import DynamicMeta from '../../components/DynamicMeta';
 import { useEffect, useState } from 'react';
 import ClipCard from '../../components/ClipCard';
 import styles from '../../styles/ClipPage.module.css';
@@ -55,13 +54,7 @@ export async function getServerSideProps({ req, res, params }) {
       return {
         props: {
           status: 'not_found',
-          metaData: {
-            title: 'Clip Not Found | Merrouch Gaming',
-            description: 'This clip may have been deleted or does not exist.',
-            type: 'website',
-            image: 'https://merrouchgaming.com/top.jpg',
-            url: `https://merrouchgaming.com/clip/${id}`
-          }
+          // Server-side metadata now handled in _document.js
         }
       };
     }
@@ -73,13 +66,7 @@ export async function getServerSideProps({ req, res, params }) {
         props: {
           status: 'error',
           error: 'Failed to load clip',
-          metaData: {
-            title: 'Error | Merrouch Gaming',
-            description: 'An error occurred while loading this clip.',
-            type: 'website',
-            image: 'https://merrouchgaming.com/top.jpg',
-            url: `https://merrouchgaming.com/clip/${id}`
-          }
+          // Server-side metadata now handled in _document.js
         }
       };
     }
@@ -96,13 +83,7 @@ export async function getServerSideProps({ req, res, params }) {
           status: 'private',
           isPrivate: true,
           isOwnClip: false,
-          metaData: {
-            title: 'Private Clip | Merrouch Gaming',
-            description: 'This clip is private and can only be viewed by its owner.',
-            type: 'video.other',
-            image: 'https://merrouchgaming.com/top.jpg',
-            url: `https://merrouchgaming.com/clip/${id}`
-          }
+          // Server-side metadata now handled in _document.js
         }
       };
     }
@@ -142,67 +123,7 @@ export async function getServerSideProps({ req, res, params }) {
         status: 'success',
         isOwnClip: isOwner,
         isPrivate,
-        metaData: {
-          title: `${clip.title} | Gaming Clip by ${clip.username}`,
-          description,
-          image: thumbnailUrl,
-          url: `https://merrouchgaming.com/clip/${clip.id}`,
-          type: 'video.other',
-          openGraph: {
-            title: `${clip.title} - Gaming Highlight`,
-            description: `Amazing gaming moment by ${clip.username} at Merrouch Gaming. ${
-              clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
-            }${clip.likes_count ? `, ${clip.likes_count.toLocaleString()} likes` : ''}`,
-            images: [
-              {
-                url: thumbnailUrl,
-                width: 1280,
-                height: 720,
-                alt: `${clip.title} - Gaming clip by ${clip.username}`
-              }
-            ],
-            videos: [{
-              url: `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
-              width: 1280,
-              height: 720,
-              type: 'application/x-mpegURL'
-            }]
-          },
-          twitter: {
-            card: "summary_large_image",
-            site: "@merrouchgaming",
-            title: `${clip.title} - Gaming Clip`,
-            description: description.substring(0, 200),
-            image: thumbnailUrl
-          },
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "VideoObject",
-            "name": clip.title,
-            "description": description,
-            "thumbnailUrl": thumbnailUrl,
-            "uploadDate": clip.uploaded_at,
-            "contentUrl": `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
-            "embedUrl": `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/watch`,
-            "interactionStatistic": [
-              {
-                "@type": "InteractionCounter",
-                "interactionType": "http://schema.org/WatchAction",
-                "userInteractionCount": clip.views_count || 0
-              },
-              {
-                "@type": "InteractionCounter",
-                "interactionType": "http://schema.org/LikeAction",
-                "userInteractionCount": clip.likes_count || 0
-              }
-            ],
-            "author": {
-              "@type": "Person",
-              "name": clip.username,
-              "url": `https://merrouchgaming.com/profile/${clip.username}`
-            }
-          }
-        }
+        // Server-side metadata now handled in _document.js
       }
     };
   } catch (error) {
@@ -211,19 +132,13 @@ export async function getServerSideProps({ req, res, params }) {
       props: {
         status: 'error',
         error: 'An unexpected error occurred',
-        metaData: {
-          title: 'Error | Merrouch Gaming',
-          description: 'An error occurred while loading this clip.',
-          type: 'website',
-          image: 'https://merrouchgaming.com/top.jpg',
-          url: `https://merrouchgaming.com/clip/${id}`
-        }
+        // Server-side metadata now handled in _document.js
       }
     };
   }
 }
 
-const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
+const ClipPage = ({ clip, status, error, isOwnClip, isPrivate }) => {
   const router = useRouter();
   const { isLoggedIn, user, supabase } = useAuth();
   const [localClip, setLocalClip] = useState(clip);
@@ -297,7 +212,6 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
     // Always render the clip for its owner, even if private
     return (
       <ProtectedPageWrapper>
-        <DynamicMeta {...metaData} />
         <main className={styles.main}>
           <div className={styles.clipContainer}>
             <ClipCard
@@ -324,7 +238,6 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   if ((!shouldShowClip || status === 'private') && !isOwnClip) {
     return (
       <ProtectedPageWrapper>
-        <DynamicMeta {...metaData} />
         <main className={styles.errorContainer}>
           <div className={`${styles.errorMessage} ${styles.private}`}>
             <h1>Private Clip</h1>
@@ -344,7 +257,6 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   if (status === 'not_found') {
     return (
       <ProtectedPageWrapper>
-        <DynamicMeta {...metaData} />
         <main className={styles.errorContainer}>
           <div className={`${styles.errorMessage} ${styles.notFound}`}>
             <h1>Clip Not Found</h1>
@@ -364,7 +276,6 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   if (status === 'error') {
     return (
       <ProtectedPageWrapper>
-        <DynamicMeta {...metaData} />
         <main className={styles.errorContainer}>
           <div className={`${styles.errorMessage} ${styles.error}`}>
             <h1>Error</h1>
@@ -384,7 +295,6 @@ const ClipPage = ({ clip, status, error, metaData, isOwnClip, isPrivate }) => {
   // Normal clip render
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
       <main className={styles.main}>
         <div className={styles.clipContainer}>
           <ClipCard

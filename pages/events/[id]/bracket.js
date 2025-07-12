@@ -6,7 +6,7 @@ import { FaArrowLeft, FaTrophy, FaUsers, FaPlus, FaMinus, FaExpand, FaCompress, 
 import styles from '../../../styles/Bracket.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
-import DynamicMeta from '../../../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 
 // Component imports
 import BracketView from '../../../components/bracket/BracketView';
@@ -21,14 +21,7 @@ export async function getServerSideProps({ params, req, res }) {
   // Disable caching to ensure fresh data after bracket regeneration
   // Cache headers removed
   
-  // Default metadata for not found case
-  const notFoundMetadata = {
-    title: "Tournament Bracket Not Found | Merrouch Gaming",
-    description: "The tournament bracket you're looking for doesn't exist or has been removed.",
-    image: "https://merrouchgaming.com/bracket.jpg",
-    url: `https://merrouchgaming.com/events/${id}/bracket`,
-    type: "website"
-  };
+  // Metadata now handled in _document.js
   
   try {
     // Helper function to fetch with error handling
@@ -58,7 +51,7 @@ export async function getServerSideProps({ params, req, res }) {
     
     // If both fail, return not found
     if (!eventResult.success) {
-      return { props: { metaData: notFoundMetadata } };
+      return { props: {} };
     }
     
     // Extract event data
@@ -89,125 +82,16 @@ export async function getServerSideProps({ params, req, res }) {
       }
     }
     
-    // Generate appropriate title based on event type and winner status
-    let pageTitle;
-    let pageDescription;
+    // Metadata generation removed - now handled in _document.js
     
-    if (hasWinner) {
-      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
-        // For duo events with a winner, include both team members in the title
-        const partnerName = champion.members[0]?.name || '';
-        pageTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Bracket`;
-        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} & ${partnerName} claimed victory in this ${event.game || 'gaming'} duo tournament.`;
-      } else {
-        // For solo or team events with a winner
-        pageTitle = `${champion.name} Won ${event.title} | Tournament Bracket`;
-        pageDescription = `Check out the complete tournament bracket for ${event.title}. ${champion.name} claimed victory in this ${event.game || 'gaming'} tournament.`;
-      }
-    } else {
-      // No winner yet
-      pageTitle = `${event.title} | Tournament Bracket | Merrouch Gaming`;
-      pageDescription = `View the tournament bracket for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} tournament at Merrouch Gaming. Follow the matches and discover who comes out on top.`;
-    }
-    
-    // Generate appropriate OpenGraph title and description
-    let ogTitle;
-    let ogDescription;
-    
-    if (hasWinner) {
-      if (event.team_type === 'duo' && champion && champion.members && champion.members.length > 0) {
-        // For duo events with a winner, include both team members
-        const partnerName = champion.members[0]?.name || '';
-        ogTitle = `${champion.name} & ${partnerName} Won ${event.title} | Tournament Results`;
-        ogDescription = `${champion.name} & ${partnerName} have won the ${event.game || 'gaming'} duo tournament! View the complete bracket and tournament results.`;
-      } else {
-        // For solo or team events with a winner
-        ogTitle = `${champion.name} Won ${event.title} | Tournament Results`;
-        ogDescription = `${champion.name} has won the ${event.game || 'gaming'} tournament! View the complete bracket and tournament results.`;
-      }
-    } else {
-      // No winner yet
-      ogTitle = `${event.title} | Tournament Bracket`;
-      ogDescription = `Check out the tournament bracket for ${event.title}. Follow the matches in this ${event.team_type} ${event.game || 'gaming'} tournament.`;
-    }
-    
-    // Create full metadata object
-    const metadata = {
-      title: pageTitle,
-      description: pageDescription,
-      image: event.image || "https://merrouchgaming.com/bracket.jpg",
-      url: `https://merrouchgaming.com/events/${id}/bracket`,
-      type: "website",
-      openGraph: {
-        title: ogTitle,
-        description: ogDescription,
-        images: [
-          {
-            url: event.image || "https://merrouchgaming.com/bracket.jpg",
-            width: 1200,
-            height: 630,
-            alt: `${event.title} Tournament Bracket`
-          }
-        ]
-      },
-      structuredData: {
-        "@context": "https://schema.org",
-        "@type": "SportsEvent",
-        "name": `${event.title} Tournament`,
-        "description": `Tournament bracket for ${event.title}, a ${event.team_type} ${event.game || 'gaming'} competition.`,
-        "startDate": event.date,
-        "endDate": event.date,
-        "location": {
-          "@type": "Place",
-          "name": event.location || "Merrouch Gaming Center",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Tangier",
-            "addressCountry": "MA"
-          }
-        },
-        "image": event.image || "https://merrouchgaming.com/bracket.jpg",
-        "organizer": {
-          "@type": "Organization",
-          "name": "Merrouch Gaming",
-          "url": "https://merrouchgaming.com"
-        }
-      }
-    };
-    
-    // Add winner information to structured data if available
-    if (hasWinner && champion) {
-      if (event.team_type === 'duo' && champion.members && champion.members.length > 0) {
-        metadata.structuredData.winner = {
-          "@type": "Team",
-          "name": `${champion.name} & ${champion.members[0]?.name || ''}`,
-          "member": [
-            {
-              "@type": "Person",
-              "name": champion.name
-            },
-            {
-              "@type": "Person",
-              "name": champion.members[0]?.name || ''
-            }
-          ]
-        };
-      } else {
-        metadata.structuredData.winner = {
-          "@type": "Person",
-          "name": champion.name
-        };
-      }
-    }
-    
-    return { props: { metaData: metadata } };
+    return { props: {} };
   } catch (error) {
     console.error('Error fetching data for bracket SEO:', error);
-    return { props: { metaData: notFoundMetadata } };
+    return { props: {} };
   }
 }
 
-export default function EventBracket({ metaData }) {
+export default function EventBracket() {
   const router = useRouter();
   const { id } = router.query;
   const { user, supabase } = useAuth();
@@ -569,7 +453,7 @@ export default function EventBracket({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
       
       <div className={styles.container}>
         <div className={styles.header}>

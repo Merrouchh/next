@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { AiOutlineCopy, AiOutlineDollar, AiOutlineCreditCard, AiOutlineBank, AiOutlineClose } from 'react-icons/ai';
 import styles from '../styles/Shop.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import DynamicMeta from '../components/DynamicMeta';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
@@ -12,39 +11,12 @@ export async function getServerSideProps({ res }) {
 
   return {
     props: {
-      timestamp: Date.now(),
-      metaData: {
-        title: "Gaming Prices & Packages | Merrouch Gaming Center",
-        description: "Browse our gaming packages and prices. Normal PC from 8 DH/30min and VIP PC (RTX 3070) from 10 DH/30min. Multiple payment options available including PayPal and bank transfer.",
-        image: "https://merrouchgaming.com/shop.jpg",
-        url: "https://merrouchgaming.com/shop",
-        type: "website",
-        openGraph: {
-          title: "Gaming Prices & Packages | Merrouch Gaming Center",
-          description: "Browse our gaming packages and prices. Normal PC from 8 DH/30min and VIP PC (RTX 3070) from 10 DH/30min. Multiple payment options available.",
-          images: [
-            {
-              url: "https://merrouchgaming.com/shop.jpg",
-              width: 1200,
-              height: 630,
-              alt: "Merrouch Gaming Center Prices"
-            }
-          ],
-          type: "website"
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: "Gaming Prices & Packages | Merrouch Gaming Center",
-          description: "Browse our gaming packages and prices. Normal PC from 8 DH/30min and VIP PC (RTX 3070) from 10 DH/30min.",
-          image: "https://merrouchgaming.com/shop.jpg"
-        }
-      }
+      timestamp: Date.now()
     }
   };
 }
 
-const Shop = ({ metaData }) => {
+const Shop = () => {
   useAuth();
   const router = useRouter();
   const [error] = useState(null);
@@ -257,7 +229,6 @@ const Shop = ({ metaData }) => {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
       <main className={styles.shopMain}>
         <h2 className={styles.heading}>Shop</h2>
 

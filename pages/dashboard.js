@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import DynamicMeta from '../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import UpcomingMatches from '../components/UpcomingMatches';
 import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
@@ -29,36 +29,7 @@ export async function getServerSideProps({ res }) {
   // Cache headers removed
 
   return {
-    props: {
-      metaData: {
-        title: "Gaming Dashboard | Merrouch Gaming Center",
-        description: "Access your gaming profile, check remaining time, view active sessions, and track your rewards. Manage your gaming experience at Merrouch Gaming Center.",
-        image: "https://merrouchgaming.com/top.jpg",
-        url: "https://merrouchgaming.com/dashboard",
-        type: "website",
-        noindex: true, // Prevent indexing of private dashboard
-        openGraph: {
-          title: "Gaming Dashboard | Merrouch Gaming Center",
-          description: "Manage your gaming profile and track your gaming sessions at Merrouch Gaming Center.",
-          images: [
-            {
-              url: "https://merrouchgaming.com/top.jpg",
-              width: 1200,
-              height: 630,
-              alt: "Merrouch Gaming Dashboard"
-            }
-          ],
-          type: "website"
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: "Gaming Dashboard | Merrouch Gaming Center",
-          description: "Your personal gaming hub at Merrouch Gaming Center.",
-          image: "https://merrouchgaming.com/top.jpg"
-        }
-      }
-    }
+    props: {}
   };
 }
 
@@ -340,7 +311,7 @@ const DebtCard = ({ debtAmount, hasTime }) => {
   );
 };
 
-const Dashboard = ({ _initialClips, metaData }) => {
+const Dashboard = ({ _initialClips }) => {
   const router = useRouter();
   const { user, loading: authLoading, initialized, refreshSession } = useAuth();
   const [pageState, setPageState] = useState({
@@ -622,43 +593,45 @@ const Dashboard = ({ _initialClips, metaData }) => {
     initialize();
   }, [user?.gizmo_id]); // Remove pageState.data from dependencies to allow re-runs
 
-  return (
-    <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
-      
-      {/* Show loading state when no data or during auth */}
-      {(authLoading || !pageState.data) ? (
-        pageState.error ? (
-          <div className={styles.errorMessage}>
-            <p>{pageState.error}</p>
-            <div className={styles.contactInfo}>
-              <p>You can reach us on:</p>
-              <a 
-                href="https://wa.me/212656053641" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={styles.whatsappLink}
-              >
-                WhatsApp: +212 656-053641
-              </a>
+  // Show loading state when no data or during auth
+  if (authLoading || !pageState.data) {
+    return (
+      <ProtectedPageWrapper>
+          {pageState.error ? (
+            <div className={styles.errorMessage}>
+              <p>{pageState.error}</p>
+              <div className={styles.contactInfo}>
+                <p>You can reach us on:</p>
+                <a 
+                  href="https://wa.me/212656053641" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={styles.whatsappLink}
+                >
+                  WhatsApp: +212 656-053641
+                </a>
+              </div>
+              <div className={styles.retryActions}>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className={styles.retryButton}
+                >
+                  <AiOutlineReload /> Refresh Page
+                </button>
+                <SessionRefreshButton />
+              </div>
             </div>
-            <div className={styles.retryActions}>
-              <button 
-                onClick={() => window.location.reload()}
-                className={styles.retryButton}
-              >
-                <AiOutlineReload /> Refresh Page
-              </button>
-              <SessionRefreshButton />
-            </div>
-          </div>
-        ) : (
+          ) : (
           <LoadingSpinner />
-        )
-      ) : 
-      
-      /* Show setup required state */
-      pageState.data?.needsProfileSetup ? (
+          )}
+      </ProtectedPageWrapper>
+    );
+  }
+
+  // Show setup required state
+  if (pageState.data?.needsProfileSetup) {
+    return (
+      <ProtectedPageWrapper>
         <div className={styles.setupRequired}>
           <h2>Profile Setup Required</h2>
           <p>Please complete your profile setup to access the dashboard.</p>
@@ -669,21 +642,10 @@ const Dashboard = ({ _initialClips, metaData }) => {
             Complete Setup
           </button>
         </div>
-             ) : (
-        <DashboardContent 
-          pageState={pageState}
-          user={user}
-          router={router}
-          isRefreshing={isRefreshing}
-          handleRefresh={handleRefresh}
-        />
-      )}
-    </ProtectedPageWrapper>
-  );
-};
+      </ProtectedPageWrapper>
+    );
+  }
 
-const DashboardContent = ({ pageState, user, router, isRefreshing, handleRefresh }) => {
-  const { refreshSession, authLoading, initialized } = useAuth();
   const getPointsColor = (points) => {
     return points < 73 ? styles.lowPoints : styles.highPoints;
   };
@@ -720,8 +682,13 @@ const DashboardContent = ({ pageState, user, router, isRefreshing, handleRefresh
     router.push('/editprofile');
   };
 
+
+
   return (
-    <main className={styles.dashboardMain}>
+    <ProtectedPageWrapper>
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
+      
+      <main className={styles.dashboardMain}>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
                           <h1 className={styles.welcomeText}>
@@ -870,6 +837,7 @@ const DashboardContent = ({ pageState, user, router, isRefreshing, handleRefresh
            router={router} 
          />
       </main>
+    </ProtectedPageWrapper>
   );
 };
 

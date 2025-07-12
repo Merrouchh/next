@@ -1,7 +1,6 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
-import DynamicMeta from '../../components/DynamicMeta';
 import styles from '../../styles/Profile.module.css';
 import { createClient } from '../../utils/supabase/server-props';
 import ProfileDashboard from '../../components/profile/ProfileDashboard';
@@ -55,13 +54,7 @@ export async function getServerSideProps({ req, res, params }) {
       return {
         props: {
           username: normalizedUsername,
-          metaData: {
-            title: `Gaming Profile | Merrouch Gaming Center Tangier`,
-            description: "This user profile could not be found.",
-            image: "https://merrouchgaming.com/top.jpg",
-            url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
-            type: "profile"
-          }
+          // Server-side metadata now handled in _document.js
         }
       };
     }
@@ -124,36 +117,7 @@ export async function getServerSideProps({ req, res, params }) {
     return {
       props: {
         username: normalizedUsername,
-        metaData: {
-          title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
-          description: userDescription,
-          image: profileImage,
-          url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
-          type: "profile",
-          openGraph: {
-            title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
-            description: userDescription,
-            images: [
-              {
-                url: profileImage,
-                width: 1200,
-                height: 630,
-                alt: `${normalizedUsername}'s Gaming Profile`
-              }
-            ],
-            type: "profile",
-            profile: {
-              username: normalizedUsername
-            }
-          },
-          twitter: {
-            card: "summary_large_image",
-            site: "@merrouchgaming",
-            title: `${normalizedUsername}'s Gaming Profile | Merrouch Gaming Center`,
-            description: userDescription,
-            image: profileImage
-          }
-        }
+        // Server-side metadata now handled in _document.js
       }
     };
   } catch (error) {
@@ -161,19 +125,13 @@ export async function getServerSideProps({ req, res, params }) {
     return {
       props: {
         username: normalizedUsername,
-        metaData: {
-          title: `Gaming Profile | Merrouch Gaming Center Tangier`,
-          description: "View this user's gaming profile, achievements, and statistics at Merrouch Gaming Center.",
-          image: "https://merrouchgaming.com/top.jpg",
-          url: `https://merrouchgaming.com/profile/${normalizedUsername}`,
-          type: "profile"
-        }
+        // Server-side metadata now handled in _document.js
       }
     };
   }
 }
 
-const ProfilePage = ({ username, metaData }) => {
+const ProfilePage = ({ username }) => {
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -587,7 +545,7 @@ const ProfilePage = ({ username, metaData }) => {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
       
       <main className={styles.profileContainer}>
         <header className={styles.profileHeader}>

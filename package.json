@@ -19,7 +19,8 @@
     "start:all": "start.bat",
     "queue-monitor": "node scripts/queue-monitor.js",
     "queue-monitor:realtime": "node scripts/queue-monitor.js --realtime",
-    "queue-monitor:once": "node scripts/queue-monitor.js --once"
+    "queue-monitor:once": "node scripts/queue-monitor.js --once",
+    "test-metadata": "node scripts/metadata-tester.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",

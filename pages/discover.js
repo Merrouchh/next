@@ -4,7 +4,6 @@ import { createClient as createBrowserClient } from '../utils/supabase/component
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import ClipCard from '../components/ClipCard';
-import DynamicMeta from '../components/DynamicMeta';
 import styles from '../styles/Discover.module.css';
 import { fetchClips } from '../utils/api';
 import { useRouter } from 'next/router';
@@ -22,8 +21,6 @@ const LoadingSpinner = ({ message = "Loading clips..." }) => (
 );
 
 export async function getServerSideProps({ req, res }) {
-  // Cache headers removed
-
   const supabase = createServerClient({ req, res });
   
   try {
@@ -33,73 +30,14 @@ export async function getServerSideProps({ req, res }) {
       .select('id', { count: 'exact' })
       .eq('visibility', 'public');
 
-    // Fetch the most recent public clip for preview image
-    const { data: latestClip } = await supabase
-      .from('clips')
-      .select('thumbnail_path, cloudflare_uid')
-      .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    // Get the thumbnail URL from the latest clip or use default
-    const previewImage = latestClip?.cloudflare_uid 
-      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-      : latestClip?.thumbnail_path || 'https://merrouchgaming.com/top.jpg';
-
-    // Cache headers removed
-
-    // Build rich metadata
-    const metaDescription = "Watch the best gaming moments from our community. High-quality gaming clips recorded on RTX 3070 PCs at Merrouch Gaming Center in Tangier.";
-
+    // Force cache busting for immediate testing
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
     return {
       props: {
-        initialClips: [], // Don't fetch clips initially
+        initialClips: [],
         totalClips: count || 0,
-        hasMore: (count || 0) > 0, // If there are clips, hasMore is true
-        metaData: {
-          title: "Discover Gaming Highlights | RTX 3070 Gaming Clips",
-          description: metaDescription,
-          image: previewImage,
-          url: "https://merrouchgaming.com/discover",
-          type: "website",
-          openGraph: {
-            title: "Gaming Highlights & Clips | Merrouch Gaming",
-            description: "Discover amazing gaming moments from our RTX 3070 gaming setups. Watch, share, and create your own highlights!",
-            images: [
-              {
-                url: previewImage,
-                width: 1200,
-                height: 630,
-                alt: "Gaming Highlights"
-              }
-            ]
-          },
-          twitter: {
-            card: "summary_large_image",
-            site: "@merrouchgaming",
-            title: "Gaming Highlights | Merrouch Gaming",
-            description: metaDescription,
-            image: previewImage
-          },
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            "name": "Gaming Highlights & Clips",
-            "description": "Collection of gaming highlights from Merrouch Gaming Center",
-            "provider": {
-              "@type": "Organization",
-              "name": "Merrouch Gaming",
-              "url": "https://merrouchgaming.com"
-            },
-            "about": {
-              "@type": "Thing",
-              "name": "Gaming Highlights",
-              "description": "High-quality gaming clips recorded on RTX 3070 PCs"
-            },
-            "image": previewImage
-          }
-        }
+        hasMore: (count || 0) > 0
       }
     };
   } catch (error) {
@@ -109,20 +47,13 @@ export async function getServerSideProps({ req, res }) {
         initialClips: [],
         totalClips: 0,
         hasMore: false,
-        error: 'Error loading clips',
-        metaData: {
-          title: 'Discover | Merrouch Gaming',
-          description: 'Explore gaming clips at Merrouch Gaming',
-          url: 'https://merrouchgaming.com/discover',
-          type: 'website',
-          image: 'https://merrouchgaming.com/top.jpg'
-        }
+        error: 'Error loading clips'
       }
     };
   }
 }
 
-const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData }) => {
+const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
   const { supabase } = useAuth();
   const [clips, setClips] = useState(initialClips);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -360,53 +291,52 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore, metaData 
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
-      {!mounted ? (
-        <LoadingSpinner message="Loading discover page..." />
-      ) : (
-      <main className={styles.discoverMain}>
-        <header className={styles.discoverHeader}>
-          <h1 className={styles.discoverTitle}>Gaming Highlights</h1>
-          <p className={styles.discoverSubtitle}>Discover amazing gaming moments from our community</p>
-        </header>
-        
-        <section className={styles.clipsSection}>
-          <h2 className={styles.sectionTitle}>Latest Clips</h2>
-          <div className={styles.feedContainer}>
-            {initialLoad ? (
-              <LoadingSpinner message="Loading clips..." />
-            ) : clips.length > 0 ? (
-              <>
-                {clips.map(clip => (
-                  <ClipCard
-                    key={clip.id}
-                    clip={clip}
-                  />
-                ))}
-                
-                {/* Loading more indicator / End message */}
-                <div className={styles.loadingMore} ref={loaderRef}>
-                  {isLoading ? (
-                    <LoadingSpinner message="Loading more clips..." />
-                  ) : !hasMore ? (
-                    <div className={styles.endMessage}>
-                      <span className={styles.endIcon}>🎮</span>
-                      <p>You've seen all the clips!</p>
-                      <p className={styles.endSubtext}>Check back later for more gaming moments</p>
+        {!mounted ? (
+          <LoadingSpinner message="Loading discover page..." />
+        ) : (
+          <main className={styles.discoverMain}>
+            <header className={styles.discoverHeader}>
+              <h1 className={styles.discoverTitle}>Gaming Highlights</h1>
+              <p className={styles.discoverSubtitle}>Discover amazing gaming moments from our community</p>
+            </header>
+            
+            <section className={styles.clipsSection}>
+              <h2 className={styles.sectionTitle}>Latest Clips</h2>
+              <div className={styles.feedContainer}>
+                {initialLoad ? (
+                  <LoadingSpinner message="Loading clips..." />
+                ) : clips.length > 0 ? (
+                  <>
+                    {clips.map(clip => (
+                      <ClipCard
+                        key={clip.id}
+                        clip={clip}
+                      />
+                    ))}
+                    
+                    {/* Loading more indicator / End message */}
+                    <div className={styles.loadingMore} ref={loaderRef}>
+                      {isLoading ? (
+                        <LoadingSpinner message="Loading more clips..." />
+                      ) : !hasMore ? (
+                        <div className={styles.endMessage}>
+                          <span className={styles.endIcon}>🎮</span>
+                          <p>You've seen all the clips!</p>
+                          <p className={styles.endSubtext}>Check back later for more gaming moments</p>
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
-              </>
-            ) : (
-              <div className={styles.noClips}>
-                No clips available at the moment
+                  </>
+                ) : (
+                  <div className={styles.noClips}>
+                    No clips available at the moment
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
-      </main>
-      )}
-    </ProtectedPageWrapper>
+            </section>
+          </main>
+        )}
+      </ProtectedPageWrapper>
   );
 };
 

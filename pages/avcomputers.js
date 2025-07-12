@@ -6,7 +6,7 @@ import Head from 'next/head';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
-import DynamicMeta from '../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import { MdChevronRight } from 'react-icons/md';
 import UserLoginModal from '../components/UserLoginModal';
 
@@ -24,28 +24,7 @@ export const getServerSideProps = async ({ res }) => {
     return {
       props: {
         computers,
-        timestamp: Date.now(), // Keep timestamp to force revalidation
-        metaData: {
-          title: "Computer Status | Merrouch Gaming Center",
-          description: "Real-time status of gaming computers. Monitor availability of Bottom and Top floor PCs.",
-          image: "https://merrouchgaming.com/top.jpg",
-          url: "https://merrouchgaming.com/avcomputers",
-          type: "website",
-          noindex: true, // Tell search engines not to index this page
-          openGraph: {
-            title: "Computer Status | Merrouch Gaming Center",
-            description: "Real-time computer availability dashboard",
-            images: [
-              {
-                url: "https://merrouchgaming.com/top.jpg",
-                width: 1200,
-                height: 630,
-                alt: "Merrouch Gaming Computer Status"
-              }
-            ],
-            type: "website"
-          }
-        }
+        timestamp: Date.now() // Keep timestamp to force revalidation
       },
     };
   } catch (error) {
@@ -56,13 +35,7 @@ export const getServerSideProps = async ({ res }) => {
           normal: [],
           vip: []
         },
-        timestamp: Date.now(),
-        metaData: {
-          title: "Computer Status | Merrouch Gaming Center",
-          description: "Real-time status of gaming computers",
-          noindex: true,
-          type: "website"
-        }
+        timestamp: Date.now()
       },
     };
   }
@@ -442,7 +415,7 @@ const useQueueSystem = (user, supabase) => {
  *      their own Gizmo ID (linked to their website account) to log them in
  *    - Users must have sufficient time balance to log in
  */
-const AvailableComputers = ({ metaData }) => {
+const AvailableComputers = () => {
   const { user, supabase } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
@@ -904,7 +877,7 @@ const AvailableComputers = ({ metaData }) => {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
       <main className={styles.mainContainer}>
         <div className={styles.liveIndicator}>
           <div className={styles.liveDot}></div>

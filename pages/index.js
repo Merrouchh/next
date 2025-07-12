@@ -16,7 +16,7 @@ import AccountPromptModal from '../components/AccountPromptModal';
 import LoginModal from '../components/LoginModal';
 import NumberDisplay from '../components/NumberDisplay';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import DynamicMeta from '../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import HeroSection from '../components/HeroSection';
 
 const DarkModeMap = dynamic(() => 
@@ -67,7 +67,7 @@ const DarkModeMap = dynamic(() =>
 });
 
 // Main Home component first
-const Home = ({ metaData }) => {
+const Home = () => {
   const { user, loading, supabase, initialized } = useAuth();
   const router = useRouter();
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
@@ -264,8 +264,6 @@ const Home = ({ metaData }) => {
         <meta name="description" content="Join Merrouch Gaming - Share your gaming highlights, connect with fellow gamers, and showcase your best moments." />
       </Head>
 
-      <DynamicMeta {...metaData} />
-
       <ProtectedPageWrapper>
         <main className={styles.mainWrapper}>
           <h1 className={styles.mainHeading}>Merrouch Gaming Center | Best Gaming Center in Tangier</h1>
@@ -389,37 +387,7 @@ const Home = ({ metaData }) => {
 export default Home;
 
 export async function getServerSideProps() {
-  // Import the schema functions
-  const { getFAQPageSchema } = require('../components/FAQSchema');
-  const { getPriceRangeSchema } = require('../components/PriceRangeSchema');
-  
-  // Get both schema objects
-  const faqSchema = getFAQPageSchema();
-  const priceSchema = getPriceRangeSchema();
-  
   return {
-    props: {
-      metaData: {
-        title: "Merrouch Gaming Center | RTX 3070 Gaming PCs in Tangier",
-        description: "Experience premium gaming with RTX 3070 PCs, 200Mbps internet, and competitive prices. Join Tangier's best gaming community. Share highlights, connect with gamers, and enjoy top-tier gaming equipment.",
-        image: "https://merrouchgaming.com/top.jpg",
-        url: "https://merrouchgaming.com",
-        type: "website",
-        openGraph: {
-          title: "Premium Gaming Center in Tangier | RTX 3070 PCs",
-          description: "Join Tangier's premier gaming community. RTX 3070 PCs, 200Mbps internet, competitive prices.",
-          images: [
-            {
-              url: "https://merrouchgaming.com/top.jpg",
-              width: 1200,
-              height: 630,
-              alt: "Merrouch Gaming Center"
-            }
-          ]
-        },
-        // Combine schemas into an array of structured data
-        structuredData: [faqSchema, priceSchema]
-      }
-    }
+    props: {}
   };
 }

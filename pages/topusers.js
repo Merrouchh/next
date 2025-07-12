@@ -1,44 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import Head from 'next/head';
 import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import { NextSeo } from 'next-seo';
-import DynamicMeta from '../components/DynamicMeta';
 
 export async function getServerSideProps({ res }) {
   // Cache headers removed
 
   return {
     props: {
-      timestamp: Date.now(),
-      metaData: {
-        title: "Gaming Community Leaderboard | Merrouch Gaming Center",
-        description: "Join our monthly gaming competitions and earn rewards! Discover Tangier's most active gamers and become part of our thriving gaming community. Free gaming time rewards for top performers.",
-        image: "https://merrouchgaming.com/top.jpg",
-        url: "https://merrouchgaming.com/topusers",
-        type: "website",
-        openGraph: {
-          title: "Gaming Community Leaderboard | Merrouch Gaming Center",
-          description: "Join our monthly gaming competitions and earn rewards! Discover Tangier's most active gamers and become part of our thriving community.",
-          images: [
-            {
-              url: "https://merrouchgaming.com/top.jpg",
-              width: 1200,
-              height: 630,
-              alt: "Merrouch Gaming Community Leaderboard"
-            }
-          ],
-          type: "website"
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: "Gaming Community Leaderboard | Merrouch Gaming Center",
-          description: "Monthly gaming competitions with rewards! Join our active gaming community in Tangier and compete for free gaming time.",
-          image: "https://merrouchgaming.com/top.jpg"
-        }
-      }
+      timestamp: Date.now()
     }
   };
 }
@@ -53,7 +23,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const TopUsers = ({ metaData }) => {
+const TopUsers = () => {
   const [topUsers, setTopUsers] = useState([]);
   const [error, setError] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
@@ -179,12 +149,7 @@ const TopUsers = ({ metaData }) => {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
       <div className={styles.container}>
-        <Head>
-          <title>Top Users</title>
-          <meta name="robots" content="index, follow" />
-        </Head>
         <main className={styles.main}>
           <h2 className={styles.heading}>Community Leaderboard</h2>
           <p className={styles.counterText}>

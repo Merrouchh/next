@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import DynamicMeta from '../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import styles from '../styles/Awards.module.css';
 import { FaUnlock, FaStar, FaUserCircle } from 'react-icons/fa';
 import Link from 'next/link';
@@ -528,11 +528,6 @@ const AwardsPage = () => {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta 
-        title="Your Achievements | Merrouch Gaming" 
-        description="Track your gaming achievements and profile completion rewards at Merrouch Gaming Center."
-      />
-      
       <div className={styles.awardsContainer}>
         <header className={styles.awardsHeader}>
           <h1 className={styles.awardsTitle}>YOUR ACHIEVEMENTS</h1>

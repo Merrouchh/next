@@ -10,7 +10,7 @@ import { useModal } from '../../contexts/ModalContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import EventGallery from '../../components/EventGallery';
 import React from 'react';
-import DynamicMeta from '../../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import TournamentWinner from '../../components/shared/TournamentWinner';
 import MobileTeamModal from '../../components/MobileTeamModal';
 import DesktopTeamModal from '../../components/DesktopTeamModal';
@@ -49,15 +49,7 @@ export async function getServerSideProps({ params, res }) {
   );
   res.setHeader('Vary', 'Cookie, Accept-Encoding');
   
-  // Default metadata for not found case
-  const notFoundMetadata = {
-    title: "Event Not Found | Merrouch Gaming Center",
-    description: "The gaming event you're looking for doesn't exist or has been removed.",
-    image: "https://merrouchgaming.com/events.jpg",
-    url: `https://merrouchgaming.com/events/${id}`,
-    type: "website",
-    canonical: `https://merrouchgaming.com/events/${id}`
-  };
+  // Metadata now handled in _document.js
   
   try {
     // Try fetching event data for SEO
@@ -90,7 +82,7 @@ export async function getServerSideProps({ params, res }) {
     
     // If both fail, return not found
     if (!result.success) {
-      return { props: { metaData: notFoundMetadata } };
+      return { props: { /* Server-side metadata now handled in _document.js */ } };
     }
     
     // Extract event data
@@ -328,14 +320,14 @@ export async function getServerSideProps({ params, res }) {
     // Add flag to prevent duplicate structured data at the app level
     metadata.excludeFromAppSeo = true;
     
-    return { props: { metaData: metadata } };
+    return { props: { /* Server-side metadata now handled in _document.js */ } };
   } catch (error) {
     console.error('Error fetching event for SEO:', error);
-    return { props: { metaData: notFoundMetadata } };
+    return { props: { /* Server-side metadata now handled in _document.js */ } };
   }
 }
 
-export default function EventDetail({ metaData }) {
+export default function EventDetail() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registrationStatus, setRegistrationStatus] = useState({
@@ -1293,7 +1285,7 @@ export default function EventDetail({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} excludeFromAppSeo={true} />
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
 
       <div className={styles.container}>
         <Link href="/events" className={styles.backLink}>

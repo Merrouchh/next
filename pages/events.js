@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { toast } from 'react-hot-toast';
 import { useModal } from '../contexts/ModalContext';
-import DynamicMeta from '../components/DynamicMeta';
+// DynamicMeta removed - metadata now handled in _document.js
 import Image from 'next/image';
 import { FaSearch, FaCalendarAlt, FaGamepad, FaTrophy, FaFilter } from 'react-icons/fa';
 
@@ -84,51 +84,7 @@ export async function getServerSideProps({ res }) {
   }
 
   return {
-    props: {
-      metaData: {
-        title: "Gaming Events & Tournaments | Merrouch Gaming Center",
-        description: "Join our exciting gaming tournaments and events at Merrouch Gaming Center. Register for upcoming events, check ongoing tournaments, and see results from completed competitions.",
-        image: previewImage,
-        url: "https://merrouchgaming.com/events",
-        type: "website",
-        openGraph: {
-          title: "Gaming Events & Tournaments | Merrouch Gaming Center",
-          description: "Participate in solo, duo and team gaming tournaments. Register for upcoming events or check out results from our past competitions.",
-          images: [
-            {
-              url: previewImage,
-              width: 1200,
-              height: 630,
-              alt: "Merrouch Gaming Center Events"
-            }
-          ]
-        },
-        twitter: {
-          card: "summary_large_image",
-          site: "@merrouchgaming",
-          title: "Gaming Events & Tournaments | Merrouch Gaming Center",
-          description: "Join our exciting gaming tournaments and events. Register for upcoming competitions or view past tournament results.",
-          image: previewImage
-        },
-        structuredData: {
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          "name": "Gaming Events & Tournaments",
-          "description": "Gaming tournaments and events at Merrouch Gaming Center",
-          "provider": {
-            "@type": "Organization",
-            "name": "Merrouch Gaming",
-            "url": "https://merrouchgaming.com"
-          },
-          "about": {
-            "@type": "Thing",
-            "name": "Gaming Tournaments",
-            "description": "Solo, duo and team gaming competitions"
-          },
-          "image": previewImage
-        }
-      }
-    }
+    props: {}
   };
 }
 
@@ -142,7 +98,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-export default function Events({ metaData }) {
+export default function Events() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -347,7 +303,7 @@ export default function Events({ metaData }) {
 
   return (
     <ProtectedPageWrapper>
-      <DynamicMeta {...metaData} />
+              {/* DynamicMeta removed - metadata now handled in _document.js */}
 
       <div className={styles.container}>
         {/* Page heading (h1) */}
