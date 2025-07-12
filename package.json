@@ -85,6 +85,7 @@
     "react-zoom-pan-pinch": "^3.7.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "remove-markdown": "^0.6.2",
     "request-ip": "^3.3.0",
     "schema-dts": "^1.1.2",
     "smoothscroll-polyfill": "^0.4.4",

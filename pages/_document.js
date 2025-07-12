@@ -1,4 +1,5 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document';
+import removeMd from 'remove-markdown';
 
 class MyDocument extends Document {
   static async getInitialProps(ctx) {
@@ -733,7 +734,9 @@ async function generateEventMetadata(supabase, eventId) {
       year: 'numeric', month: 'long', day: 'numeric'
     }) : 'TBD';
 
-    const description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? event.description.substring(0, 150) + '...' : 'Join our gaming event!'}`;
+    // Strip markdown from event description for clean meta description
+    const cleanDescription = event.description ? removeMd(event.description).trim() : '';
+    const description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${cleanDescription ? (cleanDescription.length > 150 ? cleanDescription.substring(0, 150) + '...' : cleanDescription) : 'Join our gaming event!'}`;
 
     return {
       title: `${event.title} | Gaming Event | Merrouch Gaming`,
@@ -746,7 +749,7 @@ async function generateEventMetadata(supabase, eventId) {
         "@context": "https://schema.org",
         "@type": "Event",
         "name": event.title,
-        "description": description,
+        "description": cleanDescription || `${event.status} gaming ${event.team_type} tournament featuring ${event.game || 'Gaming'} on ${formattedDate}`,
         "startDate": event.date,
         "location": {
           "@type": "Place",
@@ -778,7 +781,7 @@ async function generateBracketMetadata(supabase, eventId) {
   try {
     const { data: event } = await supabase
       .from('events')
-      .select('title, game, team_type, status')
+      .select('title, game, team_type, status, description')
       .eq('id', eventId)
       .single();
 
@@ -793,7 +796,9 @@ async function generateBracketMetadata(supabase, eventId) {
       };
     }
 
-    const description = `View the tournament bracket for ${event.title} - ${event.game || 'Gaming'} ${event.team_type} tournament. Track match results and see who advances to the finals!`;
+    // Create a clean description for the bracket page
+    const cleanEventDesc = event.description ? removeMd(event.description).trim() : '';
+    const description = `View the tournament bracket for ${event.title} - ${event.game || 'Gaming'} ${event.team_type} tournament. ${cleanEventDesc ? cleanEventDesc.substring(0, 100) + '. ' : ''}Track match results and see who advances to the finals!`;
 
     return {
       title: `${event.title} Bracket | Tournament Results | Merrouch Gaming`,
