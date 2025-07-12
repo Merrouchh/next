@@ -9,6 +9,7 @@ export default function MagicLogin() {
   const { user, forceSessionReload } = useAuth();
   const [status, setStatus] = useState("Processing login...");
   const [error, setError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     // Only run on client
@@ -35,12 +36,20 @@ export default function MagicLogin() {
     
     const processAuth = async () => {
       try {
+        // Prevent multiple processing
+        if (isProcessing) {
+          console.log("Already processing, skipping...");
+          return;
+        }
+        
+        setIsProcessing(true);
         console.log("Starting magic link processing");
         
         // Get the hash part of the URL
         const hash = window.location.hash;
         if (!hash) {
           setError("No authentication data found in URL");
+          setIsProcessing(false);
           return;
         }
         
@@ -53,6 +62,22 @@ export default function MagicLogin() {
         const paramKeys = Array.from(hashParams.keys());
         console.log("Hash params keys:", paramKeys);
         
+        // Check if this is a password recovery session
+        const type = hashParams.get('type');
+        if (type === 'recovery') {
+          console.log("Password recovery session detected - redirecting to reset password page");
+          setStatus("Password recovery detected. Redirecting to reset password form...");
+          
+          // Preserve the hash tokens when redirecting to reset password page
+          const resetPasswordUrl = '/auth/reset-password' + window.location.hash;
+          
+          // Redirect to reset password page with a slight delay, preserving tokens
+          setTimeout(() => {
+            router.replace(resetPasswordUrl);
+          }, 500);
+          return;
+        }
+        
         // Extract access and refresh tokens
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
@@ -61,6 +86,7 @@ export default function MagicLogin() {
         if (!accessToken || !refreshToken) {
           console.error("Missing required tokens in hash");
           setError("Missing authentication tokens");
+          setIsProcessing(false);
           return;
         }
         
@@ -90,6 +116,7 @@ export default function MagicLogin() {
         if (sessionError) {
           console.error("Session setup failed:", sessionError);
           setError(`Authentication failed: ${sessionError.message}`);
+          setIsProcessing(false);
           return;
         }
         
@@ -101,6 +128,7 @@ export default function MagicLogin() {
         if (userError || !user) {
           console.error("User verification failed:", userError);
           setError("Could not verify your identity");
+          setIsProcessing(false);
           return;
         }
         
@@ -131,6 +159,7 @@ export default function MagicLogin() {
                 window.location.href = '/dashboard';
               }
             }
+            setIsProcessing(false);
           }, 800);
           return;
         }
@@ -149,10 +178,13 @@ export default function MagicLogin() {
               window.location.href = '/dashboard';
             }
           }
+          setIsProcessing(false);
         }, 600);
       } catch (err) {
         console.error("Unexpected error during auth processing:", err);
         setError(`Authentication error: ${err.message}`);
+      } finally {
+        setIsProcessing(false);
       }
     };
     

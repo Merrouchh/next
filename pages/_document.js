@@ -669,7 +669,9 @@ async function generateClipMetadata(supabase, clipId) {
     }
 
     // Handle clips that might be processing or have issues
-    if (clip.status && clip.status !== 'ready' && clip.status !== 'published') {
+    // If status is null, undefined, or empty, treat as ready and proceed to generate full metadata
+    const validStatuses = ['ready', 'published', null, undefined, ''];
+    if (clip.status && !validStatuses.includes(clip.status)) {
       // Handle different processing/error states
       if (clip.status === 'processing' || clip.status === 'uploading') {
         return {
@@ -690,6 +692,8 @@ async function generateClipMetadata(supabase, clipId) {
           keywords: 'gaming clip unavailable, Merrouch Gaming, Tangier'
         };
       } else {
+        // Log the unknown status for debugging
+        console.warn('Unknown clip status:', clip.status, 'for clip ID:', clipId);
         // Generic fallback for other statuses
         return {
           title: 'Gaming Clip | Merrouch Gaming',

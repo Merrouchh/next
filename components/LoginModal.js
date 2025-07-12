@@ -6,6 +6,7 @@ import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail,
 import { createClient } from '../utils/supabase/component';
 import React from 'react';
 import { toast } from 'react-hot-toast';
+import PasswordResetModal from './PasswordResetModal';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const { login, userExists, createUser } = useAuth();
@@ -25,6 +26,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     password: { isValid: false, message: '' },
     confirmPassword: { isValid: false, message: '' }
   });
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   // Reset function to clear all states
   const resetModal = () => {
@@ -181,6 +183,21 @@ const LoginModal = ({ isOpen, onClose }) => {
             'Login'
           )}
         </button>
+        
+        <div className={styles.forgotPasswordContainer}>
+          <button 
+            type="button" 
+            className={styles.forgotPasswordButton}
+            onClick={() => setShowPasswordReset(true)}
+          >
+            Forgot Password?
+          </button>
+        </div>
+        
+        <div className={styles.divider}>
+          <span>or</span>
+        </div>
+        
         <button 
           type="button" 
           className={`${styles.actionButton} ${styles.createButton}`}
@@ -636,24 +653,31 @@ const LoginModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay}>
-      <div 
-        className={styles.modalBackdrop}
-        onClick={handleClose}
-      />
-      <div className={styles.modal}>
-        <button 
-          className={styles.closeButton} 
+    <>
+      <div className={styles.overlay}>
+        <div 
+          className={styles.modalBackdrop}
           onClick={handleClose}
-          disabled={isLoading}
-        >
-          &times;
-        </button>
-        
-        {error && <div className={styles.error}>{error}</div>}
-        {renderStep()}
+        />
+        <div className={styles.modal}>
+          <button 
+            className={styles.closeButton} 
+            onClick={handleClose}
+            disabled={isLoading}
+          >
+            &times;
+          </button>
+          
+          {error && <div className={styles.error}>{error}</div>}
+          {renderStep()}
+        </div>
       </div>
-    </div>
+      
+      <PasswordResetModal 
+        isOpen={showPasswordReset} 
+        onClose={() => setShowPasswordReset(false)} 
+      />
+    </>
   );
 };
 

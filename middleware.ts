@@ -5,7 +5,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 const isAuthPage = (pathname: string): boolean => {
   return pathname.startsWith('/auth/verification-') || 
          pathname === '/auth/confirm' || 
-         pathname === '/auth/callback';
+         pathname === '/auth/callback' ||
+         pathname === '/auth/reset-password';
 }
 
 // Helper function to create a URL with error parameters
@@ -28,7 +29,11 @@ const getAuthRedirectPath = (searchParams: URLSearchParams): string => {
   // Special handling for magic links
   if (type === 'magiclink' || type === 'recovery') {
     console.log('Magic link detected');
-    // For all magic links, prefer our dedicated /magic-login handler if possible
+    // For password recovery, redirect to reset password page
+    if (type === 'recovery') {
+      return '/auth/reset-password';
+    }
+    // For all other magic links, prefer our dedicated /magic-login handler if possible
     // If token is in params, use the API endpoint
     if (hasToken) {
       let apiPath = `/api/auth/magic-link?token=${searchParams.get('token')}&type=${type}`;

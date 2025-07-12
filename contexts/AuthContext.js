@@ -65,6 +65,35 @@ export const AuthProvider = ({ children, onError }) => {
     setMounted(true);
   }, []);
 
+  // Handle password recovery events
+  useEffect(() => {
+    if (!supabaseRef.current || !mounted) return;
+
+    const { data: { subscription } } = supabaseRef.current.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthContext: Auth state change event:', event, 'on path:', router.pathname);
+      
+      // If we're on the reset password page, ignore all auth state changes to prevent automatic login
+      if (router.pathname === '/auth/reset-password' || router.pathname.includes('/auth/reset-password')) {
+        console.log('AuthContext: Ignoring auth state change on reset password page');
+        return;
+      }
+      
+      if (event === "PASSWORD_RECOVERY") {
+        console.log('AuthContext: PASSWORD_RECOVERY event detected - redirecting to reset password page');
+        router.push('/auth/reset-password');
+      }
+      
+      // Handle other events that might cause automatic login only if not on reset page
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        console.log('AuthContext: Auth event that could cause login:', event);
+        // These events are handled by getInitialSession, but we want to make sure
+        // they don't interfere when on reset password page
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [mounted, router]);
+
   // Enhanced session validation function
   const validateSession = useCallback(async () => {
     if (!supabaseRef.current) return { valid: false, error: 'Supabase client not initialized' };
@@ -180,6 +209,21 @@ export const AuthProvider = ({ children, onError }) => {
     const getInitialSession = async () => {
       try {
         console.log('Auth: Starting initial session check');
+        
+        // Check if we're dealing with a recovery session first
+        if (typeof window !== 'undefined') {
+          const hash = window.location.hash;
+          if (hash && hash.includes('type=recovery')) {
+            console.log('Auth: Recovery session detected in URL - not processing initial session');
+            setAuthState(prev => ({
+              ...prev,
+              loading: false,
+              initialized: true
+            }));
+            return;
+          }
+        }
+        
         let { data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession();
         
         console.log('Auth: Initial session check', session ? 'Found session' : 'No session found'); // Debug log
@@ -216,6 +260,22 @@ export const AuthProvider = ({ children, onError }) => {
         
         if (session?.user) {
           console.log('Auth: Found existing session, getting user data');
+          
+          // Check if we're on the reset password page - if so, don't set auth state to logged in
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            
+            // If we're on the reset password page, don't auto-login
+            if (url.pathname === '/auth/reset-password' || url.pathname.includes('/auth/reset-password')) {
+              console.log('Auth: On reset password page - not setting auth state to logged in');
+              setAuthState(prev => ({
+                ...prev,
+                loading: false,
+                initialized: true
+              }));
+              return;
+            }
+          }
           
           // Get the current auth user (source of truth for email)
           const { data: { user: authUser } } = await supabaseRef.current.auth.getUser();
@@ -353,20 +413,41 @@ export const AuthProvider = ({ children, onError }) => {
     let intervalId = null;
     
     const handleVisibilityChange = () => {
+      // Don't check session if on reset password page
+      if (typeof window !== 'undefined' && 
+          (window.location.pathname === '/auth/reset-password' || window.location.pathname.includes('/auth/reset-password'))) {
+        console.log('Auth: Skipping visibility change session check on reset password page');
+        return;
+      }
+      
       if (document.visibilityState === 'visible' && authState.isLoggedIn) {
         checkSession();
       }
     };
 
     const handleFocus = () => {
+      // Don't check session if on reset password page
+      if (typeof window !== 'undefined' && 
+          (window.location.pathname === '/auth/reset-password' || window.location.pathname.includes('/auth/reset-password'))) {
+        console.log('Auth: Skipping focus session check on reset password page');
+        return;
+      }
+      
       if (authState.isLoggedIn) {
         checkSession();
       }
     };
 
     // Periodic session validation (every 15 minutes when logged in)
+    // Don't run periodic checks on reset password page
     if (authState.isLoggedIn && mounted) {
       intervalId = setInterval(() => {
+        // Don't check session if on reset password page
+        if (typeof window !== 'undefined' && 
+            (window.location.pathname === '/auth/reset-password' || window.location.pathname.includes('/auth/reset-password'))) {
+          console.log('Auth: Skipping periodic session check on reset password page');
+          return;
+        }
         checkSession();
       }, SESSION_CHECK_INTERVAL);
     }
@@ -514,6 +595,13 @@ export const AuthProvider = ({ children, onError }) => {
       // Initial refresh - done silently
       const silentRefresh = async () => {
         try {
+          // Don't refresh session if on reset password page
+          if (typeof window !== 'undefined' && 
+              (window.location.pathname === '/auth/reset-password' || window.location.pathname.includes('/auth/reset-password'))) {
+            console.log('Auth: Skipping silent refresh on reset password page');
+            return;
+          }
+          
           console.log('Auth: Silent session refresh');
           // Don't set loading state for background refreshes
           const { data: { session }, error } = await supabaseRef.current.auth.getSession();
@@ -538,7 +626,11 @@ export const AuthProvider = ({ children, onError }) => {
       };
       
       // Instead of calling refreshUserSession which sets loading states, use silentRefresh
-      silentRefresh();
+      // But don't do initial refresh if on reset password page
+      if (typeof window === 'undefined' || 
+          (!window.location.pathname.includes('/auth/reset-password'))) {
+        silentRefresh();
+      }
       refreshTimer = setInterval(silentRefresh, REFRESH_INTERVAL);
     }
     
@@ -564,6 +656,12 @@ export const AuthProvider = ({ children, onError }) => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
+        
+        // Check if this is a recovery session - if so, don't process it here
+        if (type === 'recovery') {
+          console.log('AuthContext: Recovery session detected - not processing tokens here');
+          return;
+        }
         
         // Check if this is a magic link
         const isMagicLink = type === 'magiclink' || hash.includes('type=magiclink');
@@ -1132,6 +1230,25 @@ export const AuthProvider = ({ children, onError }) => {
             urlParams.get('type') === 'signup' || 
             url.hash.includes('type=email_change') || 
             url.hash.includes('type=signup');
+
+          // Handle recovery type separately - don't interfere with password reset flow
+          const isRecovery = 
+            urlParams.get('type') === 'recovery' || 
+            url.hash.includes('type=recovery') ||
+            router.pathname === '/auth/reset-password' ||
+            router.pathname.includes('/auth/reset-password');
+
+          // If this is a recovery session, don't interfere - let the reset-password page handle it
+          if (hasRedirectToken && isRecovery) {
+            console.log('Auth: Detected recovery session - not interfering with password reset flow');
+            return;
+          }
+
+          // Also check if we're on the reset password page regardless of tokens
+          if (router.pathname === '/auth/reset-password' || router.pathname.includes('/auth/reset-password')) {
+            console.log('Auth: On reset password page - not processing auth redirects');
+            return;
+          }
 
           // If redirect token on auth page, wait for processing
           if (hasRedirectToken && isVerification) {
