@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { getRouteConfig, isAuthPage, requiresAdmin, allowsStaff } from '../utils/routeConfig';
+import { getRouteConfig, isAuthPage, requiresAdmin } from '../utils/routeConfig';
 import styles from '../styles/ProtectedPageWrapper.module.css';
 import Header from './Header';
 import MobileHeader from './MobileHeader';
@@ -24,27 +24,18 @@ const ProtectedPageWrapper = ({ children }) => {
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
 
-  // Check if user has admin access (including staff for certain routes)
-  const hasAdminAccess = (user, pathname) => {
-    if (!user) return false;
-    
-    // Admin always has access
-    if (user.isAdmin) return true;
-    
-    // Staff can access routes that specifically allow staff
-    if (user.isStaff && allowsStaff(pathname)) return true;
-    
-    return false;
-  };
+  // If this is a verification page, don't wrap with navigation/headers
+  if (isVerificationPage) {
+    return children;
+  }
 
-  // Handle authentication-based routing (must be called before any early returns)
+  // Handle authentication-based routing
   useEffect(() => {
-    // Don't run effect for verification pages
-    if (isVerificationPage) return;
     // Don't do anything if auth is not initialized yet
     if (!initialized) return;
 
     // If user is logged in and on home page, redirect to dashboard
+    // But only if we're not already in the middle of a redirect
     if (user && router.pathname === '/' && router.isReady) {
       console.log('User logged in, redirecting to dashboard');
       router.replace('/dashboard');
@@ -57,18 +48,13 @@ const ProtectedPageWrapper = ({ children }) => {
       return;
     }
     
-    // If admin access is required but user doesn't have access, redirect to dashboard
-    if (isAdminRequired && user && !hasAdminAccess(user, router.pathname) && router.isReady) {
-      toast.error('You do not have access to this page');
+    // If admin access is required but user is not an admin, redirect to dashboard
+    if (isAdminRequired && user && !user.isAdmin && router.isReady) {
+      toast.error('You do not have admin access to this page');
       router.replace('/dashboard');
       return;
     }
   }, [initialized, user, router, routeConfig.requireAuth, router.pathname, router.isReady, isVerificationPage, isAdminRequired]);
-
-  // If this is a verification page, don't wrap with navigation/headers
-  if (isVerificationPage) {
-    return children;
-  }
 
   // Show loading while auth is initializing (except for home page which handles its own loading)
   if (!initialized && router.pathname !== '/') {
@@ -87,8 +73,8 @@ const ProtectedPageWrapper = ({ children }) => {
     return null;
   }
   
-  // Don't render admin content if user doesn't have admin access
-  if (isAdminRequired && (!user || !hasAdminAccess(user, router.pathname))) {
+  // Don't render admin content if user is not an admin
+  if (isAdminRequired && (!user || !user.isAdmin)) {
     return null;
   }
 

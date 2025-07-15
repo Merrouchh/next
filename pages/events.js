@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
 import styles from '../styles/Events.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
@@ -738,39 +737,9 @@ function EventCard({ event }) {
           )}
         </div>
         
-        <div className={styles.eventDescription}>
-          <ReactMarkdown
-            components={{
-              // Customize markdown elements to prevent breaking layout
-              p: ({ children }) => <p className={styles.markdownParagraph}>{children}</p>,
-              strong: ({ children }) => <strong className={styles.markdownBold}>{children}</strong>,
-              em: ({ children }) => <em className={styles.markdownItalic}>{children}</em>,
-              ul: ({ children }) => <ul className={styles.markdownList}>{children}</ul>,
-              ol: ({ children }) => <ol className={styles.markdownList}>{children}</ol>,
-              li: ({ children }) => <li className={styles.markdownListItem}>{children}</li>,
-              // Disable potentially problematic elements
-              h1: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              h2: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              h3: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              h4: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              h5: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              h6: ({ children }) => <span className={styles.markdownHeading}>{children}</span>,
-              a: ({ href, children }) => (
-                <a 
-                  href={href} 
-                  className={styles.markdownLink}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {children}
-                </a>
-              )
-            }}
-          >
-            {truncateDescription(event.description)}
-          </ReactMarkdown>
-        </div>
+        <p className={styles.eventDescription}>
+          {truncateDescription(event.description)}
+        </p>
       </div>
 
       {/* Event actions with stopPropagation to prevent triggering the card click */}

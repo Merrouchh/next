@@ -224,7 +224,8 @@ async function fetchQueue() {
         user_id,
         created_at,
         last_notified_at,
-        last_notified_position
+        last_notified_position,
+        periodic_notification_count
       `)
       .eq('status', 'waiting')
       .order('position');
@@ -389,7 +390,7 @@ async function debugQueueStatus() {
     // Get current queue
     const { data: queueEntries, error: queueError } = await supabase
       .from('computer_queue')
-      .select('id, user_name, position, status')
+      .select('id, user_name, position, status, periodic_notification_count')
       .eq('status', 'waiting')
       .order('position');
 
@@ -401,7 +402,7 @@ async function debugQueueStatus() {
     Logger.info(`📋 DEBUG: Queue Entries - Count: ${queueEntries.length}`);
     if (queueEntries.length > 0) {
       queueEntries.forEach((entry, index) => {
-        Logger.info(`   ${index + 1}. ${entry.user_name} (Position: ${entry.position})`);
+        Logger.info(`   ${index + 1}. ${entry.user_name} (Position: ${entry.position}, Count: ${entry.periodic_notification_count || 0})`);
       });
     }
 
@@ -527,6 +528,11 @@ async function monitorQueue() {
         shouldNotify = true;
         isYourTurn = entry.position === 1;
         notificationReason = `advanced_from_${entry.last_notified_position}_to_${entry.position}`;
+        // Reset periodic_notification_count on position advance
+        await supabase
+          .from('computer_queue')
+          .update({ periodic_notification_count: 0 })
+          .eq('id', entry.id);
       }
       // 3. "Your turn" for position 1 (if not notified recently)
       else if (entry.position === 1 && (!lastNotified || (now - lastNotified) > 120000)) {
@@ -534,8 +540,14 @@ async function monitorQueue() {
         isYourTurn = true;
         notificationReason = 'your_turn';
       }
-      // 4. Periodic update (every 3 minutes for ALL positions except 1)
-      else if (entry.position >= 2 && lastNotified && (now - lastNotified) > 180000) {
+      // 4. Periodic update (every 15 minutes for positions 2–5, max 3 times)
+      else if (
+        entry.position >= 2 &&
+        entry.position <= 5 &&
+        lastNotified &&
+        (now - lastNotified) > 900000 &&
+        (entry.periodic_notification_count === undefined || entry.periodic_notification_count < 3)
+      ) {
         shouldNotify = true;
         isYourTurn = false;
         notificationReason = 'periodic_update';
@@ -553,6 +565,13 @@ async function monitorQueue() {
 
         if (result.success) {
           await updateNotificationStatus(entry.id, entry.position);
+          // Increment periodic_notification_count if this was a periodic update
+          if (notificationReason === 'periodic_update') {
+            await supabase
+              .from('computer_queue')
+              .update({ periodic_notification_count: (entry.periodic_notification_count || 0) + 1 })
+              .eq('id', entry.id);
+          }
           Logger.success(`✅ Notified ${entry.user_name} about ${notificationReason}`);
         }
 

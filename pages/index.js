@@ -169,8 +169,6 @@ const Home = () => {
     }
   }, [supabase, router, processingMagicLink]);
 
-
-
   // Function to check if URL has auth tokens
   const hasAuthTokens = () => {
     if (typeof window === 'undefined') return false;

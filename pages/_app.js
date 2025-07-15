@@ -8,7 +8,6 @@ import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
 import { ModalProvider } from '../contexts/ModalContext';
-import { isAuthPage } from '../utils/routeConfig';
 import Head from 'next/head';
 
 const inter = Inter({
@@ -75,10 +74,12 @@ function MyApp({ Component, pageProps }) {
     );
   }
 
-  // Use centralized route config for auth page detection
-  const isAuthPageRoute = isAuthPage(router.pathname);
+  const isAuthPage = router.pathname.startsWith('/auth/');
+  const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
+                      router.pathname.startsWith('/events/') || 
+                      router.pathname.startsWith('/profile/');
 
-  if (isAuthPageRoute) {
+  if (isAuthPage) {
     return (
       <StrictMode>
         <ErrorBoundary>

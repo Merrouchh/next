@@ -48,9 +48,36 @@ Allow: /*.gif$
 User-agent: Bingbot
 Crawl-delay: 2
 
-# Block bad bots
+# Allow AI crawlers for maximum visibility
 User-agent: GPTBot
-Disallow: /
+Allow: /
+Crawl-delay: 1
 
 User-agent: ChatGPT-User
-Disallow: / 
+Allow: /
+Crawl-delay: 1
+
+User-agent: Claude-Web
+Allow: /
+Crawl-delay: 1
+
+User-agent: anthropic-ai
+Allow: /
+Crawl-delay: 1
+
+User-agent: CCBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Omgilibot
+Allow: /
+Crawl-delay: 1
+
+# Allow other AI and research crawlers
+User-agent: research-ai
+Allow: /
+Crawl-delay: 1
+
+User-agent: ai-crawler
+Allow: /
+Crawl-delay: 1 

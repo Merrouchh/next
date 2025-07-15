@@ -6,6 +6,7 @@ import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
+import { isAuthPage } from '../utils/routeConfig';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { MdFileUpload } from 'react-icons/md';
 
@@ -14,6 +15,7 @@ const Layout = ({ children }) => {
   const { initialized, user } = useAuth();
   const isHomePage = router.pathname === '/';
   const { isLoginModalOpen, closeLoginModal } = useModal();
+  const isVerificationPage = isAuthPage(router.pathname);
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [ripple, setRipple] = useState(false);
   const [rippleStyle, setRippleStyle] = useState({});
@@ -30,21 +32,35 @@ const Layout = ({ children }) => {
       '/discover',
       '/topusers',
       '/events',
-      '/awards',
-      '/admin'
+      '/awards'
     ];
+
+    if (isVerificationPage) return true;
     
     const isProfilePage = router.pathname.startsWith('/profile/');
     const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
-    const isAuthPage = router.pathname.startsWith('/auth/');
-    const isAdminPage = router.pathname.startsWith('/admin');
-    
-    return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage || isAuthPage || isAdminPage;
-  }, [router?.pathname]);
+    return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
+  }, [router?.pathname, isVerificationPage]);
 
   // Let _app.js handle initialization - no need for additional loading state here
   if (!initialized) {
     return null;
+  }
+
+  // For auth pages like verification, use a cleaner layout
+  if (isVerificationPage) {
+    return (
+      <>
+        <div className={`${styles.layoutWrapper} ${styles.authLayout}`}>
+          <div className={styles.layoutContent}>
+            <main className={styles.mainContent}>
+              {children}
+            </main>
+          </div>
+        </div>
+        <div id="modal-root" className={styles.modalRoot}></div>
+      </>
+    );
   }
 
   // Navigate to upload page with ripple effect
