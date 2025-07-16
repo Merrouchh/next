@@ -232,9 +232,29 @@ const Home = () => {
             <h2 className={styles.sectionTitle}>Our Services</h2>
             <div className={styles.cardContainer}>
               {/* Highlights Card */}
-              <div className={styles.cardHighlight}>
+              <div className={styles.cardHighlight} style={{
+                background: '#18191c',
+                border: '1.5px solid #FFD700',
+                borderRadius: '12px',
+                color: '#e1e1e1',
+                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.25)',
+                fontFamily: 'inherit',
+                overflow: 'hidden',
+                minHeight: '340px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
                 <div 
                   className={styles.highlightContent}
+                  style={{
+                    flex: '0 0 50%',
+                    minHeight: '120px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem 0',
+                  }}
                   onClick={() => router.push('/discover')}
                 >
                   <div className={styles.highlightIcon}>
@@ -272,7 +292,19 @@ const Home = () => {
               </div>
 
               {/* Location Card - Static version for better performance */}
-              <div className={styles.cardMap}>
+              <div className={styles.cardMap} style={{
+                background: '#18191c',
+                border: '1.5px solid #FFD700',
+                borderRadius: '12px',
+                color: '#e1e1e1',
+                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.25)',
+                fontFamily: 'inherit',
+                overflow: 'hidden',
+                minHeight: '340px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+              }}>
                 <div className={styles.mapWrapper}>
                   <div style={{ 
                     width: '100%', 
@@ -281,40 +313,67 @@ const Home = () => {
                     flexDirection: 'column',
                     alignItems: 'center', 
                     justifyContent: 'center',
-                    background: 'rgba(26, 31, 44, 0.9)',
-                    color: '#e1e1e1',
+                    background: "url('/map.png') center center/cover",
                     borderRadius: '10px',
                     border: '1px solid #FFD700',
                     padding: '2rem',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.6 }}>
-                      📍
+                    {/* Dark map background layer */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: "url('/map.png') center center/cover",
+                      filter: 'grayscale(1) brightness(0.5)',
+                      zIndex: 1,
+                      borderRadius: '10px',
+                    }} />
+                    {/* Strong dark overlay */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      background: 'rgba(26, 31, 44, 0.85)',
+                      zIndex: 2,
+                      borderRadius: '10px',
+                    }} />
+                    {/* Content stays above overlays */}
+                    <div style={{ position: 'relative', zIndex: 3 }}>
+                      <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.6 }}>
+                        📍
+                      </div>
+                      <h3 style={{ color: '#FFD700', marginBottom: '10px', fontSize: '18px' }}>
+                        Visit Our Gaming Center
+                      </h3>
+                      <p style={{ margin: '0.5rem 0', lineHeight: '1.5', opacity: 0.8 }}>
+                        {/* Rue Tanger, Tangier, Morocco removed as requested */}
+                      </p>
+                      <a 
+                        href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          marginTop: '15px',
+                          padding: '10px 20px',
+                          background: '#FFD700',
+                          color: '#000',
+                          border: 'none',
+                          borderRadius: '5px',
+                          fontSize: '14px',
+                          textDecoration: 'none',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        View on Google Maps
+                      </a>
                     </div>
-                    <h3 style={{ color: '#FFD700', marginBottom: '10px', fontSize: '18px' }}>
-                      Visit Our Gaming Center
-                    </h3>
-                    <p style={{ margin: '0.5rem 0', lineHeight: '1.5', opacity: 0.8 }}>
-                      Rue Tanger, Tangier, Morocco
-                    </p>
-                    <a 
-                      href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        marginTop: '15px',
-                        padding: '10px 20px',
-                        background: '#FFD700',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '5px',
-                        fontSize: '14px',
-                        textDecoration: 'none',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      View on Google Maps
-                    </a>
                   </div>
                 </div>
               </div>
