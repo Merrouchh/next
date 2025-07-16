@@ -8,7 +8,6 @@ import styles from '../../styles/EventDetail.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
-import EventGallery from '../../components/EventGallery';
 import React from 'react';
 // DynamicMeta removed - metadata now handled in _document.js
 import TournamentWinner from '../../components/shared/TournamentWinner';
@@ -18,6 +17,13 @@ import CancelRegistrationModal from '../../components/CancelRegistrationModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import dynamic from 'next/dynamic';
+
+// Lazy load EventGallery since it's heavy and not always needed immediately
+const EventGallery = dynamic(() => import('../../components/EventGallery'), {
+  ssr: false,
+  loading: () => <div className={styles.loadingGallery}>Loading gallery...</div>
+});
 
 // Format date for display - moved to a utility function outside component
 const formatDate = (dateString) => {

@@ -46,8 +46,8 @@ const HeroSection = ({ onCheckAvailability, router }) => (
             <Image
               src="/logomobile.png"
               alt="Merrouch Gaming"
-              width={200}
-              height={100}
+              width={41}
+              height={46}
               priority
               className={styles.brandLogo}
             />
@@ -115,8 +115,8 @@ const HeroSection = ({ onCheckAvailability, router }) => (
               fill
               priority={index === 0}
               className={styles.imageOverlay}
-              quality={100}
-              sizes="(max-width: 768px) 100vw, 33vw"
+              quality={75}
+              sizes="(max-width: 768px) 362px, 362px"
               placeholder="blur"
               blurDataURL={image.blurDataURL}
               style={{ objectFit: 'cover' }}

@@ -4,11 +4,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import styles from '../styles/Layout.module.css';
-import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
 import { isAuthPage, isAdminPage } from '../utils/routeConfig';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { MdFileUpload } from 'react-icons/md';
+import dynamic from 'next/dynamic';
+
+// Lazy load LoginModal since it's not needed immediately
+const LoginModal = dynamic(() => import('./LoginModal'), {
+  ssr: false,
+  loading: () => null
+});
 
 const Layout = ({ children }) => {
   const router = useRouter();

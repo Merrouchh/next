@@ -92,12 +92,12 @@ const MobileHeader = () => {
             <Image
               src="/logomobile.png"
               alt="Merrouch Gaming"
-              width={150}
-              height={75}
+              width={36}
+              height={40}
               priority={true}
               loading="eager"
               className={styles.mobileLogo}
-              sizes="(max-width: 768px) 150px, 110px"
+              sizes="(max-width: 768px) 36px, 40px"
             />
           </Link>
         </div>

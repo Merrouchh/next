@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 
+// Import intersection-observer polyfill for this specific hook
+import 'intersection-observer';
+
 export const useVideoVisibility = (options = {}) => {
   const [isVisible, setIsVisible] = useState(false);
   const [hasBeenVisible, setHasBeenVisible] = useState(false);

@@ -3,7 +3,6 @@ import { MdFavorite, MdFavoriteBorder, MdVisibility, MdPerson, MdExpandMore,
   MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync, MdComment } from 'react-icons/md';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
-import VideoPlayer from './VideoPlayer';
 import { useLikes } from '../hooks/useLikes';
 import LikesModal from './LikesModal';
 import DeleteClipModal from './DeleteClipModal';
@@ -16,6 +15,13 @@ import CommentsSection from './CommentsSection';
 import CommentModal from './CommentModal';
 import { fetchCommentsByClipId } from '../utils/supabase/comments';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+// Lazy load VideoPlayer since it's heavy and not always needed immediately
+const VideoPlayer = dynamic(() => import('./VideoPlayer'), {
+  ssr: false,
+  loading: () => <div className={styles.loadingPlayer}>Loading video player...</div>
+});
 
 // Helper functions for processing status display
 function getStatusLabel(status) {
