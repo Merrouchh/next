@@ -1,3 +1,4 @@
+import 'intersection-observer';
 import { AuthProvider } from '../contexts/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
@@ -5,15 +6,9 @@ import '../styles/globals.css';
 import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
 import { useRouter } from 'next/router';
+import ClientOnlyToaster from '../components/ClientOnlyToaster';
 import { ModalProvider } from '../contexts/ModalContext';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
-
-// Dynamically import ClientOnlyToaster to reduce initial bundle size
-const ClientOnlyToaster = dynamic(() => import('../components/ClientOnlyToaster'), {
-  ssr: false,
-  loading: () => null
-});
 
 const inter = Inter({
   subsets: ['latin'],

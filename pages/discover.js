@@ -9,9 +9,6 @@ import { fetchClips } from '../utils/api';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
-// Import intersection-observer polyfill for this specific page
-import 'intersection-observer';
-
 const CLIPS_PER_PAGE = 5;
 
 // LoadingSpinner component

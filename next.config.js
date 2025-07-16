@@ -1,8 +1,4 @@
 /** @type {import('next').NextConfig} */
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
-
 const nextConfig = {
   // Enable React strict mode only in development
   reactStrictMode: true,
@@ -59,16 +55,6 @@ const nextConfig = {
     } : false,
   },
 
-  // Optimize imports for better tree shaking
-  modularizeImports: {
-    'react-icons': {
-      transform: 'react-icons/{{member}}',
-    },
-    'lodash': {
-      transform: 'lodash/{{member}}',
-    },
-  },
-
   // Simplified webpack configuration
   webpack: (config, { isServer }) => {
     config.infrastructureLogging = { level: 'error' };
@@ -86,24 +72,6 @@ const nextConfig = {
         punycode: false,
       };
     }
-
-    // Optimize bundle splitting for better performance (but preserve CSS loading)
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        ...config.optimization.splitChunks,
-        cacheGroups: {
-          ...config.optimization.splitChunks?.cacheGroups,
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: 10,
-            reuseExistingChunk: true,
-            enforce: true,
-          },
-        },
-      },
-    };
 
     return config;
   },
@@ -174,8 +142,6 @@ const nextConfig = {
     ...(process.env.TURBOPACK !== '1' && {
       forceSwcTransforms: true,
     }),
-    // Optimize for production builds
-    optimizePackageImports: ['react-icons', 'framer-motion'],
   },
 
   // TypeScript and ESLint - Only ignore in production
@@ -204,4 +170,4 @@ for (const env of requiredEnvs) {
   });
 });
 
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = nextConfig;

@@ -8,7 +8,6 @@
     "dev:turbo": "cross-env TURBOPACK=1 next dev --turbo",
     "dev:turbo:trace": "cross-env TURBOPACK=1 NEXT_TURBOPACK_TRACING=1 next dev --turbo",
     "build": "cross-env NODE_ENV=production next build --no-lint",
-    "analyze": "cross-env ANALYZE=true next build",
     "start": "next start",
     "start:with-queue": "concurrently --names \"SERVER,QUEUE\" --prefix-colors \"blue,green\" \"next start\" \"node scripts/queue-monitor.js --realtime\"",
     "lint": "next lint",
