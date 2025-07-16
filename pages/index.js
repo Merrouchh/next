@@ -8,7 +8,6 @@ import {
   AiOutlinePhone
 } from 'react-icons/ai';
 import { MdExplore } from 'react-icons/md';
-import dynamic from 'next/dynamic';
 import Head from 'next/head';
 
 // Components
@@ -19,52 +18,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
 import HeroSection from '../components/HeroSection';
 
-const DarkModeMap = dynamic(() => 
-  import('../components/DarkModeMap')
-    .then(mod => mod)
-    .catch(err => {
-      // Handle chunk loading errors gracefully
-      console.warn('DarkModeMap chunk loading error:', err.message);
-      // Return a fallback component
-      return { 
-        default: () => (
-          <div style={{ 
-            width: '100%', 
-            height: '300px', 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            justifyContent: 'center',
-            background: 'rgba(26, 31, 44, 0.9)',
-            color: '#e1e1e1',
-            borderRadius: '10px',
-            border: '1px solid #FFD700',
-            padding: '2rem',
-            textAlign: 'center'
-          }}>
-            <p style={{ color: '#FF4655', fontWeight: 600, marginBottom: '1rem' }}>
-              Map temporarily unavailable
-            </p>
-            <p style={{ margin: '0.5rem 0', lineHeight: '1.5' }}>
-              Visit us at: Rue Tanger, Tangier, Morocco
-            </p>
-          </div>
-        )
-      };
-    }), {
-  ssr: false,
-  loading: () => <div style={{ 
-    width: '100%', 
-    height: '300px', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    background: '#1a1f2c',
-    color: '#FFD700',
-    borderRadius: '10px',
-    border: '1px solid #FFD700'
-  }}>Loading map...</div>
-});
+// DarkModeMap removed for performance - replaced with static location card
 
 // Main Home component first
 const Home = () => {
@@ -317,10 +271,51 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Map Card */}
+              {/* Location Card - Static version for better performance */}
               <div className={styles.cardMap}>
                 <div className={styles.mapWrapper}>
-                  <DarkModeMap />
+                  <div style={{ 
+                    width: '100%', 
+                    height: '300px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    background: 'rgba(26, 31, 44, 0.9)',
+                    color: '#e1e1e1',
+                    borderRadius: '10px',
+                    border: '1px solid #FFD700',
+                    padding: '2rem',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px', opacity: 0.6 }}>
+                      📍
+                    </div>
+                    <h3 style={{ color: '#FFD700', marginBottom: '10px', fontSize: '18px' }}>
+                      Visit Our Gaming Center
+                    </h3>
+                    <p style={{ margin: '0.5rem 0', lineHeight: '1.5', opacity: 0.8 }}>
+                      Rue Tanger, Tangier, Morocco
+                    </p>
+                    <a 
+                      href="https://www.google.com/maps/place/Cyber+Gaming+Merrouch/@35.7686889,-5.8127333,922m/data=!3m1!1e3!4m14!1m7!3m6!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!2sCyber+Gaming+Merrouch!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1!3m5!1s0xd0b8119c440343d:0x93cde0af29aeb9c5!8m2!3d35.7686846!4d-5.8101584!16s%2Fg%2F11s_sxbgx1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        marginTop: '15px',
+                        padding: '10px 20px',
+                        background: '#FFD700',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '5px',
+                        fontSize: '14px',
+                        textDecoration: 'none',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      View on Google Maps
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { FaGamepad, FaTrophy, FaBolt } from 'react-icons/fa';
 import styles from '../styles/Home.module.css';
@@ -28,19 +27,9 @@ const HeroSection = ({ onCheckAvailability, router }) => (
   <>
     {/* Hero Section */}
     <section className={styles.heroSection}>
-      <motion.div 
-        className={styles.heroContent}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-      >
+      <div className={styles.heroContent}>
         {/* Logo Section */}
-        <motion.div 
-          className={styles.logoContainer}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
+        <div className={styles.logoContainer}>
           {/* Logo for desktop only */}
           <div className={styles.brandLogoContainer}>
             <Image
@@ -52,15 +41,10 @@ const HeroSection = ({ onCheckAvailability, router }) => (
               className={styles.brandLogo}
             />
           </div>
-        </motion.div>
+        </div>
 
         {/* Gaming Stats */}
-        <motion.div 
-          className={styles.statsContainer}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-        >
+        <div className={styles.statsContainer}>
           <div className={styles.statBox}>
             <div className={styles.iconWrapper}>
               <FaGamepad className={styles.statIcon} />
@@ -90,24 +74,17 @@ const HeroSection = ({ onCheckAvailability, router }) => (
               <span className={styles.statLabel}>Open Daily</span>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
 
     {/* Gallery Section */}
     <section className={styles.gallerySection}>
       <div className={styles.galleryGrid}>
         {GALLERY_IMAGES.map((image, index) => (
-          <motion.div
+          <div
             key={index}
             className={styles.galleryImage}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * index, duration: 0.5 }}
-            whileHover={{ 
-              scale: 1.03,
-              transition: { duration: 0.3 }
-            }}
           >
             <Image
               src={image.src}
@@ -121,27 +98,17 @@ const HeroSection = ({ onCheckAvailability, router }) => (
               blurDataURL={image.blurDataURL}
               style={{ objectFit: 'cover' }}
             />
-            <motion.div 
-              className={styles.imageCaption}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 * index, duration: 0.5 }}
-            >
+            <div className={styles.imageCaption}>
               <h3>{image.title}</h3>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         ))}
       </div>
     </section>
 
     {/* Call to Action Section */}
     <section className={styles.ctaSection}>
-      <motion.div 
-        className={styles.ctaContainer}
-        initial={{ y: 15, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.6, duration: 0.4 }}
-      >
+      <div className={styles.ctaContainer}>
         <button 
           className={styles.primaryCta}
           onClick={onCheckAvailability}
@@ -163,7 +130,7 @@ const HeroSection = ({ onCheckAvailability, router }) => (
             TOP PLAYERS
           </button>
         </div>
-      </motion.div>
+      </div>
     </section>
   </>
 );
