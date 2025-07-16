@@ -28,17 +28,18 @@ const HeroSection = ({ onCheckAvailability, router }) => (
     {/* Hero Section */}
     <section className={styles.heroSection}>
       <div className={styles.heroContent}>
-        {/* Logo Section */}
+        {/* Logo Section - Hidden on mobile */}
         <div className={styles.logoContainer}>
           {/* Logo for desktop only */}
           <div className={styles.brandLogoContainer}>
             <Image
               src="/logomobile.png"
               alt="Merrouch Gaming"
-              width={41}
-              height={46}
+              width={200}
+              height={200}
               priority
               className={styles.brandLogo}
+              sizes="(max-width: 768px) 0px, 200px"
             />
           </div>
         </div>

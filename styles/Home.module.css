@@ -34,7 +34,7 @@
 }
 
 .brandLogo {
-  width: 150px !important;
+  width: 200px !important;
   height: auto !important;
   margin-bottom: 1.5rem;
 }
@@ -1819,6 +1819,10 @@
 /* Mobile responsiveness for stats */
 @media (max-width: 768px) {
   .logoContainer {
+    display: none;
+  }
+  
+  .brandLogo {
     display: none;
   }
   
