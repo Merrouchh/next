@@ -19,7 +19,10 @@
     "start:all": "start.bat",
     "queue-monitor": "node scripts/queue-monitor.js",
     "queue-monitor:realtime": "node scripts/queue-monitor.js --realtime",
-    "queue-monitor:once": "node scripts/queue-monitor.js --once"
+    "queue-monitor:once": "node scripts/queue-monitor.js --once",
+    "analyze": "cross-env ANALYZE=true npm run build",
+    "performance-test": "node scripts/performance-test.js",
+    "bundle-analyze": "node scripts/analyze-bundle.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.787.0",

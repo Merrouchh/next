@@ -3,8 +3,38 @@ import { MdFavorite, MdFavoriteBorder, MdVisibility, MdPerson, MdExpandMore,
   MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync, MdComment } from 'react-icons/md';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
-import VideoPlayer from './VideoPlayer';
+import dynamic from 'next/dynamic';
 import { useLikes } from '../hooks/useLikes';
+
+// Dynamically import VideoPlayer to reduce bundle size (includes video.js)
+const VideoPlayer = dynamic(() => import('./VideoPlayer'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ 
+      width: '100%',
+      aspectRatio: '16/9',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#000',
+      color: '#FFD700',
+      borderRadius: '10px'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          width: '40px',
+          height: '40px',
+          border: '3px solid #FFD700',
+          borderTop: '3px solid transparent',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '0 auto 10px'
+        }}></div>
+        <p>Loading Player...</p>
+      </div>
+    </div>
+  )
+});
 import LikesModal from './LikesModal';
 import DeleteClipModal from './DeleteClipModal';
 import { useAuth } from '../contexts/AuthContext';

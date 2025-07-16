@@ -17,7 +17,34 @@ import LoginModal from '../components/LoginModal';
 import NumberDisplay from '../components/NumberDisplay';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
-import HeroSection from '../components/HeroSection';
+
+// Dynamically import HeroSection to reduce initial bundle size (includes framer-motion)
+const HeroSection = dynamic(() => import('../components/HeroSection'), {
+  ssr: true,
+  loading: () => (
+    <div style={{ 
+      minHeight: '60vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #1a1f2c 0%, #2a3441 100%)',
+      color: '#FFD700'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          width: '50px',
+          height: '50px',
+          border: '3px solid #FFD700',
+          borderTop: '3px solid transparent',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '0 auto 20px'
+        }}></div>
+        <p>Loading...</p>
+      </div>
+    </div>
+  )
+});
 
 const DarkModeMap = dynamic(() => 
   import('../components/DarkModeMap')
