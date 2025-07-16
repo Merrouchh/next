@@ -13,31 +13,23 @@ import Head from 'next/head';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-  display: 'swap',
-  preload: true,
 });
 
 const orbitron = Orbitron({
   subsets: ['latin'],
   variable: '--font-orbitron',
-  display: 'swap',
-  preload: true,
 });
 
 const rajdhani = Rajdhani({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-rajdhani',
-  display: 'swap',
-  preload: true,
 });
 
 const zenDots = Zen_Dots({
   subsets: ['latin'],
   weight: ['400'],
   variable: '--font-zen-dots',
-  display: 'swap',
-  fallback: ['monospace'],
 });
 
 function MyApp({ Component, pageProps }) {

@@ -132,26 +132,6 @@ class MyDocument extends Document {
             crossOrigin="anonymous"
           />
           
-          {/* Preload critical resources */}
-          <link 
-            rel="preload" 
-            href="/logomobile.png" 
-            as="image"
-            type="image/png"
-          />
-          <link 
-            rel="preload" 
-            href="/top.jpg" 
-            as="image"
-            type="image/jpeg"
-          />
-          <link 
-            rel="preload" 
-            href="/favicon.ico" 
-            as="image"
-            type="image/x-icon"
-          />
-          
           {/* Map tile servers preconnect - saves ~300ms LCP */}
           <link 
             rel="preconnect" 

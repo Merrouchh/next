@@ -48,11 +48,6 @@ const nextConfig = {
     // Only allow SVG from trusted sources
     dangerouslyAllowSVG: false,
     domains: ['merrouchgaming.com'],
-    // Optimize image loading
-    minimumCacheTTL: 31536000,
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
   // ESLint configuration
@@ -73,7 +68,7 @@ const nextConfig = {
   },
 
   // Simplified webpack configuration
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer }) => {
     config.infrastructureLogging = { level: 'error' };
 
     config.resolve.fallback = {
@@ -87,31 +82,6 @@ const nextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         punycode: false,
-      };
-    }
-
-    // Conservative performance optimizations
-    if (!dev) {
-      // Only modify splitChunks, avoid touching other optimization settings
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        cacheGroups: {
-          ...config.optimization.splitChunks.cacheGroups,
-          framerMotion: {
-            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
-            name: 'framer-motion',
-            chunks: 'all',
-            priority: 20,
-            enforce: true,
-          },
-          videojs: {
-            test: /[\\/]node_modules[\\/]video\.js[\\/]/,
-            name: 'videojs',
-            chunks: 'all',
-            priority: 20,
-            enforce: true,
-          },
-        },
       };
     }
 
@@ -184,18 +154,6 @@ const nextConfig = {
     ...(process.env.TURBOPACK !== '1' && {
       forceSwcTransforms: true,
     }),
-    // Conservative optimizations - only icon tree shaking
-    modularizeImports: {
-      '@react-icons/md': {
-        transform: '@react-icons/md/{{member}}',
-      },
-      '@react-icons/fa': {
-        transform: '@react-icons/fa/{{member}}',
-      },
-      '@react-icons/ai': {
-        transform: '@react-icons/ai/{{member}}',
-      },
-    },
   },
 
   // TypeScript and ESLint - Only ignore in production

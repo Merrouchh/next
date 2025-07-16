@@ -12,45 +12,6 @@
   cursor: default;
 }
 
-/* Critical animations */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Performance optimizations */
-img, video {
-  max-width: 100%;
-  height: auto;
-  will-change: transform;
-}
-
-/* CLS reduction */
-.layout-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.content-wrapper {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Prevent layout shifts from loading states */
-.loading-placeholder {
-  min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Optimize font loading display */
-@font-face {
-  font-display: swap;
-}
-
 /* Base styles */
 html {
   height: 100%;
