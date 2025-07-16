@@ -315,17 +315,47 @@ const ClipCard = ({
 
   // Check if title is truncated
   useEffect(() => {
+    let resizeObserver;
+    let debounceTimer;
+    
     const checkTruncation = () => {
       if (titleRef.current) {
-        const { scrollWidth, clientWidth } = titleRef.current;
-        setIsTruncated(scrollWidth > clientWidth);
+        // Use requestAnimationFrame to avoid forced reflow
+        requestAnimationFrame(() => {
+          if (titleRef.current) {
+            const { scrollWidth, clientWidth } = titleRef.current;
+            setIsTruncated(scrollWidth > clientWidth);
+          }
+        });
       }
     };
 
+    // Debounced version to prevent excessive calls
+    const debouncedCheckTruncation = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(checkTruncation, 100);
+    };
+
+    // Initial check
     checkTruncation();
-    // Also check on window resize
-    window.addEventListener('resize', checkTruncation);
-    return () => window.removeEventListener('resize', checkTruncation);
+    
+    // Use ResizeObserver instead of window resize listener for better performance
+    if (titleRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(debouncedCheckTruncation);
+      resizeObserver.observe(titleRef.current);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener('resize', debouncedCheckTruncation);
+    }
+    
+    return () => {
+      clearTimeout(debounceTimer);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener('resize', debouncedCheckTruncation);
+      }
+    };
   }, [clipData.title]);
 
   // Fetch comment count when ClipCard mounts or when comments are shown/hidden

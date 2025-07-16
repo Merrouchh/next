@@ -16,16 +16,36 @@ const MobileHeader = () => {
   const hamburgerRef = useRef(null);
   const router = useRouter();
   const { openLoginModal } = useModal();
+  const scrollTimeoutRef = useRef(null);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScroll = window.scrollY;
-      setIsSticky(currentScroll > 0);
+      // Throttle scroll events to prevent excessive updates
+      if (!isScrollingRef.current) {
+        isScrollingRef.current = true;
+        
+        requestAnimationFrame(() => {
+          const currentScroll = window.scrollY;
+          const shouldBeSticky = currentScroll > 0;
+          
+          if (shouldBeSticky !== isSticky) {
+            setIsSticky(shouldBeSticky);
+          }
+          
+          isScrollingRef.current = false;
+        });
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [isSticky]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

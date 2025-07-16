@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const useMediaQuery = (query) => {
   // Check if we're in the browser
@@ -23,53 +23,64 @@ export const useMediaQuery = (query) => {
   
   // Initialize with computed/stored value
   const [matches, setMatches] = useState(getStoredOrComputedValue);
+  const mediaQueryRef = useRef(null);
+  const debounceTimeoutRef = useRef(null);
   
   useEffect(() => {
     if (!isClient) return;
     
-    // Create the media query list
-    const mediaQuery = window.matchMedia(query);
+    // Create media query list
+    mediaQueryRef.current = window.matchMedia(query);
     
-    // Set initial value
-    const initialValue = mediaQuery.matches;
-    setMatches(initialValue);
+    // Debounced handler to prevent excessive updates
+    const debouncedHandler = (e) => {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = setTimeout(() => {
+        // Use requestAnimationFrame to prevent forced reflows
+        requestAnimationFrame(() => {
+          const newMatches = e.matches;
+          setMatches(newMatches);
+          
+          // Store in sessionStorage for consistency
+          try {
+            sessionStorage.setItem(`mq-${query}`, String(newMatches));
+          } catch (e) {
+            // Ignore storage errors
+          }
+        });
+      }, 50); // 50ms debounce
+    };
     
-    // Store in sessionStorage for consistent experience during navigation
-    try {
-      sessionStorage.setItem(`mq-${query}`, initialValue.toString());
-    } catch (e) {
-      // Ignore storage errors
-    }
-
-    // Create stable listener
-    const handleChange = (event) => {
-      setMatches(event.matches);
-      // Update stored value
+    // Set initial value using requestAnimationFrame
+    requestAnimationFrame(() => {
+      const initialValue = mediaQueryRef.current.matches;
+      setMatches(initialValue);
+      
       try {
-        sessionStorage.setItem(`mq-${query}`, event.matches.toString());
+        sessionStorage.setItem(`mq-${query}`, String(initialValue));
       } catch (e) {
         // Ignore storage errors
       }
-    };
-
-    // Add listener (using addEventListener for better compatibility)
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleChange);
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleChange);
+    });
+    
+    // Add listener with proper error handling
+    try {
+      mediaQueryRef.current.addEventListener('change', debouncedHandler);
+    } catch (e) {
+      console.warn('Error adding media query listener:', e);
     }
     
-    // Cleanup
     return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleChange);
-      } else {
-        // Fallback for older browsers
-        mediaQuery.removeListener(handleChange);
+      clearTimeout(debounceTimeoutRef.current);
+      if (mediaQueryRef.current) {
+        try {
+          mediaQueryRef.current.removeEventListener('change', debouncedHandler);
+        } catch (e) {
+          console.warn('Error removing media query listener:', e);
+        }
       }
     };
-  }, [query, isClient]); // Re-run if query changes or client state changes
-
+  }, [query, isClient]);
+  
   return matches;
 }; 

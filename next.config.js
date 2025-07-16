@@ -114,7 +114,19 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin'
           }
         ]
+      },
+      {
+        // Cache static assets for 1 year
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
       }
+      // Note: Static asset caching (images, fonts) is handled by Cloudflare _headers file
+      // to avoid regex pattern conflicts with Next.js header source parsing
     ];
   },
 

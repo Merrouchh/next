@@ -134,9 +134,18 @@ const DarkModeMap = () => {
         initTimeoutRef.current = setTimeout(() => {
           if (mapInstance.current && mountedRef.current) {
             try {
-              mapInstance.current.invalidateSize();
+              // Use requestAnimationFrame to prevent forced reflow
+              requestAnimationFrame(() => {
+                if (mapInstance.current && mountedRef.current) {
+                  try {
+                    mapInstance.current.invalidateSize();
+                  } catch (error) {
+                    console.warn('Error invalidating map size:', error);
+                  }
+                }
+              });
             } catch (error) {
-              console.warn('Error invalidating map size:', error);
+              console.warn('Error scheduling map size invalidation:', error);
             }
           }
           if (mountedRef.current) {

@@ -3,6 +3,7 @@ import { createClient } from '../../utils/supabase/component';
 import styles from '../../styles/Profile.module.css';
 import ClipCard from '../ClipCard';
 import { FaFilter, FaTimes } from 'react-icons/fa';
+import { useIsMobile } from '../../hooks/useWindowDimensions';
 
 // LoadingSpinner component
 const LoadingSpinner = ({ message = "Loading clips..." }) => (
@@ -22,21 +23,10 @@ const UserClips = ({ userId, isOwner }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isFiltering, setIsFiltering] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile(768);
   const filterRef = useRef(null);
 
   useEffect(() => {
-    // Check if we're on mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    // Initial check
-    checkMobile();
-    
-    // Add event listener for window resize
-    window.addEventListener('resize', checkMobile);
-    
     // Add click outside handler
     const handleClickOutside = (event) => {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -47,7 +37,6 @@ const UserClips = ({ userId, isOwner }) => {
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
-      window.removeEventListener('resize', checkMobile);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);

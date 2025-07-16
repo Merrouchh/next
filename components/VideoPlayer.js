@@ -4,6 +4,7 @@ import 'video.js/dist/video-js.css';
 import styles from '../styles/VideoPlayer.module.css';
 import { trackView } from '../utils/viewTracking';
 import videoPlayerManager from '../utils/videoPlayerManager';
+import { loadVideoScripts } from '../utils/videoScriptLoader';
 
 const MINIMUM_VIEW_SECONDS = 5; // Centralized constant for view threshold
 const CONTROL_FADE_TIMEOUT = 2000; // Timeout in ms for controls to fade
@@ -45,37 +46,36 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
     }
   }, [user]);
 
-  // Initialize the player once on mount with minimal loading
+  // Initialize video player
   useEffect(() => {
-    // Reset state when clip changes
-    setHasTrackedView(false);
-    setPlaybackTime(0);
-    setIsActuallyPlaying(false);
-    setError(null);
-    setShowCustomPlayButton(true);
-    setVideoInitialized(false);
-    trackingAttemptedRef.current = false;
-    lastTimeUpdateRef.current = 0;
-    actualPlaybackTimeRef.current = 0; // Reset the accurate playback counter
+    if (!mounted || !videoElementRef.current || !clip?.mp4link) return;
 
-    // Clean up previous player instance
-    if (playerRef.current) {
-      playerRef.current.dispose();
-      playerRef.current = null;
-    }
-
-    // Wait for component to be mounted and have a valid clip
-    if (!mounted || !clip?.mp4link || !videoElementRef.current) {
-      return;
-    }
-
-    // Update player ID when clip changes
-    playerIdRef.current = `player_${clip.id || Math.random().toString(36).substring(2)}`;
-
-    // Initialize Video.js with minimal loading
-    const initializePlayer = () => {
+    const initializePlayer = async () => {
       try {
-        // Create player instance with preload="none" initially
+        // Load video scripts conditionally to prevent critical request chain
+        await loadVideoScripts();
+
+        // Reset state when clip changes
+        setHasTrackedView(false);
+        setPlaybackTime(0);
+        setIsActuallyPlaying(false);
+        setError(null);
+        setShowCustomPlayButton(true);
+        setVideoInitialized(false);
+        trackingAttemptedRef.current = false;
+        lastTimeUpdateRef.current = 0;
+        actualPlaybackTimeRef.current = 0; // Reset the accurate playback counter
+
+        // Clean up previous player instance
+        if (playerRef.current) {
+          playerRef.current.dispose();
+          playerRef.current = null;
+        }
+
+        // Update player ID when clip changes
+        playerIdRef.current = `player_${clip.id || Math.random().toString(36).substring(2)}`;
+
+        // Initialize Video.js with minimal loading
         const player = videojs(videoElementRef.current, {
           controls: true,
           autoplay: false,
@@ -350,13 +350,12 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
       }
     };
 
-    // Small delay to ensure DOM is ready
-    const timeoutId = setTimeout(initializePlayer, 100);
+    // Initialize player with async script loading
+    initializePlayer();
 
     // Cleanup on unmount
     return () => {
       // Clear any pending timeouts
-      clearTimeout(timeoutId);
       
       // Log that we're cleaning up
       console.log(`Cleaning up player: ${playerIdRef.current}`);
@@ -399,33 +398,23 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
               if (player.tech && player.tech_ && player.tech_.el_) {
                 console.log(`Pausing player ${playerIdRef.current} with valid tech`);
                 player.pause();
-              } else {
-                console.log(`Pausing player ${playerIdRef.current} without tech check`);
-                player.pause();
               }
-            } catch (e) {
-              console.error(`Error pausing player ${playerIdRef.current}:`, e);
-              // Continue with disposal even if pause fails
+            } catch (pauseErr) {
+              console.error(`Error pausing player ${playerIdRef.current}:`, pauseErr);
             }
           }
           
-          // Finally dispose the player
-          try {
-            player.dispose();
-            console.log(`Player ${playerIdRef.current} disposed`);
-          } catch (disposeError) {
-            console.error(`Error disposing player ${playerIdRef.current}:`, disposeError);
-          }
-          
-          // Always clear the reference
+          // Dispose the player
+          console.log(`Disposing player: ${playerIdRef.current}`);
+          player.dispose();
           playerRef.current = null;
-        } catch (error) {
-          console.error(`Error cleaning up player ${playerIdRef.current}:`, error);
+        } catch (disposeErr) {
+          console.error(`Error disposing player ${playerIdRef.current}:`, disposeErr);
           playerRef.current = null;
         }
       }
     };
-  }, [clip?.mp4link, clip?.thumbnail_path, clip?.id, mounted, onLoadingChange, isInClipCard]);
+  }, [clip?.id, clip?.mp4link, mounted, isInClipCard]);
 
   // Handle custom play button click - starts preloading and plays
   const handleCustomPlayButtonClick = () => {

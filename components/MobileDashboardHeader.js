@@ -69,14 +69,23 @@ const MobileDashboardHeader = () => {
     const activeButton = container.querySelector(`.${styles.active}`);
     
     if (activeButton) {
-      const containerWidth = container.offsetWidth;
-      const buttonWidth = activeButton.offsetWidth;
-      const scrollLeft = activeButton.offsetLeft - (containerWidth / 2) + (buttonWidth / 2);
-      
+      // Batch DOM reads to prevent forced reflows
       requestAnimationFrame(() => {
-        container.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
+        if (!navContainerRef.current) return;
+        
+        const containerWidth = container.offsetWidth;
+        const buttonWidth = activeButton.offsetWidth;
+        const buttonOffsetLeft = activeButton.offsetLeft;
+        const scrollLeft = buttonOffsetLeft - (containerWidth / 2) + (buttonWidth / 2);
+        
+        // Batch DOM writes in a separate frame
+        requestAnimationFrame(() => {
+          if (navContainerRef.current) {
+            container.scrollTo({
+              left: scrollLeft,
+              behavior: 'smooth'
+            });
+          }
         });
       });
     }

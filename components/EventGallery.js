@@ -14,6 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import styles from '../styles/EventGallery.module.css';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsMobile } from '../hooks/useWindowDimensions';
 
 // Simplified slideshow image component with fallback, wrapped in React.memo
 const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
@@ -81,29 +82,13 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
 // Slideshow Modal component - moved outside to be rendered as a portal
 const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNext, onPrevious }) => {
   const [slideLoaded, setSlideLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile(767);
   const slideshowRef = useRef(null);
   
   // Reset slide loaded state when current index changes
   useEffect(() => {
     setSlideLoaded(false);
   }, [currentIndex]);
-  
-  // Check if mobile on client side
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const checkIfMobile = () => {
-        setIsMobile(window.innerWidth <= 767);
-      };
-      
-      checkIfMobile();
-      window.addEventListener('resize', checkIfMobile);
-      
-      return () => {
-        window.removeEventListener('resize', checkIfMobile);
-      };
-    }
-  }, []);
   
   // Handle keyboard navigation
   useEffect(() => {

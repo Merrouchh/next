@@ -137,6 +137,7 @@ const TopComputers = ({
   const [isAtStart, setIsAtStart] = useState(true);
   const [currentPair, setCurrentPair] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [cachedPairWidth, setCachedPairWidth] = useState(0);
 
   const totalPairs = Math.ceil(computers.length / 2) - 1;
 
@@ -151,39 +152,68 @@ const TopComputers = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Cache the pair width to avoid repeated clientWidth access
+  useEffect(() => {
+    if (!isMobile || !vipContainerRef.current) return;
+    
+    const updatePairWidth = () => {
+      if (vipContainerRef.current) {
+        setCachedPairWidth(vipContainerRef.current.clientWidth);
+      }
+    };
+    
+    updatePairWidth();
+    
+    // Use ResizeObserver for better performance
+    let resizeObserver;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(updatePairWidth);
+      resizeObserver.observe(vipContainerRef.current);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener('resize', updatePairWidth);
+    }
+    
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener('resize', updatePairWidth);
+      }
+    };
+  }, [isMobile]);
+
   // Only run scroll handling on mobile
   const handleScroll = useCallback((e) => {
-    if (!isMobile || !e.target) return;
+    if (!isMobile || !e.target || !cachedPairWidth) return;
     
     const container = e.target;
-    const pairWidth = container.clientWidth;
     const currentScrollPosition = container.scrollLeft;
-    const currentPairIndex = Math.round(currentScrollPosition / pairWidth);
+    const currentPairIndex = Math.round(currentScrollPosition / cachedPairWidth);
     
     setCurrentPair(currentPairIndex);
     setIsAtStart(currentPairIndex === 0);
     setIsAtEnd(currentPairIndex === totalPairs);
-  }, [isMobile, totalPairs]);
+  }, [isMobile, totalPairs, cachedPairWidth]);
 
   const handleScrollButton = useCallback((direction) => {
-    if (!isMobile || !vipContainerRef.current) return;
+    if (!isMobile || !vipContainerRef.current || !cachedPairWidth) return;
     
     const container = vipContainerRef.current;
-    const pairWidth = container.clientWidth;
     
     const newPairIndex = direction === 'left' ? 
       Math.max(0, currentPair - 1) : 
       Math.min(totalPairs, currentPair + 1);
     
     container.scrollTo({
-      left: newPairIndex * pairWidth,
+      left: newPairIndex * cachedPairWidth,
       behavior: 'smooth'
     });
     
     setCurrentPair(newPairIndex);
     setIsAtStart(newPairIndex === 0);
     setIsAtEnd(newPairIndex === totalPairs);
-  }, [isMobile, currentPair, totalPairs]);
+  }, [isMobile, currentPair, totalPairs, cachedPairWidth]);
 
   useEffect(() => {
     const container = vipContainerRef.current;

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import { AiOutlineCalendar, AiOutlineVideoCamera, AiOutlineDashboard } from 'react-icons/ai';
@@ -11,16 +11,36 @@ const Header = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { openLoginModal } = useModal();
+  const scrollTimeoutRef = useRef(null);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScroll = window.scrollY;
-      setIsSticky(currentScroll > 0);
+      // Throttle scroll events to prevent excessive updates
+      if (!isScrollingRef.current) {
+        isScrollingRef.current = true;
+        
+        requestAnimationFrame(() => {
+          const currentScroll = window.scrollY;
+          const shouldBeSticky = currentScroll > 0;
+          
+          if (shouldBeSticky !== isSticky) {
+            setIsSticky(shouldBeSticky);
+          }
+          
+          isScrollingRef.current = false;
+        });
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [isSticky]);
 
   const handleLogout = async (e) => {
     e.preventDefault();

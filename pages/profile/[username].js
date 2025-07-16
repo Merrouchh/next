@@ -9,6 +9,7 @@ import UserClips from '../../components/profile/UserClips';
 import { FaVideo, FaGamepad, FaPlus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
 
 // LoadingSpinner component
 const LoadingSpinner = ({ message = "Loading profile..." }) => (
@@ -512,42 +513,61 @@ const ProfilePage = ({ username }) => {
 
   if (!mounted) {
     return (
-      <ProtectedPageWrapper>
-        <LoadingSpinner />
-      </ProtectedPageWrapper>
+      <>
+        <Head>
+          <title>Loading Profile | Merrouch Gaming Center</title>
+        </Head>
+        <ProtectedPageWrapper>
+          <LoadingSpinner />
+        </ProtectedPageWrapper>
+      </>
     );
   }
 
   if (error) {
     return (
-      <ProtectedPageWrapper>
-        <div className={styles.errorContainer}>
-          <h2 className={styles.errorTitle}>Error</h2>
-          <p className={styles.errorMessage}>{error}</p>
-          <button 
-            onClick={() => router.back()}
-            className={styles.backButton}
-          >
-            Go Back
-          </button>
-        </div>
-      </ProtectedPageWrapper>
+      <>
+        <Head>
+          <title>Profile Error | Merrouch Gaming Center</title>
+        </Head>
+        <ProtectedPageWrapper>
+          <div className={styles.errorContainer}>
+            <h2 className={styles.errorTitle}>Error</h2>
+            <p className={styles.errorMessage}>{error}</p>
+            <button 
+              onClick={() => router.back()}
+              className={styles.backButton}
+            >
+              Go Back
+            </button>
+          </div>
+        </ProtectedPageWrapper>
+      </>
     );
   }
 
   if (loadingUser) {
     return (
-      <ProtectedPageWrapper>
-        <LoadingSpinner message={`Loading ${username}'s profile...`} />
-      </ProtectedPageWrapper>
+      <>
+        <Head>
+          <title>Loading {username}'s Profile | Merrouch Gaming Center</title>
+        </Head>
+        <ProtectedPageWrapper>
+          <LoadingSpinner message={`Loading ${username}'s profile...`} />
+        </ProtectedPageWrapper>
+      </>
     );
   }
 
   return (
-    <ProtectedPageWrapper>
-              {/* DynamicMeta removed - metadata now handled in _document.js */}
+    <>
+      <Head>
+        <title>{username}'s Gaming Profile | Merrouch Gaming Center</title>
+        <meta name="description" content={`View ${username}'s gaming profile, clips, achievements, and gaming statistics at Merrouch Gaming Center in Tangier.`} />
+      </Head>
       
-      <main className={styles.profileContainer}>
+      <ProtectedPageWrapper>
+        <main className={styles.profileContainer}>
         <header className={styles.profileHeader}>
           <h1 className={styles.profileTitle}>
             {isOwner ? 'YOUR GAMING PROFILE' : `${username}'s GAMING PROFILE`}
@@ -596,6 +616,7 @@ const ProfilePage = ({ username }) => {
         </section>
       </main>
     </ProtectedPageWrapper>
+    </>
   );
 };
 

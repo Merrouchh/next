@@ -298,7 +298,7 @@ const BracketView = ({
   useEffect(() => {
     if (!bracketData || typeof window === 'undefined') return;
 
-    // Function to generate connector lines
+    // Unified function to generate connector lines with batched DOM reads
     const updateConnectorLines = () => {
       // Wait for refs to be populated and layout to stabilize
       setTimeout(() => {
@@ -306,31 +306,45 @@ const BracketView = ({
         const bracketWrapper = document.querySelector(`.${styles.bracketWrapper}`);
         if (!bracketWrapper) return;
         
-        const bracketRect = bracketWrapper.getBoundingClientRect();
-        const scale = zoomLevel / 100; // Current scale factor
-        
-        // Loop through all rounds except the final
-        for (let roundIndex = 0; roundIndex < bracketData.length - 1; roundIndex++) {
-          const currentRound = bracketData[roundIndex];
+        // Batch DOM reads to prevent forced reflows
+        requestAnimationFrame(() => {
+          const bracketRect = bracketWrapper.getBoundingClientRect();
+          const scale = zoomLevel / 100; // Current scale factor
           
-          // Loop through matches in the current round
-          for (let matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
-            const match = currentRound[matchIndex];
+          // Batch all getBoundingClientRect calls
+          const elementsToMeasure = [];
+          
+          // Collect all elements that need measurement
+          for (let roundIndex = 0; roundIndex < bracketData.length - 1; roundIndex++) {
+            const currentRound = bracketData[roundIndex];
             
-            // Skip if no next match
-            if (!match.nextMatchId) continue;
-            
-            // Find the source and target match elements
-            const sourceRef = matchRefs.current[`match-${match.id}`];
-            const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
-            
-            // Skip if either ref is missing
-            if (!sourceRef || !targetRef) continue;
-            
-            // Get the source and target match positions
-            const sourceRect = sourceRef.getBoundingClientRect();
-            const targetRect = targetRef.getBoundingClientRect();
-            
+            for (let matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
+              const match = currentRound[matchIndex];
+              
+              if (!match.nextMatchId) continue;
+              
+              const sourceRef = matchRefs.current[`match-${match.id}`];
+              const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
+              
+              if (sourceRef && targetRef) {
+                elementsToMeasure.push({
+                  match,
+                  sourceRef,
+                  targetRef
+                });
+              }
+            }
+          }
+          
+          // Batch all DOM reads
+          const measurements = elementsToMeasure.map(({ match, sourceRef, targetRef }) => ({
+            match,
+            sourceRect: sourceRef.getBoundingClientRect(),
+            targetRect: targetRef.getBoundingClientRect()
+          }));
+          
+          // Process measurements and create lines
+          measurements.forEach(({ match, sourceRect, targetRect }) => {
             // Calculate relative positions
             const x1 = (sourceRect.right - bracketRect.left) / scale;
             const y1 = (sourceRect.top + sourceRect.height / 2 - bracketRect.top) / scale;
@@ -350,10 +364,10 @@ const BracketView = ({
                 strokeWidth="2.5"
               />
             );
-          }
-        }
-        
-        setConnectorLines(lines);
+          });
+          
+          setConnectorLines(lines);
+        });
       }, 300); // Reduced timeout since we have fixed heights now
     };
 
@@ -376,38 +390,65 @@ const BracketView = ({
   useEffect(() => {
     if (!bracketData || typeof window === 'undefined') return;
     
-    // Create a function to update connector lines after zoom
-    const updateConnectorsAfterZoom = () => {
-      // Wait for the transform to complete
+    // Debounce function to limit the frequency of updates
+    const debounce = (func, wait) => {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    };
+    
+    // Create debounced version that uses the same optimized logic
+    const debouncedUpdate = debounce(() => {
+      // Use the same batched approach for zoom updates
       const bracketWrapper = document.querySelector(`.${styles.bracketWrapper}`);
       if (!bracketWrapper) return;
       
       const lines = [];
-      const bracketRect = bracketWrapper.getBoundingClientRect();
-      const scale = zoomLevel / 100; // Current scale factor
       
-      // Loop through all rounds except the final
-      for (let roundIndex = 0; roundIndex < bracketData.length - 1; roundIndex++) {
-        const currentRound = bracketData[roundIndex];
+      requestAnimationFrame(() => {
+        const bracketRect = bracketWrapper.getBoundingClientRect();
+        const scale = zoomLevel / 100;
         
-        // Loop through matches in the current round
-        for (let matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
-          const match = currentRound[matchIndex];
+        // Batch all getBoundingClientRect calls
+        const elementsToMeasure = [];
+        
+        // Collect all elements that need measurement
+        for (let roundIndex = 0; roundIndex < bracketData.length - 1; roundIndex++) {
+          const currentRound = bracketData[roundIndex];
           
-          // Skip if no next match
-          if (!match.nextMatchId) continue;
-          
-          // Find the source and target match elements
-          const sourceRef = matchRefs.current[`match-${match.id}`];
-          const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
-          
-          // Skip if either ref is missing
-          if (!sourceRef || !targetRef) continue;
-          
-          // Get the source and target match positions
-          const sourceRect = sourceRef.getBoundingClientRect();
-          const targetRect = targetRef.getBoundingClientRect();
-          
+          for (let matchIndex = 0; matchIndex < currentRound.length; matchIndex++) {
+            const match = currentRound[matchIndex];
+            
+            if (!match.nextMatchId) continue;
+            
+            const sourceRef = matchRefs.current[`match-${match.id}`];
+            const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
+            
+            if (sourceRef && targetRef) {
+              elementsToMeasure.push({
+                match,
+                sourceRef,
+                targetRef
+              });
+            }
+          }
+        }
+        
+        // Batch all DOM reads
+        const measurements = elementsToMeasure.map(({ match, sourceRef, targetRef }) => ({
+          match,
+          sourceRect: sourceRef.getBoundingClientRect(),
+          targetRect: targetRef.getBoundingClientRect()
+        }));
+        
+        // Process measurements and create lines
+        measurements.forEach(({ match, sourceRect, targetRect }) => {
           // Calculate relative positions
           const x1 = (sourceRect.right - bracketRect.left) / scale;
           const y1 = (sourceRect.top + sourceRect.height / 2 - bracketRect.top) / scale;
@@ -427,33 +468,17 @@ const BracketView = ({
               strokeWidth="2.5"
             />
           );
-        }
-      }
-      
-      setConnectorLines(lines);
-    };
-    
-    // Debounce function to limit the frequency of updates
-    const debounce = (func, wait) => {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
-    };
-    
-    // Create debounced version of the update function
-    const debouncedUpdate = debounce(updateConnectorsAfterZoom, 10);
+        });
+        
+        setConnectorLines(lines);
+      });
+    }, 10);
     
     // Call the update function immediately
-    updateConnectorsAfterZoom();
+    debouncedUpdate();
     
     // Also set up a small delay to ensure lines are positioned correctly after any DOM updates
-    setTimeout(updateConnectorsAfterZoom, 50);
+    setTimeout(debouncedUpdate, 50);
     
   }, [zoomLevel, bracketData]);
 

@@ -1572,3 +1572,107 @@
   margin-top: 10px;
 }
 
+/* Floating refresh button for mobile */
+.floatingRefreshButton {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 99;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.floatingRefreshButton * {
+  cursor: pointer;
+}
+
+.floatingRefreshButton svg {
+  font-size: 28px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+/* Refresh text hidden by default */
+.refreshButtonText {
+  position: absolute;
+  opacity: 0;
+  transform: translateY(20px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+/* On hover, show text and move icon up */
+.floatingRefreshButton:hover svg {
+  transform: translateY(-10px);
+}
+
+.floatingRefreshButton:hover .refreshButtonText {
+  opacity: 1;
+  transform: translateY(10px);
+}
+
+.floatingRefreshButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  background-color: #5CBF60;
+}
+
+.floatingRefreshButton:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.floatingRefreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.floatingRefreshButton:disabled * {
+  cursor: not-allowed;
+}
+
+/* Add a subtle bounce animation */
+@keyframes floatingButtonAppear {
+  0% { 
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.floatingRefreshButton {
+  animation: floatingButtonAppear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Spinning animation for refresh icon */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

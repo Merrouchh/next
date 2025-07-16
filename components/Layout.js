@@ -6,7 +6,7 @@ import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import { useModal } from '../contexts/ModalContext';
-import { isAuthPage } from '../utils/routeConfig';
+import { isAuthPage, isAdminPage } from '../utils/routeConfig';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { MdFileUpload } from 'react-icons/md';
 
@@ -36,6 +36,9 @@ const Layout = ({ children }) => {
     ];
 
     if (isVerificationPage) return true;
+    
+    // Hide footer for all admin pages
+    if (isAdminPage(router.pathname)) return true;
     
     const isProfilePage = router.pathname.startsWith('/profile/');
     const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
@@ -68,25 +71,28 @@ const Layout = ({ children }) => {
     // Create ripple effect
     const button = uploadButtonRef.current;
     if (button) {
-      const rect = button.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height) * 2;
-      const x = e.clientX - rect.left - size / 2;
-      const y = e.clientY - rect.top - size / 2;
-      
-      setRippleStyle({
-        width: `${size}px`,
-        height: `${size}px`,
-        left: `${x}px`,
-        top: `${y}px`
+      // Use requestAnimationFrame to avoid forced reflow
+      requestAnimationFrame(() => {
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 2;
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        setRippleStyle({
+          width: `${size}px`,
+          height: `${size}px`,
+          left: `${x}px`,
+          top: `${y}px`
+        });
+        
+        setRipple(true);
+        
+        // Navigate after ripple animation
+        setTimeout(() => {
+          router.push('/upload');
+          setTimeout(() => setRipple(false), 300);
+        }, 300);
       });
-      
-      setRipple(true);
-      
-      // Navigate after ripple animation
-      setTimeout(() => {
-        router.push('/upload');
-        setTimeout(() => setRipple(false), 300);
-      }, 300);
     } else {
       router.push('/upload');
     }

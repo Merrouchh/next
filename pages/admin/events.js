@@ -939,4 +939,4 @@ export default function AdminEvents() {
       )}
     </AdminPageWrapper>
   );
-} 
+}
