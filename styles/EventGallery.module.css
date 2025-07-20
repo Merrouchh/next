@@ -639,6 +639,71 @@
   font-size: 1.05rem;
 }
 
+/* Compression Info Styles */
+.compressionInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.75rem;
+  border: 1px solid;
+  font-size: 0.9rem;
+}
+
+.compressionInfodefault {
+  background-color: rgba(255, 215, 0, 0.1);
+  border-color: rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+}
+
+.compressionInfocompressing {
+  background-color: rgba(0, 123, 255, 0.1);
+  border-color: rgba(0, 123, 255, 0.3);
+  color: #0d6efd;
+}
+
+.compressionInfosuccess {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: rgba(40, 167, 69, 0.3);
+  color: #28a745;
+}
+
+.compressionInfoerror {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+}
+
+.compressionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.compressionDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.compressionMessage {
+  font-weight: 500;
+}
+
+.compressionSize {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
 .captionInput {
   width: 100%;
   padding: 0.85rem 1rem;

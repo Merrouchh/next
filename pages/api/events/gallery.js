@@ -2,6 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import { 
+  compressImageForSocialMedia, 
+  validateImageFile, 
+  generateOptimizedFilename,
+  getImageMetadata 
+} from '../../../utils/imageCompression';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -341,22 +347,52 @@ export default async function handler(req, res) {
         
         console.log(`Processing image upload for event ${eventId}...`);
         
+        // Validate image file
+        console.log('Validating image file...');
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.error });
+        }
+        
         // Read file
         const filePath = file.filepath || file.path;
-        const fileContent = fs.readFileSync(filePath);
+        const originalFileContent = fs.readFileSync(filePath);
         const originalFilename = file.originalFilename || file.name;
-        const fileExt = path.extname(originalFilename);
-        const fileName = `gallery-${eventId}-${Date.now()}${fileExt}`;
         
-        console.log(`Uploading file: ${fileName}, size: ${fileContent.length} bytes, type: ${file.mimetype}`);
+        // Get original image metadata
+        console.log('Getting original image metadata...');
+        const originalMetadata = await getImageMetadata(originalFileContent);
+        console.log('Original gallery image:', {
+          size: `${(originalMetadata.size / 1024).toFixed(1)}KB`,
+          dimensions: `${originalMetadata.width}x${originalMetadata.height}`,
+          format: originalMetadata.format
+        });
+
+        // Compress image for social media optimization
+        console.log('Compressing gallery image for social media optimization...');
+        const compressedFileContent = await compressImageForSocialMedia(originalFileContent);
         
-        // Upload to Supabase Storage with timeout
+        // Get compressed image metadata
+        const compressedMetadata = await getImageMetadata(compressedFileContent);
+        console.log('Compressed gallery image:', {
+          size: `${(compressedMetadata.size / 1024).toFixed(1)}KB`,
+          dimensions: `${compressedMetadata.width}x${compressedMetadata.height}`,
+          format: compressedMetadata.format,
+          compressionRatio: `${((1 - compressedMetadata.size / originalMetadata.size) * 100).toFixed(1)}%`
+        });
+
+        // Generate optimized filename
+        const fileName = generateOptimizedFilename(originalFilename, `gallery-${eventId}`, 'jpg');
+        
+        console.log(`Uploading optimized gallery image: ${fileName}, size: ${compressedFileContent.length} bytes`);
+        
+        // Upload compressed image to Supabase Storage with timeout
         const { data, error } = await withTimeout(
           supabase
             .storage
             .from('images')
-            .upload(fileName, fileContent, {
-              contentType: file.mimetype,
+            .upload(fileName, compressedFileContent, {
+              contentType: 'image/jpeg',
               upsert: true
             }),
           30000 // 30 second timeout for upload

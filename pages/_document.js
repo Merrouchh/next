@@ -755,10 +755,13 @@ async function generateEventMetadata(supabase, eventId) {
 
     const description = `${event.status} gaming ${event.team_type} tournament: ${event.game || 'Gaming'} on ${formattedDate}. ${event.description ? event.description.substring(0, 150) + '...' : 'Join our gaming event!'}`;
 
+    // Use the optimized event image (already compressed for social media)
+    const optimizedImage = event.image || "https://merrouchgaming.com/top.jpg";
+
     return {
       title: `${event.title} | Gaming Event | Merrouch Gaming`,
       description: description,
-      image: event.image || "https://merrouchgaming.com/top.jpg",
+      image: optimizedImage,
       url: `https://merrouchgaming.com/events/${eventId}`,
       type: "event",
       keywords: `${event.game || 'gaming'}, tournament, ${event.team_type}, Merrouch Gaming, Tangier`,
@@ -777,7 +780,7 @@ async function generateEventMetadata(supabase, eventId) {
           "@type": "Organization",
           "name": "Merrouch Gaming"
         },
-        "image": event.image || "https://merrouchgaming.com/top.jpg"
+        "image": optimizedImage
       }
     };
   } catch (error) {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
-import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers, FaTrophy, FaEye, FaCode } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage, FaUsers, FaTrophy, FaEye, FaCode, FaSpinner, FaCheck, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminEvents.module.css';
@@ -33,6 +33,7 @@ export default function AdminEvents() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState(null);
   const router = useRouter();
   const { user, supabase } = useAuth();
 
@@ -153,10 +154,23 @@ export default function AdminEvents() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
+      // Clear previous compression info
+      setCompressionInfo(null);
+      
+      if (file.size > 10 * 1024 * 1024) {
         setFormErrors({
           ...formErrors,
-          image: 'Image size should be less than 5MB'
+          image: 'Image size should be less than 10MB'
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        setFormErrors({
+          ...formErrors,
+          image: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.'
         });
         return;
       }
@@ -173,6 +187,13 @@ export default function AdminEvents() {
           image: null
         });
       }
+      
+      // Show compression info
+      const originalSizeKB = (file.size / 1024).toFixed(1);
+      setCompressionInfo({
+        originalSize: originalSizeKB,
+        message: `Image will be automatically compressed for optimal social media sharing (target: <270KB)`
+      });
     }
   };
 
@@ -252,6 +273,7 @@ export default function AdminEvents() {
     if (!formData.image) return null;
     
     setIsUploading(true);
+    setCompressionInfo(prev => prev ? { ...prev, status: 'compressing' } : null);
     
     try {
       // Get the session for authentication
@@ -304,6 +326,14 @@ export default function AdminEvents() {
       }
       
       console.log('Image uploaded successfully:', responseData.imageUrl);
+      
+      // Update compression info with success
+      setCompressionInfo(prev => prev ? { 
+        ...prev, 
+        status: 'success',
+        message: 'Image compressed and uploaded successfully! Optimized for social media sharing.'
+      } : null);
+      
       return responseData.imageUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -313,12 +343,20 @@ export default function AdminEvents() {
       if (error.message.includes('row-level security policy')) {
         errorMessage = 'Permission error: You do not have sufficient permissions to upload images.';
       } else if (error.message.includes('413') || error.message.includes('Payload Too Large')) {
-        errorMessage = 'The image file is too large. Please use an image smaller than 5MB.';
+        errorMessage = 'The image file is too large. Please use an image smaller than 10MB.';
       } else if (error.message.includes('network') || error.message.includes('fetch')) {
         errorMessage = 'Network error: Please check your internet connection and try again.';
       }
       
       toast.error(`Failed to upload image: ${errorMessage}`);
+      
+      // Update compression info with error
+      setCompressionInfo(prev => prev ? { 
+        ...prev, 
+        status: 'error',
+        message: 'Image upload failed. Please try again.'
+      } : null);
+      
       return null;
     } finally {
       setIsUploading(false);
@@ -908,10 +946,33 @@ export default function AdminEvents() {
                   </label>
                 </div>
                 {formErrors.image && <div className={styles.errorMessage}>{formErrors.image}</div>}
+                
+                {/* Compression info display */}
+                {compressionInfo && (
+                  <div className={`${styles.compressionInfo} ${styles[`compressionInfo${compressionInfo.status || 'default'}`]}`}>
+                    <div className={styles.compressionIcon}>
+                      {compressionInfo.status === 'compressing' && <FaSpinner className={styles.spinner} />}
+                      {compressionInfo.status === 'success' && <FaCheck />}
+                      {compressionInfo.status === 'error' && <FaTimes />}
+                      {!compressionInfo.status && <FaImage />}
+                    </div>
+                    <div className={styles.compressionDetails}>
+                      <div className={styles.compressionMessage}>{compressionInfo.message}</div>
+                      {compressionInfo.originalSize && (
+                        <div className={styles.compressionSize}>
+                          Original: {compressionInfo.originalSize}KB
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 <div className={styles.imageNote}>
                   {currentEvent 
-                    ? 'Upload a new image to replace the existing one (max 5MB)' 
-                    : 'Upload an image for the event (max 5MB)'}
+                    ? 'Upload a new image to replace the existing one (max 10MB)' 
+                    : 'Upload an image for the event (max 10MB)'}
+                  <br />
+                  <strong>Auto-optimization:</strong> Images are automatically compressed for optimal social media sharing (target: &lt;270KB)
                 </div>
               </div>
 

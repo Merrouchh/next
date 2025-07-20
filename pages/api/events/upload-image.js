@@ -2,6 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import { 
+  compressEventImage, 
+  validateImageFile, 
+  generateOptimizedFilename,
+  getImageMetadata 
+} from '../../../utils/imageCompression';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -96,22 +102,57 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Event ID is required' });
     }
     
+    // Validate image file
+    console.log('Validating image file...');
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      return res.status(400).json({ error: validation.error });
+    }
+
     // Read file
     console.log('Reading file content...');
     const filePath = file.filepath || file.path;
-    const fileContent = fs.readFileSync(filePath);
+    const originalFileContent = fs.readFileSync(filePath);
     const originalFilename = file.originalFilename || file.name;
-    const fileExt = path.extname(originalFilename);
-    const fileName = `event-${eventId}-${Date.now()}${fileExt}`;
     
-    console.log('Uploading to Supabase Storage:', { fileName, contentType: file.mimetype });
+    // Get original image metadata
+    console.log('Getting original image metadata...');
+    const originalMetadata = await getImageMetadata(originalFileContent);
+    console.log('Original image:', {
+      size: `${(originalMetadata.size / 1024).toFixed(1)}KB`,
+      dimensions: `${originalMetadata.width}x${originalMetadata.height}`,
+      format: originalMetadata.format
+    });
+
+    // Compress image for social media optimization
+    console.log('Compressing image for social media optimization...');
+    const compressedFileContent = await compressEventImage(originalFileContent);
     
-    // Upload to Supabase Storage
+    // Get compressed image metadata
+    const compressedMetadata = await getImageMetadata(compressedFileContent);
+    console.log('Compressed image:', {
+      size: `${(compressedMetadata.size / 1024).toFixed(1)}KB`,
+      dimensions: `${compressedMetadata.width}x${compressedMetadata.height}`,
+      format: compressedMetadata.format,
+      compressionRatio: `${((1 - compressedMetadata.size / originalMetadata.size) * 100).toFixed(1)}%`
+    });
+
+    // Generate optimized filename
+    const fileName = generateOptimizedFilename(originalFilename, `event-${eventId}`, 'jpg');
+    
+    console.log('Uploading optimized image to Supabase Storage:', { 
+      fileName, 
+      originalSize: `${(originalMetadata.size / 1024).toFixed(1)}KB`,
+      compressedSize: `${(compressedMetadata.size / 1024).toFixed(1)}KB`,
+      contentType: 'image/jpeg'
+    });
+    
+    // Upload compressed image to Supabase Storage
     const { data, error } = await supabase
       .storage
       .from('images')
-      .upload(fileName, fileContent, {
-        contentType: file.mimetype,
+      .upload(fileName, compressedFileContent, {
+        contentType: 'image/jpeg',
         upsert: true
       });
     

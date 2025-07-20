@@ -9,7 +9,8 @@ import {
   FaPlus, 
   FaArrowLeft, 
   FaArrowRight,
-  FaExpand
+  FaExpand,
+  FaCheck
 } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
 import styles from '../styles/EventGallery.module.css';
@@ -348,7 +349,7 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
 });
 
 // Create a separate component for the upload modal
-const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption, imagePreview, selectedImage, setSelectedImage, setImagePreview, fileInputRef, isUploading }) => {
+const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption, imagePreview, selectedImage, setSelectedImage, setImagePreview, fileInputRef, isUploading, compressionInfo }) => {
   // Only render portal on client side
   if (!isOpen || typeof window === 'undefined') return null;
   
@@ -443,6 +444,26 @@ const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption
             />
           </div>
           
+          {/* Compression info display */}
+          {compressionInfo && (
+            <div className={`${styles.compressionInfo} ${styles[`compressionInfo${compressionInfo.status || 'default'}`]}`}>
+              <div className={styles.compressionIcon}>
+                {compressionInfo.status === 'compressing' && <FaSpinner className={styles.spinner} />}
+                {compressionInfo.status === 'success' && <FaCheck />}
+                {compressionInfo.status === 'error' && <FaTimes />}
+                {!compressionInfo.status && <FaImage />}
+              </div>
+              <div className={styles.compressionDetails}>
+                <div className={styles.compressionMessage}>{compressionInfo.message}</div>
+                {compressionInfo.originalSize && (
+                  <div className={styles.compressionSize}>
+                    Original: {compressionInfo.originalSize}KB
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div className={styles.modalFooter}>
             <button 
               type="button"
@@ -480,6 +501,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
+  const [compressionInfo, setCompressionInfo] = useState(null);
   
   // Slideshow state
   const [slideshowOpen, setSlideshowOpen] = useState(false);
@@ -632,6 +654,9 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     const file = e.target.files[0];
     if (!file) return;
     
+    // Clear previous compression info
+    setCompressionInfo(null);
+    
     // Check file type
     const fileTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (!fileTypes.includes(file.type)) {
@@ -639,9 +664,9 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       return;
     }
     
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be less than 10MB');
       return;
     }
     
@@ -653,6 +678,13 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     reader.readAsDataURL(file);
     
     setSelectedImage(file);
+    
+    // Show compression info
+    const originalSizeKB = (file.size / 1024).toFixed(1);
+    setCompressionInfo({
+      originalSize: originalSizeKB,
+      message: `Image will be automatically compressed for optimal social media sharing (target: <270KB)`
+    });
   }, []);
 
   // Upload image - memoized
@@ -665,7 +697,8 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     }
     
     setIsUploading(true);
-    const loadingToast = toast.loading('Uploading image...');
+    setCompressionInfo(prev => prev ? { ...prev, status: 'compressing' } : null);
+    const loadingToast = toast.loading('Uploading and compressing image...');
     
     try {
       // Get auth token
@@ -728,6 +761,13 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       setImages(prevImages => [data.image, ...prevImages]);
       setImageCount(prevCount => prevCount + 1);
       
+      // Update compression info with success
+      setCompressionInfo(prev => prev ? { 
+        ...prev, 
+        status: 'success',
+        message: 'Image compressed and uploaded successfully! Optimized for social media sharing.'
+      } : null);
+      
       // Reset form
       setSelectedImage(null);
       setImagePreview(null);
@@ -739,11 +779,18 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       // Close modal
       setIsModalOpen(false);
       
-      toast.success('Image uploaded successfully');
+      toast.success('Image uploaded and optimized successfully');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.dismiss(loadingToast);
       toast.error(error.message || 'Failed to upload image');
+      
+      // Update compression info with error
+      setCompressionInfo(prev => prev ? { 
+        ...prev, 
+        status: 'error',
+        message: 'Image upload failed. Please try again.'
+      } : null);
     } finally {
       setIsUploading(false);
     }
@@ -946,6 +993,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
             setImagePreview={setImagePreview}
             fileInputRef={fileInputRef}
             isUploading={isUploading}
+            compressionInfo={compressionInfo}
           />
           
           {/* Slideshow Modal */}
