@@ -9,16 +9,16 @@ const RefreshCard = React.memo(({ onRefresh, isLoading }) => {
     <DashboardCard 
       title="Refresh Data"
       icon={<AiOutlineReload size={24} />}
-      className={styles.smallCard}
+      className={styles.mediumCard}
     >
-      <div className={sharedStyles.centeredButtonContainer}>
+      <div className={styles.refreshCardContent}>
         <button 
           onClick={onRefresh}
           disabled={isLoading}
-          className={`${sharedStyles.primaryButton} ${isLoading ? styles.refreshing : ''}`}
+          className={`${styles.refreshButton} ${isLoading ? styles.refreshing : ''}`}
           aria-label="Refresh dashboard data"
         >
-          <AiOutlineReload className={sharedStyles.buttonIcon} />
+          <AiOutlineReload className={styles.refreshIcon} />
           {isLoading ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>

@@ -466,6 +466,66 @@
   cursor: default;
 }
 
+.totalTime {
+  color: var(--primary-yellow);
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Refresh Card Styles */
+.refreshCardContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  min-height: 120px;
+}
+
+.refreshButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 30px;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: var(--accent-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
+.refreshButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refreshIcon {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.refreshing .refreshIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .noTimeContainer {
   text-align: center;
   padding: 20px;

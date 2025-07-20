@@ -217,7 +217,7 @@ const Dashboard = React.memo(() => {
            user={user} 
            authLoading={authLoading} 
            initialized={initialized} 
-           router={router} 
+           router={router}
          />
       </main>
     </ProtectedPageWrapper>

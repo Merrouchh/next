@@ -317,16 +317,11 @@ export const fetchUserTimeInfo = async (gizmoId) => {
       entry && !entry.isDepleted && !entry.isVoided && !entry.isDeleted && !entry.isExpired
     );
 
-    // Calculate totals for each category
-    const totals = validEntries.reduce((acc, entry) => {
-      if (!entry || !entry.productName) return acc;
-
-      const category = entry.productName.toLowerCase().includes('vip') ? 'vip' :
-                      entry.productName.toLowerCase().includes('normal') ? 'normal' : 'bonus';
-      
-      acc[category] += (entry.secondsLeft || 0);
-      return acc;
-    }, { vip: 0, normal: 0, bonus: 0 });
+    // Calculate total time from all valid entries
+    const totalSeconds = validEntries.reduce((total, entry) => {
+      if (!entry) return total;
+      return total + (entry.secondsLeft || 0);
+    }, 0);
 
     // Convert seconds to hours and minutes
     const formatTime = (seconds) => ({
@@ -335,17 +330,13 @@ export const fetchUserTimeInfo = async (gizmoId) => {
     });
 
     return {
-      vip: formatTime(totals.vip),
-      normal: formatTime(totals.normal),
-      bonus: formatTime(totals.bonus)
+      total: formatTime(totalSeconds)
     };
   } catch (error) {
     console.error('Error fetching user time info:', error);
     // Return default values on error
     return {
-      vip: { hours: 0, minutes: 0 },
-      normal: { hours: 0, minutes: 0 },
-      bonus: { hours: 0, minutes: 0 }
+      total: { hours: 0, minutes: 0 }
     };
   }
 };

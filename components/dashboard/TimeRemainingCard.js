@@ -8,7 +8,7 @@ import sharedStyles from '../../styles/Shared.module.css';
 const TimeRemainingCard = React.memo(({ timeInfo }) => {
   const router = useRouter();
 
-  const hasTime = timeInfo && Object.values(timeInfo).some(time => time?.hours > 0 || time?.minutes > 0);
+  const hasTime = timeInfo?.total && (timeInfo.total.hours > 0 || timeInfo.total.minutes > 0);
 
   return (
     <DashboardCard 
@@ -18,22 +18,15 @@ const TimeRemainingCard = React.memo(({ timeInfo }) => {
     >
       <div className={styles.timeInfoContainer}>
         {hasTime ? (
-          // Show time info if user has any time
-          Object.entries(timeInfo).map(([type, time]) => {
-            if (time?.hours > 0 || time?.minutes > 0) {
-              return (
-                <div key={type} className={styles.timePackage}>
-                  <div className={styles.packageLabel}>{type.toUpperCase()}</div>
-                  <div className={styles.packageTime}>
-                    <span className={styles[`${type}Time`]}>
-                      {time.hours}h {time.minutes}m
-                    </span>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })
+          // Show total time remaining
+          <div className={styles.timePackage}>
+            <div className={styles.packageLabel}>TIME REMAINING</div>
+            <div className={styles.packageTime}>
+              <span className={styles.totalTime}>
+                {timeInfo.total.hours}h {timeInfo.total.minutes}m
+              </span>
+            </div>
+          </div>
         ) : (
           <div className={styles.noTimeContainer}>
             <p className={styles.noTime}>No Time Remaining!</p>

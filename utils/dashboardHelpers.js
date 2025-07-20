@@ -58,7 +58,7 @@ export const getRecommendedPayment = (amount) => {
 };
 
 export const hasAnyTime = (timeInfo) => {
-  return timeInfo && Object.values(timeInfo).some(time => time?.hours > 0 || time?.minutes > 0);
+  return timeInfo?.total && (timeInfo.total.hours > 0 || timeInfo.total.minutes > 0);
 };
 
 export const createNavigationHandler = (router) => (path) => async (e) => {
