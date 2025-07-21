@@ -242,6 +242,28 @@ const Shop = () => {
   </section>
 )}
 
+  {/* Events/Tournament Pricing Notice */}
+  {activeTab === 'prices' && (
+    <section className={styles.section}>
+      <div className={styles.centeredText} style={{ marginTop: '2rem', color: '#FF4655' }}>Events / Tournament Pricing</div>
+      <table className={styles.priceTable}>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Type">Event/Tournament</td>
+            <td data-label="Price">20 Dh / hour</td>
+            <td data-label="Note">Normal time cannot be used</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  )}
 
 
         {/* Bank Transfer Section */}

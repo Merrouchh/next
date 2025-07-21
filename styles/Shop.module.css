@@ -410,8 +410,9 @@
 /* Price Table Styles */
 .priceTable {
   width: 100%;
+  max-width: 900px;
+  margin: 1rem auto;
   border-collapse: collapse;
-  margin: 1rem 0;
   background: #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
@@ -421,8 +422,10 @@
 
 .priceTable th,
 .priceTable td {
-  padding: 0.8rem 1rem;
+  text-align: center !important;
+  padding: 0.8rem 0.5rem;
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  width: 33.33%;
 }
 
 .priceTable th {
@@ -434,60 +437,14 @@
   letter-spacing: 0.5px;
 }
 
-/* Column alignment */
-.priceTable th:nth-child(1),
-.priceTable td:nth-child(1) {
-  text-align: left !important;
-  padding: 0.8rem 0.5rem 0.8rem 0.5rem !important;
-  width: 25% !important;
-  white-space: nowrap !important;
-}
-
-.priceTable th:nth-child(2),
-.priceTable td:nth-child(2) {
-  text-align: center !important;
-  padding: 0.8rem 0.5rem !important;
-  width: 37.5% !important;
-}
-
-.priceTable th:nth-child(3),
-.priceTable td:nth-child(3) {
-  text-align: center !important;
-  padding: 0.8rem 0.5rem !important;
-  width: 37.5% !important;
-}
-
 .priceTable tr:hover {
   background: rgba(255, 215, 0, 0.05);
   transition: background-color 0.3s ease;
 }
 
-/* Pack name and duration alignment */
-.priceTable td[data-label="Pack"],
-.priceTable td[data-label="Duration"] {
-  text-align: left !important;
-  padding: 0.8rem 0.5rem !important;
-  white-space: nowrap !important;
-}
-
-.priceTable td[data-label="Cost Per Hour"],
-.priceTable td[data-label="Price"] {
-  text-align: center;
+.priceTable tr td {
   font-weight: 600;
   color: #FFD700;
-}
-
-.priceTable tr td:first-child {
-  text-align: left !important;
-  width: 25% !important;
-  white-space: nowrap !important;
-}
-
-.priceTable tr td:last-child {
-  text-align: center !important;
-  font-weight: 600 !important;
-  color: #FFD700 !important;
-  width: 37.5% !important;
 }
 
 .priceTable tr:last-child td {
