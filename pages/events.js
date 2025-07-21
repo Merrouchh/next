@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import styles from '../styles/Events.module.css';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
@@ -10,6 +13,23 @@ import { useModal } from '../contexts/ModalContext';
 // DynamicMeta removed - metadata now handled in _document.js
 import Image from 'next/image';
 import { FaSearch, FaCalendarAlt, FaGamepad, FaTrophy, FaFilter } from 'react-icons/fa';
+
+// iOS detection utility
+const isIOS = () => {
+  if (typeof window === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+// Safe navigation utility (same pattern used throughout the codebase)
+const safeNavigate = async (router, path) => {
+  try {
+    await router.push(path);
+  } catch (routerError) {
+    console.log("Router failed, using window.location");
+    window.location.href = path;
+  }
+};
 
 // Format date for display - moved to a utility function outside components
 const formatDate = (dateString) => {
@@ -22,6 +42,53 @@ const formatDate = (dateString) => {
   } catch (error) {
     return dateString;
   }
+};
+
+// Smart truncation that preserves markdown syntax
+const truncateMarkdown = (text, maxLength = 200) => {
+  if (!text || text.length <= maxLength) return text;
+  
+  // Try to find a good breaking point
+  const truncated = text.substring(0, maxLength);
+  
+  // Look for common markdown breaking points
+  const breakPoints = [
+    truncated.lastIndexOf('\n\n'), // Double line break
+    truncated.lastIndexOf('\n'),   // Single line break
+    truncated.lastIndexOf('. '),   // End of sentence
+    truncated.lastIndexOf('! '),   // End of exclamation
+    truncated.lastIndexOf('? '),   // End of question
+    truncated.lastIndexOf(' '),    // Word boundary
+  ];
+  
+  // Find the best break point (highest valid index)
+  const bestBreak = breakPoints.filter(point => point > maxLength * 0.6).sort((a, b) => b - a)[0];
+  
+  if (bestBreak && bestBreak > maxLength * 0.6) {
+    return text.substring(0, bestBreak + 1) + '...';
+  }
+  
+  // Fallback to word boundary
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > maxLength * 0.7) {
+    return text.substring(0, lastSpace) + '...';
+  }
+  
+  return truncated + '...';
+};
+
+// Smart title truncation that respects word boundaries
+const truncateTitle = (title, maxWords = 6) => {
+  if (!title) return '';
+  
+  const words = title.split(' ');
+  
+  if (words.length <= maxWords) {
+    return title;
+  }
+  
+  // Take the first maxWords and add ellipsis
+  return words.slice(0, maxWords).join(' ') + '...';
 };
 
 export async function getServerSideProps({ res }) {
@@ -465,6 +532,44 @@ function EventCard({ event }) {
   const isPublicView = !user;
   const { openLoginModal } = useModal();
   
+  // Add timeout ref to track navigation timeout
+  const navigationTimeoutRef = useRef(null);
+  
+  // Cleanup function to reset loading state
+  const resetLoadingState = useCallback(() => {
+    setIsLoading(false);
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+      navigationTimeoutRef.current = null;
+    }
+  }, []);
+  
+  // Cleanup effect to reset loading state when component unmounts or event changes
+  useEffect(() => {
+    return () => {
+      resetLoadingState();
+    };
+  }, [event.id, resetLoadingState]);
+  
+  // Add router event listener to reset loading state on successful navigation
+  useEffect(() => {
+    const handleRouteChangeComplete = () => {
+      resetLoadingState();
+    };
+    
+    const handleRouteChangeError = () => {
+      resetLoadingState();
+    };
+    
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    router.events.on('routeChangeError', handleRouteChangeError);
+    
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+      router.events.off('routeChangeError', handleRouteChangeError);
+    };
+  }, [router.events, resetLoadingState]);
+  
   // Only check registration status if user is logged in
   useEffect(() => {
     // Don't run the check for non-authenticated users
@@ -535,7 +640,16 @@ function EventCard({ event }) {
   
   const truncateDescription = (text, maxLength = 120) => {
     if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    
+    // For markdown content, try to truncate at a word boundary
+    const truncated = text.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    
+    if (lastSpace > maxLength * 0.8) { // If we can find a space in the last 20%
+      return truncated.substring(0, lastSpace) + '...';
+    }
+    
+    return truncated + '...';
   };
   
   const handleRegisterClick = () => {
@@ -554,14 +668,25 @@ function EventCard({ event }) {
     setIsLoading(true);
     
     // For upcoming events, navigate to the event detail page
-    router.push(`/events/${event.id}`);
+    safeNavigate(router, `/events/${event.id}`);
   };
   
   const viewEventDetails = () => {
     if (isLoading) return; // Prevent multiple clicks
     
     setIsLoading(true); // Set loading state to true
-    router.push(`/events/${event.id}`);
+    
+    // Set a timeout to reset loading state if navigation takes too long (iOS safety)
+    navigationTimeoutRef.current = setTimeout(() => {
+      console.log('Navigation timeout - resetting loading state');
+      resetLoadingState();
+    }, isIOS() ? 3000 : 5000); // Shorter timeout for iOS devices
+    
+    // Attempt navigation using safe navigation utility
+    safeNavigate(router, `/events/${event.id}`).catch((error) => {
+      console.error('Navigation error:', error);
+      resetLoadingState();
+    });
   };
 
   // Get registration button text
@@ -636,6 +761,12 @@ function EventCard({ event }) {
     <div 
       className={`${styles.eventCard} ${styles.clickableCard} ${isLoading ? styles.eventCardLoading : ''}`}
       onClick={viewEventDetails}
+      onTouchStart={(e) => {
+        // Prevent double-tap zoom on iOS
+        if (isIOS()) {
+          e.preventDefault();
+        }
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -702,12 +833,18 @@ function EventCard({ event }) {
         )}
       </div>
       <div className={`${styles.eventContent} ${styles.forceRepaint}`}>
-        <h3 className={styles.eventTitle}>
-          {event.title}
-          {event.game && (
-            <span className={styles.eventGameLabel}>{event.game}</span>
-          )}
+        <h3 className={styles.eventTitle} title={event.title}>
+          {(() => {
+            const truncated = truncateTitle(event.title);
+            console.log('Title truncation:', { original: event.title, truncated });
+            return truncated || event.title;
+          })()}
         </h3>
+        {event.game && (
+          <div className={styles.eventGameLabelContainer}>
+            <span className={styles.eventGameLabel}>{event.game}</span>
+          </div>
+        )}
 
         <div className={styles.eventMeta}>
           <div className={styles.eventTime}>
@@ -737,9 +874,50 @@ function EventCard({ event }) {
           )}
         </div>
         
-        <p className={styles.eventDescription}>
-          {truncateDescription(event.description)}
-        </p>
+        <div className={styles.eventDescription}>
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              // Custom paragraph component that removes spacing
+              p: ({ children }) => <span>{children}</span>,
+              // Custom list components that render inline
+              ul: ({ children }) => <span>{children}</span>,
+              ol: ({ children }) => <span>{children}</span>,
+              li: ({ children }) => <span>{children} • </span>,
+              // Keep headings but make them smaller and inline
+              h1: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              h2: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              h3: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              h4: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              h5: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              h6: ({ children }) => <span className={styles.inlineHeading}>{children} </span>,
+              // Keep other formatting
+              a: ({ children, href }) => (
+                <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+              ),
+              blockquote: ({ children }) => <span className={styles.inlineQuote}>{children}</span>,
+              code: ({ children }) => <code>{children}</code>,
+              pre: ({ children }) => <code>{children}</code>,
+              em: ({ children }) => <em>{children}</em>,
+              strong: ({ children }) => <strong>{children}</strong>,
+              del: ({ children }) => <del>{children}</del>,
+              hr: () => <span> • </span>,
+              br: () => <span> </span>,
+              img: ({ src, alt }) => (
+                <span className={styles.inlineImage}>[Image: {alt}]</span>
+              ),
+              table: ({ children }) => <span className={styles.inlineTable}>{children}</span>,
+              thead: ({ children }) => <span>{children}</span>,
+              tbody: ({ children }) => <span>{children}</span>,
+              tr: ({ children }) => <span>{children} | </span>,
+              th: ({ children }) => <strong>{children}</strong>,
+              td: ({ children }) => <span>{children}</span>,
+            }}
+          >
+            {truncateMarkdown(event.description)}
+          </ReactMarkdown>
+        </div>
       </div>
 
       {/* Event actions with stopPropagation to prevent triggering the card click */}

@@ -92,10 +92,43 @@
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
+/* Active state for event details page (red indicator) */
+.navButton.activeEventDetails {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.navButton.activeEventDetails .icon,
+.navButton.activeEventDetails .label {
+  color: #FFD700;
+}
+
+.navButton.activeEventDetails::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: #dc3545; /* Red color for event details */
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.5); /* Red glow */
+}
+
 /* Hover state */
 .navButton:hover {
   color: #FFD700;
   background: rgba(255, 215, 0, 0.05);
+}
+
+/* Hover state for event details page */
+.navButton.activeEventDetails:hover {
+  color: #FFD700;
+  background: rgba(220, 53, 69, 0.05); /* Slight red background on hover */
+}
+
+.navButton.activeEventDetails:hover::after {
+  background: #e74c3c; /* Slightly lighter red on hover */
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.6); /* Brighter red glow on hover */
 }
 
 .navButton::before {

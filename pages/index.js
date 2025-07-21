@@ -385,28 +385,28 @@ const Home = () => {
             <div className={styles.containerNarrow}>
               <h2 className={styles.sectionTitle}>Gaming Packages</h2>
               <div className={styles.packagesGrid}>
-                {/* Normal PC Card */}
+                {/* Gaming Card */}
                 <div className={`${styles.pricingCard} ${styles.glowEffect}`}>
                   <div className={styles.pricingHeader}>
-                    <h3>Normal PC</h3>
-                    <div className={styles.price}>15 MAD<span>/hour</span></div>
+                    <h3>Gaming Time</h3>
+                    <div className={styles.price}>18 Dh<span>/hour</span></div>
                   </div>
                   <ul className={styles.pricingFeatures}>
-                    <li>I5 10400F, 2060, 144Hz</li>
-                    <li>Premium Peripherals</li>
-                    <li>Fun Gaming</li>
+                    <li>Premium Gaming PCs</li>
+                    <li>High-Performance Hardware</li>
+                    <li>Multiple Duration Options</li>
                   </ul>
                 </div>
-                {/* VIP PC Card */}
+                {/* Special Offer Card */}
                 <div className={`${styles.pricingCard} ${styles.featured} ${styles.glowEffect}`}>
                   <div className={styles.pricingHeader}>
-                    <h3>VIP PC</h3>
-                    <div className={styles.price}>18 MAD<span>/hour</span></div>
+                    <h3>All DAY Special</h3>
+                    <div className={styles.price}>110 Dh<span>/24h</span></div>
                   </div>
                   <ul className={styles.pricingFeatures}>
-                    <li>Ryzen 7 7700, RTX 3070, 180Hz </li>
-                    <li>Premium Peripherals</li>
-                    <li>Serious Gaming</li>
+                    <li>24 Hours of Gaming</li>
+                    <li>Best Value Option</li>
+                    <li>Premium Experience</li>
                   </ul>
                 </div>
               </div>
@@ -415,7 +415,7 @@ const Home = () => {
                   className={styles.primaryButton}
                   onClick={() => router.push('/shop')}
                 >
-                  Learn More About Our Packages
+                  View All Pricing Options
                 </button>
               </div>
             </div>

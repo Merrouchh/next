@@ -411,16 +411,17 @@
 .priceTable {
   width: 100%;
   border-collapse: collapse;
-  margin: 2rem 0;
+  margin: 1rem 0;
   background: #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  table-layout: fixed;
 }
 
 .priceTable th,
 .priceTable td {
-  padding: 1.2rem 1.5rem;
+  padding: 0.8rem 1rem;
   border-bottom: 1px solid rgba(255, 215, 0, 0.1);
 }
 
@@ -436,21 +437,24 @@
 /* Column alignment */
 .priceTable th:nth-child(1),
 .priceTable td:nth-child(1) {
-  text-align: left;
-  padding-left: 2rem;
-  width: 50%;
+  text-align: left !important;
+  padding: 0.8rem 0.5rem 0.8rem 0.5rem !important;
+  width: 25% !important;
+  white-space: nowrap !important;
 }
 
 .priceTable th:nth-child(2),
 .priceTable td:nth-child(2) {
-  text-align: center;
-  width: 50%;
+  text-align: center !important;
+  padding: 0.8rem 0.5rem !important;
+  width: 37.5% !important;
 }
 
 .priceTable th:nth-child(3),
 .priceTable td:nth-child(3) {
-  text-align: center;
-  width: 50%;
+  text-align: center !important;
+  padding: 0.8rem 0.5rem !important;
+  width: 37.5% !important;
 }
 
 .priceTable tr:hover {
@@ -461,8 +465,9 @@
 /* Pack name and duration alignment */
 .priceTable td[data-label="Pack"],
 .priceTable td[data-label="Duration"] {
-  text-align: left;
-  padding-left: 2rem;
+  text-align: left !important;
+  padding: 0.8rem 0.5rem !important;
+  white-space: nowrap !important;
 }
 
 .priceTable td[data-label="Cost Per Hour"],
@@ -473,15 +478,16 @@
 }
 
 .priceTable tr td:first-child {
-  text-align: left;
-  width: 60%;
+  text-align: left !important;
+  width: 25% !important;
+  white-space: nowrap !important;
 }
 
 .priceTable tr td:last-child {
-  text-align: center;
-  font-weight: 600;
-  color: #FFD700;
-  width: 40%;
+  text-align: center !important;
+  font-weight: 600 !important;
+  color: #FFD700 !important;
+  width: 37.5% !important;
 }
 
 .priceTable tr:last-child td {
@@ -493,7 +499,7 @@
   text-align: center;
   font-size: 1.5rem;
   color: #FFD700;
-  margin: 2.5rem 0 1rem 0;
+  margin: 1.5rem 0 0.5rem 0;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;

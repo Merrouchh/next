@@ -63,6 +63,25 @@ const DesktopDashboardHeader = () => {
     return currentPath === path;
   };
 
+  // Helper function to check if we're on an event details page
+  const isEventDetailsPage = () => {
+    return currentPath.startsWith('/events/') && currentPath !== '/events';
+  };
+
+  // Helper function to get the appropriate active class
+  const getActiveClass = (path) => {
+    if (path === '/events') {
+      if (isEventDetailsPage()) {
+        return styles.activeEventDetails; // Red indicator for event details
+      } else if (isActive(path)) {
+        return styles.active; // Yellow indicator for events list
+      }
+    } else if (isActive(path)) {
+      return styles.active; // Yellow indicator for other pages
+    }
+    return '';
+  };
+
   // Handle navigation
   const handleNavigation = (path) => {
     router.push(path);
@@ -77,7 +96,7 @@ const DesktopDashboardHeader = () => {
             type="button"
             role="link"
             aria-label={item.label}
-            className={`${styles.navButton} ${isActive(item.path) ? styles.active : ''}`}
+            className={`${styles.navButton} ${getActiveClass(item.path)}`}
             onClick={() => handleNavigation(item.path)}
           >
             <span className={styles.icon} aria-hidden="true">
