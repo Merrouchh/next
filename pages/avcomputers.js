@@ -359,8 +359,7 @@ const useQueueSystem = (user, supabase) => {
     setIsJoiningQueue(true);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      const accessToken = supabase.auth.getSession().then(res => res.data.session?.access_token);
 
       const response = await fetch('/api/queue/join', {
         method: 'POST',
@@ -399,8 +398,7 @@ const useQueueSystem = (user, supabase) => {
     if (!userInQueue || !confirm('Are you sure you want to leave the queue?')) return;
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      const accessToken = supabase.auth.getSession().then(res => res.data.session?.access_token);
 
       const response = await fetch('/api/queue/join', {
         method: 'DELETE',
@@ -446,7 +444,7 @@ const useQueueSystem = (user, supabase) => {
  *    - Users must have sufficient time balance to log in
  */
 const AvailableComputers = () => {
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);

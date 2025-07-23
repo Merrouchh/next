@@ -13,6 +13,7 @@ import { useModal } from '../contexts/ModalContext';
 // DynamicMeta removed - metadata now handled in _document.js
 import Image from 'next/image';
 import { FaSearch, FaCalendarAlt, FaGamepad, FaTrophy, FaFilter } from 'react-icons/fa';
+import { createClient } from '@supabase/supabase-js';
 
 // iOS detection utility
 const isIOS = () => {
@@ -114,7 +115,6 @@ export async function getServerSideProps({ res }) {
     
     if (supabaseUrl && supabaseKey) {
       // Import Supabase server-side client
-      const { createClient } = require('@supabase/supabase-js');
       const supabase = createClient(supabaseUrl, supabaseKey);
       
       // Single optimized query for the latest event with a valid image
@@ -172,7 +172,7 @@ export default function Events() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const router = useRouter();
   const [pageLoaded, setPageLoaded] = useState(false);
 
@@ -191,16 +191,8 @@ export default function Events() {
         };
         
         // If user is authenticated, add authorization header
-        if (user) {
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.access_token) {
-              headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
-            }
-          } catch (sessionError) {
-            console.error('Session error:', sessionError);
-            // Continue without auth header
-          }
+        if (user && session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
         }
         
         const response = await fetch('/api/events', {
@@ -231,7 +223,7 @@ export default function Events() {
 
     // Fetch events even without a user
     fetchEvents();
-  }, [user, supabase]);
+  }, [user, supabase, session]);
   
   // Function to sync registration counts with the database
   const syncRegistrationCounts = async (eventsList) => {
@@ -524,7 +516,7 @@ export default function Events() {
 }
 
 function EventCard({ event }) {
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
   const [checkingRegistration, setCheckingRegistration] = useState(false);
@@ -587,8 +579,7 @@ function EventCard({ event }) {
     const checkRegistrationStatus = async () => {
       try {
         setCheckingRegistration(true);
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
+        const accessToken = session?.access_token;
         
         if (!accessToken) {
           setCheckingRegistration(false);
@@ -615,7 +606,7 @@ function EventCard({ event }) {
     };
     
     checkRegistrationStatus();
-  }, [user, event, supabase]);
+  }, [user, event, supabase, session]);
   
   // Extract registration count from event
   const registeredCount = event.registered_count || 0;

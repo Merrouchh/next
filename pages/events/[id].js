@@ -348,7 +348,7 @@ export default function EventDetail() {
   const searchInputRef = useRef(null);
   const router = useRouter();
   const { id } = router.query;
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const { openLoginModal } = useModal();
   const [bracketData, setBracketData] = useState(null);
   const [bracketLoading, setBracketLoading] = useState(false);
@@ -358,6 +358,7 @@ export default function EventDetail() {
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [modalStep, setModalStep] = useState(1); // For mobile step-by-step flow
+  const [authError, setAuthError] = useState(null);
 
   // Check if we're on mobile 
   useEffect(() => {
@@ -448,16 +449,9 @@ export default function EventDetail() {
         };
         
         // If user is authenticated, add authorization header
-        if (user) {
-          try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData?.session?.access_token) {
-              headers['Authorization'] = `Bearer ${sessionData.session.access_token}`;
-            }
-          } catch (sessionError) {
-            console.error('Session error:', sessionError);
-            // Continue without auth header
-          }
+        const accessToken = session?.access_token;
+        if (user && accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
         }
         
         // Fetch event details
@@ -491,16 +485,15 @@ export default function EventDetail() {
         // Only fetch additional data if user is logged in
         if (user) {
           // Get access token for authenticated requests
-          const { data: sessionData } = await supabase.auth.getSession();
-          const accessToken = sessionData?.session?.access_token;
+          const accessToken = session?.access_token;
           
+          // Always fetch registration status when user is logged in (even without token)
+          fetchRegistrationStatus(accessToken).catch(error => {
+            console.error('Error fetching registration status:', error);
+          });
+          
+          // Try to fetch bracket data only if we have a token
           if (accessToken) {
-            // Fetch registration status in parallel
-            fetchRegistrationStatus(accessToken).catch(error => {
-              console.error('Error fetching registration status:', error);
-            });
-            
-            // Try to fetch bracket data in parallel
             fetchBracketData(accessToken).catch(error => {
               console.error('Error fetching bracket data:', error);
               setBracketData(null);
@@ -531,7 +524,7 @@ export default function EventDetail() {
     };
     
     fetchEventDetails();
-  }, [id, user, supabase]);
+  }, [id, user, supabase, session]);
   
   // When the user state changes, update registration loading state
   useEffect(() => {
@@ -589,15 +582,9 @@ export default function EventDetail() {
           
           // Also force refresh registration status for the user
           if (user) {
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              const accessToken = sessionData?.session?.access_token;
-              
-              if (accessToken) {
-                await fetchRegistrationStatus(accessToken);
-              }
-            } catch (error) {
-              console.error('Error refreshing registration status after cancellation:', error);
+            const accessToken = session?.access_token;
+            if (accessToken) {
+              await fetchRegistrationStatus(accessToken);
             }
           }
           
@@ -620,15 +607,9 @@ export default function EventDetail() {
           
           // Also refresh registration status for the user
           if (user) {
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              const accessToken = sessionData?.session?.access_token;
-              
-              if (accessToken) {
-                await fetchRegistrationStatus(accessToken);
-              }
-            } catch (error) {
-              console.error('Error refreshing registration status after event update:', error);
+            const accessToken = session?.access_token;
+            if (accessToken) {
+              await fetchRegistrationStatus(accessToken);
             }
           }
         }
@@ -647,12 +628,24 @@ export default function EventDetail() {
       supabase.channel(`event-${event.id}`).unsubscribe();
       clearInterval(intervalId);
     };
-  }, [event, supabase]);
+  }, [event, supabase, session]);
   
   // Fetch registration status
   const fetchRegistrationStatus = async (accessToken) => {
     try {
       console.log("Fetching registration status...");
+      console.log('Access token used for registration status:', accessToken);
+      
+      // Check if we have a valid access token
+      if (!accessToken) {
+        console.error('No access token available for registration status fetch');
+        setRegistrationStatus(prev => ({
+          ...prev,
+          isLoading: false
+        }));
+        return false;
+      }
+      
       const response = await fetch(`/api/events/register?eventId=${id}`, {
         method: 'GET',
         headers: {
@@ -664,6 +657,13 @@ export default function EventDetail() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API Error (${response.status}):`, errorText);
+        
+        // Always clear loading state on error
+        setRegistrationStatus(prev => ({
+          ...prev,
+          isLoading: false
+        }));
+        
         throw new Error(`Failed to fetch registration status: ${response.status}`);
       }
       
@@ -689,6 +689,13 @@ export default function EventDetail() {
       return data.isRegistered;
     } catch (error) {
       console.error('Error fetching registration status:', error);
+      
+      // Always clear loading state on error
+      setRegistrationStatus(prev => ({
+        ...prev,
+        isLoading: false
+      }));
+      
       return false;
     }
   };
@@ -1307,6 +1314,12 @@ export default function EventDetail() {
           </div>
         ) : (
           <>
+            {authError && (
+              <div className={styles.errorContainer}>
+                <h2>Authentication Error</h2>
+                <p>{authError}</p>
+              </div>
+            )}
             <div className={styles.eventDetail}>
               <div className={styles.eventHeader}>
                 <div className={styles.eventImageContainer}>

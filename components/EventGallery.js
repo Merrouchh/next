@@ -512,7 +512,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   const [imageCount, setImageCount] = useState(0);
   const [hasInitialCount, setHasInitialCount] = useState(false);
   
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const fileInputRef = useRef(null);
   const hasRendered = useRef(false);
 
@@ -701,24 +701,11 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     const loadingToast = toast.loading('Uploading and compressing image...');
     
     try {
-      // Get auth token
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Authentication required - could not retrieve session');
-      }
-      
-      if (!sessionData || !sessionData.session) {
-        console.error('No session found');
-        throw new Error('Authentication required - no session found');
-      }
-      
-      const accessToken = sessionData.session.access_token;
-      
+      const accessToken = session?.access_token;
       if (!accessToken) {
-        console.error('No access token in session');
-        throw new Error('Authentication required - no access token');
+        toast.error('Authentication required - no access token');
+        setIsUploading(false);
+        return;
       }
       
       console.log('Access token retrieved, length:', accessToken.length);
@@ -794,7 +781,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [eventId, selectedImage, caption, supabase, setIsModalOpen]);
+  }, [eventId, selectedImage, caption, session, setIsModalOpen]);
 
   // Memoize the delete function to maintain a stable reference
   const deleteImage = React.useCallback(async (e, imageId) => {
@@ -807,24 +794,10 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     const loadingToast = toast.loading('Deleting image...');
     
     try {
-      // Get auth token
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error when deleting:', sessionError);
-        throw new Error('Authentication required - could not retrieve session');
-      }
-      
-      if (!sessionData || !sessionData.session) {
-        console.error('No session found when deleting');
-        throw new Error('Authentication required - no session found');
-      }
-      
-      const accessToken = sessionData.session.access_token;
-      
+      const accessToken = session?.access_token;
       if (!accessToken) {
-        console.error('No access token in session when deleting');
-        throw new Error('Authentication required - no access token');
+        toast.error('Authentication required - no access token');
+        return;
       }
       
       console.log('Access token for delete retrieved, length:', accessToken.length);
@@ -870,7 +843,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       toast.dismiss(loadingToast);
       toast.error(error.message || 'Failed to delete image');
     }
-  }, [eventId, images, currentSlideIndex, slideshowOpen, closeSlideshow, supabase]);
+  }, [eventId, images, currentSlideIndex, slideshowOpen, closeSlideshow, session]);
 
   // Open upload modal
   const openModal = React.useCallback(() => {

@@ -94,7 +94,7 @@ export async function getServerSideProps({ params, req, res }) {
 export default function EventBracket() {
   const router = useRouter();
   const { id } = router.query;
-  const { user, supabase } = useAuth();
+  const { user, supabase, session } = useAuth();
   const [event, setEvent] = useState(null);
   const [bracketData, setBracketData] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -281,11 +281,8 @@ export default function EventBracket() {
     setError(null);
 
     try {
-      // Get the session for authentication
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData?.session?.access_token) {
-        console.error('Authentication error:', sessionError || 'No access token');
+      const accessToken = session?.access_token;
+      if (!accessToken) {
         throw new Error('Authentication token not available');
       }
 
@@ -294,7 +291,7 @@ export default function EventBracket() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       });
 
@@ -348,11 +345,8 @@ export default function EventBracket() {
     setError(null);
 
     try {
-      // Get the session for authentication
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData?.session?.access_token) {
-        console.error('Authentication error:', sessionError || 'No access token');
+      const accessToken = session?.access_token;
+      if (!accessToken) {
         throw new Error('Authentication token not available');
       }
 
@@ -361,7 +355,7 @@ export default function EventBracket() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           matchId: selectedMatch.id,
@@ -400,11 +394,8 @@ export default function EventBracket() {
     setLoading(true);
     
     try {
-      // Get the session for authentication
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData?.session?.access_token) {
-        console.error('Authentication error:', sessionError || 'No access token');
+      const accessToken = session?.access_token;
+      if (!accessToken) {
         throw new Error('Authentication token not available');
       }
       
@@ -413,7 +404,7 @@ export default function EventBracket() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         }
       });
       

@@ -53,6 +53,7 @@ export const AuthProvider = ({ children, onError }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const supabaseRef = useRef(null);
+  const [lockManagerError, setLockManagerError] = useState(null);
 
   // Initialize BroadcastChannel for cross-tab communication
   const [broadcastChannel, setBroadcastChannel] = useState(null);
@@ -224,38 +225,40 @@ export const AuthProvider = ({ children, onError }) => {
           }
         }
         
-        let { data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession();
-        
-        console.log('Auth: Initial session check', session ? 'Found session' : 'No session found'); // Debug log
+        if (typeof window !== 'undefined' && !('locks' in navigator)) {
+          setLockManagerError('Your browser does not support the LockManager API required for secure authentication. Please use a modern browser like Chrome, Firefox, or Edge.');
+          setAuthState(prev => ({ ...prev, loading: false, initialized: true }));
+          return;
+        }
 
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          // Try to recover by refreshing the session
+        let session, sessionError;
+        for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            console.log('Auth: Attempting to refresh session after error');
-            const { data: refreshData } = await supabaseRef.current.auth.refreshSession();
-            if (refreshData?.session) {
-              console.log('Auth: Session refresh successful');
-              // Continue with the refreshed session
-              session = refreshData.session;
+            ({ data: { session }, error: sessionError } = await supabaseRef.current.auth.getSession());
+            if (!sessionError) break;
+            if (sessionError.name && sessionError.name.includes('Lock')) {
+              // LockManager error, retry
+              await new Promise(res => setTimeout(res, attempt * 1000));
+              continue;
             } else {
-              console.log('Auth: Session refresh failed, continuing without session');
-              setAuthState(prev => ({
-                ...prev,
-                loading: false,
-                initialized: true
-              }));
+              break;
+            }
+          } catch (err) {
+            if (err.name && err.name.includes('Lock')) {
+              // LockManager error, retry
+              await new Promise(res => setTimeout(res, attempt * 1000));
+              continue;
+            } else {
+              setLockManagerError('Authentication failed due to a browser or system error. Please refresh, close other tabs, or try a different browser.');
+              setAuthState(prev => ({ ...prev, loading: false, initialized: true }));
               return;
             }
-          } catch (refreshError) {
-            console.error('Session refresh error:', refreshError);
-            setAuthState(prev => ({
-              ...prev,
-              loading: false,
-              initialized: true
-            }));
-            return;
           }
+        }
+        if (sessionError && sessionError.name && sessionError.name.includes('Lock')) {
+          setLockManagerError('Authentication failed due to a browser LockManager error. Please close other tabs of this app, refresh, or try a different browser.');
+          setAuthState(prev => ({ ...prev, loading: false, initialized: true }));
+          return;
         }
         
         if (session?.user) {
@@ -1318,6 +1321,12 @@ export const AuthProvider = ({ children, onError }) => {
 
   return (
     <AuthContext.Provider value={value}>
+      {lockManagerError && (
+        <div style={{color: 'red', background: '#fff3cd', padding: 16, borderRadius: 8, margin: 16, border: '1px solid #ffeeba'}}>
+          <h2>Authentication Error</h2>
+          <p>{lockManagerError}</p>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );
