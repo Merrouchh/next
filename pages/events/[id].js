@@ -474,6 +474,58 @@ export default function EventDetail() {
       if (!id) return;
       
       try {
+        // For old devices, use simpler approach
+        if (isOldDevice) {
+          console.log('Old device detected, using simplified loading');
+          
+          // Simpler fetch for old devices
+          const response = await fetch(`/api/events/${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch event: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const eventData = data.event || data;
+          
+          if (!eventData) {
+            throw new Error("Invalid event data format");
+          }
+          
+          setEvent(eventData);
+          setLoading(false);
+          
+          // For old devices, skip complex auth operations and just show basic event info
+          setRegistrationStatus(prev => ({
+            ...prev,
+            isLoading: false,
+            registeredCount: eventData.registered_count || 0,
+            registrationLimit: eventData.registration_limit
+          }));
+          
+          // Simple bracket fetch for old devices
+          try {
+            const bracketResponse = await fetch(`/api/events/${id}/bracket`);
+            if (bracketResponse.ok) {
+              const bracketData = await bracketResponse.json();
+              setBracketState({ data: bracketData, loading: false });
+            } else {
+              setBracketState({ data: null, loading: false });
+            }
+          } catch (bracketError) {
+            console.log('Bracket fetch failed for old device:', bracketError);
+            setBracketState({ data: null, loading: false });
+          }
+          
+          return; // Exit early for old devices
+        }
+        
+        // Modern device logic (original code)
         // Check if user is authenticated to include auth token
         let headers = {
           'Content-Type': 'application/json'
@@ -557,6 +609,7 @@ export default function EventDetail() {
           }, 1500);
         }
       } catch (error) {
+        console.error('Event fetch error:', error);
         handleError(error, {
           context: 'Fetch Event Details',
           onError: () => setLoading(false)
@@ -565,7 +618,7 @@ export default function EventDetail() {
     };
     
     fetchEventDetails();
-  }, [id, user, supabase, session]);
+  }, [id, user, supabase, session, isOldDevice]);
   
   // When the user state changes, update registration loading state
   useEffect(() => {
@@ -586,7 +639,13 @@ export default function EventDetail() {
   
   // Memoize the old device detection to avoid recalculating
   const isOldDevice = useMemo(() => {
-    return isIOS() && /OS [5-9]_/.test(navigator.userAgent);
+    try {
+      return isIOS() && /OS [5-9]_/.test(navigator.userAgent);
+    } catch (error) {
+      // Fallback for very old devices that might not support navigator properly
+      console.log('Device detection error, assuming old device:', error);
+      return true;
+    }
   }, []);
 
   // Set up real-time subscription for registration updates - optimized
@@ -595,82 +654,102 @@ export default function EventDetail() {
     
     const eventId = event.id;
     
-    // Subscribe to changes in the event_registrations table
-    const channel = supabase
-      .channel(`event-${eventId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'event_registrations',
-          filter: `event_id=eq.${eventId}`
-        },
-        (payload) => {
-          // For old devices, use debounced updates
-          if (isOldDevice) {
-            setTimeout(() => fetchLatestCount(), 1000);
-          } else {
+    // For old devices, skip real-time subscriptions and just use polling
+    if (isOldDevice) {
+      console.log('Old device: Skipping real-time subscriptions, using polling only');
+      
+      // Fetch initial count
+      fetchLatestCount();
+      
+      // Use more frequent polling for old devices since no real-time
+      const intervalId = setInterval(fetchLatestCount, 15000); // Every 15 seconds
+      
+      return () => {
+        clearInterval(intervalId);
+      };
+    }
+    
+    // Modern device logic with real-time subscriptions
+    try {
+      // Subscribe to changes in the event_registrations table
+      const channel = supabase
+        .channel(`event-${eventId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'event_registrations',
+            filter: `event_id=eq.${eventId}`
+          },
+          (payload) => {
             fetchLatestCount();
             toast.success('Someone just registered for this event!', { duration: 3000 });
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'event_registrations',
-          filter: `event_id=eq.${eventId}`
-        },
-        async (payload) => {
-          // Fetch the latest count and updated registration status
-          fetchLatestCount();
-          
-          // Also force refresh registration status for the user
-          if (user && session?.access_token) {
-            await fetchRegistrationStatus(session.access_token);
-          }
-          
-          if (!isOldDevice) {
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'event_registrations',
+            filter: `event_id=eq.${eventId}`
+          },
+          async (payload) => {
+            // Fetch the latest count and updated registration status
+            fetchLatestCount();
+            
+            // Also force refresh registration status for the user
+            if (user && session?.access_token) {
+              await fetchRegistrationStatus(session.access_token);
+            }
+            
             toast('Someone cancelled their registration', { duration: 3000 });
           }
-        }
-      )
-      // Add a more reliable way to detect unregistrations through UPDATE events
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'events',
-          filter: `id=eq.${eventId}`
-        },
-        async (payload) => {
-          // This will update the count if it changed
-          fetchLatestCount();
-          
-          // Also refresh registration status for the user
-          if (user && session?.access_token) {
-            await fetchRegistrationStatus(session.access_token);
+        )
+        // Add a more reliable way to detect unregistrations through UPDATE events
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'events',
+            filter: `id=eq.${eventId}`
+          },
+          async (payload) => {
+            // This will update the count if it changed
+            fetchLatestCount();
+            
+            // Also refresh registration status for the user
+            if (user && session?.access_token) {
+              await fetchRegistrationStatus(session.access_token);
+            }
           }
-        }
-      )
-      .subscribe();
-    
-    // Fetch the latest count when the component mounts
-    fetchLatestCount();
-    
-    // Set up a less aggressive periodic sync for old devices
-    const intervalMs = isOldDevice ? 30000 : 10000; // 30s for old devices, 10s for newer ones
-    const intervalId = setInterval(fetchLatestCount, intervalMs);
-    
-    // Clean up subscription when component unmounts
-    return () => {
-      supabase.channel(`event-${eventId}`).unsubscribe();
-      clearInterval(intervalId);
-    };
+        )
+        .subscribe();
+      
+      // Fetch the latest count when the component mounts
+      fetchLatestCount();
+      
+      // Less frequent polling for modern devices since they have real-time
+      const intervalId = setInterval(fetchLatestCount, 30000); // Every 30 seconds
+      
+      // Clean up subscription when component unmounts
+      return () => {
+        supabase.channel(`event-${eventId}`).unsubscribe();
+        clearInterval(intervalId);
+      };
+    } catch (error) {
+      console.error('Error setting up real-time subscription:', error);
+      
+      // Fallback to polling if real-time setup fails
+      fetchLatestCount();
+      const intervalId = setInterval(fetchLatestCount, 20000);
+      
+      return () => {
+        clearInterval(intervalId);
+      };
+    }
   }, [event?.id, supabase, session?.access_token, user, fetchLatestCount, isOldDevice]);
   
   // Fetch registration status
@@ -1153,16 +1232,53 @@ export default function EventDetail() {
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
     if (loading) {
-      // Shorter timeout for older devices
-      const timeoutMs = isIOS() ? 3000 : 5000;
+      // Much shorter timeout for old devices
+      const timeoutMs = isOldDevice ? 2000 : (isIOS() ? 3000 : 5000);
       const timeoutId = setTimeout(() => {
+        console.log('Loading timeout reached, forcing loading to false');
         setLoading(false);
-        toast.error('Loading is taking longer than expected. Please try refreshing the page.');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        
+        if (isOldDevice) {
+          // For old devices, just show basic message without toast (toast might not work)
+          console.log('Old device: Loading took too long');
+        } else {
+          toast.error('Loading is taking longer than expected. Please try refreshing the page.');
+        }
       }, timeoutMs);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [loading]);
+  }, [loading, isOldDevice]);
+
+  // Emergency fallback for old devices - force show content after very short delay
+  useEffect(() => {
+    if (isOldDevice && loading) {
+      const emergencyTimeoutId = setTimeout(() => {
+        console.log('Old device: Emergency timeout - forcing content to show');
+        setLoading(false);
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        
+        // If we still don't have event data, create minimal fallback
+        if (!event && id) {
+          setEvent({
+            id: id,
+            title: 'Event Details',
+            description: 'Loading event information...',
+            status: 'Loading',
+            date: null,
+            time: null,
+            location: 'Merrouch Gaming Center',
+            registered_count: 0,
+            registration_limit: null,
+            team_type: 'solo'
+          });
+        }
+      }, 1000); // Very short timeout for old devices
+      
+      return () => clearTimeout(emergencyTimeoutId);
+    }
+  }, [isOldDevice, loading, event, id]);
 
   // Add a function to fetch public bracket data
   const fetchPublicBracketData = async () => {
@@ -1241,7 +1357,18 @@ export default function EventDetail() {
                 teamState={teamState}
               />
               <div className={styles.eventContent}>
-                <EventDescription event={event} />
+                {/* Safe event description rendering for old devices */}
+                {isOldDevice ? (
+                  <div className={styles.eventDescription}>
+                    <h2>Event Description</h2>
+                    <p>{event.description || 'Event details will be displayed here.'}</p>
+                    {event.date && <p><strong>Date:</strong> {formatDate(event.date)}</p>}
+                    {event.time && <p><strong>Time:</strong> {event.time}</p>}
+                    {event.location && <p><strong>Location:</strong> {event.location}</p>}
+                  </div>
+                ) : (
+                  <EventDescription event={event} />
+                )}
                 
                 <EventActions
                   event={event}
@@ -1272,7 +1399,7 @@ export default function EventDetail() {
             </div>
             
             {/* Event Gallery Section */}
-            {event && (
+            {event && !isOldDevice && (
               <section className={styles.gallerySection}>
                 <h2 className={styles.sectionHeading}>
                   <FaImage /> Event Gallery
@@ -1287,6 +1414,14 @@ export default function EventDetail() {
                     />
                   )}
                 </div>
+              </section>
+            )}
+            
+            {/* Simplified gallery message for old devices */}
+            {event && isOldDevice && (
+              <section className={styles.gallerySection}>
+                <h2 className={styles.sectionHeading}>Event Gallery</h2>
+                <p>Gallery is not available on this device. Please use a modern browser to view event photos.</p>
               </section>
             )}
           </>
