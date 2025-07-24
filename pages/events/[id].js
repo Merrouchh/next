@@ -436,6 +436,17 @@ export default function EventDetail() {
   // Determine if this is a public view (no authenticated user)
   const isPublicView = !user;
 
+  // Memoize the old device detection to avoid recalculating
+  const isOldDevice = useMemo(() => {
+    try {
+      return isIOS() && /OS [5-9]_/.test(navigator.userAgent);
+    } catch (error) {
+      // Fallback for very old devices that might not support navigator properly
+      console.log('Device detection error, assuming old device:', error);
+      return true;
+    }
+  }, []);
+
   // Function to fetch the latest registration count - memoized
   const fetchLatestCount = useCallback(async () => {
     if (!event || !supabase) return;
@@ -636,17 +647,6 @@ export default function EventDetail() {
       }
     }
   }, [user, event]);
-  
-  // Memoize the old device detection to avoid recalculating
-  const isOldDevice = useMemo(() => {
-    try {
-      return isIOS() && /OS [5-9]_/.test(navigator.userAgent);
-    } catch (error) {
-      // Fallback for very old devices that might not support navigator properly
-      console.log('Device detection error, assuming old device:', error);
-      return true;
-    }
-  }, []);
 
   // Set up real-time subscription for registration updates - optimized
   useEffect(() => {

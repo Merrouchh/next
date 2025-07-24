@@ -1,57 +1,75 @@
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import React, { useMemo } from 'react';
 import { FaInfo } from 'react-icons/fa';
 import styles from '../../styles/EventDetail.module.css';
 
+// Safe device detection utility
+const isOldDevice = () => {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (!navigator || !navigator.userAgent) return false;
+    
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isOldIOS = /OS [5-9]_/.test(navigator.userAgent);
+    
+    return isIOS && isOldIOS;
+  } catch (error) {
+    console.log('Device detection error, assuming old device:', error);
+    return true; // Assume old device on error for safety
+  }
+};
+
+// Simple text renderer for old devices
+const SimpleTextRenderer = ({ content }) => {
+  const processedContent = useMemo(() => {
+    if (!content) return 'Event details will be displayed here.';
+    
+    // Simple text processing for old devices
+    return content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+      .replace(/\n/g, '<br/>') // Line breaks
+      .replace(/#{1,6}\s+(.*)/g, '<h3>$1</h3>') // Headers
+      .replace(/- (.*)/g, '• $1'); // Simple bullet points
+  }, [content]);
+
+  return (
+    <div 
+      className={styles.eventDescription}
+      dangerouslySetInnerHTML={{ __html: processedContent }}
+    />
+  );
+};
+
+// Lazy loading for markdown components (only for modern devices)
+const LazyMarkdownRenderer = React.lazy(() => {
+  return import('./MarkdownRenderer').catch(() => {
+    // Fallback if markdown renderer fails to load
+    return { default: SimpleTextRenderer };
+  });
+});
+
 const EventDescription = ({ event }) => {
+  const shouldUseSimpleRenderer = useMemo(() => {
+    return isOldDevice();
+  }, []);
+
   return (
     <section className={styles.eventDescriptionSection}>
       <h2 className={styles.sectionHeading}>
         <FaInfo /> Event Details
       </h2>
-      <div className={styles.eventDescription}>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-          components={{
-            // Custom link component that opens external links in new tab
-            a: ({ node, ...props }) => {
-              const isExternal = props.href?.startsWith('http');
-              return (
-                <a 
-                  {...props} 
-                  target={isExternal ? '_blank' : undefined}
-                  rel={isExternal ? 'noopener noreferrer' : undefined}
-                  className={styles.markdownLink}
-                />
-              );
-            },
-            // Custom heading components
-            h1: ({ node, ...props }) => <h1 className={styles.markdownH1} {...props} />,
-            h2: ({ node, ...props }) => <h2 className={styles.markdownH2} {...props} />,
-            h3: ({ node, ...props }) => <h3 className={styles.markdownH3} {...props} />,
-            // Custom list components
-            ul: ({ node, ...props }) => <ul className={styles.markdownList} {...props} />,
-            ol: ({ node, ...props }) => <ol className={styles.markdownList} {...props} />,
-            // Custom code components
-            code: ({ node, inline, ...props }) => (
-              inline ? 
-                <code className={styles.markdownInlineCode} {...props} /> :
-                <code className={styles.markdownCode} {...props} />
-            ),
-            // Custom blockquote
-            blockquote: ({ node, ...props }) => <blockquote className={styles.markdownBlockquote} {...props} />,
-            // Custom table components
-            table: ({ node, ...props }) => <table className={styles.markdownTable} {...props} />,
-            th: ({ node, ...props }) => <th className={styles.markdownTh} {...props} />,
-            td: ({ node, ...props }) => <td className={styles.markdownTd} {...props} />,
-          }}
-        >
-          {event.description}
-        </ReactMarkdown>
-      </div>
+      
+      {shouldUseSimpleRenderer ? (
+        <SimpleTextRenderer content={event.description} />
+      ) : (
+        <React.Suspense fallback={
+          <div className={styles.eventDescription}>
+            <p>Loading event details...</p>
+          </div>
+        }>
+          <LazyMarkdownRenderer event={event} />
+        </React.Suspense>
+      )}
     </section>
   );
 };
