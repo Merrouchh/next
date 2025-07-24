@@ -311,9 +311,10 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
             className={styles.deleteButton}
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(image.id);
+              onDelete(e, image.id);
             }}
             aria-label="Delete image"
+            title="Delete image"
           >
             <FaTrashAlt />
           </button>
@@ -701,9 +702,31 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     const loadingToast = toast.loading('Uploading and compressing image...');
     
     try {
-      const accessToken = session?.access_token;
+      // Wait for session to be available - retry up to 3 times with shorter intervals
+      let accessToken = session?.access_token;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!accessToken && retryCount < maxRetries) {
+        console.log(`[EventGallery] Waiting for session... attempt ${retryCount + 1}/${maxRetries}`);
+        
+        // Wait a bit and try to get the session again
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          accessToken = sessionData?.session?.access_token;
+        } catch (sessionError) {
+          console.error(`[EventGallery] Session fetch error:`, sessionError);
+        }
+        
+        retryCount++;
+      }
+      
       if (!accessToken) {
-        toast.error('Authentication required - no access token');
+        console.log(`[EventGallery] No access token available after ${maxRetries} retries`);
+        toast.dismiss(loadingToast);
+        toast.error('Authentication required - please try logging out and back in');
         setIsUploading(false);
         return;
       }
@@ -794,9 +817,31 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     const loadingToast = toast.loading('Deleting image...');
     
     try {
-      const accessToken = session?.access_token;
+      // Wait for session to be available - retry up to 3 times with shorter intervals
+      let accessToken = session?.access_token;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!accessToken && retryCount < maxRetries) {
+        console.log(`[EventGallery Delete] Waiting for session... attempt ${retryCount + 1}/${maxRetries}`);
+        
+        // Wait a bit and try to get the session again
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          accessToken = sessionData?.session?.access_token;
+        } catch (sessionError) {
+          console.error(`[EventGallery Delete] Session fetch error:`, sessionError);
+        }
+        
+        retryCount++;
+      }
+      
       if (!accessToken) {
-        toast.error('Authentication required - no access token');
+        console.log(`[EventGallery Delete] No access token available after ${maxRetries} retries`);
+        toast.dismiss(loadingToast);
+        toast.error('Authentication required - please try logging out and back in');
         return;
       }
       

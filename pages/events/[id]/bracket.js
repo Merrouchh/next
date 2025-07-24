@@ -18,8 +18,10 @@ import TournamentWinner from '../../../components/shared/TournamentWinner';
 export async function getServerSideProps({ params, req, res }) {
   const { id } = params;
   
-  // Disable caching to ensure fresh data after bracket regeneration
-  // Cache headers removed
+  // Disable all caching - always fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   
   // Metadata now handled in _document.js
   

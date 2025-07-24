@@ -1,11 +1,6 @@
 import FingerprintJS from '@fingerprintjs/fingerprintjs'
 
-let cachedVisitorId = new Map();
-
-// Add cleanup function
-export const cleanupVisitorIds = () => {
-  cachedVisitorId.clear();
-};
+// No caching - generate fresh visitor ID every time
 
 export const getVisitorId = async (userId = null) => {
   // Generate a session-specific component
@@ -25,11 +20,7 @@ export const getVisitorId = async (userId = null) => {
   // If user is logged in, use their ID as part of the fingerprint
   const userComponent = userId ? `user_${userId}` : 'anon';
   
-  // Check session-specific cache first
-  const sessionKey = `${userComponent}_${getSessionComponent()}`;
-  if (cachedVisitorId.has(sessionKey)) {
-    return cachedVisitorId.get(sessionKey);
-  }
+  // Generate fresh ID every time - no caching
 
   try {
     // Initialize FingerprintJS with enhanced options
@@ -71,21 +62,7 @@ export const getVisitorId = async (userId = null) => {
       `t_${timeComponent}`
     ].join('_');
 
-    // Cache the ID
-    cachedVisitorId.set(sessionKey, compositeId);
-
-    // Clean up old cache entries periodically
-    const cleanupOldEntries = () => {
-      const now = Date.now();
-      for (const [key, value] of cachedVisitorId.entries()) {
-        if (now - value.timestamp > 24 * 60 * 60 * 1000) { // 24 hours
-          cachedVisitorId.delete(key);
-        }
-      }
-    };
-
-    // Run cleanup every hour
-    setInterval(cleanupOldEntries, 60 * 60 * 1000);
+    // No caching - return fresh ID immediately
 
     return compositeId;
 

@@ -1,8 +1,7 @@
 import FingerprintJS from '@fingerprintjs/fingerprintjs'
 
 let fpPromise = null;
-// Add a local cache to prevent counting the same clip multiple times in a session
-const viewedClips = new Set();
+// No caching - allow multiple views per session for fresh tracking
 
 const getFingerprint = async () => {
   if (!fpPromise) {
@@ -37,12 +36,7 @@ export const trackView = async (clipId, viewerId = null, isAnonymous = false) =>
     throw new Error('Missing required parameters: clipId and viewerId are required');
   }
 
-  // Check if this clip has already been viewed in this session
-  const cacheKey = `${clipId}:${viewerId}`;
-  if (viewedClips.has(cacheKey)) {
-    console.log('[View Tracking] Already tracked in this session - skipping');
-    return null; // Return null to indicate no new count was recorded
-  }
+  // No caching - always track fresh views
 
   try {
     console.log('[View Tracking] Preparing request data');
@@ -82,8 +76,7 @@ export const trackView = async (clipId, viewerId = null, isAnonymous = false) =>
       throw new Error(data.error);
     }
 
-    // Add to cache after successful tracking
-    viewedClips.add(cacheKey);
+    // No caching - fresh tracking every time
     
     console.log('[View Tracking] Successfully recorded view, count:', data.viewCount);
     return data.viewCount;
@@ -126,8 +119,7 @@ export const trackView = async (clipId, viewerId = null, isAnonymous = false) =>
         return null;
       }
       
-      // Add to cache after successful tracking with fallback
-      viewedClips.add(cacheKey);
+          // No caching - fresh tracking every time
       
       console.log('[View Tracking] Fallback successful, count:', fallbackData.viewCount);
       return fallbackData.viewCount;

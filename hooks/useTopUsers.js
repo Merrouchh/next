@@ -11,12 +11,10 @@ export const useTopUsers = (limit = 10) => {
   
   const retryCountRef = useRef(0);
   const isMountedRef = useRef(true);
-  const cacheRef = useRef(null);
   
   const MAX_RETRIES = 3;
   const RETRY_DELAY = 2000;
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-  const REFRESH_INTERVAL = 2 * 60 * 1000; // 2 minutes refresh (reduced from 30s)
+  const REFRESH_INTERVAL = 30 * 1000; // 30 seconds refresh - no caching, always fresh
 
   // Cleanup on unmount
   useEffect(() => {
@@ -25,26 +23,8 @@ export const useTopUsers = (limit = 10) => {
     };
   }, []);
 
-  // Check if cached data is still valid
-  const isCacheValid = useCallback(() => {
-    if (!cacheRef.current) return false;
-    const now = Date.now();
-    return (now - cacheRef.current.timestamp) < CACHE_DURATION;
-  }, []);
-
-  // Fetch top users with caching and retry logic
+  // Fetch top users with retry logic - no caching
   const fetchUsers = useCallback(async (isRetry = false) => {
-    // Use cache if valid and not a retry
-    if (!isRetry && isCacheValid()) {
-      setState(prev => ({
-        ...prev,
-        users: cacheRef.current.data,
-        loading: false,
-        error: null
-      }));
-      return;
-    }
-
     setState(prev => ({ ...prev, loading: true }));
 
     try {
@@ -55,12 +35,6 @@ export const useTopUsers = (limit = 10) => {
         setTimeout(() => fetchUsers(true), RETRY_DELAY);
         return;
       }
-
-      // Update cache
-      cacheRef.current = {
-        data,
-        timestamp: Date.now()
-      };
 
       setState({
         users: data,
@@ -85,11 +59,10 @@ export const useTopUsers = (limit = 10) => {
         error: 'Unable to load users. Please try again later.'
       }));
     }
-  }, [limit, isCacheValid]);
+  }, [limit]);
 
-  // Force refresh (bypasses cache)
+  // Force refresh - always fetches fresh data
   const forceRefresh = useCallback(() => {
-    cacheRef.current = null;
     retryCountRef.current = 0;
     fetchUsers(false);
   }, [fetchUsers]);
@@ -99,7 +72,7 @@ export const useTopUsers = (limit = 10) => {
     fetchUsers(false);
   }, [fetchUsers]);
 
-  // Auto-refresh with reduced frequency
+  // Auto-refresh - always fetch fresh data
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible' && !state.loading) {
@@ -110,20 +83,18 @@ export const useTopUsers = (limit = 10) => {
     return () => clearInterval(interval);
   }, [fetchUsers, state.loading]);
 
-  // Refresh on visibility change (when user comes back to tab)
+  // Refresh on visibility change (when user comes back to tab) - always fresh data
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && !state.loading) {
-        // Only refresh if data is stale
-        if (!isCacheValid()) {
-          fetchUsers(false);
-        }
+        // Always refresh when tab becomes visible - no caching
+        fetchUsers(false);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchUsers, state.loading, isCacheValid]);
+  }, [fetchUsers, state.loading]);
 
   return {
     users: state.users,

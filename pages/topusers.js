@@ -7,8 +7,13 @@ import { processUserData, withPerformanceMonitoring } from '../utils/topUsersHel
 import { fetchTopUsers } from '../utils/api';
 import styles from '../styles/TopUsers.module.css';
 
-// Client-side rendering for better reliability
-export async function getStaticProps() {
+// Use server-side rendering to ensure fresh data every time
+export async function getServerSideProps({ res }) {
+  // Disable all caching - always fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   return {
     props: {
       initialUsers: [],

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env TURBOPACK=1 next dev --turbo",
+    "dev": "next dev",
     "dev:standard": "next dev",
     "dev:turbo": "cross-env TURBOPACK=1 next dev --turbo",
     "dev:turbo:trace": "cross-env TURBOPACK=1 NEXT_TURBOPACK_TRACING=1 next dev --turbo",

@@ -517,40 +517,86 @@ async function monitorQueue() {
       let isYourTurn = false;
       let notificationReason = '';
 
-      // 1. New joiner (created in last 30 seconds, never notified)
-      if (!lastNotified && (now - createdAt) < 30000) {
+      // Calculate time since last notification for debugging
+      const timeSinceLastNotification = lastNotified ? (now - lastNotified) / 1000 / 60 : null; // in minutes
+
+      // SMART NOTIFICATION SYSTEM 
+      // - Notify once when user joins
+      // - Notify immediately when position improves  
+      // - For position #1: Max 3 "your turn" reminders (2 min apart), then stop
+      // - For positions 2-5: Max 2 periodic updates (15 min apart), then stop
+      // - Positions 6+: No notifications (too far back)
+      // - Counter resets when position changes
+      shouldNotify = false;
+      isYourTurn = false;
+      notificationReason = '';
+
+      // 1. New joiner (never been notified)
+      if (!lastNotified) {
         shouldNotify = true;
         isYourTurn = entry.position === 1;
-        notificationReason = 'new_joiner';
+        notificationReason = 'first_notification';
+        Logger.info(`🔔 ${entry.user_name} - First time notification (position ${entry.position})`);
       }
-      // 2. Position advance (moved forward ANY amount)
+      // 2. Position improved (moved up in queue)
       else if (entry.last_notified_position && entry.position < entry.last_notified_position) {
         shouldNotify = true;
         isYourTurn = entry.position === 1;
-        notificationReason = `advanced_from_${entry.last_notified_position}_to_${entry.position}`;
-        // Reset periodic_notification_count on position advance
+        notificationReason = `position_improved_${entry.last_notified_position}_to_${entry.position}`;
+        Logger.info(`🔔 ${entry.user_name} - Position improved (${entry.last_notified_position} → ${entry.position})`);
+        
+        // Reset notification count when position improves
         await supabase
           .from('computer_queue')
           .update({ periodic_notification_count: 0 })
           .eq('id', entry.id);
       }
-      // 3. "Your turn" for position 1 (if not notified recently)
-      else if (entry.position === 1 && (!lastNotified || (now - lastNotified) > 120000)) {
-        shouldNotify = true;
-        isYourTurn = true;
-        notificationReason = 'your_turn';
+      // 3. Smart retry system for position #1 (Your turn!)
+      else if (entry.position === 1) {
+        const notificationCount = entry.periodic_notification_count || 0;
+        const minTimeBetweenRetries = 120000; // 2 minutes between retries
+        
+        // Only retry if:
+        // - Haven't exceeded max attempts (3 total)
+        // - Enough time has passed since last notification
+        // - Still at the same position as last notification
+        if (notificationCount < 3 && 
+            (!lastNotified || (now - lastNotified) > minTimeBetweenRetries) &&
+            entry.last_notified_position === entry.position) {
+          
+          shouldNotify = true;
+          isYourTurn = true;
+          notificationReason = `your_turn_attempt_${notificationCount + 1}`;
+          Logger.info(`🔔 ${entry.user_name} - Your turn reminder #${notificationCount + 1}/3 (last: ${timeSinceLastNotification?.toFixed(1)}m ago)`);
+        } else {
+          Logger.info(`⏭️ ${entry.user_name} (pos 1) - Max attempts reached (${notificationCount}/3) or too soon`);
+        }
       }
-      // 4. Periodic update (every 15 minutes for positions 2–5, max 3 times)
-      else if (
-        entry.position >= 2 &&
-        entry.position <= 5 &&
-        lastNotified &&
-        (now - lastNotified) > 900000 &&
-        (entry.periodic_notification_count === undefined || entry.periodic_notification_count < 3)
-      ) {
-        shouldNotify = true;
-        isYourTurn = false;
-        notificationReason = 'periodic_update';
+      // 4. Periodic updates for positions 2-5 (less frequent)
+      else if (entry.position >= 2 && entry.position <= 5) {
+        const notificationCount = entry.periodic_notification_count || 0;
+        const minTimeBetweenUpdates = 900000; // 15 minutes between periodic updates
+        
+        // Only send periodic updates:
+        // - Max 2 times per position
+        // - 15 minutes between updates
+        // - Still at same position
+        if (notificationCount < 2 && 
+            lastNotified && 
+            (now - lastNotified) > minTimeBetweenUpdates &&
+            entry.last_notified_position === entry.position) {
+          
+          shouldNotify = true;
+          isYourTurn = false;
+          notificationReason = `periodic_update_${notificationCount + 1}`;
+          Logger.info(`🔔 ${entry.user_name} - Periodic update #${notificationCount + 1}/2 (position ${entry.position})`);
+        } else {
+          Logger.info(`⏭️ ${entry.user_name} (pos ${entry.position}) - No periodic update needed (${notificationCount}/2 sent)`);
+        }
+      }
+      // 5. No notifications for positions 6+ (too far back)
+      else {
+        Logger.info(`⏭️ ${entry.user_name} (pos ${entry.position}) - Too far back for notifications`);
       }
 
       if (shouldNotify) {
@@ -565,13 +611,16 @@ async function monitorQueue() {
 
         if (result.success) {
           await updateNotificationStatus(entry.id, entry.position);
-          // Increment periodic_notification_count if this was a periodic update
-          if (notificationReason === 'periodic_update') {
+          
+          // Increment notification count for smart retry system
+          if (notificationReason.startsWith('your_turn_attempt_') || 
+              notificationReason.startsWith('periodic_update_')) {
             await supabase
               .from('computer_queue')
               .update({ periodic_notification_count: (entry.periodic_notification_count || 0) + 1 })
               .eq('id', entry.id);
           }
+          
           Logger.success(`✅ Notified ${entry.user_name} about ${notificationReason}`);
         }
 

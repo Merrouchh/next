@@ -1,35 +1,15 @@
 /** @type {import('next').NextConfig} */
-// Only load bundle analyzer when specifically requested
-let withBundleAnalyzer = (config) => config;
-if (process.env.ANALYZE === 'true') {
-  try {
-    withBundleAnalyzer = require('@next/bundle-analyzer')({
-      enabled: true,
-    });
-  } catch (error) {
-    console.warn('Bundle analyzer not available:', error.message);
-  }
-}
 
+// Simple, clean Next.js configuration - no Turbopack
 const nextConfig = {
-  // Enable React strict mode only in development
+  // Enable React strict mode
   reactStrictMode: true,
-
-  // Disable error overlay in development
-  onDemandEntries: {
-    // Period (in ms) where the server will keep pages in the buffer
-    maxInactiveAge: 25 * 1000,
-    // Number of pages that should be kept simultaneously without being disposed
-    pagesBufferLength: 2,
-  },
 
   // Environment variables
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
-    // Disable the overlay in development
-    NEXT_PUBLIC_DISABLE_ERROR_OVERLAY: 'true',
   },
 
   // Image optimization settings
@@ -45,30 +25,17 @@ const nextConfig = {
         hostname: 'unpkg.com'
       }
     ],
-    // Only allow SVG from trusted sources
-    dangerouslyAllowSVG: false,
     domains: ['merrouchgaming.com'],
   },
 
   // ESLint configuration
   eslint: {
-    // Don't ignore during builds - let's fix the errors instead
     ignoreDuringBuilds: false,
     dirs: ['pages', 'components', 'lib', 'utils', 'contexts']
   },
 
-  // Compiler options
-  compiler: {
-    // Keep React properties in development
-    reactRemoveProperties: process.env.NODE_ENV === 'production',
-    // Enable console removal in production
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
-  },
-
-  // Simplified webpack configuration
-  webpack: (config, { isServer }) => {
+  // Standard webpack configuration - no Turbopack
+  webpack: (config, { isServer, dev }) => {
     config.infrastructureLogging = { level: 'error' };
 
     config.resolve.fallback = {
@@ -83,6 +50,31 @@ const nextConfig = {
         ...config.resolve.fallback,
         punycode: false,
       };
+    }
+
+    // Remove console logs in production builds
+    if (!dev) {
+      // Find TerserPlugin in optimization.minimizer
+      if (config.optimization && config.optimization.minimizer) {
+        config.optimization.minimizer.forEach(plugin => {
+          if (plugin.constructor.name === 'TerserPlugin') {
+            if (!plugin.options.terserOptions) {
+              plugin.options.terserOptions = {};
+            }
+            if (!plugin.options.terserOptions.compress) {
+              plugin.options.terserOptions.compress = {};
+            }
+            // Remove console logs but keep console.error for critical errors
+            plugin.options.terserOptions.compress.drop_console = true;
+            plugin.options.terserOptions.compress.pure_funcs = [
+              'console.log',
+              'console.info', 
+              'console.debug',
+              'console.warn'
+            ];
+          }
+        });
+      }
     }
 
     return config;
@@ -102,67 +94,45 @@ const nextConfig = {
     ];
   },
 
-  // Security headers (cache rules removed)
+  // Headers for cache control - no cache for pages, allow Next.js to handle its own assets  
   async headers() {
     return [
       {
-        // Basic security headers for all pages
-        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot)).*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
-          }
-        ]
-      },
-      {
-        // Cache static assets for 1 year
-        source: '/_next/static/(.*)',
+        source: '/((?!_next).*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
+            value: 'no-cache, no-store, must-revalidate'
+          },
+          {
+            key: 'Pragma',
+            value: 'no-cache'
+          },
+          {
+            key: 'Expires',
+            value: '0'
           }
         ]
       }
-      // Note: Static asset caching (images, fonts) is handled by Cloudflare _headers file
-      // to avoid regex pattern conflicts with Next.js header source parsing
     ];
   },
 
   // Security optimizations
   poweredByHeader: false,
-  generateEtags: true,
+  generateEtags: false,
   compress: true,
 
-  // Add this section
-  experimental: {
-    scrollRestoration: true,
-    // Only apply forceSwcTransforms when not using Turbopack
-    ...(process.env.TURBOPACK !== '1' && {
-      forceSwcTransforms: true,
-    }),
+  // Remove console logs in production builds (Next.js built-in feature)
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error'] // Keep console.error for critical debugging
+    } : false,
   },
 
-  // TypeScript and ESLint - Only ignore in production
-
-
-  // Development features
-  ...(process.env.NODE_ENV === 'production' && {
-    // Remove deprecated config
-  })
+  // Experimental features - minimal and safe
+  experimental: {
+    scrollRestoration: true,
+  },
 };
 
 // Validate required environment variables
@@ -173,13 +143,4 @@ for (const env of requiredEnvs) {
   }
 }
 
-// Add proper error handling for process events
-['SIGTERM', 'SIGINT', 'uncaughtException', 'unhandledRejection'].forEach(signal => {
-  process.on(signal, (error) => {
-    console.error(`Received ${signal}${error ? ': ' + error : ''}. Performing cleanup...`);
-    // Add any cleanup logic here
-    process.exit(signal === 'uncaughtException' ? 1 : 0);
-  });
-});
-
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = nextConfig;

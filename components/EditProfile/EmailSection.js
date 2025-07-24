@@ -499,10 +499,15 @@ const EmailSection = ({
     const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
-    if (diffHrs > 0) {
-      return `${diffHrs} hour${diffHrs > 1 ? 's' : ''} and ${diffMins} minute${diffMins > 1 ? 's' : ''}`;
+    // Smart formatting that only shows relevant units
+    if (diffHrs > 0 && diffMins > 0) {
+      return `${diffHrs}h ${diffMins}m`;
+    } else if (diffHrs > 0) {
+      return `${diffHrs}h`;
+    } else if (diffMins > 0) {
+      return `${diffMins}m`;
     } else {
-      return `${diffMins} minute${diffMins > 1 ? 's' : ''}`;
+      return 'Less than 1 minute';
     }
   };
 

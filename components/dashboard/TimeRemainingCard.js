@@ -2,6 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { AiOutlineClockCircle } from 'react-icons/ai';
 import DashboardCard from './DashboardCard';
+import { formatTimeRemaining } from '../../utils/dashboardHelpers';
 import styles from '../../styles/Dashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 
@@ -9,6 +10,7 @@ const TimeRemainingCard = React.memo(({ timeInfo }) => {
   const router = useRouter();
 
   const hasTime = timeInfo?.total && (timeInfo.total.hours > 0 || timeInfo.total.minutes > 0);
+  const formattedTime = hasTime ? formatTimeRemaining(timeInfo.total.hours, timeInfo.total.minutes) : null;
 
   return (
     <DashboardCard 
@@ -17,13 +19,13 @@ const TimeRemainingCard = React.memo(({ timeInfo }) => {
       className={styles.mediumCard}
     >
       <div className={styles.timeInfoContainer}>
-        {hasTime ? (
-          // Show total time remaining
+        {hasTime && formattedTime ? (
+          // Show total time remaining with smart formatting
           <div className={styles.timePackage}>
             <div className={styles.packageLabel}>TIME REMAINING</div>
             <div className={styles.packageTime}>
               <span className={styles.totalTime}>
-                {timeInfo.total.hours}h {timeInfo.total.minutes}m
+                {formattedTime}
               </span>
             </div>
           </div>

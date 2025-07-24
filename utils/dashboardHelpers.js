@@ -61,6 +61,31 @@ export const hasAnyTime = (timeInfo) => {
   return timeInfo?.total && (timeInfo.total.hours > 0 || timeInfo.total.minutes > 0);
 };
 
+// Smart time formatter that only shows relevant units
+export const formatTimeRemaining = (hours, minutes) => {
+  // If no time at all
+  if (hours === 0 && minutes === 0) {
+    return null;
+  }
+  
+  // If only minutes (less than 1 hour)
+  if (hours === 0 && minutes > 0) {
+    return `${minutes}m`;
+  }
+  
+  // If hours and minutes
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  
+  // If only hours (exact hours, no minutes)
+  if (hours > 0 && minutes === 0) {
+    return `${hours}h`;
+  }
+  
+  return null;
+};
+
 export const createNavigationHandler = (router) => (path) => async (e) => {
   if (e) e.preventDefault();
   try {

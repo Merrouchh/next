@@ -10,14 +10,11 @@ import { createClient as createServerClient } from '../utils/supabase/server-pro
 import { MdChevronRight } from 'react-icons/md';
 import UserLoginModal from '../components/UserLoginModal';
 
-// We can remove cache headers since they're handled globally in next.config.js
 export const getServerSideProps = async ({ res }) => {
-  // Set cache control headers
-  res.setHeader(
-    'Cache-Control',
-    'private, no-cache, no-store, must-revalidate, max-age=0'
-  );
-  // Cache headers removed
+  // Disable all caching - always fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   try {
     const computers = await fetchComputers();
@@ -359,7 +356,14 @@ const useQueueSystem = (user, supabase) => {
     setIsJoiningQueue(true);
     
     try {
-      const accessToken = supabase.auth.getSession().then(res => res.data.session?.access_token);
+      // Properly await the session to get the access token
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        alert('Authentication required. Please log in again.');
+        return false;
+      }
 
       const response = await fetch('/api/queue/join', {
         method: 'POST',
@@ -398,7 +402,14 @@ const useQueueSystem = (user, supabase) => {
     if (!userInQueue || !confirm('Are you sure you want to leave the queue?')) return;
     
     try {
-      const accessToken = supabase.auth.getSession().then(res => res.data.session?.access_token);
+      // Properly await the session to get the access token
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        alert('Authentication required. Please log in again.');
+        return false;
+      }
 
       const response = await fetch('/api/queue/join', {
         method: 'DELETE',
@@ -702,12 +713,31 @@ const AvailableComputers = () => {
     if (queueStatus && queueStatus.is_active) {
       // If user is in queue
       if (userInQueue) {
-        // Allow position #1 to login directly
-        if (userInQueue.position === 1) {
-          // Position #1 can login - continue with normal login process
+        // NEW LOGIC: Check if user is #1 in their specific queue type
+        const canLoginToThisComputer = await checkQueueEligibility(computer, userInQueue);
+        
+        if (canLoginToThisComputer) {
+          // User is eligible - continue with normal login process
+          console.log(`User is #1 in ${userInQueue.computer_type} queue and can login to ${computer.type} computer`);
         } else {
-          // Other positions must wait
-          alert(`You are currently in the queue at position ${userInQueue.position}. Please wait for your turn.`);
+          // User must wait - not eligible for this computer type
+          const computerType = computer.type.toLowerCase();
+          const computerTypeLabel = computerType === 'top' ? 'top floor' : 'bottom floor';
+          const breakdown = await getQueueBreakdownBeforeUser(userInQueue);
+          
+          let message = `You are #${breakdown.position} for ${computerTypeLabel} computers.`;
+          
+          // Add breakdown of who's ahead
+          const ahead = [];
+          if (breakdown.anyAhead > 0) ahead.push(`${breakdown.anyAhead} any`);
+          if (breakdown.bottomAhead > 0) ahead.push(`${breakdown.bottomAhead} bottom`);
+          if (breakdown.topAhead > 0) ahead.push(`${breakdown.topAhead} top`);
+          
+          if (ahead.length > 0) {
+            message += ` ${ahead.join(', ')} ahead of you.`;
+          }
+          
+          alert(message);
           return;
         }
       } else {
@@ -755,6 +785,179 @@ const AvailableComputers = () => {
       alert("An error occurred. Please try again.");
     }
   };
+
+  // Helper function to check if user can login to specific computer based on queue type
+  const checkQueueEligibility = async (computer, userQueueEntry) => {
+    const computerType = computer.type.toLowerCase(); // 'top' or 'bottom'
+    const userQueueType = userQueueEntry.computer_type; // 'any', 'bottom', 'top'
+    
+    // Check if computer type matches user's queue preference
+    if (userQueueType === 'bottom' && computerType === 'top') {
+      return false; // Bottom queue user can't login to top computer
+    }
+    if (userQueueType === 'top' && computerType !== 'top') {
+      return false; // Top queue user can't login to bottom computer  
+    }
+    
+    // Get user's position among ALL people who could take this computer type
+    // For bottom computers: check among "any" + "bottom" queues
+    // For top computers: check among "any" + "top" queues
+    const eligibleQueueTypes = computerType === 'top' 
+      ? ['any', 'top'] 
+      : ['any', 'bottom'];
+    
+    const positionAmongEligible = await getUserPositionAmongEligibleQueues(eligibleQueueTypes);
+    return positionAmongEligible === 1;
+  };
+
+  // Helper function to get user's position within their specific queue type
+  const getUserPositionInQueueType = async (queueType) => {
+    try {
+      const { data: queueEntries, error } = await supabase
+        .from('computer_queue')
+        .select('user_id, position')
+        .eq('computer_type', queueType)
+        .eq('status', 'waiting')
+        .order('position');
+      
+      if (error || !queueEntries) {
+        console.error('Error fetching queue entries:', error);
+        return 999; // Return high number to prevent login
+      }
+      
+      // Find user's position within this queue type (1-indexed)
+      const userIndex = queueEntries.findIndex(entry => entry.user_id === user.id);
+      return userIndex === -1 ? 999 : userIndex + 1;
+    } catch (error) {
+      console.error('Error calculating queue position:', error);
+      return 999;
+    }
+  };
+
+  // Helper function to get user's position among all people eligible for a computer type
+  const getUserPositionAmongEligibleQueues = async (eligibleQueueTypes) => {
+    try {
+      const { data: queueEntries, error } = await supabase
+        .from('computer_queue')
+        .select('user_id, position, computer_type')
+        .in('computer_type', eligibleQueueTypes)
+        .eq('status', 'waiting')
+        .order('position'); // Order by global position to maintain FIFO fairness
+      
+      if (error || !queueEntries) {
+        console.error('Error fetching eligible queue entries:', error);
+        return 999; // Return high number to prevent login
+      }
+      
+      // Find user's position among all eligible people (1-indexed)
+      const userIndex = queueEntries.findIndex(entry => entry.user_id === user.id);
+      return userIndex === -1 ? 999 : userIndex + 1;
+    } catch (error) {
+      console.error('Error calculating position among eligible queues:', error);
+      return 999;
+    }
+  };
+
+  // Cache for queue breakdown to prevent unnecessary API calls
+  const queueBreakdownCache = useRef(new Map());
+  const queueBreakdownCacheTime = useRef(new Map());
+
+  // Helper function to get breakdown of who's ahead of the user (with caching)
+  const getQueueBreakdownBeforeUser = useCallback(async (userQueueEntry) => {
+    // Use stable values for cache key, not object properties that might change reference
+    const userId = userQueueEntry.user_id || userQueueEntry.id;
+    const userPos = userQueueEntry.position;
+    const compType = userQueueEntry.computer_type;
+    const cacheKey = `${userId}-${userPos}-${compType}`;
+    const now = Date.now();
+    
+    // Check if we have cached data that's less than 12 seconds old (longer cache)
+    if (queueBreakdownCache.current.has(cacheKey)) {
+      const cacheTime = queueBreakdownCacheTime.current.get(cacheKey) || 0;
+      if (now - cacheTime < 12000) { // 12 seconds cache to span multiple polling intervals
+        return queueBreakdownCache.current.get(cacheKey);
+      }
+    }
+
+    try {
+      // Get all queue entries that could compete with this user
+      let eligibleQueueTypes = [];
+      
+      if (userQueueEntry.computer_type === 'any') {
+        eligibleQueueTypes = ['any', 'bottom', 'top']; // Any queue competes with everyone
+      } else if (userQueueEntry.computer_type === 'bottom') {
+        eligibleQueueTypes = ['any', 'bottom']; // Bottom competes with any + bottom
+      } else if (userQueueEntry.computer_type === 'top') {
+        eligibleQueueTypes = ['any', 'top']; // Top competes with any + top
+      }
+
+      const { data: queueEntries, error } = await supabase
+        .from('computer_queue')
+        .select('user_id, position, computer_type')
+        .in('computer_type', eligibleQueueTypes)
+        .eq('status', 'waiting')
+        .order('position');
+      
+      if (error || !queueEntries) {
+        console.error('Error fetching queue breakdown:', error);
+        return { position: 999, anyAhead: 0, bottomAhead: 0, topAhead: 0 };
+      }
+      
+      // Find user's position among eligible people
+      const userIndex = queueEntries.findIndex(entry => entry.user_id === user.id);
+      if (userIndex === -1) {
+        return { position: 999, anyAhead: 0, bottomAhead: 0, topAhead: 0 };
+      }
+      
+      // Count people ahead of the user by queue type
+      const peopleAhead = queueEntries.slice(0, userIndex);
+      const breakdown = {
+        position: userIndex + 1,
+        anyAhead: peopleAhead.filter(entry => entry.computer_type === 'any').length,
+        bottomAhead: peopleAhead.filter(entry => entry.computer_type === 'bottom').length,
+        topAhead: peopleAhead.filter(entry => entry.computer_type === 'top').length
+      };
+      
+      // Cache the result
+      queueBreakdownCache.current.set(cacheKey, breakdown);
+      queueBreakdownCacheTime.current.set(cacheKey, now);
+      
+      return breakdown;
+    } catch (error) {
+      console.error('Error getting queue breakdown:', error);
+      return { position: 999, anyAhead: 0, bottomAhead: 0, topAhead: 0 };
+    }
+  }, [user?.id, supabase]);
+
+  // Clear queue breakdown cache only when queue counts actually change significantly
+  const previousQueueCounts = useRef({});
+  useEffect(() => {
+    const currentCounts = {
+      total: queueStatus?.current_queue_size || 0,
+      any: queueStatus?.any_queue_count || 0,
+      bottom: queueStatus?.bottom_queue_count || 0,
+      top: queueStatus?.top_queue_count || 0
+    };
+
+    // Only clear cache if counts actually changed, not just object reference
+    const countsChanged = Object.keys(currentCounts).some(
+      key => currentCounts[key] !== previousQueueCounts.current[key]
+    );
+
+    if (countsChanged && queueBreakdownCache.current) {
+      // Delay cache clear to let pending requests complete
+      const timeoutId = setTimeout(() => {
+        queueBreakdownCache.current.clear();
+        queueBreakdownCacheTime.current.clear();
+        console.log('Queue cache cleared due to count changes');
+      }, 2000);
+
+      previousQueueCounts.current = currentCounts;
+      return () => clearTimeout(timeoutId);
+    }
+
+    previousQueueCounts.current = currentCounts;
+  }, [queueStatus?.current_queue_size, queueStatus?.any_queue_count, queueStatus?.bottom_queue_count, queueStatus?.top_queue_count]);
 
   // Handle close login modal
   const handleCloseLoginModal = () => {
@@ -856,22 +1059,133 @@ const AvailableComputers = () => {
     return loadedComputers[computerId] === true;
   }, [loadedComputers]);
 
-  // Check if all computers are occupied (14/14)
-  const areAllComputersOccupied = useMemo(() => {
-    const totalComputers = 14; // 8 bottom + 6 top
-    const occupiedComputers = [...computers.normal, ...computers.vip].filter(computer => computer.isActive).length;
-    return occupiedComputers === totalComputers;
+      // Memoized component to display user's position in their specific queue type
+  const QueuePositionDisplay = useMemo(() => {
+    // Create a component that only updates when actual values change
+    return ({ userInQueue }) => {
+      const [displayText, setDisplayText] = useState('');
+      const [isStable, setIsStable] = useState(false);
+      
+      // Create stable values 
+      const userId = userInQueue?.user_id || userInQueue?.id;
+      const userPosition = userInQueue?.position;
+      const userComputerType = userInQueue?.computer_type;
+      
+      // Create a stable key based on actual values
+      const stableKey = userId && userPosition && userComputerType ? `${userId}-${userPosition}-${userComputerType}` : null;
+      const lastStableKey = useRef(null);
+      const lastDisplayText = useRef('');
+      
+      useEffect(() => {
+        if (!userInQueue || !stableKey) return;
+        
+        // If key hasn't changed, keep showing the same text
+        if (stableKey === lastStableKey.current && lastDisplayText.current) {
+          setDisplayText(lastDisplayText.current);
+          setIsStable(true);
+          return;
+        }
+        
+        // Only fetch new data if the key actually changed
+        let isCancelled = false;
+        
+        const fetchAndUpdateText = async () => {
+          try {
+            const breakdown = await getQueueBreakdownBeforeUser(userInQueue);
+            
+            if (isCancelled) return;
+            
+            const { position, anyAhead, bottomAhead, topAhead } = breakdown;
+            const isYourTurn = position === 1;
+            
+            const queueTypeLabel = userInQueue.computer_type === 'any' ? 'any computer' 
+              : userInQueue.computer_type === 'bottom' ? 'bottom floor computers' 
+              : 'top floor computers';
+
+            let newText = '';
+            if (isYourTurn) {
+              newText = `You're next for ${queueTypeLabel} - Your turn!`;
+            } else {
+              const ahead = [];
+              if (anyAhead > 0) ahead.push(`${anyAhead} any`);
+              if (bottomAhead > 0) ahead.push(`${bottomAhead} bottom`);
+              if (topAhead > 0) ahead.push(`${topAhead} top`);
+              
+              if (ahead.length > 0) {
+                newText = `${ahead.join(', ')} before your turn - you're #${position} for ${queueTypeLabel}`;
+              } else {
+                newText = `You're #${position} for ${queueTypeLabel}`;
+              }
+              
+              if (position !== userInQueue.position) {
+                newText += ` (#${userInQueue.position} overall)`;
+              }
+            }
+            
+            // Only update if text actually changed
+            if (newText !== lastDisplayText.current) {
+              setDisplayText(newText);
+              lastDisplayText.current = newText;
+              lastStableKey.current = stableKey;
+            }
+            setIsStable(true);
+            
+          } catch (error) {
+            console.error('Error fetching queue breakdown:', error);
+            // Keep showing previous text on error
+            if (lastDisplayText.current) {
+              setDisplayText(lastDisplayText.current);
+              setIsStable(true);
+            }
+          }
+        };
+        
+        fetchAndUpdateText();
+        
+        return () => {
+          isCancelled = true;
+        };
+      }, [stableKey]);
+
+      if (!userInQueue) return null;
+      
+      // Show stable text or fallback
+      const finalText = displayText || `You're #${userInQueue.position} in queue`;
+      
+      return (
+        <span className={styles.positionText} style={{ opacity: isStable ? 1 : 0.7 }}>
+          {finalText}
+        </span>
+      );
+    };
+  }, []); // Empty dependency array - component never changes
+
+  // Check occupancy status for different computer types
+  const computerOccupancy = useMemo(() => {
+    const bottomOccupied = computers.normal.filter(computer => computer.isActive).length;
+    const topOccupied = computers.vip.filter(computer => computer.isActive).length;
+    const totalOccupied = bottomOccupied + topOccupied;
+    
+    return {
+      bottom: {
+        occupied: bottomOccupied,
+        total: 8,
+        isFull: bottomOccupied === 8
+      },
+      top: {
+        occupied: topOccupied,
+        total: 6,
+        isFull: topOccupied === 6
+      },
+      all: {
+        occupied: totalOccupied,
+        total: 14,
+        isFull: totalOccupied === 14
+      }
+    };
   }, [computers.normal, computers.vip]);
 
-  // Determine if we should show "Join Queue" option
-  const shouldShowQueueJoin = useMemo(() => {
-    return (
-      areAllComputersOccupied && // All computers are full
-      !userInQueue && // User is not already in queue
-      !userAlreadyLoggedIn && // User is not already logged into a computer
-      (!queueStatus || (!queueStatus.is_active && queueStatus.current_queue_size === 0)) // Queue is inactive and empty
-    );
-  }, [areAllComputersOccupied, userInQueue, userAlreadyLoggedIn, queueStatus]);
+
 
   // If the page is not yet ready, show the full page loading screen
   if (!pageReady) {
@@ -916,72 +1230,82 @@ const AvailableComputers = () => {
           <span className={styles.liveText}>Live</span>
         </div>
 
-        {/* Queue Status Display */}
+        {/* Compact Queue Status Display with Breakdown */}
         {queueStatus && (queueStatus.is_active || queueStatus.current_queue_size > 0) && (
-          <div className={styles.queueStatus}>
-            <div className={styles.queueStatusHeader}>
-              <h3>🎮 {queueStatus.is_active ? 'Queue System Active' : 'People Waiting in Queue'}</h3>
-              {userInQueue ? (
-                <div className={styles.userQueueInfo}>
-                  <span className={styles.queuePosition}>
-                    You are position #{userInQueue.position || '?'}
-                    {userInQueue.position === 1 && <span style={{color: '#059669', fontWeight: 'bold'}}> - It's your turn!</span>}
-                  </span>
-                  <button className={styles.leaveQueueButton} onClick={leaveQueue}>
-                    Leave Queue
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.queueInfo}>
-                  <span>{queueStatus.current_queue_size} people waiting</span>
-                  {queueStatus.allow_online_joining && (
-                    <button 
-                      className={styles.joinQueueButton} 
-                      onClick={() => setShowQueueModal(true)}
-                      disabled={isJoiningQueue}
-                    >
-                      {isJoiningQueue ? 'Joining...' : 'Join Queue'}
-                    </button>
-                  )}
-                </div>
+          <div className={styles.compactQueueStatus}>
+            <div className={styles.queueHeader}>
+              <h3>🎮 Queue Active ({queueStatus.current_queue_size} waiting)</h3>
+              {queueStatus.allow_online_joining && !userInQueue && !userAlreadyLoggedIn && (
+                <button 
+                  className={styles.compactJoinButton} 
+                  onClick={() => setShowQueueModal(true)}
+                  disabled={isJoiningQueue}
+                >
+                  {isJoiningQueue ? 'Joining...' : 'Join'}
+                </button>
               )}
             </div>
-            <p className={styles.queueMessage}>
-              {userInQueue 
-                ? (userInQueue.position === 1 ? "🎉 It's your turn! " : `Estimated wait time: ${userInQueue.position * 5} minutes`)
-                : queueStatus.allow_online_joining 
-                  ? "People are waiting for computers. Join the queue to get notified when it's your turn."
-                  : "People are waiting for computers. Visit the gaming center to join the physical queue."
-              }
-            </p>
+
+            {/* Queue Breakdown by Computer Type */}
+            <div className={styles.queueBreakdown}>
+              <div className={styles.queueType}>
+                <span className={styles.queueIcon}>🎮</span>
+                <span className={styles.queueLabel}>Any Computer</span>
+                <span className={styles.queueCount}>{queueStatus.any_queue_count || 0}</span>
+              </div>
+              <div className={styles.queueType}>
+                <span className={styles.queueIcon}>⬇️</span>
+                <span className={styles.queueLabel}>Bottom Only</span>
+                <span className={styles.queueCount}>{queueStatus.bottom_queue_count || 0}</span>
+              </div>
+              <div className={styles.queueType}>
+                <span className={styles.queueIcon}>⬆️</span>
+                <span className={styles.queueLabel}>Top Only</span>
+                <span className={styles.queueCount}>{queueStatus.top_queue_count || 0}</span>
+              </div>
+            </div>
+
+            {/* User's Position if in Queue */}
+            {userInQueue && (
+              <div className={styles.userQueuePosition}>
+                <QueuePositionDisplay 
+                  userInQueue={userInQueue}
+                />
+                <button className={styles.compactLeaveButton} onClick={leaveQueue}>
+                  Leave
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-
-
-        {/* All Computers Full - Join Waiting List */}
-        {shouldShowQueueJoin && (
-          <div className={styles.waitingListSection}>
-            <div className={styles.waitingListHeader}>
-              <h3>🔴 All Computers Occupied ({[...computers.normal, ...computers.vip].filter(c => c.isActive).length}/14)</h3>
-              <p>All gaming stations are currently in use. Join our waiting list to be notified when a computer becomes available!</p>
+        {/* Always Available Queue Option - For Floor Specific Queuing */}
+        {!userInQueue && !userAlreadyLoggedIn && (!queueStatus || !queueStatus.is_active) && (
+          <div className={styles.flexibleQueueSection}>
+            <div className={styles.flexibleQueueHeader}>
+              <h3>📋 Queue for Specific Floor</h3>
+              <p>Want to wait for a specific computer floor? Join the queue even if some computers are available!</p>
             </div>
-            <div className={styles.waitingListActions}>
+            <div className={styles.flexibleQueueActions}>
               <button 
-                className={styles.joinWaitingListButton}
+                className={styles.flexibleQueueButton} 
                 onClick={() => setShowQueueModal(true)}
                 disabled={isJoiningQueue}
               >
-                {isJoiningQueue ? '📋 Joining...' : '📋 Join Waiting List'}
+                {isJoiningQueue ? 'Joining...' : 'Choose Your Queue Preference'}
               </button>
             </div>
-            <div className={styles.waitingListInfo}>
-              <p>✅ Get notified when it's your turn</p>
-              <p>✅ Reserve your preferred computer type</p>
-              <p>✅ No need to wait physically at the center</p>
+            <div className={styles.flexibleQueueInfo}>
+              <p>• Wait specifically for top floor computers (PC 9-14)</p>
+              <p>• Wait specifically for bottom floor computers (PC 1-8)</p>
+              <p>• Get notified when your preferred floor has availability</p>
             </div>
           </div>
         )}
+
+
+
+
         
         <h2 className={styles.sectionHeading}>Bottom Computers</h2>
         <div className={styles.computerGrid}>
@@ -1024,58 +1348,82 @@ const AvailableComputers = () => {
         {showQueueModal && (
           <div className={styles.queueModal}>
             <div className={styles.queueModalContent}>
-              <h3>{shouldShowQueueJoin ? 'Join Waiting List' : 'Join Queue'}</h3>
+              <h3>Choose Your Queue Preference</h3>
               <p>
-                {shouldShowQueueJoin 
-                  ? 'All computers are currently occupied. Join our waiting list and we\'ll notify you when a computer becomes available!'
-                  : 'All computers are currently occupied. Would you like to join the queue?'
-                }
+                Choose your preferred computer floor below. You can join a queue for any floor even if some computers are currently available.
               </p>
               
-              <div className={styles.queueModalOptions}>
-                <h4>Computer Preference:</h4>
-                <div className={styles.preferenceButtons}>
-                  <button 
-                    className={styles.preferenceButton}
-                    onClick={() => handleQueueSelection('any')}
-                    disabled={isJoiningQueue}
-                  >
-                    <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
-                    <div className={styles.preferenceSubtitle}>Get the next available computer</div>
-                    {queueStatus && (
-                      <div className={styles.estimatedWait}>
-                        ~{Math.max(5, (queueStatus.current_queue_size || 0) * 5)} min wait
+                              <div className={styles.queueModalOptions}>
+                  <h4>Computer Preference:</h4>
+                  <div className={styles.preferenceButtons}>
+                    {/* Any Computer Option - Always show, best when all are full */}
+                    <button 
+                      className={`${styles.preferenceButton} ${computerOccupancy.all.isFull ? '' : styles.lessPreferred}`}
+                      onClick={() => handleQueueSelection('any')}
+                      disabled={isJoiningQueue}
+                    >
+                      <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
+                      <div className={styles.preferenceSubtitle}>
+                        Get the next available computer from any floor
+                        {computerOccupancy.all.isFull ? ' (fastest option)' : ' (when all floors are full)'}
                       </div>
-                    )}
-                  </button>
-                  <button 
-                    className={styles.preferenceButton}
-                    onClick={() => handleQueueSelection('bottom')}
-                    disabled={isJoiningQueue}
-                  >
-                    <div className={styles.preferenceTitle}>⬇️ Bottom Floor Only</div>
-                    <div className={styles.preferenceSubtitle}>Bottom floor gaming PCs (PC 1-8)</div>
-                    {queueStatus && (
-                      <div className={styles.estimatedWait}>
-                        ~{Math.max(10, (queueStatus.current_queue_size || 0) * 7)} min wait
+                                             <div className={styles.estimatedWait}>
+                         {computerOccupancy.all.isFull 
+                           ? `~${Math.max(5, (queueStatus?.any_queue_count || 0) * 3)} min wait (${queueStatus?.any_queue_count || 0} ahead)`
+                           : 'Will wait for any floor to have availability'
+                         }
+                       </div>
+                    </button>
+                    
+                    {/* Bottom Floor Option - Always show */}
+                    <button 
+                      className={`${styles.preferenceButton} ${!computerOccupancy.bottom.isFull ? styles.availableOption : ''}`}
+                      onClick={() => handleQueueSelection('bottom')}
+                      disabled={isJoiningQueue}
+                    >
+                      <div className={styles.preferenceTitle}>
+                        ⬇️ Bottom Floor Only 
+                        {!computerOccupancy.bottom.isFull && (
+                          <span className={styles.availableBadge}>({8 - computerOccupancy.bottom.occupied} available now!)</span>
+                        )}
                       </div>
-                    )}
-                  </button>
-                  <button 
-                    className={styles.preferenceButton}
-                    onClick={() => handleQueueSelection('top')}
-                    disabled={isJoiningQueue}
-                  >
-                    <div className={styles.preferenceTitle}>⬆️ Top Floor Only</div>
-                    <div className={styles.preferenceSubtitle}>Top floor gaming PCs (PC 9-14)</div>
-                    {queueStatus && (
-                      <div className={styles.estimatedWait}>
-                        ~{Math.max(15, (queueStatus.current_queue_size || 0) * 10)} min wait
+                      <div className={styles.preferenceSubtitle}>
+                        Bottom floor gaming PCs only (PC 1-8)
+                        {computerOccupancy.bottom.isFull ? ' - Currently Full' : ' - Some Available!'}
                       </div>
-                    )}
-                  </button>
+                                             <div className={styles.estimatedWait}>
+                         {computerOccupancy.bottom.isFull 
+                           ? `~${Math.max(10, (queueStatus?.bottom_queue_count || 0) * 7)} min wait (${queueStatus?.bottom_queue_count || 0} ahead)`
+                           : 'Available now - Try login directly or join queue!'
+                         }
+                       </div>
+                    </button>
+                    
+                    {/* Top Floor Option - Always show */}
+                    <button 
+                      className={`${styles.preferenceButton} ${!computerOccupancy.top.isFull ? styles.availableOption : ''}`}
+                      onClick={() => handleQueueSelection('top')}
+                      disabled={isJoiningQueue}
+                    >
+                      <div className={styles.preferenceTitle}>
+                        ⬆️ Top Floor Only 
+                        {!computerOccupancy.top.isFull && (
+                          <span className={styles.availableBadge}>({6 - computerOccupancy.top.occupied} available now!)</span>
+                        )}
+                      </div>
+                      <div className={styles.preferenceSubtitle}>
+                        Top floor gaming PCs only (PC 9-14)
+                        {computerOccupancy.top.isFull ? ' - Currently Full' : ' - Some Available!'}
+                      </div>
+                                             <div className={styles.estimatedWait}>
+                         {computerOccupancy.top.isFull 
+                           ? `~${Math.max(15, (queueStatus?.top_queue_count || 0) * 10)} min wait (${queueStatus?.top_queue_count || 0} ahead)`
+                           : 'Available now - Try login directly or join queue!'  
+                         }
+                       </div>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
               <div className={styles.queueModalActions}>
                 <button 

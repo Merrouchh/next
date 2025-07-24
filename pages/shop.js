@@ -8,7 +8,10 @@ import toast from 'react-hot-toast';
 import Head from 'next/head';
 
 export async function getServerSideProps({ res }) {
-  // Cache headers removed
+  // Disable all caching - always fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   return {
     props: {

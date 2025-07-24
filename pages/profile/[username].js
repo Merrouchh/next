@@ -26,11 +26,10 @@ export async function getServerSideProps({ req, res, params }) {
   const normalizedUsername = username.toLowerCase();
   const supabase = createClient({ req, res });
 
-  // Set cache headers
-  res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=300'
-  );
+  // Disable all caching - always fresh data
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   try {
     // Fetch user data

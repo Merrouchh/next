@@ -31,8 +31,10 @@ export async function getServerSideProps({ req, res }) {
       .select('id', { count: 'exact' })
       .eq('visibility', 'public');
 
-    // Force cache busting for immediate testing
+    // Disable all caching - always fresh data
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
     return {
       props: {
