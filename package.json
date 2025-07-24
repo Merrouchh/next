@@ -25,7 +25,6 @@
     "bundle-analyze": "node scripts/analyze-bundle.js"
   },
   "overrides": {
-    "form-data": "^4.0.0",
     "tough-cookie": "^4.1.3",
     "request": "npm:@cypress/request@^3.0.1",
     "react": "^18.3.1",
