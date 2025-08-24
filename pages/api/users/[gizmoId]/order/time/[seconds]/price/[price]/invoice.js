@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
+
 export default async function handler(req, res) {
   // Only allow POST method
   if (req.method !== 'POST') {
@@ -19,12 +21,64 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Authenticate request with Supabase (require a valid bearer token)
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: missing bearer token' });
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      }
+    );
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData?.user) {
+      return res.status(401).json({ error: 'Unauthorized: invalid session' });
+    }
+
     // Convert to integers
     const secondsInt = parseInt(seconds, 10);
     const userIdInt = parseInt(gizmoId, 10);
     const priceInt = parseInt(price, 10);
     
     console.log(`[AMOUNT DEBUG] Request ${requestId} - Parsed values: secondsInt=${secondsInt}, userIdInt=${userIdInt}, priceInt=${priceInt}`);
+
+    // Basic parameter validation and abuse protection
+    if (!Number.isFinite(secondsInt) || secondsInt <= 0) {
+      return res.status(400).json({ error: 'Invalid seconds value' });
+    }
+    if (!Number.isFinite(priceInt) || priceInt !== 0) {
+      return res.status(400).json({ error: 'Invalid price: only free rewards are allowed' });
+    }
+    // Cap to 60 units (intended max one hour reward). Adjust if business rules change
+    if (secondsInt > 60) {
+      return res.status(400).json({ error: 'Seconds exceeds allowed limit' });
+    }
+
+    // Authorization: ensure caller can only modify their own gizmo account unless admin/staff
+    const { data: profile, error: profileErr } = await supabase
+      .from('users')
+      .select('id, gizmo_id, is_admin, is_staff')
+      .eq('id', userData.user.id)
+      .single();
+
+    if (profileErr || !profile) {
+      return res.status(403).json({ error: 'Forbidden: user profile not found' });
+    }
+
+    const isPrivileged = !!(profile.is_admin || profile.is_staff);
+    const ownsGizmo = String(profile.gizmo_id) === String(gizmoId);
+    if (!isPrivileged && !ownsGizmo) {
+      return res.status(403).json({ error: 'Forbidden: cannot add time for another user' });
+    }
     
     // Get API credentials from environment variables
     const apiUrl = process.env.API_BASE_URL;
@@ -36,7 +90,7 @@ export default async function handler(req, res) {
     }
 
     // Create base64 encoded auth header
-    const authHeader = `Basic ${Buffer.from(apiAuth).toString('base64')}`;
+    const gizmoAuthHeader = `Basic ${Buffer.from(apiAuth).toString('base64')}`;
     
     // Use the correct Gizmo API endpoint with price parameter
     const fullUrl = `${apiUrl}/users/${gizmoId}/order/time/${seconds}/price/${price}/invoice`;
@@ -53,7 +107,7 @@ export default async function handler(req, res) {
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
-        'Authorization': authHeader,
+        'Authorization': gizmoAuthHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody)

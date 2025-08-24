@@ -739,12 +739,25 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
     const apiUrl = `/api/users/${gizmoId}/order/time/${apiAmount}/price/0/invoice`;
     console.log(`[AMOUNT DEBUG] Calling endpoint: ${apiUrl}`);
     
+    // Read the current Supabase session token from local storage (client only)
+    let authHeader = {};
+    try {
+      if (typeof window !== 'undefined') {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data?.session?.access_token;
+        if (accessToken) {
+          authHeader = { Authorization: `Bearer ${accessToken}` };
+        }
+      }
+    } catch {}
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         ...fetchConfig.headers,
         'Content-Type': 'application/json',
-        'X-Request-ID': requestId
+        'X-Request-ID': requestId,
+        ...authHeader
       },
       // Use empty object as body
       body: JSON.stringify({})
