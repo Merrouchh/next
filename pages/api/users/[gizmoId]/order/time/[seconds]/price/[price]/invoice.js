@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import { authenticateRequest } from '../../../../../../../utils/supabase/secure-server';
-import { withRateLimit } from '../../../../../../../utils/middleware/rateLimiting';
-import { validateRequestBody, VALIDATION_SCHEMAS } from '../../../../../../../utils/validation/inputValidation';
+import { authenticateRequest } from '@/utils/supabase/secure-server';
+import { withRateLimit } from '@/utils/middleware/rateLimiting';
+import { validateRequestBody, VALIDATION_SCHEMAS } from '@/utils/validation/inputValidation';
 
 async function handler(req, res) {
   // Only allow POST method
