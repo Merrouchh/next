@@ -1,4 +1,7 @@
-export default async function handler(req, res) {
+import { authenticateRequest } from '../../../../../utils/supabase/secure-server';
+import { withRateLimit } from '../../../../../utils/middleware/rateLimiting';
+
+async function handler(req, res) {
   // Only allow POST method for this endpoint
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -7,6 +10,18 @@ export default async function handler(req, res) {
       message: 'This endpoint only accepts POST requests'
     });
   }
+
+  // SECURITY: Require authentication for computer login
+  const authResult = await authenticateRequest(req, res);
+  if (!authResult.authenticated) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Authentication required',
+      message: authResult.error 
+    });
+  }
+
+  const { user } = authResult;
 
   try {
     // Get parameters from the URL
@@ -34,7 +49,19 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`Attempting to login user ${userId} to host ${computerHostId}`);
+    // SECURITY: Users can only login themselves unless admin/staff
+    const isPrivileged = !!(user.isAdmin || user.isStaff);
+    const ownsGizmo = String(user.gizmo_id) === String(userId);
+    
+    if (!isPrivileged && !ownsGizmo) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Can only login your own account'
+      });
+    }
+
+    console.log(`[AUDIT] User ${user.username} logging in gizmo ${userId} to host ${computerHostId} [${isPrivileged ? 'ADMIN' : 'OWNER'}]`);
     
     // Get API credentials from environment variables
     const apiUrl = process.env.API_BASE_URL;
@@ -87,7 +114,10 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
-      message: error.message
+      message: 'Failed to process login request'
     });
   }
-} 
+}
+
+// Export with rate limiting
+export default withRateLimit(handler, 'admin'); 

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import { fetchShiftReports } from '../../utils/api';
 import styles from '../../styles/AdminStats.module.css';
+import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 import { 
   FaChartLine, 
   FaCalendarAlt, 
@@ -699,4 +700,7 @@ export default function AdminStats() {
       </div>
     </AdminPageWrapper>
   );
-} 
+}
+
+// Server-side authentication check - requires admin privileges
+export const getServerSideProps = withServerSideAdmin(true); 

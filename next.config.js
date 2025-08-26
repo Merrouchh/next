@@ -5,11 +5,12 @@ const nextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
-  // Environment variables
+  // Environment variables (hybrid approach - keep client keys for now, add server-side ones)
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
+    NEXT_PUBLIC_SUPABASE_PROJECT_REF: process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF,
   },
 
   // Image optimization settings

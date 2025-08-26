@@ -1,6 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+import { authenticateRequest } from '../../../../../../../utils/supabase/secure-server';
+import { withRateLimit } from '../../../../../../../utils/middleware/rateLimiting';
+import { validateRequestBody, VALIDATION_SCHEMAS } from '../../../../../../../utils/validation/inputValidation';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Only allow POST method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -9,76 +12,56 @@ export default async function handler(req, res) {
   // Get parameters from URL path
   const { gizmoId, seconds, price } = req.query;
   
-  // Log request details including headers
-  const requestId = req.headers['x-request-id'] || 'unknown';
-  console.log(`[AMOUNT DEBUG] Server received request ${requestId}:`);
-  console.log(`[AMOUNT DEBUG] - Path params: gizmoId=${gizmoId}, seconds=${seconds}, price=${price}`);
-  console.log(`[AMOUNT DEBUG] - Headers: ${JSON.stringify(req.headers)}`);
+  // Log request details including headers (but not sensitive data)
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
+  const clientIp = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown';
   
-  if (!gizmoId || !seconds || price === undefined) {
-    console.log(`[AMOUNT DEBUG] Request ${requestId} missing parameters`);
-    return res.status(400).json({ error: 'Missing required parameters' });
+  console.log(`[SECURITY] Game time request ${requestId} from IP ${clientIp}`);
+  console.log(`[SECURITY] - Params: gizmoId=${gizmoId}, seconds=${seconds}, price=${price}`);
+  
+  // Validate input parameters using validation schema
+  const validation = validateRequestBody(
+    { gizmoId, seconds, price },
+    VALIDATION_SCHEMAS.gameTimeRequest
+  );
+  
+  if (!validation.isValid) {
+    console.warn(`[SECURITY] Request ${requestId} validation failed:`, validation.errors);
+    return res.status(400).json({ 
+      error: 'Invalid request parameters',
+      details: validation.errors
+    });
   }
+  
+  const { gizmoId: validatedGizmoId, seconds: validatedSeconds, price: validatedPrice } = validation.sanitized;
 
   try {
-    // Authenticate request with Supabase (require a valid bearer token)
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized: missing bearer token' });
+    // Authenticate request with secure server-side Supabase
+    const authResult = await authenticateRequest(req, res);
+    if (!authResult.authenticated) {
+      return res.status(401).json({ error: `Unauthorized: ${authResult.error}` });
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader
-          }
-        }
-      }
-    );
+    const { user: authenticatedUser, supabase } = authResult;
 
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData?.user) {
-      return res.status(401).json({ error: 'Unauthorized: invalid session' });
-    }
-
-    // Convert to integers
-    const secondsInt = parseInt(seconds, 10);
-    const userIdInt = parseInt(gizmoId, 10);
-    const priceInt = parseInt(price, 10);
+    // Use validated parameters
+    const secondsInt = validatedSeconds;
+    const userIdInt = validatedGizmoId;
+    const priceInt = validatedPrice;
     
-    console.log(`[AMOUNT DEBUG] Request ${requestId} - Parsed values: secondsInt=${secondsInt}, userIdInt=${userIdInt}, priceInt=${priceInt}`);
-
-    // Basic parameter validation and abuse protection
-    if (!Number.isFinite(secondsInt) || secondsInt <= 0) {
-      return res.status(400).json({ error: 'Invalid seconds value' });
-    }
-    if (!Number.isFinite(priceInt) || priceInt !== 0) {
-      return res.status(400).json({ error: 'Invalid price: only free rewards are allowed' });
-    }
-    // Cap to 60 units (intended max one hour reward). Adjust if business rules change
-    if (secondsInt > 60) {
-      return res.status(400).json({ error: 'Seconds exceeds allowed limit' });
-    }
+    console.log(`[SECURITY] Request ${requestId} - Validated values: secondsInt=${secondsInt}, userIdInt=${userIdInt}, priceInt=${priceInt}`);
 
     // Authorization: ensure caller can only modify their own gizmo account unless admin/staff
-    const { data: profile, error: profileErr } = await supabase
-      .from('users')
-      .select('id, gizmo_id, is_admin, is_staff')
-      .eq('id', userData.user.id)
-      .single();
-
-    if (profileErr || !profile) {
-      return res.status(403).json({ error: 'Forbidden: user profile not found' });
-    }
-
-    const isPrivileged = !!(profile.is_admin || profile.is_staff);
-    const ownsGizmo = String(profile.gizmo_id) === String(gizmoId);
+    const isPrivileged = !!(authenticatedUser.isAdmin || authenticatedUser.isStaff);
+    const ownsGizmo = String(authenticatedUser.gizmo_id) === String(userIdInt);
+    
     if (!isPrivileged && !ownsGizmo) {
+      console.warn(`[SECURITY] Request ${requestId} - Unauthorized access attempt by user ${authenticatedUser.id} for gizmo ${userIdInt}`);
       return res.status(403).json({ error: 'Forbidden: cannot add time for another user' });
     }
+    
+    // Additional security: Log all game time additions for audit
+    console.log(`[AUDIT] User ${authenticatedUser.username} (${authenticatedUser.id}) adding ${secondsInt}s to gizmo ${userIdInt} [${isPrivileged ? 'ADMIN' : 'OWNER'}]`);
     
     // Get API credentials from environment variables
     const apiUrl = process.env.API_BASE_URL;
@@ -136,17 +119,27 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`[AMOUNT DEBUG] Request ${requestId} - Game time added successfully:`, data);
+    console.log(`[SECURITY] Request ${requestId} - Game time added successfully:`, data);
 
     return res.status(200).json({
       result: data.result,
-      message: 'Game time added successfully'
+      message: 'Game time added successfully',
+      audit: {
+        requestId,
+        timestamp: new Date().toISOString(),
+        user: authenticatedUser.username,
+        action: `Added ${secondsInt}s to gizmo ${userIdInt}`
+      }
     });
   } catch (error) {
-    console.error(`[AMOUNT DEBUG] Request handling error:`, error);
+    console.error(`[SECURITY] Request ${requestId} handling error:`, error);
     return res.status(500).json({ 
       error: 'Internal server error',
-      message: error.message
+      message: 'Failed to process game time request',
+      requestId
     });
   }
-} 
+}
+
+// Export with rate limiting applied
+export default withRateLimit(handler, 'game-time'); 

@@ -1,9 +1,12 @@
 // pages/api/validateUserCredentials.js
-export default async function handler(req, res) {
-    // Add CORS headers to help with privacy-focused browsers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import { authenticateRequest } from '../../utils/supabase/secure-server';
+import { withRateLimit } from '../../utils/middleware/rateLimiting';
+
+async function handler(req, res) {
+    // SECURITY: Remove dangerous CORS headers
+    res.setHeader('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_SITE_URL || 'https://merrouchgaming.com');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     // Handle preflight OPTIONS request
     if (req.method === 'OPTIONS') {
@@ -12,6 +15,23 @@ export default async function handler(req, res) {
     
     if (req.method !== 'POST') {
       return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
+    // SECURITY: Require authentication for credential validation
+    const authResult = await authenticateRequest(req, res);
+    if (!authResult.authenticated) {
+      return res.status(401).json({ 
+        message: 'Authentication required',
+        error: authResult.error 
+      });
+    }
+
+    // SECURITY: Only allow admins/staff to validate credentials
+    const { user } = authResult;
+    if (!user.isAdmin && !user.isStaff) {
+      return res.status(403).json({ 
+        message: 'Admin or staff access required' 
+      });
     }
   
     const { username, password } = req.body; // Extract username and password
@@ -48,20 +68,23 @@ export default async function handler(req, res) {
       }
   
       const data = await response.json();
-      console.log('External API Response:', data);
+      // SECURITY: Don't log sensitive credential validation responses
+      console.log(`[AUDIT] User ${user.username} validated credentials for ${username}`);
   
       // Pass the data back to the client
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error in validateUserCredentials:', error);
-      // Provide more detailed error information
+      // SECURITY: Don't leak internal error details
       return res.status(500).json({ 
         message: error.name === 'AbortError' 
           ? 'Request timed out' 
           : 'Internal Server Error',
-        error: error.message,
         isError: true
       });
     }
   }
+
+// Export with rate limiting and auth
+export default withRateLimit(handler, 'admin');
   

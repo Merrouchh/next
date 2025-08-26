@@ -11,6 +11,37 @@ const fetchConfig = {
   }
 };
 
+// Helper function to get authenticated headers
+const getAuthHeaders = async () => {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data?.session?.access_token;
+    
+    if (accessToken) {
+      return {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to get auth token:', error);
+  }
+  
+  return {
+    'Content-Type': 'application/json'
+  };
+};
+
+// Helper function to check if user is authenticated
+const isUserAuthenticated = async () => {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return !!data?.session?.access_token;
+  } catch (error) {
+    return false;
+  }
+};
+
 const enhancedFetch = async (url, options = {}) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
@@ -59,18 +90,34 @@ export const validateUserCredentials = async (username, password) => {
       console.error('Missing required parameters for validation');
       return { isValid: false, error: 'Username and password are required' };
     }
+
+    // Check if user is authenticated first (admin/staff only endpoint)
+    const isAuth = await isUserAuthenticated();
+    if (!isAuth) {
+      console.warn('User not authenticated, cannot validate credentials');
+      return { isValid: false, error: 'Admin authentication required' };
+    }
     
+    const authHeaders = await getAuthHeaders();
     const response = await fetch('/api/validateUserCredentials', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       credentials: 'same-origin', // Include cookies for session handling
       headers: {
-        'Content-Type': 'application/json',
+        ...authHeaders,
         'X-Requested-With': 'XMLHttpRequest' // Helps with some ad blockers
       },
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Authentication/authorization required for credential validation');
+        return { 
+          isValid: false, 
+          error: 'Admin access required',
+          status: response.status
+        };
+      }
       console.error('HTTP status:', response.status);
       // Add more detailed error information
       return { 
@@ -120,21 +167,38 @@ export const validateUserCredentials = async (username, password) => {
     
 export const fetchActiveUserSessions = async () => {
   try {
+    // Check if user is authenticated first
+    const isAuth = await isUserAuthenticated();
+    if (!isAuth) {
+      console.warn('User not authenticated, skipping sessions fetch');
+      return [];
+    }
+
     // Add cache-busting timestamp
     const timestamp = Date.now();
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`/api/fetchactivesessions?t=${timestamp}`, {
       ...fetchConfig,
       headers: {
-        ...fetchConfig.headers,
+        ...authHeaders,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
       }
     });
-    if (!response.ok) throw new Error('Failed to fetch sessions');
+    
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Authentication/authorization required for sessions fetch');
+        return [];
+      }
+      throw new Error('Failed to fetch sessions');
+    }
+    
     const data = await response.json();
     return data.result || [];
   } catch (error) {
+    console.warn('Error fetching active sessions:', error);
     return [];
   }
 };
@@ -250,15 +314,23 @@ export const fetchGizmoId = async (username) => {
 };
 
 export const fetchUserPoints = async (gizmoId) => {
+  // Check if user is authenticated first
+  const isAuth = await isUserAuthenticated();
+  if (!isAuth) {
+    console.warn('User not authenticated, skipping points fetch');
+    return { points: 0, success: false };
+  }
+
   // Add cache-busting timestamp
   const timestamp = Date.now();
   const url = `/api/points/${gizmoId}?t=${timestamp}`;
   try {
     console.log(`Fetching user points from URL: ${url}`);
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(url, {
       ...fetchConfig,
       headers: {
-        ...fetchConfig.headers,
+        ...authHeaders,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
@@ -266,6 +338,10 @@ export const fetchUserPoints = async (gizmoId) => {
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('Authentication required for points fetch');
+        return { points: 0, success: false };
+      }
       const errorText = await response.text();
       console.error(`Failed to fetch user points from ${url}:`, errorText);
       throw new Error(errorText || 'Failed to fetch user points');
@@ -278,7 +354,7 @@ export const fetchUserPoints = async (gizmoId) => {
     };
   } catch (error) {
     console.error('Error fetching user points:', error);
-    throw error;
+    return { points: 0, success: false };
   }
 };
 
@@ -671,17 +747,36 @@ export const loginUserToComputer = async (gizmoId, hostId) => {
       };
     }
 
+    // Check if user is authenticated first
+    const isAuth = await isUserAuthenticated();
+    if (!isAuth) {
+      console.warn('User not authenticated, cannot login to computer');
+      return { 
+        success: false, 
+        error: 'Authentication required'
+      };
+    }
+
     console.log(`Logging in user ${gizmoId} to host ${hostId}`);
     
-    // Call our API endpoint
+    // Call our API endpoint with authentication
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`/api/users/${gizmoId}/login/${hostId}`, {
       method: 'POST',
       headers: {
-        ...fetchConfig.headers
+        ...authHeaders
       }
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Authentication/authorization required for computer login');
+        return {
+          success: false,
+          error: 'Authentication required',
+          status: response.status
+        };
+      }
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       console.error(`Failed to login user to computer: ${response.status}`, errorData);
       return {

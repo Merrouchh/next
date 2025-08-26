@@ -1,6 +1,26 @@
-export default async function handler(req, res) {
+import { authenticateRequest } from '../../utils/supabase/secure-server';
+import { withRateLimit } from '../../utils/middleware/rateLimiting';
+
+async function handler(req, res) {
     if (req.method !== 'GET') {
       return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
+    // SECURITY: Require authentication to view active sessions
+    const authResult = await authenticateRequest(req, res);
+    if (!authResult.authenticated) {
+      return res.status(401).json({ 
+        message: 'Authentication required',
+        error: authResult.error 
+      });
+    }
+
+    // SECURITY: Only allow admins/staff to view sessions
+    const { user } = authResult;
+    if (!user.isAdmin && !user.isStaff) {
+      return res.status(403).json({ 
+        message: 'Admin or staff access required' 
+      });
     }
   
     const apiUrl = `${process.env.API_BASE_URL}/usersessions/active`;
@@ -18,10 +38,15 @@ export default async function handler(req, res) {
       }
   
       const data = await response.json();
+      // SECURITY: Log admin access to sessions
+      console.log(`[AUDIT] User ${user.username} accessed active sessions`);
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error fetching active user sessions:', error);
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
+
+// Export with rate limiting and auth
+export default withRateLimit(handler, 'admin');
   

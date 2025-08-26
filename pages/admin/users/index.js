@@ -6,6 +6,7 @@ import styles from '../../../styles/AdminUsers.module.css';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/router';
 import { AiOutlineCopy } from 'react-icons/ai';
+import { withServerSideAdmin } from '../../../utils/supabase/server-admin';
 
 export default function AdminUsers() {
   const { user, loading: authLoading } = useAuth();
@@ -14,12 +15,16 @@ export default function AdminUsers() {
   const [gizmoId, setGizmoId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use client-side user data
+  const currentUser = user;
+
+  // Server-side check should prevent access, but keep client-side as backup
   useEffect(() => {
-    if (!authLoading && (!user || !user.isAdmin)) {
+    if (!authLoading && (!currentUser || !currentUser.isAdmin)) {
       toast.error('You do not have permission to access this page');
       router.push('/');
     }
-  }, [user, authLoading, router]);
+  }, [currentUser, authLoading, router]);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -31,7 +36,7 @@ export default function AdminUsers() {
   }
 
   // Don't render anything if not admin
-  if (!user?.isAdmin) {
+  if (!currentUser?.isAdmin) {
     return null;
   }
 
@@ -128,4 +133,7 @@ export default function AdminUsers() {
       </div>
     </AdminPageWrapper>
   );
-} 
+}
+
+// Server-side authentication check - requires admin privileges
+export const getServerSideProps = withServerSideAdmin(true); 

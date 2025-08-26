@@ -7,6 +7,7 @@ import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
+import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 // Add useInterval custom hook for auto-refresh
 const useInterval = (callback, delay) => {
@@ -43,12 +44,15 @@ export default function AdminDashboard() {
   const { user, supabase } = useAuth();
   const router = useRouter();
 
+  // Use client-side user data
+  const currentUser = user;
+
   // Redirect staff users to queue management (they don't need full admin dashboard)
   useEffect(() => {
-    if (user && user.isStaff && !user.isAdmin) {
+    if (currentUser && currentUser.isStaff && !currentUser.isAdmin) {
       router.replace('/admin/queue');
     }
-  }, [user, router]);
+  }, [currentUser, router]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     profilesCount: 0,
@@ -64,7 +68,7 @@ export default function AdminDashboard() {
 
   // Replace handleRefresh function with fetchAdminStats
   const fetchAdminStats = async () => {
-    if (!user) return;
+    if (!currentUser) return;
     
     try {
       // Create a new AbortController for this request
@@ -154,7 +158,7 @@ export default function AdminDashboard() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [user, supabase]);
+  }, [currentUser, supabase]);
 
   // Format the session count similar to dashboard.js
   const formatSessionCount = (activeCount) => {
@@ -362,3 +366,6 @@ export default function AdminDashboard() {
     </AdminPageWrapper>
   );
 }
+
+// Server-side authentication check - requires admin privileges
+export const getServerSideProps = withServerSideAdmin(true);

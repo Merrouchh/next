@@ -9,6 +9,7 @@ import sharedStyles from '../../styles/Shared.module.css';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import Link from 'next/link';
+import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 export default function AchievementReviews() {
   const { user, supabase } = useAuth();
@@ -369,4 +370,7 @@ export default function AchievementReviews() {
       </div>
     </AdminPageWrapper>
   );
-} 
+}
+
+// Server-side authentication check - requires admin privileges
+export const getServerSideProps = withServerSideAdmin(true); 
