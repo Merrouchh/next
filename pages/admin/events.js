@@ -9,6 +9,7 @@ import styles from '../../styles/AdminEvents.module.css';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -1001,3 +1002,6 @@ export default function AdminEvents() {
     </AdminPageWrapper>
   );
 }
+
+// 🛡️ SERVER-SIDE PROTECTION: Require admin privileges
+export const getServerSideProps = withServerSideAdmin(true);

@@ -11,6 +11,7 @@ import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions } from '../../utils/api';
 import LoginUserModal from '../../components/LoginUserModal';
+import { withServerSideStaff } from '../../utils/supabase/server-admin';
 
 // Custom useInterval hook for polling
 const useInterval = (callback, delay) => {
@@ -989,3 +990,6 @@ export default function SessionsPage() {
     </AdminPageWrapper>
   );
 }
+
+// 🛡️ SERVER-SIDE PROTECTION: Require staff or admin privileges  
+export const getServerSideProps = withServerSideStaff();

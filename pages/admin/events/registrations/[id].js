@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import styles from '../../../../styles/AdminEventRegistrations.module.css';
 import { useAuth } from '../../../../contexts/AuthContext';
 import AdminPageWrapper from '@/components/AdminPageWrapper';
+import { withServerSideAdmin } from '../../../../utils/supabase/server-admin';
 
 // Format date for display - moved to a utility function outside component
 const formatDate = (dateString) => {
@@ -1151,4 +1152,7 @@ export default function EventRegistrations() {
       </div>
     </AdminPageWrapper>
   );
-} 
+}
+
+// 🛡️ SERVER-SIDE PROTECTION: Require admin privileges
+export const getServerSideProps = withServerSideAdmin(true); 

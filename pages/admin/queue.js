@@ -10,6 +10,7 @@ import {
   FaPlay, FaStop, FaUserPlus, FaTrash, FaEye, FaEyeSlash,
   FaUsers, FaClock, FaDesktop, FaPhone, FaStickyNote, FaCog, FaCogs 
 } from 'react-icons/fa';
+import { withServerSideStaff } from '../../utils/supabase/server-admin';
 
 export default function AdminQueue() {
   const { user, supabase, loading: authLoading } = useAuth();
@@ -915,3 +916,6 @@ export default function AdminQueue() {
     </AdminPageWrapper>
   );
 }
+
+// 🛡️ SERVER-SIDE PROTECTION: Require staff or admin privileges
+export const getServerSideProps = withServerSideStaff();

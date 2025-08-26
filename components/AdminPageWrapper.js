@@ -21,6 +21,9 @@ export default function AdminPageWrapper({ children, title }) {
     // Only redirect if auth is fully initialized
     if (initialized && !loading) {
       if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
+        // 🚨 Log unauthorized access attempt
+        logUnauthorizedAccess('admin_access', user, currentPath);
+        
         toast.error('You do not have permission to access admin pages');
         router.replace('/dashboard');
         return;
@@ -28,12 +31,48 @@ export default function AdminPageWrapper({ children, title }) {
       
       // Staff users can ONLY access queue page - block access to all other admin pages
       if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
+        // 🚨 Log staff attempting to access admin-only page
+        logUnauthorizedAccess('staff_admin_access', user, currentPath);
+        
         toast.error('Staff access is limited to queue management only');
         router.replace('/admin/queue');
         return;
       }
     }
   }, [user, isLoggedIn, loading, initialized, router, currentPath]);
+
+  // Function to log unauthorized access attempts from client-side
+  const logUnauthorizedAccess = async (type, user, path) => {
+    console.log('🚨 SECURITY: Logging unauthorized access attempt:', {
+      type,
+      username: user?.username || 'anonymous',
+      path,
+      userInfo: { isAdmin: user?.isAdmin, isStaff: user?.isStaff, isLoggedIn }
+    });
+    
+    try {
+      const response = await fetch('/api/security/log-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: type === 'admin_access' ? 'unauthorized_admin_access' : 'unauthorized_staff_access',
+          username: user?.username || 'anonymous',
+          attempted_path: path,
+          details: type === 'admin_access' 
+            ? 'User without admin/staff privileges attempted to access admin page'
+            : 'Staff user attempted to access admin-only page',
+          severity: 'high'
+        })
+      });
+      
+      const result = await response.json();
+      console.log('🚨 SECURITY: Logging result:', result);
+    } catch (error) {
+      console.error('🚨 SECURITY: Failed to log security event:', error);
+    }
+  };
 
   // Add a timeout to prevent infinite loading
   useEffect(() => {

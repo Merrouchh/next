@@ -9,6 +9,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import AdminPageWrapper from '../../../components/AdminPageWrapper';
 import { toast } from 'react-hot-toast';
 import { getParticipantNameById, getParticipantDisplayName } from '../../../utils/participantUtils';
+import { withServerSideAdmin } from '../../../utils/supabase/server-admin';
 
 export default function BracketManager() {
   const router = useRouter();
@@ -2286,4 +2287,7 @@ export default function BracketManager() {
     </AdminPageWrapper>
   );
 }
+
+// 🛡️ SERVER-SIDE PROTECTION: Require admin privileges
+export const getServerSideProps = withServerSideAdmin(true);
 

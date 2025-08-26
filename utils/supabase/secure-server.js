@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Create a secure server-side Supabase client
@@ -36,9 +37,21 @@ export function createSecureServerClient(req, res, options = {}) {
  * Create a service role client for admin operations
  */
 export function createServiceRoleClient() {
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY, // Service role for admin operations
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY - required for service role operations');
+  }
+
+  // Use regular client for service role operations to avoid SSR warnings
+  const supabase = createClient(
+    supabaseUrl,
+    serviceRoleKey,
     {
       auth: {
         autoRefreshToken: false,
