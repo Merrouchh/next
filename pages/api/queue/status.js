@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -17,7 +17,29 @@ export default async function handler(req, res) {
 
     if (statusError) {
       console.error('Error getting queue status:', statusError);
-      return res.status(500).json({ error: 'Failed to get queue status' });
+      // If the function doesn't exist or fails, create a default status
+      const defaultStatus = {
+        is_active: false,
+        allow_online_joining: false,
+        max_queue_size: 20,
+        automatic_mode: false,
+        current_queue_size: 0,
+        any_queue_count: 0,
+        bottom_queue_count: 0,
+        top_queue_count: 0
+      };
+      
+      // Try to get queue data directly if function fails
+      const { data: queueData } = await supabase
+        .from('computer_queue')
+        .select('*')
+        .eq('status', 'waiting')
+        .order('position');
+      
+      return res.status(200).json({
+        status: defaultStatus,
+        queue: queueData || []
+      });
     }
 
     // Get the current queue directly from computer_queue table to ensure we get all data
@@ -32,8 +54,29 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to get queue data' });
     }
 
-    // Ensure status is always an object, not an array
-    const status = Array.isArray(statusData) ? statusData[0] : statusData;
+    // Handle different return formats from the database function
+    let status;
+    if (Array.isArray(statusData)) {
+      status = statusData[0];
+    } else if (typeof statusData === 'string') {
+      // If it's a JSON string, parse it
+      try {
+        status = JSON.parse(statusData);
+      } catch (e) {
+        status = statusData;
+      }
+    } else {
+      status = statusData;
+    }
+    
+    // Ensure status is an object with default values
+    status = status || {
+      is_active: false,
+      allow_online_joining: false,
+      max_queue_size: 20,
+      automatic_mode: false,
+      current_queue_size: 0
+    };
     
     // Calculate breakdown counts by computer type from queue data
     const queueBreakdown = {

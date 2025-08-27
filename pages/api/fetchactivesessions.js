@@ -42,6 +42,7 @@ async function handler(req, res) {
     }
   }
 
-// Export with rate limiting for general users
-export default withRateLimit(handler, 'general');
+// Export without rate limiting to allow real-time updates for computer status
+// This endpoint needs frequent polling for live computer status updates
+export default handler;
   

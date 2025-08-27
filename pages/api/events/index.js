@@ -4,10 +4,18 @@ export default async function handler(req, res) {
   console.log("API events endpoint called:", req.method);
   
   try {
+    // Check for required environment variables
+    if (!process.env.SUPABASE_URL) {
+      throw new Error('SUPABASE_URL is required');
+    }
+    if (!process.env.SUPABASE_ANON_KEY) {
+      throw new Error('SUPABASE_ANON_KEY is required');
+    }
+    
     // Initialize Supabase with anon key
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
     );
     
     // Handle different HTTP methods
@@ -32,8 +40,8 @@ export default async function handler(req, res) {
 async function handleAuthenticatedRequest(req, res, supabase, handlerFunction) {
   // Create authenticated client with token from request
   const authenticatedSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
     {
       global: {
         headers: {
