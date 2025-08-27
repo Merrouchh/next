@@ -15,13 +15,8 @@ async function handler(req, res) {
       });
     }
 
-    // SECURITY: Only allow admins/staff to view sessions
+    // Allow all authenticated users to view active sessions
     const { user } = authResult;
-    if (!user.isAdmin && !user.isStaff) {
-      return res.status(403).json({ 
-        message: 'Admin or staff access required' 
-      });
-    }
   
     const apiUrl = `${process.env.API_BASE_URL}/usersessions/active`;
   
@@ -47,6 +42,6 @@ async function handler(req, res) {
     }
   }
 
-// Export with rate limiting and auth
-export default withRateLimit(handler, 'admin');
+// Export with rate limiting for general users
+export default withRateLimit(handler, 'general');
   

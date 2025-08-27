@@ -1,5 +1,18 @@
 import { createClient } from '../utils/supabase/component';
-const supabase = createClient();
+
+// Lazy initialization of Supabase client
+let supabase = null;
+const getSupabase = () => {
+  if (!supabase) {
+    try {
+      supabase = createClient();
+    } catch (error) {
+      console.warn('Supabase client not ready:', error.message);
+      return null;
+    }
+  }
+  return supabase;
+};
 
 // utils/api.js
 const FETCH_TIMEOUT = 10000; // 10 seconds
@@ -14,7 +27,9 @@ const fetchConfig = {
 // Helper function to get authenticated headers
 const getAuthHeaders = async () => {
   try {
-    const { data } = await supabase.auth.getSession();
+    const supabaseClient = getSupabase();
+    if (!supabaseClient) return {};
+    const { data } = await supabaseClient.auth.getSession();
     const accessToken = data?.session?.access_token;
     
     if (accessToken) {
@@ -35,7 +50,9 @@ const getAuthHeaders = async () => {
 // Helper function to check if user is authenticated
 const isUserAuthenticated = async () => {
   try {
-    const { data } = await supabase.auth.getSession();
+    const supabaseClient = getSupabase();
+    if (!supabaseClient) return false;
+    const { data } = await supabaseClient.auth.getSession();
     return !!data?.session?.access_token;
   } catch (error) {
     return false;
@@ -202,6 +219,7 @@ export const fetchActiveUserSessions = async () => {
     return [];
   }
 };
+
 
 export const fetchUserBalance = async (gizmoId) => {
   try {
@@ -468,13 +486,15 @@ export const fetchTopClipOfWeek = async (supabase) => {
     if (!clips?.length) return null;
 
     // Get video URL and thumbnail URL
-    const { data: videoData } = await supabase.storage
+    const supabaseClient = getSupabase();
+    if (!supabaseClient) throw new Error('Supabase client not available');
+    const { data: videoData } = await supabaseClient.storage
       .from('highlight-clips')
       .getPublicUrl(clips[0].file_path);
 
     let thumbnailUrl = null;
     if (clips[0].thumbnail_path) {
-      const { data: thumbnailData } = await supabase.storage
+      const { data: thumbnailData } = await supabaseClient.storage
         .from('highlight-clips')
         .getPublicUrl(clips[0].thumbnail_path);
       thumbnailUrl = thumbnailData?.publicUrl;
@@ -689,7 +709,15 @@ export async function fetchUserUpcomingMatches(userId) {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`Failed to fetch upcoming matches: ${response.status} ${errorText}`);
+      
+      // If it's a database configuration error, return empty array gracefully
+      if (response.status === 500 && errorText.includes('Database configuration error')) {
+        console.warn('Database not configured for upcoming matches, returning empty array');
+        return [];
+      }
+      
+      // For other errors, still return empty array to prevent dashboard crashes
+      return [];
     }
 
     const data = await response.json();
@@ -838,7 +866,9 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
     let authHeader = {};
     try {
       if (typeof window !== 'undefined') {
-        const { data } = await supabase.auth.getSession();
+        const supabaseClient = getSupabase();
+        if (!supabaseClient) return {};
+        const { data } = await supabaseClient.auth.getSession();
         const accessToken = data?.session?.access_token;
         if (accessToken) {
           authHeader = { Authorization: `Bearer ${accessToken}` };

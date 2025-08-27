@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '../utils/supabase/component';
+import { createClient, initializeSupabaseConfig } from '../utils/supabase/component';
 import { useRouter } from 'next/router';
 import { fetchGizmoId } from '../utils/api';
 import { isPublicRoute, isProtectedRoute } from '../utils/routeConfig';
@@ -60,10 +60,21 @@ export const AuthProvider = ({ children, onError }) => {
 
   // Initialize Supabase client only on client side
   useEffect(() => {
-    if (typeof window !== 'undefined' && !supabaseRef.current) {
-      supabaseRef.current = createClient();
-    }
-    setMounted(true);
+    const initializeClient = async () => {
+      if (typeof window !== 'undefined' && !supabaseRef.current) {
+        // Initialize configuration first
+        await initializeSupabaseConfig();
+        try {
+          supabaseRef.current = createClient();
+        } catch (error) {
+          console.warn('Failed to initialize Supabase client:', error);
+          // We'll try again when user attempts to authenticate
+        }
+      }
+      setMounted(true);
+    };
+    
+    initializeClient();
   }, []);
 
   // Handle password recovery events

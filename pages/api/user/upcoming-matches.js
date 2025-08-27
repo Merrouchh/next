@@ -25,20 +25,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Check if environment variables are set
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Check if environment variables are set (using server-side variables)
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Supabase credentials missing:', {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing',
-        serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Set' : 'Missing'
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey,
+        envVars: {
+          SUPABASE_URL: !!process.env.SUPABASE_URL,
+          NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+        }
       });
       return res.status(500).json({ error: 'Database configuration error' });
     }
 
     // Initialize Supabase
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (!supabase) {
       console.error('Failed to create Supabase client');

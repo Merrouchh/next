@@ -5,10 +5,8 @@ const nextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
-  // Environment variables (hybrid approach - keep client keys for now, add server-side ones)
+  // Environment variables - REMOVED CLIENT-SIDE KEYS FOR SECURITY
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
     NEXT_PUBLIC_SUPABASE_PROJECT_REF: process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF,
   },
@@ -16,17 +14,17 @@ const nextConfig = {
   // Image optimization settings
   images: {
     remotePatterns: [
-      {
+      // Only add Supabase pattern if hostname is defined
+      ...(process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME ? [{
         protocol: 'https',
-        hostname: process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME || 'qdbtccrhcidxllycuxnw.supabase.co',
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME,
         pathname: '/storage/v1/object/public/**',
-      },
+      }] : []),
       {
         protocol: 'https',
         hostname: 'unpkg.com'
       }
     ],
-    domains: ['merrouchgaming.com'],
   },
 
   // ESLint configuration
@@ -81,16 +79,23 @@ const nextConfig = {
     return config;
   },
 
-  // URL rewrites
+  // URL rewrites - only if Supabase URL is available
   async rewrites() {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    if (!supabaseUrl) {
+      console.warn('No Supabase URL found, skipping storage rewrites');
+      return [];
+    }
+
     return [
       {
         source: '/storage/highlight-clips/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/:path*`,
+        destination: `${supabaseUrl}/storage/v1/object/public/highlight-clips/:path*`,
       },
       {
         source: '/storage/:path*',
-        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/:path*`,
+        destination: `${supabaseUrl}/storage/v1/object/public/:path*`,
       }
     ];
   },

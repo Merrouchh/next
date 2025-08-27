@@ -47,6 +47,7 @@ export async function checkServerSideAdmin(req, res, requireAdmin = false) {
       
       // 🚨 SECURITY: Log unauthenticated access attempt
       console.log('🚨 SERVER: Logging unauthenticated access attempt');
+      console.log('🚨 SERVER: Environment:', process.env.NODE_ENV, 'Domain:', req.headers.host);
       try {
         await logUnauthorizedAdminAccess({ username: 'anonymous', id: null }, req);
         console.log('🚨 SERVER: Unauthenticated access logged successfully');
