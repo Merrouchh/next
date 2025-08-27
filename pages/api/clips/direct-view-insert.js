@@ -31,15 +31,15 @@ export default async function handler(req, res) {
     });
 
     // Create Supabase client with service role key
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('[Direct API] Missing Supabase environment variables');
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
     // 1. Check if this view is a duplicate (same visitor viewed same clip recently)
     console.log('[Direct API] Checking for duplicates');

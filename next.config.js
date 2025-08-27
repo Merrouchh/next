@@ -5,19 +5,18 @@ const nextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
-  // Environment variables - REMOVED CLIENT-SIDE KEYS FOR SECURITY
+  // Environment variables - only server-side variables
   env: {
     VIDEO_OPTIMIZER_URL: process.env.VIDEO_OPTIMIZER_URL,
-    NEXT_PUBLIC_SUPABASE_PROJECT_REF: process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF,
   },
 
   // Image optimization settings
   images: {
     remotePatterns: [
-      // Only add Supabase pattern if hostname is defined
-      ...(process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME ? [{
+      // Supabase storage pattern - extract hostname from SUPABASE_URL
+      ...(process.env.SUPABASE_URL ? [{
         protocol: 'https',
-        hostname: process.env.NEXT_PUBLIC_SUPABASE_HOSTNAME,
+        hostname: new URL(process.env.SUPABASE_URL).hostname,
         pathname: '/storage/v1/object/public/**',
       }] : []),
       {
@@ -81,7 +80,7 @@ const nextConfig = {
 
   // URL rewrites - only if Supabase URL is available
   async rewrites() {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL;
     
     if (!supabaseUrl) {
       console.warn('No Supabase URL found, skipping storage rewrites');
