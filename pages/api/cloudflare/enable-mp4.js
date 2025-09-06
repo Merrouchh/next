@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Environment variables
 const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'clips.merrouchgaming.com';
 
