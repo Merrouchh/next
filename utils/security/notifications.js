@@ -5,6 +5,7 @@
 
 import { createServiceRoleClient } from '../supabase/secure-server';
 import { createClient } from '@supabase/supabase-js';
+import { getClientIP } from '../ip-detection';
 
 /**
  * Log security events to database and console
@@ -104,6 +105,7 @@ export async function logSecurityEvent(event) {
   }
 }
 
+
 /**
  * Helper function for unauthorized admin access attempts
  */
@@ -112,7 +114,7 @@ export function logUnauthorizedAdminAccess(user, req) {
     type: 'unauthorized_admin_access',
     user_id: user?.id,
     username: user?.username || 'unknown',
-    ip_address: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    ip_address: getClientIP(req),
     user_agent: req.headers['user-agent'],
     attempted_path: req.url,
     details: `User without admin privileges attempted to access admin page`,
@@ -128,7 +130,7 @@ export function logUnauthorizedStaffAccess(user, req) {
     type: 'unauthorized_staff_access',
     user_id: user?.id,
     username: user?.username || 'unknown',
-    ip_address: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    ip_address: getClientIP(req),
     user_agent: req.headers['user-agent'],
     attempted_path: req.url,
     details: `User without staff privileges attempted to access staff page`,
@@ -144,7 +146,7 @@ export function logApiAbuse(user, req, details) {
     type: 'api_abuse',
     user_id: user?.id,
     username: user?.username || 'anonymous',
-    ip_address: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    ip_address: getClientIP(req),
     user_agent: req.headers['user-agent'],
     attempted_path: req.url,
     details,

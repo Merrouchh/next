@@ -1,4 +1,5 @@
 import { logSecurityEvent } from '../../../utils/security/notifications';
+import { getClientIP } from '../../../utils/ip-detection';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,11 +22,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get client information
-    const ip_address = req.headers['x-forwarded-for'] || 
-                      req.connection?.remoteAddress || 
-                      req.socket?.remoteAddress ||
-                      'unknown';
+    // Get client information using improved IP detection
+    const ip_address = getClientIP(req);
     
     const user_agent = req.headers['user-agent'] || 'unknown';
 

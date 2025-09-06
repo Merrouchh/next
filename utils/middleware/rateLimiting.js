@@ -2,6 +2,8 @@
  * Rate limiting middleware to prevent API abuse
  */
 
+import { getClientIP } from '../ip-detection';
+
 // In-memory store for rate limiting (use Redis in production)
 const rateLimitStore = new Map();
 
@@ -53,9 +55,8 @@ function getClientId(req) {
     }
   }
   
-  // Fall back to IP address
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = forwarded ? forwarded.split(',')[0] : req.connection?.remoteAddress || 'unknown';
+  // Fall back to IP address using improved detection
+  const ip = getClientIP(req);
   return `ip_${ip}`;
 }
 
