@@ -1,36 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 
 export const useMediaQuery = (query) => {
-  // Check if we're in the browser
-  const isClient = typeof window === 'object';
   const isMobileQuery = query.includes('max-width');
   
-  // Function to get stored value or compute it
-  const getStoredOrComputedValue = () => {
-    if (!isClient) return isMobileQuery; // Default for SSR
-    
-    try {
-      // Try to get from sessionStorage first for consistent experience during navigation
-      const stored = sessionStorage.getItem(`mq-${query}`);
-      if (stored !== null) return stored === 'true';
-    } catch (e) {
-      // Ignore storage errors
-    }
-    
-    // Compute from matchMedia
-    return window.matchMedia(query).matches;
-  };
-  
-  // Initialize with computed/stored value
-  const [matches, setMatches] = useState(getStoredOrComputedValue);
+  // Initialize with SSR-safe default
+  const [matches, setMatches] = useState(isMobileQuery);
   const mediaQueryRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
   
   useEffect(() => {
-    if (!isClient) return;
+    // Check if we're in the browser
+    if (typeof window === 'undefined') return;
     
     // Create media query list
     mediaQueryRef.current = window.matchMedia(query);
+    
+    // Set initial value immediately to prevent hydration mismatch
+    const initialValue = mediaQueryRef.current.matches;
+    setMatches(initialValue);
     
     // Debounced handler to prevent excessive updates
     const debouncedHandler = (e) => {
@@ -51,18 +38,6 @@ export const useMediaQuery = (query) => {
       }, 50); // 50ms debounce
     };
     
-    // Set initial value using requestAnimationFrame
-    requestAnimationFrame(() => {
-      const initialValue = mediaQueryRef.current.matches;
-      setMatches(initialValue);
-      
-      try {
-        sessionStorage.setItem(`mq-${query}`, String(initialValue));
-      } catch (e) {
-        // Ignore storage errors
-      }
-    });
-    
     // Add listener with proper error handling
     try {
       mediaQueryRef.current.addEventListener('change', debouncedHandler);
@@ -80,7 +55,7 @@ export const useMediaQuery = (query) => {
         }
       }
     };
-  }, [query, isClient]);
+  }, [query]);
   
   return matches;
 }; 

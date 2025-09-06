@@ -26,6 +26,7 @@ const DeleteClipModal = ({
     };
   }, [isOpen, onClose]);
 
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

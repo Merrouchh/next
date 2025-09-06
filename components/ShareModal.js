@@ -20,6 +20,7 @@ const ShareModal = ({ isOpen, onClose, clipId }) => {
     };
   }, [isOpen, onClose]);
   
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   const clipUrl = `${window.location.origin}/clip/${clipId}`;

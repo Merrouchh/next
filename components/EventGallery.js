@@ -141,9 +141,9 @@ const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNe
     }
   }, [isOpen, images, currentIndex]);
   
+  // Handle conditional rendering based on state
   if (!isOpen || !images.length) return null;
   
-  // Only render portal on client side
   if (typeof window === 'undefined') return null;
   
   return createPortal(

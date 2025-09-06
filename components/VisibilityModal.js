@@ -18,6 +18,7 @@ const VisibilityModal = ({ isOpen, onClose, isPublic, onConfirm, isUpdating }) =
     };
   }, [isOpen, onClose]);
   
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

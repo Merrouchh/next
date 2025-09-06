@@ -30,6 +30,7 @@ const EditProfileModal = ({ isOpen, onClose, title, children }) => {
     };
   }, [isOpen, onClose]);
   
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

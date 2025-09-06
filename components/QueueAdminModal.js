@@ -26,6 +26,7 @@ const QueueAdminModal = ({
     }
   }, [autoClose, isOpen, type, autoCloseDelay, onClose]);
 
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   const getIcon = () => {

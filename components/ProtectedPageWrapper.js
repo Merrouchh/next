@@ -24,11 +24,6 @@ const ProtectedPageWrapper = ({ children }) => {
   const showDashboardHeader = user && hasNavigation;
   const hasSearchHeader = routeConfig.hasSearchHeader;
 
-  // If this is a verification page, don't wrap with navigation/headers
-  if (isVerificationPage) {
-    return children;
-  }
-
   // Handle authentication-based routing
   useEffect(() => {
     // Don't do anything if auth is not initialized yet
@@ -55,6 +50,11 @@ const ProtectedPageWrapper = ({ children }) => {
       return;
     }
   }, [initialized, user, router, routeConfig.requireAuth, router.pathname, router.isReady, isVerificationPage, isAdminRequired]);
+
+  // If this is a verification page, don't wrap with navigation/headers
+  if (isVerificationPage) {
+    return children;
+  }
 
   // Show loading while auth is initializing (except for home page which handles its own loading)
   if (!initialized && router.pathname !== '/') {

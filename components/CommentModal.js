@@ -46,7 +46,7 @@ const CommentModal = ({ isOpen, onClose, clipId, clipTitle }) => {
     }, 300); // Match animation duration
   };
   
-  // Don't render anything if modal is not open
+  // Handle conditional rendering based on state
   if (!isOpen && !isAnimating) return null;
   
   return (

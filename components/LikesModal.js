@@ -16,6 +16,7 @@ const LikesModal = ({ isOpen, onClose, likes, isLoadingLikes }) => {
     }
   }, [likes]);
 
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

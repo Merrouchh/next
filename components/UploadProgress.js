@@ -173,7 +173,7 @@ const UploadProgress = ({
     fontWeight: 'bold'
   } : {};
   
-  // If not open or not mounted, don't render anything
+  // Handle conditional rendering based on state
   if (!isOpen || !mounted) return null;
 
   const modalContent = (

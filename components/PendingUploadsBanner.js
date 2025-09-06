@@ -219,7 +219,7 @@ const PendingUploadsBanner = ({ userId }) => {
     new Date(b.uploaded_at) - new Date(a.uploaded_at)
   );
 
-  // If no uploads to show, don't render anything
+  // Handle conditional rendering based on state
   if (allUploads.length === 0) return null;
   
   return (

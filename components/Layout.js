@@ -45,12 +45,11 @@ const Layout = ({ children }) => {
     return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
   }, [router?.pathname, isVerificationPage]);
 
-  // Let _app.js handle initialization - no need for additional loading state here
+  // Handle conditional rendering based on state
   if (!initialized) {
     return null;
   }
 
-  // For auth pages like verification, use a cleaner layout
   if (isVerificationPage) {
     return (
       <>

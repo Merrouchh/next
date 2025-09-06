@@ -103,6 +103,15 @@ const Dashboard = React.memo(() => {
     refreshData(true);
   }, [refreshData]);
 
+  // Log successful data load
+  console.log('✅ Dashboard rendering with data:', { 
+    dataExists: !!data, 
+    authLoading, 
+    user: user?.username,
+    activeSessions: data?.activeSessions?.length || 0,
+    topUsers: data?.topUsers?.length || 0
+  });
+
   // Show loading state when no data or during auth
   if (authLoading || !data) {
     console.log('Dashboard loading state:', { authLoading, data: data ? 'DATA_EXISTS' : 'DATA_NULL', error, user: user?.username, loading });
@@ -116,15 +125,6 @@ const Dashboard = React.memo(() => {
       </ProtectedPageWrapper>
     );
   }
-
-  // Log successful data load
-  console.log('✅ Dashboard rendering with data:', { 
-    dataExists: !!data, 
-    authLoading, 
-    user: user?.username,
-    activeSessions: data?.activeSessions?.length || 0,
-    topUsers: data?.topUsers?.length || 0
-  });
 
   // Show setup required state
   if (data?.needsProfileSetup) {
@@ -150,7 +150,7 @@ const Dashboard = React.memo(() => {
         <title>Gaming Dashboard | Merrouch Gaming Center</title>
       </Head>
       <ProtectedPageWrapper>
-      <main className={styles.dashboardMain}>
+      <main className={styles.dashboardMain} suppressHydrationWarning>
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
                           <h1 className={styles.welcomeText}>

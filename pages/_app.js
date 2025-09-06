@@ -79,47 +79,34 @@ function MyApp({ Component, pageProps }) {
                       router.pathname.startsWith('/events/') || 
                       router.pathname.startsWith('/profile/');
 
-  if (isAuthPage) {
-    return (
-      <StrictMode>
-        <ErrorBoundary>
-          <Head>
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <link rel="icon" href="/favicon.ico" />
-            <meta name="theme-color" content="#FFD700" />
-          </Head>
-          <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
-            <AuthProvider>
-              <ModalProvider>
-                <Component {...pageProps} />
-                <ClientOnlyToaster />
-              </ModalProvider>
-            </AuthProvider>
-          </main>
-        </ErrorBoundary>
-      </StrictMode>
-    );
+  const AppContent = (
+    <ErrorBoundary>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="theme-color" content="#FFD700" />
+      </Head>
+      <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`} suppressHydrationWarning>
+        <AuthProvider>
+          <ModalProvider>
+            {isAuthPage ? (
+              <Component {...pageProps} />
+            ) : (
+              getLayout(<Component {...pageProps} />)
+            )}
+            <ClientOnlyToaster />
+          </ModalProvider>
+        </AuthProvider>
+      </main>
+    </ErrorBoundary>
+  );
+
+  // Only use StrictMode in development
+  if (process.env.NODE_ENV === 'development') {
+    return <StrictMode>{AppContent}</StrictMode>;
   }
 
-  return (
-    <StrictMode>
-      <ErrorBoundary>
-        <Head>
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-          <meta name="theme-color" content="#FFD700" />
-        </Head>
-        <main className={`${inter.variable} ${orbitron.variable} ${rajdhani.variable} ${zenDots.variable}`}>
-          <AuthProvider>
-            <ModalProvider>
-              {getLayout(<Component {...pageProps} />)}
-              <ClientOnlyToaster />
-            </ModalProvider>
-          </AuthProvider>
-        </main>
-      </ErrorBoundary>
-    </StrictMode>
-  );
+  return AppContent;
 }
 
 export default MyApp;

@@ -73,6 +73,7 @@ const PasswordResetModal = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

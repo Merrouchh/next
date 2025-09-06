@@ -236,6 +236,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
     };
   }, [file, onThumbnailGenerated, onError, loading, thumbnail]);
 
+  // Handle conditional rendering based on state
   if (!file) return null;
 
   return (

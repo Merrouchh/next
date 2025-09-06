@@ -533,7 +533,7 @@ const AwardsPage = () => {
         <title>Gaming Achievements & Awards | Merrouch Gaming Center</title>
       </Head>
       <ProtectedPageWrapper>
-        <div className={styles.awardsContainer}>
+        <div className={styles.awardsContainer} suppressHydrationWarning>
         <header className={styles.awardsHeader}>
           <h1 className={styles.awardsTitle}>YOUR ACHIEVEMENTS</h1>
           <div className={styles.awardsStats}>

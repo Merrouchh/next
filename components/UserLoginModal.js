@@ -116,7 +116,7 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
     }
   };
 
-  // If modal is not open, don't render anything
+  // Handle conditional rendering based on state
   if (!isOpen) return null;
 
   return (

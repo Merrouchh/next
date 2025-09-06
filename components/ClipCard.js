@@ -508,7 +508,7 @@ const ClipCard = ({
     handleLike();
   };
 
-  // If clip is deleted or made private (on discover page), don't render anything
+  // Handle conditional rendering based on state
   if (!clipData) return null;
   
   // Render processing state if clip is still processing or transitioning

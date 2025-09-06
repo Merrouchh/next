@@ -24,6 +24,7 @@ const Portal = ({ children }) => {
     };
   }, []);
 
+  // Handle conditional rendering based on state
   if (!mounted || !modalRoot) return null;
 
   return createPortal(children, modalRoot);

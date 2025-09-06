@@ -182,7 +182,7 @@ const DarkModeMap = () => {
     };
   }, [shouldRender, loadLeaflet, loadError]);
 
-  // Don't render if not ready or if component is unmounting
+  // Handle conditional rendering based on state
   if (!shouldRender || !mountedRef.current) {
     return (
       <div className={styles.mapWrapper}>
@@ -191,7 +191,6 @@ const DarkModeMap = () => {
     );
   }
 
-  // Show error state if map failed to load
   if (loadError) {
     return (
       <div className={styles.mapWrapper}>

@@ -1312,10 +1312,6 @@ export const AuthProvider = ({ children, onError }) => {
     handleAuthRedirects();
   }, [mounted, router]);
 
-  if (shouldShowLoading()) {
-    return children;
-  }
-
   // Get current session for the context
   const [session, setSession] = useState(null);
   
@@ -1333,6 +1329,11 @@ export const AuthProvider = ({ children, onError }) => {
     
     getCurrentSession();
   }, [authState.isLoggedIn]);
+
+  // Handle conditional rendering based on state
+  if (shouldShowLoading()) {
+    return children;
+  }
 
   // Return the context value
   const value = {
