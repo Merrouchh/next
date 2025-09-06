@@ -7,8 +7,8 @@ import { createClient } from '@supabase/supabase-js';
  */
 export function createSecureServerClient(req, res, options = {}) {
   const supabase = createServerClient(
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL, // Server-side with fallback
-    process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Server-side with fallback
+    process.env.SUPABASE_URL, // Server-side only
+    process.env.SUPABASE_ANON_KEY, // Server-side only
     {
       cookies: {
         getAll() {
@@ -37,11 +37,11 @@ export function createSecureServerClient(req, res, options = {}) {
  * Create a service role client for admin operations
  */
 export function createServiceRoleClient() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
-    throw new Error('Missing SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL');
+    throw new Error('Missing SUPABASE_URL');
   }
 
   if (!serviceRoleKey) {

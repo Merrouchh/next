@@ -120,9 +120,8 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Client-side Supabase (for compatibility)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# Note: This project uses server-side only environment variables for security
+# All Supabase operations are handled server-side to prevent client-side exposure
 
 # Gizmo API
 API_BASE_URL=https://your-gizmo-api

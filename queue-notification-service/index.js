@@ -5,7 +5,7 @@ const { notifyQueueJoined, notifyYourTurn } = require('./whatsapp');
 
 // Initialize Supabase client
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
@@ -247,7 +247,7 @@ async function startService() {
   console.log('🚀 Starting Queue Notification Service...');
   console.log(`📱 WhatsApp API: ${process.env.INFOBIP_API_KEY ? 'Configured' : 'NOT CONFIGURED'}`);
   console.log(`🎮 Gizmo API: ${GIZMO_API_BASE ? 'Configured' : 'NOT CONFIGURED'}`);
-  console.log(`📊 Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Configured' : 'NOT CONFIGURED'}`);
+  console.log(`📊 Supabase: ${process.env.SUPABASE_URL ? 'Configured' : 'NOT CONFIGURED'}`);
 
   isRunning = true;
 

@@ -4,7 +4,7 @@ import { withRateLimit } from '../../utils/middleware/rateLimiting';
 
 async function handler(req, res) {
     // SECURITY: Remove dangerous CORS headers
-    res.setHeader('Access-Control-Allow-Origin', process.env.NEXT_PUBLIC_SITE_URL || 'https://merrouchgaming.com');
+    res.setHeader('Access-Control-Allow-Origin', process.env.SITE_URL || 'https://merrouchgaming.com');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
@@ -26,13 +26,8 @@ async function handler(req, res) {
       });
     }
 
-    // SECURITY: Only allow admins/staff to validate credentials
+    // Allow any authenticated user to validate credentials for account linking
     const { user } = authResult;
-    if (!user.isAdmin && !user.isStaff) {
-      return res.status(403).json({ 
-        message: 'Admin or staff access required' 
-      });
-    }
   
     const { username, password } = req.body; // Extract username and password
   
@@ -86,5 +81,5 @@ async function handler(req, res) {
   }
 
 // Export with rate limiting and auth
-export default withRateLimit(handler, 'admin');
+export default withRateLimit(handler, 'general');
   

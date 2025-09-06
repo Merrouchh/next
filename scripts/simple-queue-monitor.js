@@ -65,7 +65,7 @@ class Logger {
 }
 
 // Configuration
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const API_BASE_URL = process.env.API_BASE_URL;
 const API_AUTH = process.env.API_AUTH;

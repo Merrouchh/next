@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   try {
     // Initialize Supabase with anon key
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
     );
     
     // For GET requests, handle both authenticated and unauthenticated users
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
       let user = null;
       if (req.headers.authorization) {
         const authenticatedSupabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          process.env.SUPABASE_URL,
+          process.env.SUPABASE_ANON_KEY,
           {
             global: {
               headers: {
@@ -47,8 +47,8 @@ export default async function handler(req, res) {
     
     // For POST and DELETE requests, authentication is required
     const authenticatedSupabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY,
       {
         global: {
           headers: {

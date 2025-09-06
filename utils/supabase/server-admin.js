@@ -7,8 +7,8 @@ import { logUnauthorizedAdminAccess, logUnauthorizedStaffAccess } from '../secur
  */
 export function createServerSupabase(req, res) {
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL, // Fallback for compatibility
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY, // Use anon key, not service role
+    process.env.SUPABASE_URL, // Server-side only
+    process.env.SUPABASE_ANON_KEY, // Server-side only
     {
       cookies: {
         getAll() {

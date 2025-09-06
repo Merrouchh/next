@@ -6,8 +6,8 @@ export default async function handler(req, res) {
   try {
     // Initialize Supabase with anon key - no auth for public endpoints
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
     );
     
     // Get the event ID from the URL
@@ -37,8 +37,8 @@ export default async function handler(req, res) {
 async function handleAuthenticatedRequest(req, res, supabase, id) {
   // Create authenticated client with token from request
   const authenticatedSupabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
     {
       global: {
         headers: {

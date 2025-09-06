@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         }
         
         // Otherwise redirect to our success page with the email as a query param
-        const successUrl = new URL('/auth/verification-success', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+        const successUrl = new URL('/auth/verification-success', process.env.SITE_URL || 'http://localhost:3000');
         successUrl.searchParams.append('type', 'email_change');
         successUrl.searchParams.append('email', data.user.email);
         return res.redirect(successUrl.toString());
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       }
       
       // Otherwise redirect to our standard success page
-      const successUrl = new URL('/auth/verification-success', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+      const successUrl = new URL('/auth/verification-success', process.env.SITE_URL || 'http://localhost:3000');
       if (type) successUrl.searchParams.append('type', type);
       return res.redirect(successUrl.toString());
     }

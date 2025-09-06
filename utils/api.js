@@ -98,6 +98,60 @@ const enhancedFetch = async (url, options = {}) => {
   }
 };
 
+// Function for validating gaming credentials during account linking (no auth required)
+export const validateGamingCredentials = async (username, password) => {
+  try {
+    console.log('Validating gaming credentials for username:', username);
+    
+    // Add error handling for empty parameters
+    if (!username || !password) {
+      console.error('Missing required parameters for validation');
+      return { isValid: false, error: 'Username and password are required' };
+    }
+    
+    const response = await fetch('/api/validateGamingCredentials', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Gaming validation failed:', errorData);
+      return { 
+        isValid: false, 
+        error: errorData.message || 'Validation failed',
+        status: response.status 
+      };
+    }
+
+    const data = await response.json();
+    console.log('Gaming validation response:', data);
+    
+    // Handle already linked response
+    if (data.alreadyLinked) {
+      return {
+        isValid: false,
+        alreadyLinked: true,
+        linkedAccount: data.linkedAccount,
+        error: `This gaming account is already linked to "${data.linkedAccount.username}"`
+      };
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error validating gaming credentials:', error);
+    return { 
+      isValid: false, 
+      error: 'Network error or server unavailable' 
+    };
+  }
+};
+
 export const validateUserCredentials = async (username, password) => {
   try {
     console.log('Validating user credentials for username:', username);
@@ -108,11 +162,11 @@ export const validateUserCredentials = async (username, password) => {
       return { isValid: false, error: 'Username and password are required' };
     }
 
-    // Check if user is authenticated first (admin/staff only endpoint)
+    // Check if user is authenticated for account linking
     const isAuth = await isUserAuthenticated();
     if (!isAuth) {
       console.warn('User not authenticated, cannot validate credentials');
-      return { isValid: false, error: 'Admin authentication required' };
+      return { isValid: false, error: 'Authentication required' };
     }
     
     const authHeaders = await getAuthHeaders();

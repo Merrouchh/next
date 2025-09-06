@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     // 2. Also make a direct call to the main cancellation API
     // which handles the auth.users table properly
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/cancel-email-verification`, {
+      const response = await fetch(`${process.env.SITE_URL || 'http://localhost:3000'}/api/cancel-email-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

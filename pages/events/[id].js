@@ -73,7 +73,7 @@ export async function getServerSideProps({ params, res }) {
     };
     
     // Try with absolute URL first
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+    const baseUrl = process.env.BASE_URL || 'https://merrouchgaming.com';
     let result = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}`);
     
     // If that fails, try with relative URL

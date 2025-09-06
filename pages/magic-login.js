@@ -95,8 +95,8 @@ export default function MagicLogin() {
         
         // Create a standalone Supabase client for setting up session
         const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          process.env.SUPABASE_URL,
+          process.env.SUPABASE_ANON_KEY,
           {
             auth: {
               persistSession: true,

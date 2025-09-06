@@ -82,7 +82,7 @@ export async function getServerSideProps({ req, res, params }) {
     }. High-quality gaming clips from our RTX 3070 gaming PCs.`;
 
     // Generate video and thumbnail URLs
-    const videoUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+    const videoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
     
     // Determine thumbnail URL with priority order
     let thumbnailUrl = 'https://merrouchgaming.com/top.jpg';
@@ -94,7 +94,7 @@ export async function getServerSideProps({ req, res, params }) {
       // Fallback to stored thumbnail if available
       thumbnailUrl = clip.thumbnail_path.startsWith('http') 
         ? clip.thumbnail_path 
-        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`;
+        : `${process.env.SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.thumbnail_path}`;
     }
     
     console.log('Using thumbnail URL for clip page:', thumbnailUrl);

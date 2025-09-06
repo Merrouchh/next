@@ -2,14 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 
 // Create a Supabase client
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 // Create a Supabase admin client for operations that require admin privileges
 const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? 
   createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
@@ -94,15 +94,15 @@ export default async function handler(req, res) {
     }
 
     // Generate verification link
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.SITE_URL || 'http://localhost:3000';
     const verificationLink = `${baseUrl}/api/email/verify?token=${verification.verification_token}`;
 
     // Send email using Supabase
-    const emailResult = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/send-email`, {
+    const emailResult = await fetch(`${process.env.SUPABASE_URL}/auth/v1/admin/send-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apiKey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        'apiKey': process.env.SUPABASE_ANON_KEY,
         'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
       },
       body: JSON.stringify({

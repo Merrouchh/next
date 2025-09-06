@@ -39,17 +39,21 @@ export async function initializeSupabaseConfig() {
   if (typeof window === 'undefined') return;
   
   try {
+    console.log('Fetching Supabase configuration...');
     const response = await fetch('/api/config/supabase', {
       credentials: 'include'
     });
     
     if (response.ok) {
       const config = await response.json();
+      console.log('Supabase config received:', { url: config.url, hasKey: !!config.anonKey });
       configCache = { url: config.url, anonKey: config.anonKey };
       
       // Store in window for immediate access
       (window as any).__SUPABASE_URL__ = config.url;
       (window as any).__SUPABASE_ANON_KEY__ = config.anonKey;
+    } else {
+      console.error('Failed to fetch Supabase config:', response.status, response.statusText);
     }
   } catch (error) {
     console.warn('Failed to load Supabase configuration:', error);

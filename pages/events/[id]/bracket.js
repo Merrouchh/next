@@ -41,7 +41,7 @@ export async function getServerSideProps({ params, req, res }) {
     };
     
     // Try fetching event data
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://merrouchgaming.com';
+    const baseUrl = process.env.BASE_URL || 'https://merrouchgaming.com';
     let eventResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}`);
     
     // If that fails, try with relative URL

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.toLowerCase(),
       {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`
+        redirectTo: `${process.env.SITE_URL || 'http://localhost:3000'}/auth/reset-password`
       }
     );
     

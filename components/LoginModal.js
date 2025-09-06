@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { validateUserCredentials } from '../utils/api';
+import { validateGamingCredentials } from '../utils/api';
 import { useAuth } from "../contexts/AuthContext";
 import styles from '../styles/LoginModal.module.css';
 import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail, AiOutlineTrophy, AiOutlineCheckCircle } from 'react-icons/ai';
@@ -226,7 +226,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       
       let response;
       try {
-        response = await validateUserCredentials(
+        response = await validateGamingCredentials(
           trimmedUsername, 
           formData.gizmoPassword
         );
@@ -253,9 +253,40 @@ const LoginModal = ({ isOpen, onClose }) => {
         return;
       }
 
+      // Check if gaming account is already linked (from API response)
+      if (response.alreadyLinked) {
+        setError(
+          <div style={{ textAlign: 'center', padding: '15px' }}>
+            <div style={{ marginBottom: '15px', fontSize: '16px', color: '#e74c3c' }}>
+              "{formData.username}" already has an account
+            </div>
+            <button 
+              onClick={() => {
+                setError('');
+                handleStepChange('LOGIN');
+              }}
+              style={{
+                backgroundColor: '#3498db',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Go to Login
+            </button>
+          </div>
+        );
+        setIsLoading(false);
+        return;
+      }
+
       // Check if response indicates valid credentials
-      if (response.isValid && response.userId) {
-        const gizmoId = response.userId;
+      if (response.result && response.result.identity && response.result.identity.userId) {
+        const gizmoId = response.result.identity.userId;
+        console.log('Valid gaming credentials found, gizmoId:', gizmoId);
         const supabase = createClient();
 
         // Check if this gizmo ID already exists in our database
@@ -296,6 +327,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           username: trimmedUsername
         });
         
+        console.log('Proceeding to CREATE step for gizmoId:', gizmoId);
         handleStepChange('CREATE');
       } else {
         setError('Invalid gaming account credentials');

@@ -186,7 +186,7 @@ const EmailSection = ({
       }
       
       // Prepare the redirect URL for the verification process
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+      const siteUrl = process.env.SITE_URL || window.location.origin;
       const redirectUrl = new URL('/auth/verification-success', siteUrl);
       
       // Add type parameter to the redirectTo URL

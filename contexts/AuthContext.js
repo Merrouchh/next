@@ -26,6 +26,7 @@ const RETRY_DELAY_BASE = 1000; // Base delay for exponential backoff
 const AuthContext = createContext({
   isLoggedIn: false,
   user: null,
+  session: null,
   loading: true,
   initialized: false
 });
@@ -62,10 +63,12 @@ export const AuthProvider = ({ children, onError }) => {
   useEffect(() => {
     const initializeClient = async () => {
       if (typeof window !== 'undefined' && !supabaseRef.current) {
+        console.log('Initializing Supabase client...');
         // Initialize configuration first
         await initializeSupabaseConfig();
         try {
           supabaseRef.current = createClient();
+          console.log('Supabase client initialized:', supabaseRef.current ? 'Success' : 'Failed');
         } catch (error) {
           console.warn('Failed to initialize Supabase client:', error);
           // We'll try again when user attempts to authenticate
@@ -877,6 +880,9 @@ export const AuthProvider = ({ children, onError }) => {
       }
 
       try {
+        console.log('Attempting login with email:', email);
+        console.log('Supabase client available:', !!supabaseRef.current);
+        
         // Sign in with Supabase using email
         const { data, error: signInError } = await supabaseRef.current.auth.signInWithPassword({
           email,
@@ -1310,10 +1316,29 @@ export const AuthProvider = ({ children, onError }) => {
     return children;
   }
 
+  // Get current session for the context
+  const [session, setSession] = useState(null);
+  
+  useEffect(() => {
+    const getCurrentSession = async () => {
+      if (supabaseRef.current && authState.isLoggedIn) {
+        const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+        if (!error && session) {
+          setSession(session);
+        }
+      } else {
+        setSession(null);
+      }
+    };
+    
+    getCurrentSession();
+  }, [authState.isLoggedIn]);
+
   // Return the context value
   const value = {
     isLoggedIn: authState.isLoggedIn,
     user: authState.user,
+    session: session,
     loading: authState.loading || isRefreshing,
     initialized: authState.initialized,
     isLoading, 
