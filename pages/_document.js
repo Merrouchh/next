@@ -156,6 +156,13 @@ class MyDocument extends Document {
             crossOrigin="anonymous"
           />
           
+          {/* Google AdSense */}
+          <script 
+            async 
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9962412947454374"
+            crossOrigin="anonymous"
+          />
+          
           {/* PWA */}
           <link rel="manifest" href="/manifest.json" />
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
