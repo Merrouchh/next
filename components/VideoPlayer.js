@@ -435,7 +435,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         }
       }
     };
-  }, [clip?.id, clip?.mp4link, mounted, isInClipCard, clip.thumbnail_path, onLoadingChange, videoInitialized]);
+  }, [clip?.id, clip?.mp4link, mounted, isInClipCard, clip.thumbnail_path, onLoadingChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle custom play button click - starts preloading and plays
   const handleCustomPlayButtonClick = () => {
@@ -463,6 +463,11 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         playPromise.then(() => {
           console.log('Video play promise resolved successfully');
         }).catch(error => {
+          // Ignore benign AbortError caused by immediate pause/dispose during re-init
+          if (error && (error.name === 'AbortError' || (typeof error.message === 'string' && error.message.includes('AbortError')))) {
+            console.warn('Play aborted (likely due to pause/dispose during init). Ignoring.');
+            return;
+          }
           console.error('Video play promise rejected:', error);
           setError(`Playback failed: ${error.message}`);
         });
