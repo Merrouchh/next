@@ -9,8 +9,8 @@ import { useDropzone } from 'react-dropzone';
 import UploadProgress from '../components/UploadProgress';
 import dynamic from 'next/dynamic';
 import { useVideoUpload } from '../hooks/useVideoUpload';
-import { v4 as uuidv4 } from 'uuid';
-import debounce from 'lodash/debounce';
+// import { v4 as uuidv4 } from 'uuid'; // Removed unused import
+// import debounce from 'lodash/debounce'; // Removed unused import
 import PendingUploadsBanner from '../components/PendingUploadsBanner';
 
 // Constants for file validation
@@ -28,42 +28,44 @@ const VideoThumbnail = dynamic(() => import('../components/VideoThumbnail'), {
 });
 
 // Extract loading component
-const ThumbnailLoader = memo(() => (
-  <div className={styles.previewLoading}>
-    <div className={styles.spinner}></div>
-    <p>Preparing preview...</p>
-  </div>
-));
+const ThumbnailLoader = memo(function ThumbnailLoader() {
+  return (
+    <div className={styles.previewLoading}>
+      <div className={styles.spinner}></div>
+      <p>Preparing preview...</p>
+    </div>
+  );
+});
 
-const _updatedUploadStyles = {
-  uploadMain: {
-    backgroundColor: 'var(--dark-bg-primary)',
-    color: 'var(--dark-text-primary)'
-  },
-  uploadCard: {
-    backgroundColor: 'var(--dark-card-bg)',
-    border: '1px solid var(--dark-border)'
-  },
-  input: {
-    backgroundColor: 'var(--dark-input-bg)',
-    color: 'var(--dark-text-primary)',
-    border: '1px solid var(--dark-border)'
-  },
-  select: {
-    backgroundColor: 'var(--dark-input-bg)',
-    color: 'var(--dark-text-primary)',
-    border: '1px solid var(--dark-border)'
-  },
-  dropzone: {
-    backgroundColor: 'var(--dark-bg-elevated)',
-    border: '2px dashed var(--dark-border)',
-    '&:hover': {
-      borderColor: 'var(--dark-accent-primary)'
-    }
-  }
-};
+// const _updatedUploadStyles = { // Removed unused variable
+//   uploadMain: {
+//     backgroundColor: 'var(--dark-bg-primary)',
+//     color: 'var(--dark-text-primary)'
+//   },
+//   uploadCard: {
+//     backgroundColor: 'var(--dark-card-bg)',
+//     border: '1px solid var(--dark-border)'
+//   },
+//   input: {
+//     backgroundColor: 'var(--dark-input-bg)',
+//     color: 'var(--dark-text-primary)',
+//     border: '1px solid var(--dark-border)'
+//   },
+//   select: {
+//     backgroundColor: 'var(--dark-input-bg)',
+//     color: 'var(--dark-text-primary)',
+//     border: '1px solid var(--dark-border)'
+//   },
+//   dropzone: {
+//     backgroundColor: 'var(--dark-bg-elevated)',
+//     border: '2px dashed var(--dark-border)',
+//     '&:hover': {
+//       borderColor: 'var(--dark-accent-primary)'
+//     }
+//   }
+// };
 
-export async function getServerSideProps({ _req, _res }) {
+export async function getServerSideProps() {
   // This makes the page dynamic and prevents static generation
   return {
     props: {
@@ -81,22 +83,21 @@ const UploadPage = () => {
   const [showProgress, setShowProgress] = useState(false);
   const [fileError, setFileError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { user, isLoggedIn, supabase } = useAuth();
+  const { user, supabase } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState(null);
   const currentUploadUid = useRef(null);
-  const sessionId = useRef(uuidv4()).current;
-  const videoRef = useRef(null);
+  // const sessionId = useRef(uuidv4()).current; // Removed unused variable
+  // const videoRef = useRef(null); // Removed unused ref
   const blobUrlRef = useRef(null);
   const processingTimeoutRef = useRef(null);
-  const [fileProcessed, setFileProcessed] = useState(false);
   const [bannerKey, setBannerKey] = useState(0); // Add state to force banner refresh
   const [localUploadStatus, setLocalUploadStatus] = useState('idle');
 
   const { 
     uploadStatus, 
     uploadProgress, 
-    uploadFile, 
+    // uploadFile, // Removed unused function 
     uploadWithUrl,
     cancelUpload,
     resetForm 
@@ -106,7 +107,7 @@ const UploadPage = () => {
   const logEvent = useCallback((event, details) => {
     // ... logging logic ...
     console.log(`[${event}]`, details);
-  }, [username, sessionId]);
+  }, []);
 
   // Improved blob cleanup
   const cleanupBlobUrl = useCallback(() => {
@@ -165,7 +166,7 @@ const UploadPage = () => {
     // 2. Check filename for network path patterns
     
     // Check filename for UNC path patterns (Windows network shares)
-    const filename = file.name || '';
+    // const filename = file.name || ''; // Removed unused variable
     const path = file.path || '';
     
     // Look for patterns like \\server\share or //server/share in the path if available
@@ -180,67 +181,65 @@ const UploadPage = () => {
     return false;
   }, []);
 
-  // Handle file selection with validation and optimized processing
-  const handleFileChange = useCallback((event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Reset previous state
-    setFileError(null);
-    setIsProcessing(true);
-    setFileProcessed(false);
-    
-    // Validate file
-    const error = validateFile(file);
-    if (error) {
-      setFileError(error);
-      setIsProcessing(false);
-      return;
-    }
-    
-    // Check if file is from a network path
-    const networkFile = isNetworkPath(file);
-    if (networkFile) {
-      console.log('Network file detected, using optimized handling');
-      // For network files, we'll skip blob URL creation and thumbnail generation
-      // to prevent UI blocking
-      
-      setSelectedFile(file);
-      setTitle(file.name.split('.')[0]);
-      setIsProcessing(false);
-      setFileProcessed(true);
-      
-      // Show a warning about network files
-      setFileError("Network file detected. Upload may be slower. Consider copying to local drive first for better performance.");
-      return;
-    }
-    
-    // Set a timeout to prevent UI blocking perception
-    processingTimeoutRef.current = setTimeout(() => {
-      try {
-        // Only create a new blob URL if we don't already have one for this file
-        if (blobUrlRef.current) {
-          cleanupBlobUrl(); // Cleanup old blob
-        }
-        
-        setSelectedFile(file);
-        setTitle(file.name.split('.')[0]);
-        setFileProcessed(true);
-        setIsProcessing(false);
-      } catch (error) {
-        console.error('Error processing file:', error);
-        setSelectedFile(file);
-        setTitle(file.name.split('.')[0]);
-        setFileProcessed(true);
-        setIsProcessing(false);
-      }
-    }, 50);
-  }, [cleanupBlobUrl, validateFile, isNetworkPath]);
+  // Handle file selection with validation and optimized processing - UNUSED
+  // const handleFileChange = useCallback((event) => {
+  //   const file = event.target.files[0];
+  //   if (!file) return;
+  //   
+  //   // Reset previous state
+  //   setFileError(null);
+  //   setIsProcessing(true);
+  //   setFileProcessed(false);
+  //   
+  //   // Validate file
+  //   const error = validateFile(file);
+  //   if (error) {
+  //     setFileError(error);
+  //     setIsProcessing(false);
+  //     return;
+  //   }
+  //   
+  //   // Check if file is from a network path
+  //   const networkFile = isNetworkPath(file);
+  //   if (networkFile) {
+  //     console.log('Network file detected, using optimized handling');
+  //     // For network files, we'll skip blob URL creation and thumbnail generation
+  //     // to prevent UI blocking
+  //     
+  //     setSelectedFile(file);
+  //     setTitle(file.name.split('.')[0]);
+  //     setIsProcessing(false);
+  //     setFileProcessed(true);
+  //     
+  //     // Show a warning about network files
+  //     setFileError("Network file detected. Upload may be slower. Consider copying to local drive first for better performance.");
+  //     return;
+  //   }
+  //   
+  //   // Set a timeout to prevent UI blocking perception
+  //   processingTimeoutRef.current = setTimeout(() => {
+  //     try {
+  //       // Only create a new blob URL if we don't already have one for this file
+  //       if (blobUrlRef.current) {
+  //         cleanupBlobUrl(); // Cleanup old blob
+  //       }
+  //       
+  //       setSelectedFile(file);
+  //       setTitle(file.name.split('.')[0]);
+  //   //       setIsProcessing(false);
+  //     } catch (error) {
+  //       console.error('Error processing file:', error);
+  //       setSelectedFile(file);
+  //       setTitle(file.name.split('.')[0]);
+  //   //       setIsProcessing(false);
+  //     }
+  //   }, 50);
+  // }, [cleanupBlobUrl, validateFile, isNetworkPath]);
 
-  // Memoize handlers
-  const handleDrop = useCallback((files) => {
-    // ... drop handling logic ...
-  }, []);
+  // Memoize handlers - UNUSED
+  // const handleDrop = useCallback((files) => {
+  //   // ... drop handling logic ...
+  // }, []);
 
   // Upload handling - optimized
   const handleSubmit = async (e) => {
@@ -371,7 +370,6 @@ const UploadPage = () => {
     resetForm();
     setShowProgress(false);
     setFileError(null);
-    setFileProcessed(false);
     setLocalUploadStatus('idle');
     setBannerKey(prev => prev + 1); // Force banner refresh
     
@@ -461,7 +459,6 @@ const UploadPage = () => {
       setSelectedFile(null);
       setShowProgress(false);
       setFileError(null);
-      setFileProcessed(false);
       
       // Force banner refresh after cancellation
       setBannerKey(prev => prev + 1);
@@ -575,7 +572,7 @@ const UploadPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       router.events.off('routeChangeStart', handleRouteChange);
     };
-  }, [uploadStatus, handleCancelUpload, router, logEvent]);
+  }, [uploadStatus, handleCancelUpload, router, logEvent, cancelUpload, localUploadStatus, user?.id]);
 
   // Fetch username from users table - with error handling
   useEffect(() => {
@@ -613,7 +610,6 @@ const UploadPage = () => {
     // Reset error state
     setFileError(null);
     setIsProcessing(true);
-    setFileProcessed(false);
     
     // Validate file
     const error = validateFile(file);
@@ -636,7 +632,6 @@ const UploadPage = () => {
       setSelectedFile(file);
       setTitle(file.name.split('.')[0]);
       setIsProcessing(false);
-      setFileProcessed(true);
       
       // Show a warning about network files
       setFileError("Network file detected. Upload may be slower. Consider copying to local drive first for better performance.");
@@ -659,7 +654,6 @@ const UploadPage = () => {
     processingTimeoutRef.current = setTimeout(() => {
       setSelectedFile(file);
       setTitle(file.name.split('.')[0]);
-      setFileProcessed(true);
       logEvent('FILE_PREPARED', { 
         title: file.name.split('.')[0],
         readyForUpload: true 
@@ -721,7 +715,7 @@ const UploadPage = () => {
                       setPreviewUrl(url);
                     }
                   }}
-                  onError={(error) => {
+                  onError={() => {
                     // Just log the error, don't show it to the user
                     console.log('Thumbnail generation skipped, using fallback');
                   }}

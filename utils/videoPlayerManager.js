@@ -47,6 +47,8 @@ class VideoPlayerManager {
   // Notify the manager that a player has started playing
   playerStartedPlaying(playerId) {
     console.log(`Player started playing: ${playerId}`);
+    console.log(`Current active player: ${this.currentlyPlayingId}`);
+    console.log(`Active players count: ${this.activePlayers.size}`);
     
     // Don't do anything if this is already the active player
     if (this.currentlyPlayingId === playerId) {
@@ -57,23 +59,34 @@ class VideoPlayerManager {
     // Set the new currently playing player first so we don't pause ourselves
     this.currentlyPlayingId = playerId;
     
-    // More aggressive pause of ALL other players
-    this.pauseAllExcept(playerId);
-    
-    // Log active players for debugging
-    this.logActivePlayers();
+    // Add a small delay before pausing other players to prevent race condition
+    // This gives the current player time to actually start playing
+    setTimeout(() => {
+      // More aggressive pause of ALL other players
+      this.pauseAllExcept(playerId);
+      
+      // Log active players for debugging
+      this.logActivePlayers();
+    }, 100); // 100ms delay to prevent interrupting the play() call
   }
   
   // Explicitly pause all players except the given one
   pauseAllExcept(exceptPlayerId) {
     console.log(`Pausing all players except ${exceptPlayerId}`);
+    console.log(`Active players to check:`, Array.from(this.activePlayers.keys()));
     
     // Create a copy of the active players to avoid modification issues during iteration
     const playerEntries = [...this.activePlayers.entries()];
     
     playerEntries.forEach(([id, player]) => {
       if (id !== exceptPlayerId) {
+        console.log(`Attempting to pause player ${id} (not ${exceptPlayerId})`);
         try {
+          // Double-check that we're not trying to pause the currently playing player
+          if (id === this.currentlyPlayingId) {
+            console.log(`Skipping pause for currently playing player ${id}`);
+            return;
+          }
           // Most basic validity check first
           if (!player) {
             console.log(`Player ${id} is null or undefined, skipping`);
@@ -106,6 +119,12 @@ class VideoPlayerManager {
           // Finally, if we passed all checks, try the normal path
           if (typeof player.pause === 'function' && typeof player.paused === 'function') {
             try {
+              // Check if player is in the process of starting to play (readyState 0-2)
+              if (player.readyState && player.readyState() < 3) {
+                console.log(`Player ${id} is still loading (readyState: ${player.readyState()}), skipping pause`);
+                return;
+              }
+              
               // Final safety check right before calling paused()
               if (player.tech && player.tech_.el_) {
                 if (!player.paused()) {
@@ -156,7 +175,7 @@ class VideoPlayerManager {
             console.log(`Direct pause attempt on player ${id} during pauseAll`);
             player.pause();
           }
-        } catch (playerError) {
+        } catch {
           console.log(`Could not pause player ${id}, may be disposed already`);
         }
       });

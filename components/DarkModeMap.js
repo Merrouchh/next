@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import dynamic from 'next/dynamic';
+// import dynamic from 'next/dynamic'; // Removed unused import
 import styles from '../styles/DarkModeMap.module.css';
 
 const DarkModeMap = () => {

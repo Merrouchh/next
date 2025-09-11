@@ -1,5 +1,5 @@
 import { authenticateRequest } from '../../utils/supabase/secure-server';
-import { withRateLimit } from '../../utils/middleware/rateLimiting';
+// import { withRateLimit } from '../../utils/middleware/rateLimiting'; // Removed unused import
 
 async function handler(req, res) {
     if (req.method !== 'GET') {

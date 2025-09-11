@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTimes, FaTh, FaList, FaLaptop, FaCheck, FaTrophy } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
-import { fetchActiveUserSessions, fetchTopUsers } from '../../utils/api';
+import { fetchActiveUserSessions } from '../../utils/api';
 import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 // Add useInterval custom hook for auto-refresh
@@ -30,15 +30,17 @@ const useInterval = (callback, delay) => {
   }, [delay]);
 };
 
-// Add a debugMode flag for controlling console logs
-const debugMode = false;
+// Add a debugMode flag for controlling console logs - UNUSED
+// const debugMode = false;
 
-// Update the debugging helper
+// Update the debugging helper - UNUSED
+/*
 const debugLog = (message, data) => {
   if (debugMode) {
     console.log(`[DEBUG] ${message}:`, data);
   }
 };
+*/
 
 export default function AdminDashboard() {
   const { user, supabase } = useAuth();
@@ -67,7 +69,7 @@ export default function AdminDashboard() {
   const abortControllerRef = React.useRef(null);
 
   // Replace handleRefresh function with fetchAdminStats
-  const fetchAdminStats = async () => {
+  const fetchAdminStats = useCallback(async () => {
     if (!currentUser) return;
     
     try {
@@ -124,7 +126,7 @@ export default function AdminDashboard() {
         setStats(prev => ({ ...prev, loading: false }));
       }
     }
-  };
+  }, [currentUser, supabase]);
 
   // Set up auto-refresh with useInterval (reduce to 5 seconds = 5000ms to prevent excessive API calls)
   useInterval(() => {
@@ -158,7 +160,7 @@ export default function AdminDashboard() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [currentUser, supabase]);
+  }, [currentUser, supabase, fetchAdminStats]);
 
   // Format the session count similar to dashboard.js
   const formatSessionCount = (activeCount) => {

@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/router';
+import { useState, useEffect, useRef, useCallback } from 'react';
+// import { useRouter } from 'next/router'; // Removed unused import
 import Head from 'next/head';
-import Link from 'next/link';
-import { FaCalendarAlt, FaTrophy, FaEdit, FaClock, FaExchangeAlt, FaCrown, FaRandom, FaCheck, FaTimes, FaExclamationTriangle, FaUndo } from 'react-icons/fa';
+import Image from 'next/image';
+import { FaCalendarAlt, FaTrophy, FaEdit, FaClock, FaExchangeAlt, FaCrown, FaTimes, FaUndo } from 'react-icons/fa';
 import styles from '../../../styles/AdminBracketManager.module.css';
-import sharedStyles from '../../../styles/Shared.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import AdminPageWrapper from '../../../components/AdminPageWrapper';
+import DeleteBracketButton from '../../../components/bracket/DeleteBracketButton';
 import { toast } from 'react-hot-toast';
 import { getParticipantNameById, getParticipantDisplayName } from '../../../utils/participantUtils';
 import { withServerSideAdmin } from '../../../utils/supabase/server-admin';
 
 export default function BracketManager() {
-  const router = useRouter();
+  // const router = useRouter(); // Removed unused variable
   const { user, supabase } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,17 +48,17 @@ export default function BracketManager() {
   };
 
   // Helper to restore the scroll position
-  const restoreScrollPosition = () => {
+  const restoreScrollPosition = useCallback(() => {
     if (bracketSectionRef.current && scrollPosition > 0) {
       console.log('Restoring scroll position:', scrollPosition);
       bracketSectionRef.current.scrollTop = scrollPosition;
     }
-  };
+  }, [scrollPosition]);
 
   // Effect to restore scroll position after bracket data updates
   useEffect(() => {
     restoreScrollPosition();
-  }, [bracketData]);
+  }, [bracketData, restoreScrollPosition]);
 
   // Format datetime string for form input
   const formatDatetimeForInput = (datetimeString) => {
@@ -80,7 +80,8 @@ export default function BracketManager() {
     }
   };
 
-  // Parse time with AM/PM awareness - updated to better handle mobile input
+  // Parse time with AM/PM awareness - updated to better handle mobile input - UNUSED
+  /*
   const parseTimeWithMeridiem = (timeStr) => {
     try {
       if (!timeStr) return null;
@@ -129,6 +130,188 @@ export default function BracketManager() {
       return null;
     }
   };
+  */
+
+  // Fetch bracket data for a specific event
+  const fetchBracketData = useCallback(async (eventId) => {
+    setLoading(true);
+    console.log('Fetching bracket data for event:', eventId);
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
+      // Fetch the bracket data
+      const response = await fetch('/api/internal/admin/brackets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'get-bracket',
+          userId: user.id,
+          eventId: eventId
+        })
+      });
+      
+      if (response.status === 404) {
+        console.log('No bracket data found (404)');
+        setBracketData(null);
+        // Try to get participants even if no bracket exists
+        try {
+          const data = await response.json();
+          console.log('404 response data:', data);
+          console.log('Participants from 404 response:', data.participants);
+          console.log('Participants count:', data.participants?.length || 0);
+          setParticipants(data.participants || []);
+        } catch (error) {
+          console.log('Error parsing 404 response:', error);
+          setParticipants([]);
+        }
+        setLoading(false);
+        setInitialLoading(false); // Finished loading (even with 404)
+        return null;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received bracket data from API:', data);
+      
+      if (!data || !data.bracket || (Array.isArray(data.bracket) && data.bracket.length === 0)) {
+        console.log('No valid bracket data in response');
+        setBracketData(null);
+        // Set participants from API response even if no bracket exists
+        setParticipants(data.participants || []);
+        setLoading(false);
+        setInitialLoading(false); // Finished loading (even without data)
+        return null;
+      }
+      
+      // Fetch ALL match details for this event from the database
+      console.log('Fetching match details from database for event:', eventId);
+      const { data: matchDetailsData, error: matchDetailsError } = await supabase
+        .from('event_match_details')
+        .select('*')
+        .eq('event_id', eventId);
+      
+      if (matchDetailsError) {
+        console.error('Error fetching match details:', matchDetailsError);
+      } else {
+        console.log(`Retrieved ${matchDetailsData?.length || 0} match details records from database`);
+      }
+      
+      // Create a map of match details for faster lookup
+      const detailsMap = {};
+      if (matchDetailsData && matchDetailsData.length > 0) {
+        matchDetailsData.forEach(detail => {
+          if (detail && detail.match_id) {
+            detailsMap[detail.match_id] = {
+              scheduled_time: detail.scheduled_time,
+              location: detail.location,
+              notes: detail.notes
+            };
+          }
+        });
+      }
+      
+      console.log('Match details map created with keys:', Object.keys(detailsMap));
+      
+      // Create a deep copy of the bracket data to avoid reference issues
+      let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
+      
+      // Ensure enrichedBracket is an array
+      if (!Array.isArray(enrichedBracket)) {
+        console.error('Bracket data is not an array:', enrichedBracket);
+        throw new Error('Invalid bracket data structure');
+      }
+      
+      // Apply the match details to the bracket data
+      for (let r = 0; r < enrichedBracket.length; r++) {
+        for (let m = 0; m < enrichedBracket[r].length; m++) {
+          const match = enrichedBracket[r][m];
+          const details = detailsMap[match.id];
+          
+          if (details) {
+            console.log(`Applying details to match ${match.id}:`, details);
+          }
+          
+          // Apply details if they exist, otherwise ensure empty strings
+          enrichedBracket[r][m] = {
+            ...match,
+            scheduledTime: details?.scheduled_time || '',
+            location: details?.location || '',
+            notes: details?.notes || ''
+          };
+        }
+      }
+      
+      // Initialize the matchDetailsMap from the enriched bracket
+      const matchDetailsMapData = {};
+      enrichedBracket.forEach(round => {
+        round.forEach(match => {
+          matchDetailsMapData[match.id] = {
+            scheduledTime: match.scheduledTime || '',
+            location: match.location || '',
+            notes: match.notes || ''
+          };
+        });
+      });
+      
+      console.log('Completed matchDetailsMap with entries:', Object.keys(matchDetailsMapData).length);
+      
+      // Sample of first match after enrichment for debugging
+      if (enrichedBracket.length > 0 && enrichedBracket[0].length > 0) {
+        const sampleMatch = enrichedBracket[0][0];
+        console.log('Sample match after enrichment:', {
+          id: sampleMatch.id,
+          scheduledTime: sampleMatch.scheduledTime,
+          location: sampleMatch.location,
+          notes: sampleMatch.notes
+        });
+      }
+      
+      // Set state with the enriched data
+      setBracketData(enrichedBracket);
+      
+      // Debug participants data structure
+      if (data.participants && data.participants.length > 0) {
+        console.log('Participant data sample:', {
+          firstParticipant: data.participants[0],
+          idType: typeof data.participants[0].id,
+          idValue: data.participants[0].id
+        });
+      }
+      
+      setParticipants(data.participants || []);
+      setMatchDetailsMap(matchDetailsMapData);
+      
+      // Initialize expanded rounds - ensure the first round is expanded by default
+      const initialExpandedState = {};
+      enrichedBracket.forEach((_, index) => {
+        initialExpandedState[index] = index === 0;  // Expand only first round
+      });
+      setExpandedRounds(initialExpandedState);
+      
+      setLoading(false);
+      setInitialLoading(false);
+      
+      return enrichedBracket;
+    } catch (error) {
+      console.error('Error fetching bracket data:', error);
+      setError(error.message || 'Failed to load bracket data');
+      setLoading(false);
+      setInitialLoading(false);
+      return null;
+    }
+  }, [supabase, user.id]);
 
   // Fetch events with brackets
   useEffect(() => {
@@ -149,12 +332,17 @@ export default function BracketManager() {
           .select('id, title, date, image, registration_limit, team_type')
           .order('date', { ascending: false });
         
+        console.log('Events query result:', { eventsData, eventsError });
+        console.log('Raw events data:', eventsData);
+        
         if (eventsError) throw eventsError;
         
         // Then, find which events have brackets
         const { data: bracketsData, error: bracketsError } = await supabase
           .from('event_brackets')
           .select('event_id, created_at, updated_at');
+        
+        console.log('Brackets query result:', { bracketsData, bracketsError });
         
         if (bracketsError) throw bracketsError;
         
@@ -178,10 +366,14 @@ export default function BracketManager() {
           return new Date(b.date) - new Date(a.date);
         });
         
+        console.log('Final events array:', sortedEvents);
+        console.log('Events with brackets:', sortedEvents.filter(e => e.hasBracket));
+        console.log('Events without brackets:', sortedEvents.filter(e => !e.hasBracket));
         setEvents(sortedEvents);
         
         // Auto-select the most recent event with a bracket
         const eventWithBracket = sortedEvents.find(event => event.hasBracket);
+        console.log('Event with bracket found:', eventWithBracket);
         if (eventWithBracket) {
           console.log('Auto-selecting most recent event with bracket:', eventWithBracket.title);
           setSelectedEvent(eventWithBracket);
@@ -199,7 +391,7 @@ export default function BracketManager() {
     };
     
     fetchEvents();
-  }, [supabase, user]);
+  }, [supabase, user, fetchBracketData]);
 
   // Function to handle opponent swapping
   const handleChangeOpponent = async (participantPosition) => {
@@ -460,15 +652,19 @@ export default function BracketManager() {
       }
       
       // Update match with winner
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
-        method: 'PUT',
+      const response = await fetch('/api/internal/admin/brackets', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          matchId: matchId,
-          winnerId: participantId
+          action: 'update-match',
+          userId: user.id,
+          eventId: selectedEvent.id,
+          bracketData: {
+            matchId: matchId,
+            winnerId: participantId
+          }
         })
       });
       
@@ -477,7 +673,11 @@ export default function BracketManager() {
         throw new Error(errorData.error || `Failed to update match: ${response.status}`);
       }
       
-      const data = await response.json();
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update match');
+      }
+      const data = result.result;
       
       if (data && data.bracket) {
         // Update our local state
@@ -539,14 +739,19 @@ export default function BracketManager() {
       }
       
       // Clear the winner using the clear-winner API endpoint
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket/clear-winner`, {
-        method: 'PUT',
+      const response = await fetch('/api/internal/admin/brackets', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          matchId: selectedMatch.id
+          action: 'update-match',
+          userId: user.id,
+          eventId: selectedEvent.id,
+          bracketData: {
+            matchId: selectedMatch.id,
+            clearWinner: true
+          }
         })
       });
       
@@ -557,12 +762,12 @@ export default function BracketManager() {
       
       const data = await response.json();
       
-      if (data && data.bracket) {
+      if (data && data.success && data.result && data.result.bracket) {
         // Update our local state
-        setBracketData(data.bracket);
+        setBracketData(data.result.bracket);
         
         // Find the updated match in the bracket data
-        const updatedMatch = findMatchInBracket(data.bracket, selectedMatch.id);
+        const updatedMatch = findMatchInBracket(data.result.bracket, selectedMatch.id);
         
         if (updatedMatch) {
           // Important: Create a complete copy of the match to ensure React detects the change
@@ -614,20 +819,18 @@ export default function BracketManager() {
   const getParticipantName = (participantId) => {
     if (!participantId) return 'TBD';
     
-    // Use centralized utility with fallback to match data
-    const name = getParticipantNameById(participantId, participants, selectedEvent?.team_type || 'solo', { format: 'text' });
-    
-    // If centralized utility returns a fallback, try to get from match data
-    if (name.startsWith('Player ')) {
-      const matchWithParticipant = findMatchWithParticipant(participantId);
-      if (matchWithParticipant) {
-        if (String(matchWithParticipant.participant1Id) === String(participantId)) {
-          return matchWithParticipant.participant1Name || name;
-        } else if (String(matchWithParticipant.participant2Id) === String(participantId)) {
-          return matchWithParticipant.participant2Name || name;
-        }
+    // First try to get name from match data if available
+    const matchWithParticipant = findMatchWithParticipant(participantId);
+    if (matchWithParticipant) {
+      if (String(matchWithParticipant.participant1Id) === String(participantId)) {
+        return matchWithParticipant.participant1Name || 'Unknown';
+      } else if (String(matchWithParticipant.participant2Id) === String(participantId)) {
+        return matchWithParticipant.participant2Name || 'Unknown';
       }
     }
+    
+    // Fallback to centralized utility
+    const name = getParticipantNameById(participantId, participants, selectedEvent?.team_type || 'solo', { format: 'text' });
     
     return name;
   };
@@ -655,9 +858,9 @@ export default function BracketManager() {
     if (event.hasBracket) {
       await fetchBracketData(event.id);
     } else {
-      // Clear bracket data for events without brackets
+      // Clear bracket data for events without brackets, but still fetch participants
       setBracketData(null);
-      setParticipants([]);
+      await fetchBracketData(event.id); // This will fetch participants even if no bracket exists
     }
   };
 
@@ -704,166 +907,6 @@ export default function BracketManager() {
       location: location,
       notes: notes
     });
-  };
-
-  // Fetch bracket data for a specific event
-  const fetchBracketData = async (eventId) => {
-    setLoading(true);
-    console.log('Fetching bracket data for event:', eventId);
-    
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available');
-      }
-      
-      // Fetch the bracket data
-      const response = await fetch(`/api/events/${eventId}/bracket`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      if (response.status === 404) {
-        console.log('No bracket data found (404)');
-        setBracketData(null);
-        setParticipants([]);
-        setLoading(false);
-        setInitialLoading(false); // Finished loading (even with 404)
-        return null;
-      }
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Received bracket data from API:', data);
-      
-      if (!data || !data.bracket) {
-        console.log('No valid bracket data in response');
-        setBracketData(null);
-        setParticipants([]);
-        setLoading(false);
-        setInitialLoading(false); // Finished loading (even without data)
-        return null;
-      }
-      
-      // Fetch ALL match details for this event from the database
-      console.log('Fetching match details from database for event:', eventId);
-      const { data: matchDetailsData, error: matchDetailsError } = await supabase
-        .from('event_match_details')
-        .select('*')
-        .eq('event_id', eventId);
-      
-      if (matchDetailsError) {
-        console.error('Error fetching match details:', matchDetailsError);
-      } else {
-        console.log(`Retrieved ${matchDetailsData?.length || 0} match details records from database`);
-      }
-      
-      // Create a map of match details for faster lookup
-      const detailsMap = {};
-      if (matchDetailsData && matchDetailsData.length > 0) {
-        matchDetailsData.forEach(detail => {
-          if (detail && detail.match_id) {
-            detailsMap[detail.match_id] = {
-              scheduled_time: detail.scheduled_time,
-              location: detail.location,
-              notes: detail.notes
-            };
-          }
-        });
-      }
-      
-      console.log('Match details map created with keys:', Object.keys(detailsMap));
-      
-      // Create a deep copy of the bracket data to avoid reference issues
-      let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
-      
-      // Apply the match details to the bracket data
-      for (let r = 0; r < enrichedBracket.length; r++) {
-        for (let m = 0; m < enrichedBracket[r].length; m++) {
-          const match = enrichedBracket[r][m];
-          const details = detailsMap[match.id];
-          
-          if (details) {
-            console.log(`Applying details to match ${match.id}:`, details);
-          }
-          
-          // Apply details if they exist, otherwise ensure empty strings
-          enrichedBracket[r][m] = {
-            ...match,
-            scheduledTime: details?.scheduled_time || '',
-            location: details?.location || '',
-            notes: details?.notes || ''
-          };
-        }
-      }
-      
-      // Initialize the matchDetailsMap from the enriched bracket
-      const matchDetailsMapData = {};
-      enrichedBracket.forEach(round => {
-        round.forEach(match => {
-          matchDetailsMapData[match.id] = {
-            scheduledTime: match.scheduledTime || '',
-            location: match.location || '',
-            notes: match.notes || ''
-          };
-        });
-      });
-      
-      console.log('Completed matchDetailsMap with entries:', Object.keys(matchDetailsMapData).length);
-      
-      // Sample of first match after enrichment for debugging
-      if (enrichedBracket.length > 0 && enrichedBracket[0].length > 0) {
-        const sampleMatch = enrichedBracket[0][0];
-        console.log('Sample match after enrichment:', {
-          id: sampleMatch.id,
-          scheduledTime: sampleMatch.scheduledTime,
-          location: sampleMatch.location,
-          notes: sampleMatch.notes
-        });
-      }
-      
-      // Set state with the enriched data
-      setBracketData(enrichedBracket);
-      
-      // Debug participants data structure
-      if (data.participants && data.participants.length > 0) {
-        console.log('Participant data sample:', {
-          firstParticipant: data.participants[0],
-          idType: typeof data.participants[0].id,
-          idValue: data.participants[0].id
-        });
-      }
-      
-      setParticipants(data.participants || []);
-      setMatchDetailsMap(matchDetailsMapData);
-      
-      // Initialize expanded rounds - ensure the first round is expanded by default
-      const initialExpandedState = {};
-      enrichedBracket.forEach((_, index) => {
-        initialExpandedState[index] = index === 0;  // Expand only first round
-      });
-      setExpandedRounds(initialExpandedState);
-      
-      setLoading(false);
-      setInitialLoading(false);
-      
-      return enrichedBracket;
-    } catch (error) {
-      console.error('Error fetching bracket data:', error);
-      setError(error.message || 'Failed to load bracket data');
-      setLoading(false);
-      setInitialLoading(false);
-      return null;
-    }
   };
 
   // Create a helper function to format and validate time input
@@ -953,7 +996,8 @@ export default function BracketManager() {
     setMatchDetails(prev => ({...prev, scheduledTime: formattedValue}));
   };
 
-  // Make a helper function to fetch the bracket data after saving match details
+  // Make a helper function to fetch the bracket data after saving match details - UNUSED
+  /*
   const refreshBracketAfterSave = async (eventId) => {
     console.log('Refreshing bracket data after save for event:', eventId);
     
@@ -961,12 +1005,16 @@ export default function BracketManager() {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
       
-      const response = await fetch(`/api/events/${eventId}/bracket`, {
-        method: 'GET',
+      const response = await fetch('/api/internal/admin/brackets', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'get-bracket',
+          userId: user.id,
+          eventId: eventId
+        })
       });
       
       if (!response.ok) {
@@ -991,6 +1039,12 @@ export default function BracketManager() {
         
         // Create a deep copy of the bracket data
         let enrichedBracket = JSON.parse(JSON.stringify(data.bracket));
+        
+        // Ensure enrichedBracket is an array
+        if (!Array.isArray(enrichedBracket)) {
+          console.error('Bracket data is not an array during refresh:', enrichedBracket);
+          throw new Error('Invalid bracket data structure during refresh');
+        }
         
         // Create a map for faster lookups of match details
         const detailsMap = {};
@@ -1070,6 +1124,7 @@ export default function BracketManager() {
       return null;
     }
   };
+  */
 
   // Create a helper function to directly update bracket data without needing a refresh
   const updateMatchInBracketData = (matchId, updatedDetails) => {
@@ -1237,28 +1292,37 @@ export default function BracketManager() {
         throw new Error('No authentication token available');
       }
       
-      const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=swapParticipants&matchId=${matchId}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+      const response = await fetch('/api/internal/admin/match-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
+        body: JSON.stringify({
+          action: 'swap-participants',
+          userId: user.id,
+          eventId: selectedEvent.id,
+          matchDetailsData: { matchId: matchId }
+        })
       });
 
       if (response.ok) {
         // Fetch fresh participant data first to ensure we have the latest names
-        const participantsResponse = await fetch(`/api/events/${selectedEvent.id}/participants`, {
-          method: 'GET',
+        const participantsResponse = await fetch('/api/internal/admin/match-details', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'get-participants',
+            userId: user.id,
+            eventId: selectedEvent.id
+          })
         });
         
         if (participantsResponse.ok) {
-          const participantsData = await participantsResponse.json();
-          if (participantsData && participantsData.participants) {
-            setParticipants(participantsData.participants);
+          const participantsResult = await participantsResponse.json();
+          if (participantsResult.success && participantsResult.result && participantsResult.result.participants) {
+            setParticipants(participantsResult.result.participants);
           }
         }
         
@@ -1492,7 +1556,6 @@ export default function BracketManager() {
                   type="datetime-local" 
                   value={matchDetails.scheduledTime} 
                   onChange={(e) => handleDatetimeInputChange(e.target.value)}
-                  disabled={hasWinner}
                   pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}"
                   step="60"
                 />
@@ -1520,7 +1583,6 @@ export default function BracketManager() {
                 value={matchDetails.location || ''} 
                 onChange={(e) => setMatchDetails({...matchDetails, location: e.target.value})}
                 placeholder="e.g., Station 3, Main Stage"
-                disabled={hasWinner}
               />
             </div>
             
@@ -1531,36 +1593,33 @@ export default function BracketManager() {
                 onChange={(e) => setMatchDetails({...matchDetails, notes: e.target.value})}
                 placeholder="Any additional information about this match"
                 rows={3}
-                disabled={hasWinner}
               />
             </div>
             
             <div className={styles.modalActions}>
               {!hasWinner && (
-                <>
-                  <button 
-                    className={styles.swapButton}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (selectedMatch) {
-                        handleSwapParticipants(selectedMatch.id);
-                      }
-                    }}
-                    disabled={!selectedMatch || !selectedMatch.participant1Id || !selectedMatch.participant2Id || hasWinner}
-                    type="button"
-                  >
-                    <FaExchangeAlt /> Swap Participants
-                  </button>
-                  
-                  <button 
-                    type="submit"
-                    className={styles.saveButton}
-                  >
-                    Save Details
-                  </button>
-                </>
+                <button 
+                  className={styles.swapButton}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (selectedMatch) {
+                      handleSwapParticipants(selectedMatch.id);
+                    }
+                  }}
+                  disabled={!selectedMatch || !selectedMatch.participant1Id || !selectedMatch.participant2Id || hasWinner}
+                  type="button"
+                >
+                  <FaExchangeAlt /> Swap Participants
+                </button>
               )}
+              
+              <button 
+                type="submit"
+                className={styles.saveButton}
+              >
+                Save Details
+              </button>
               
               <button 
                 type="button"
@@ -1677,34 +1736,10 @@ export default function BracketManager() {
     }
   };
 
-  // Update handleDeleteBracket to preserve scroll position
+  // Simplified handleDeleteBracket - confirmation is now handled by the shared component
   const handleDeleteBracket = async () => {
     if (!selectedEvent) return;
     
-    // First confirmation with warning
-    if (!confirm(`⚠️ WARNING: You are about to DELETE the entire bracket for "${selectedEvent.title}"\n\nThis will remove ALL match data, including:\n• Match winners\n• Scheduled times\n• Match locations\n• All notes\n\nThis action CANNOT be undone and all match scheduling information will be permanently lost!`)) {
-      return;
-    }
-    
-    // Second confirmation requiring event name to be typed
-    const confirmText = prompt(`For safety, please type the name of the event to confirm deletion:\n\n"${selectedEvent.title}"`);
-    
-    // If user cancels or types incorrect name, abort
-    // Make comparison case-insensitive and handle whitespace
-    if (!confirmText || confirmText.trim().toLowerCase() !== selectedEvent.title.trim().toLowerCase()) {
-      console.log('Delete confirmation failed:', {
-        userInput: confirmText,
-        expectedTitle: selectedEvent.title,
-        userInputTrimmed: confirmText?.trim(),
-        expectedTitleTrimmed: selectedEvent.title.trim(),
-        userInputLower: confirmText?.trim().toLowerCase(),
-        expectedTitleLower: selectedEvent.title.trim().toLowerCase()
-      });
-      toast.error(`Bracket deletion canceled. Please type exactly: "${selectedEvent.title}" (case-insensitive)`);
-      return;
-    }
-    
-    // No need to save scroll position here as we're deleting the entire bracket
     setLoading(true);
     
     try {
@@ -1716,12 +1751,17 @@ export default function BracketManager() {
       }
       
       // Call the API endpoint to delete bracket
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
-        method: 'DELETE',
+      const response = await fetch('/api/internal/admin/brackets', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete-match',
+          userId: user.id,
+          eventId: selectedEvent.id,
+          bracketData: {}
+        })
       });
       
       if (!response.ok) {
@@ -1750,6 +1790,7 @@ export default function BracketManager() {
       console.error('Error deleting bracket:', error);
       setError('Failed to delete bracket. Please try again.');
       toast.error('Failed to delete bracket. Please try again.');
+      throw error; // Re-throw so the shared component can handle it
     } finally {
       setLoading(false);
     }
@@ -1757,7 +1798,10 @@ export default function BracketManager() {
 
   // Update handleGenerateBracket function to use toast instead of alerts
   const handleGenerateBracket = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      toast.error('Please select an event first');
+      return;
+    }
     
     let shouldForceRegenerate = false;
     
@@ -1795,15 +1839,18 @@ export default function BracketManager() {
       }
       
       // Call the API endpoint to generate bracket
-      const response = await fetch(`/api/events/${selectedEvent.id}/bracket`, {
+      const response = await fetch('/api/internal/admin/brackets', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
-        // Add body with force parameter when regenerating
         body: JSON.stringify({
-          force: shouldForceRegenerate
+          action: bracketData ? 'regenerate' : 'generate',
+          userId: user.id,
+          eventId: selectedEvent.id,
+          bracketData: {
+            force: shouldForceRegenerate
+          }
         })
       });
       
@@ -2063,6 +2110,7 @@ export default function BracketManager() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       
+      {console.log('Render state:', { initialLoading, loading, error, eventsLength: events.length })}
       {initialLoading ? (
         <div className={styles.fullPageLoading}>
           <div className={styles.loadingSpinner}></div>
@@ -2090,9 +2138,11 @@ export default function BracketManager() {
                       <div className={styles.eventImageContainer}>
                         <div className={styles.eventImage}>
                           {event.image ? (
-                            <img 
+                            <Image 
                               src={event.image} 
                               alt={event.title}
+                              width={300}
+                              height={200}
                               onError={(e) => {
                                 // If image fails to load, replace with placeholder
                                 console.log(`Image failed to load for event: ${event.title}`);
@@ -2173,20 +2223,18 @@ export default function BracketManager() {
                   <button 
                     className={styles.generateBracketButton}
                     onClick={handleGenerateBracket}
-                    disabled={loading}
+                    disabled={loading || !selectedEvent}
                     title={bracketData ? "Create a new bracket with randomly seeded participants (will reset all matches)" : "Create a new tournament bracket with the registered participants"}
                   >
                     <FaTrophy /> {bracketData ? 'Regenerate Bracket' : 'Generate Bracket'}
                   </button>
                   {bracketData && (
-                    <button 
-                      className={styles.deleteBracketButton}
-                      onClick={handleDeleteBracket}
+                    <DeleteBracketButton
+                      onDelete={handleDeleteBracket}
+                      eventTitle={selectedEvent?.title || 'Tournament'}
                       disabled={loading}
-                      title="WARNING: This will permanently delete the entire bracket"
-                    >
-                      <FaExclamationTriangle /> Delete Bracket
-                    </button>
+                      variant="admin"
+                    />
                   )}
                 </div>
               )}
@@ -2205,19 +2253,34 @@ export default function BracketManager() {
               <div className={styles.loading}>Loading bracket data...</div>
             ) : error ? (
               <div className={styles.error}>{error}</div>
-            ) : !bracketData ? (
+            ) : (() => {
+              console.log('Bracket display condition check:', { 
+                bracketData, 
+                bracketDataIsNull: bracketData === null, 
+                bracketDataIsUndefined: bracketData === undefined,
+                bracketDataLength: bracketData?.length,
+                participantsLength: participants.length 
+              });
+              return !bracketData;
+            })() ? (
               <div className={styles.noBracket}>
                 <div className={styles.noBracketContent}>
                   <FaTrophy className={styles.noBracketIcon} />
                   <h3>No Tournament Bracket</h3>
-                  <p>This event doesn't have a bracket yet. Create one to start managing matches.</p>
+                  <p>This event has <strong>{participants.length} participants</strong> but no bracket has been generated yet.</p>
+                  <p>Click the button below to create a tournament bracket and start managing matches.</p>
                   <button 
                     className={styles.createBracketButton}
                     onClick={handleGenerateBracket}
-                    disabled={loading}
+                    disabled={loading || !selectedEvent}
                   >
-                    <FaTrophy /> Create Tournament Bracket
+                    <FaTrophy /> Generate Tournament Bracket
                   </button>
+                  {participants.length === 0 && (
+                    <p className={styles.warningText}>
+                      ⚠️ No participants registered yet. Participants need to register before generating a bracket.
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (

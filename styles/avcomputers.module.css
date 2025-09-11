@@ -1392,3 +1392,42 @@
   background-color: #047857;
   transform: translateY(0);
 }
+
+/* Simple Queue Section */
+.simpleQueueSection {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.simpleJoinButton {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.simpleJoinButton:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+}
+
+.simpleJoinButton:active {
+  transform: translateY(-1px);
+}
+
+.simpleJoinButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}

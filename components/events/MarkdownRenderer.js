@@ -12,7 +12,7 @@ const MarkdownRenderer = ({ event }) => {
         rehypePlugins={[rehypeRaw]}
         components={{
           // Custom link component that opens external links in new tab
-          a: ({ node, ...props }) => {
+          a: ({ ...props }) => {
             const isExternal = props.href?.startsWith('http');
             return (
               <a 
@@ -24,24 +24,24 @@ const MarkdownRenderer = ({ event }) => {
             );
           },
           // Custom heading components
-          h1: ({ node, ...props }) => <h1 className={styles.markdownH1} {...props} />,
-          h2: ({ node, ...props }) => <h2 className={styles.markdownH2} {...props} />,
-          h3: ({ node, ...props }) => <h3 className={styles.markdownH3} {...props} />,
+          h1: ({ ...props }) => <h1 className={styles.markdownH1} {...props} />,
+          h2: ({ ...props }) => <h2 className={styles.markdownH2} {...props} />,
+          h3: ({ ...props }) => <h3 className={styles.markdownH3} {...props} />,
           // Custom list components
-          ul: ({ node, ...props }) => <ul className={styles.markdownList} {...props} />,
-          ol: ({ node, ...props }) => <ol className={styles.markdownList} {...props} />,
+          ul: ({ ...props }) => <ul className={styles.markdownList} {...props} />,
+          ol: ({ ...props }) => <ol className={styles.markdownList} {...props} />,
           // Custom code components
-          code: ({ node, inline, ...props }) => (
+          code: ({ inline, ...props }) => (
             inline ? 
               <code className={styles.markdownInlineCode} {...props} /> :
               <code className={styles.markdownCode} {...props} />
           ),
           // Custom blockquote
-          blockquote: ({ node, ...props }) => <blockquote className={styles.markdownBlockquote} {...props} />,
+          blockquote: ({ ...props }) => <blockquote className={styles.markdownBlockquote} {...props} />,
           // Custom table components
-          table: ({ node, ...props }) => <table className={styles.markdownTable} {...props} />,
-          th: ({ node, ...props }) => <th className={styles.markdownTh} {...props} />,
-          td: ({ node, ...props }) => <td className={styles.markdownTd} {...props} />,
+          table: ({ ...props }) => <table className={styles.markdownTable} {...props} />,
+          th: ({ ...props }) => <th className={styles.markdownTh} {...props} />,
+          td: ({ ...props }) => <td className={styles.markdownTd} {...props} />,
         }}
       >
         {event.description}

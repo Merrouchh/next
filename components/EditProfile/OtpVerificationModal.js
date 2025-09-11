@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../../styles/EditProfile.module.css';
-import { FaLock, FaPhoneAlt, FaCheck } from 'react-icons/fa';
+import { FaPhoneAlt } from 'react-icons/fa';
 
 const OtpVerificationModal = ({ 
   isOpen, 
@@ -15,13 +15,15 @@ const OtpVerificationModal = ({
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [individualDigits, setIndividualDigits] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef([]);
+  const inputRefs = useRef(Array(6).fill(null));
 
   // Focus the first input when modal opens
   useEffect(() => {
-    if (isOpen && inputRefs.current[0]) {
+    if (isOpen && inputRefs.current && inputRefs.current[0]) {
       setTimeout(() => {
-        inputRefs.current[0].focus();
+        if (inputRefs.current[0]) {
+          inputRefs.current[0].focus();
+        }
       }, 100);
     }
   }, [isOpen]);
@@ -51,16 +53,18 @@ const OtpVerificationModal = ({
   }, [isOpen]);
 
   // Convert OTP to individual digits when external value changes
+  const prevOtpValueRef = useRef(otpValue);
   useEffect(() => {
-    if (otpValue) {
+    if (otpValue && otpValue !== prevOtpValueRef.current) {
       const digits = otpValue.split('');
-      const newDigits = [...individualDigits];
+      const newDigits = Array(6).fill('');
       
       digits.forEach((digit, index) => {
         if (index < 6) newDigits[index] = digit;
       });
       
       setIndividualDigits(newDigits);
+      prevOtpValueRef.current = otpValue;
     }
   }, [otpValue]);
 
@@ -78,7 +82,7 @@ const OtpVerificationModal = ({
     setOtpValue(newDigits.join(''));
     
     // Handle auto-focus to next input
-    if (value && index < 5) {
+    if (value && index < 5 && inputRefs.current[index + 1]) {
       inputRefs.current[index + 1].focus();
     }
   };
@@ -86,13 +90,13 @@ const OtpVerificationModal = ({
   // Handle key down events for backspace and arrow navigation
   const handleKeyDown = (e, index) => {
     if (e.key === 'Backspace') {
-      if (individualDigits[index] === '' && index > 0) {
+      if (individualDigits[index] === '' && index > 0 && inputRefs.current[index - 1]) {
         // If current field is empty and backspace is pressed, go to previous field
         inputRefs.current[index - 1].focus();
       }
-    } else if (e.key === 'ArrowLeft' && index > 0) {
+    } else if (e.key === 'ArrowLeft' && index > 0 && inputRefs.current[index - 1]) {
       inputRefs.current[index - 1].focus();
-    } else if (e.key === 'ArrowRight' && index < 5) {
+    } else if (e.key === 'ArrowRight' && index < 5 && inputRefs.current[index + 1]) {
       inputRefs.current[index + 1].focus();
     }
   };
@@ -117,11 +121,11 @@ const OtpVerificationModal = ({
     
     // Focus the next empty input or the last one
     const nextEmptyIndex = newDigits.findIndex(d => d === '');
-    if (nextEmptyIndex !== -1 && nextEmptyIndex < 6) {
+    if (nextEmptyIndex !== -1 && nextEmptyIndex < 6 && inputRefs.current[nextEmptyIndex]) {
       inputRefs.current[nextEmptyIndex].focus();
-    } else if (digits.length < 6) {
+    } else if (digits.length < 6 && inputRefs.current[digits.length]) {
       inputRefs.current[digits.length].focus();
-    } else {
+    } else if (inputRefs.current[5]) {
       inputRefs.current[5].focus();
     }
   };

@@ -50,7 +50,7 @@ function getClientId(req) {
       // In a real implementation, you'd decode the JWT to get user ID
       // For now, use a hash of the token
       return `user_${token.slice(-10)}`;
-    } catch (error) {
+    } catch {
       // Fall back to IP if token parsing fails
     }
   }

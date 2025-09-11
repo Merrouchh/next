@@ -24,8 +24,8 @@ const OptimizedEventCard = React.memo(({ event }) => {
   
   // Add timeout ref to track navigation timeout
   const navigationTimeoutRef = useRef(null);
-  // Add ref to track last log key to prevent excessive logging
-  const lastLogKeyRef = useRef(null);
+  // Add ref to track last log key to prevent excessive logging - UNUSED
+  // const lastLogKeyRef = useRef(null);
   // Add ref to track registration check status to prevent race conditions
   const isCheckingRef = useRef(false);
   
@@ -133,17 +133,25 @@ const OptimizedEventCard = React.memo(({ event }) => {
           return;
         }
         
-        const response = await fetch(`/api/events/register?eventId=${event.id}`, {
-          method: 'GET',
+        const response = await fetch('/api/internal/event-operations', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'get-registration-status',
+            userId: user.id,
+            eventId: event.id
+          })
         });
         
         if (response.ok) {
-          const data = await response.json();
-          setIsRegistered(data.isRegistered || false);
+          const result = await response.json();
+          if (result.success && result.result) {
+            setIsRegistered(result.result.isRegistered || false);
+          } else {
+            setIsRegistered(false);
+          }
         } else {
           console.error(`[Event ${event.id}] Registration status check failed:`, response.status);
           setIsRegistered(false);
@@ -166,7 +174,7 @@ const OptimizedEventCard = React.memo(({ event }) => {
       clearTimeout(timeoutId);
       isCheckingRef.current = false;
     };
-  }, [user, event.id, session?.access_token, supabase]); // Removed checkingRegistration from dependencies
+  }, [user, event?.id, session?.access_token, supabase, event?.status]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Handle registration button click - memoized
   const handleRegisterClick = useCallback(() => {
@@ -200,7 +208,7 @@ const OptimizedEventCard = React.memo(({ event }) => {
     }, isIOS() ? 2000 : 3000); // Shorter timeout for iOS devices
     
     // Attempt navigation using safe navigation utility
-    safeNavigate(router, `/events/${event.id}`).catch((error) => {
+    safeNavigate(router, `/events/${event.id}`).catch(() => {
       resetLoadingState();
     });
   }, [isLoading, event.id, resetLoadingState, router]);

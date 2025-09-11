@@ -119,7 +119,7 @@ export default async function handler(req, res) {
           $$;
         `
       });
-    } catch (cronError) {
+    } catch {
       console.log('Note: pg_cron extension not available, skipping scheduled cleaning job');
       // Continue without error, this is optional
     }

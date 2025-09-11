@@ -41,7 +41,7 @@ const UpcomingMatchesCard = ({ upcomingMatches = [] }) => {
       className={styles.mediumCard}
     >
       <div className={styles.upcomingMatchesList}>
-        {displayMatches.map((match, index) => (
+        {displayMatches.map((match) => (
           <div 
             key={`${match.eventId}_${match.matchId}`} 
             className={`${styles.matchItem} ${styles.clickableMatch}`}

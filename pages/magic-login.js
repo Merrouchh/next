@@ -25,7 +25,7 @@ export default function MagicLogin() {
         if (typeof window !== 'undefined') {
           try {
             router.replace('/dashboard');
-          } catch (routerError) {
+          } catch {
             console.log("Router failed, using window.location");
             window.location.href = '/dashboard';
           }
@@ -154,7 +154,7 @@ export default function MagicLogin() {
             if (typeof window !== 'undefined') {
               try {
                 router.replace('/dashboard');
-              } catch (routerError) {
+              } catch {
                 console.log("Router failed, using window.location");
                 window.location.href = '/dashboard';
               }
@@ -173,7 +173,7 @@ export default function MagicLogin() {
             try {
               // Try router first for better UX
               router.replace('/dashboard');
-            } catch (routerError) {
+            } catch {
               console.log("Router failed, using window.location");
               window.location.href = '/dashboard';
             }
@@ -189,7 +189,7 @@ export default function MagicLogin() {
     };
     
     processAuth();
-  }, [user, router, forceSessionReload]);
+  }, [user, router, forceSessionReload, isProcessing]);
   
   return (
     <div style={{ 

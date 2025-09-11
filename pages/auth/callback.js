@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Head from 'next/head';
 
 // Simple loading/message component to replace LoadingScreen
-const StyleWrapper = ({ message, type }) => {
+const StyleWrapper = ({ message }) => {
   return (
     <>
       <Head>
@@ -77,7 +77,7 @@ const StyleWrapper = ({ message, type }) => {
 export default function AuthCallback() {
   const router = useRouter();
   const { user, supabase } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(true);
+  const [, setIsProcessing] = useState(true);
   const [error, setError] = useState(null);
   
   // Process auth callback
@@ -199,7 +199,7 @@ export default function AuthCallback() {
             console.log('Processing magic link token');
             try {
               // For magic links, we need to use verifyOtp
-              const { data, error } = await supabase.auth.verifyOtp({
+              const { error } = await supabase.auth.verifyOtp({
                 token,
                 type: type
               });
@@ -225,7 +225,7 @@ export default function AuthCallback() {
                   if (typeof window !== 'undefined') {
                     try {
                       router.replace('/dashboard');
-                    } catch (routerError) {
+                    } catch {
                       console.log("Router failed, using window.location");
                       window.location.href = '/dashboard';
                     }
@@ -238,7 +238,7 @@ export default function AuthCallback() {
                   if (typeof window !== 'undefined') {
                     try {
                       router.replace('/');
-                    } catch (routerError) {
+                    } catch {
                       console.log("Router failed, using window.location");
                       window.location.href = '/';
                     }
@@ -302,7 +302,7 @@ export default function AuthCallback() {
                 // User is now logged in, redirect to the dashboard
                 try {
                   router.replace('/dashboard');
-                } catch (routerError) {
+                } catch {
                   console.log("Router failed, using window.location");
                   window.location.href = '/dashboard';
                 }
@@ -310,7 +310,7 @@ export default function AuthCallback() {
                 // Still not logged in, try the home page
                 try {
                   router.replace('/');
-                } catch (routerError) {
+                } catch {
                   console.log("Router failed, using window.location");
                   window.location.href = '/';
                 }
@@ -326,7 +326,7 @@ export default function AuthCallback() {
           const destination = user ? '/dashboard' : '/';
           try {
             router.replace(destination);
-          } catch (routerError) {
+          } catch {
             console.log("Router failed, using window.location");
             window.location.href = destination;
           }

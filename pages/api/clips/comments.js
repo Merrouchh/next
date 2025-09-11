@@ -13,21 +13,27 @@ export default async function handler(req, res) {
   // Create Supabase client with admin privileges
   const supabase = createClient({ req, res });
 
-  // Get user session for authentication
+  // Get authenticated user (secure method)
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  // Check authentication
+  if (userError || !user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
   // Switch based on HTTP method
   switch (req.method) {
     case 'GET':
-      return getComments(req, res, supabase, session);
+      return getComments(req, res, supabase, user);
     case 'POST':
-      return addComment(req, res, supabase, session);
+      return addComment(req, res, supabase, user);
     case 'PUT':
-      return updateComment(req, res, supabase, session);
+      return updateComment(req, res, supabase, user);
     case 'DELETE':
-      return deleteComment(req, res, supabase, session);
+      return deleteComment(req, res, supabase, user);
     default:
       return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -36,7 +42,7 @@ export default async function handler(req, res) {
 /**
  * GET handler - Fetch comments for a clip
  */
-async function getComments(req, res, supabase, session) {
+async function getComments(req, res, supabase) {
   try {
     const { clipId, limit = 10, page = 0 } = req.query;
 
@@ -58,7 +64,7 @@ async function getComments(req, res, supabase, session) {
 
     // Check access - if private, only owner can see comments
     const isPublic = clip.visibility === 'public';
-    const isOwner = session?.user?.id === clip.user_id;
+    const isOwner = user?.id === clip.user_id;
 
     if (!isPublic && !isOwner) {
       return res.status(403).json({ error: 'Access denied to private clip comments' });
@@ -99,12 +105,8 @@ async function getComments(req, res, supabase, session) {
 /**
  * POST handler - Add a new comment
  */
-async function addComment(req, res, supabase, session) {
+async function addComment(req, res, supabase) {
   try {
-    // Check authentication
-    if (!session) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
 
     const { clipId, content } = req.body;
 
@@ -186,12 +188,8 @@ async function addComment(req, res, supabase, session) {
 /**
  * PUT handler - Update an existing comment
  */
-async function updateComment(req, res, supabase, session) {
+async function updateComment(req, res, supabase) {
   try {
-    // Check authentication
-    if (!session) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
 
     const { commentId, content } = req.body;
 
@@ -242,12 +240,8 @@ async function updateComment(req, res, supabase, session) {
 /**
  * DELETE handler - Delete a comment
  */
-async function deleteComment(req, res, supabase, session) {
+async function deleteComment(req, res, supabase, user) {
   try {
-    // Check authentication
-    if (!session) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
 
     const { commentId } = req.query;
 
@@ -268,7 +262,7 @@ async function deleteComment(req, res, supabase, session) {
     }
 
     // Check ownership or if user is the clip owner
-    const isCommentOwner = comment.user_id === session.user.id;
+    const isCommentOwner = comment.user_id === user.id;
     
     if (!isCommentOwner) {
       // Check if user is clip owner

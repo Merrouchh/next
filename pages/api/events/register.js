@@ -211,7 +211,7 @@ async function registerForEvent(req, res, supabase, user) {
     }
     
     // Check if user is already registered
-    const { data: existingReg, error: regCheckError } = await supabase
+    const { data: existingReg } = await supabase
       .from('event_registrations')
       .select('id')
       .eq('event_id', eventId)
@@ -298,7 +298,7 @@ async function registerForEvent(req, res, supabase, user) {
       
       try {
         // Check if any team members are already registered for this event
-        const { data: existingTeamMembers, error: teamCheckError } = await supabase
+        const { data: existingTeamMembers } = await supabase
           .from('event_registrations')
           .select('user_id, username')
           .eq('event_id', eventId)
@@ -339,7 +339,7 @@ async function registerForEvent(req, res, supabase, user) {
                 message: 'This user is currently involved in another registration process. Please try again in a few moments.' 
               });
             }
-          } catch (lockError) {
+          } catch {
             // If the locks table doesn't exist yet, silently continue
             console.log('Registration locks not supported yet, continuing without lock check');
           }
@@ -355,7 +355,7 @@ async function registerForEvent(req, res, supabase, user) {
                 event_id: eventId,
                 expires_at: new Date(Date.now() + 30000) // Lock for 30 seconds
               }]);
-          } catch (lockError) {
+          } catch {
             // If the locks table doesn't exist yet, silently continue
             console.log('Registration locks not supported yet, continuing without lock creation');
           }
@@ -424,7 +424,7 @@ async function registerForEvent(req, res, supabase, user) {
             const partner = teamMembers[0];
             
             // Check if the partner is already registered (double-check)
-            const { data: partnerReg, error: partnerRegCheckError } = await supabase
+            const { data: partnerReg } = await supabase
               .from('event_registrations')
               .select('id')
               .eq('event_id', eventId)
@@ -434,26 +434,34 @@ async function registerForEvent(req, res, supabase, user) {
             if (!partnerReg) {
               console.log(`Adding partner ${partner.username} (${partner.userId}) as team member for event ${eventId}`);
               
-              // Instead of creating a separate registration for the partner, 
-              // we'll just note in the main registration that this is a duo
-              const { data: updatedReg, error: updateRegError } = await supabase
-                .from('event_registrations')
-                .update({ 
-                  notes: notes ? `${notes} | Duo partner: ${partner.username}` : `Duo partner: ${partner.username}`
-                })
-                .eq('id', registration.id)
-                .select();
+              // Add both the main registrant and partner to event_team_members
+              const teamMembersToAdd = [
+                {
+                  registration_id: registration.id,
+                  user_id: userId,
+                  username: username
+                },
+                {
+                  registration_id: registration.id,
+                  user_id: partner.userId,
+                  username: partner.username
+                }
+              ];
               
-              if (updateRegError) {
-                console.error('Error updating registration with partner info:', updateRegError);
+              const { error: teamMembersError } = await supabase
+                .from('event_team_members')
+                .insert(teamMembersToAdd);
+              
+              if (teamMembersError) {
+                console.error('Error adding team members:', teamMembersError);
                 if (hasTransactionSupport) {
                   await supabase.rpc('rollback_transaction').catch(() => {
                     // Silently handle rollback errors
                   });
                 }
-                throw updateRegError;
+                throw teamMembersError;
               } else {
-                console.log(`Successfully added partner info to registration for event ${eventId}`);
+                console.log(`Successfully added both users to event_team_members for event ${eventId}`);
               }
             } else {
               console.log(`Partner ${partner.username} is already registered for event ${eventId}`);
@@ -483,7 +491,7 @@ async function registerForEvent(req, res, supabase, user) {
               .from('event_registration_locks')
               .delete()
               .eq('user_id', userId);
-          } catch (error) {
+          } catch {
             // If the locks table doesn't exist yet, silently continue
           }
         }
@@ -498,7 +506,7 @@ async function registerForEvent(req, res, supabase, user) {
         
         if (!countError) {
           // Update the registered_count with the actual count
-          const { data: updatedEvent, error: updateError } = await supabase
+          const { error: updateError } = await supabase
             .from('events')
             .update({ registered_count: count })
             .eq('id', eventId)
@@ -557,7 +565,7 @@ async function registerForEvent(req, res, supabase, user) {
       
       if (!countError) {
         // Update the registered_count with the actual count
-        const { data: updatedEvent, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('events')
           .update({ registered_count: count })
           .eq('id', eventId)
@@ -666,7 +674,7 @@ async function cancelRegistration(req, res, supabase, user) {
     
     if (!countError) {
       // Update the registered_count with the actual count
-      const { data: updatedEvent, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('events')
         .update({ registered_count: count })
         .eq('id', eventId)
@@ -730,7 +738,7 @@ async function getRegistrationStatus(req, res, supabase, user) {
     console.log(`Event team type: ${eventData.team_type}`);
     
     // Check if user is registered for this event
-    const { data: registrationData, error: registrationError } = await supabase
+    const { data: registrationData } = await supabase
       .from('event_registrations')
       .select('id, user_id, registration_date, username, notes, team_name')
       .eq('event_id', eventId)

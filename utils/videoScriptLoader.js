@@ -14,7 +14,7 @@ export const loadVideoScripts = async () => {
   }
 
   // Create new loading promise
-  scriptLoadingPromise = new Promise((resolve, reject) => {
+  scriptLoadingPromise = new Promise((resolve) => {
     // Check if we're in the browser
     if (typeof window === 'undefined') {
       resolve();

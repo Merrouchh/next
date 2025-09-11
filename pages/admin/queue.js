@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import QueueAdminModal from '../../components/QueueAdminModal';
@@ -48,6 +48,9 @@ export default function AdminQueue() {
   const automaticModeRef = useRef(automaticMode);
   const queueListRef = useRef(queueList);
   const queueActiveRef = useRef(queueActive);
+  const loadQueueDataRef = useRef();
+  const refreshTimeoutRef = useRef(null);
+  const isRefreshingRef = useRef(false);
   
   // Update refs when state changes
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function AdminQueue() {
   // =============================================================================
   
   // Immediate refresh function - no debouncing
-  const loadQueueData = async (retryCount = 0, showLoader = true) => {
+  const loadQueueData = useCallback(async (retryCount = 0, showLoader = true) => {
     if (showLoader && !refreshing) {
       setRefreshing(true);
     }
@@ -148,7 +151,26 @@ export default function AdminQueue() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [refreshing]);
+
+  // Store the function in ref to avoid dependency issues
+  loadQueueDataRef.current = loadQueueData;
+
+  // Debounced refresh function to prevent rapid refreshing
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      if (!isRefreshingRef.current) {
+        console.log('🔄 Executing debounced refresh...');
+        isRefreshingRef.current = true;
+        loadQueueDataRef.current?.(0, false).finally(() => {
+          isRefreshingRef.current = false;
+        });
+      }
+    }, 2000); // Increased to 2 seconds to handle multiple rapid database changes
+  }, []);
 
   // =============================================================================
   // 2. START/STOP QUEUE SYSTEM - IMPROVED WITH OPTIMISTIC UPDATES
@@ -161,30 +183,39 @@ export default function AdminQueue() {
     setQueueActive(!queueActive);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch('/api/queue/manage', {
-        method: 'PATCH',
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ isActive: !previousState })
+        body: JSON.stringify({
+          action: 'toggle-active',
+          userId: user.id,
+          queueData: { isActive: !previousState }
+        })
       });
 
       if (response.ok) {
-        showModal('success', 'Queue System Updated', 
-          previousState ? 'Queue system has been stopped.' : 'Queue system has been started.');
-        
-        // Force refresh to ensure all data is in sync
-        setTimeout(() => {
-          loadQueueData(0, false);
-        }, 500);
+        const result = await response.json();
+        if (result.success) {
+          showModal('success', 'Queue System Updated', 
+            previousState ? 'Queue system has been stopped.' : 'Queue system has been started.');
+          
+          // Force refresh to ensure all data is in sync
+          setTimeout(() => {
+            loadQueueDataRef.current?.(0, false);
+          }, 500);
+        } else {
+          // Revert optimistic update on error
+          setQueueActive(previousState);
+          showModal('error', 'Error', result.error || 'Failed to update queue system. Please try again.');
+        }
       } else {
         // Revert optimistic update on error
         setQueueActive(previousState);
         showModal('error', 'Error', 'Failed to update queue system. Please try again.');
       }
-    } catch (error) {
+    } catch {
       // Revert optimistic update on error
       setQueueActive(previousState);
       showModal('error', 'Error', 'Failed to update queue system. Please try again.');
@@ -204,14 +235,16 @@ export default function AdminQueue() {
     setAutomaticMode(!automaticMode);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch('/api/queue/manage', {
-        method: 'PATCH',
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ automaticMode: !previousState })
+        body: JSON.stringify({
+          action: 'toggle-automatic',
+          userId: user.id,
+          queueData: { automaticMode: !previousState }
+        })
       });
 
       if (response.ok) {
@@ -227,7 +260,7 @@ export default function AdminQueue() {
         setAutomaticMode(previousState);
         showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
       }
-    } catch (error) {
+    } catch {
       // Revert optimistic update on error
       setAutomaticMode(previousState);
       showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
@@ -247,14 +280,16 @@ export default function AdminQueue() {
     setOnlineJoiningAllowed(!onlineJoiningAllowed);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch('/api/queue/manage', {
-        method: 'PATCH',
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ allowOnlineJoining: !previousState })
+        body: JSON.stringify({
+          action: 'toggle-online-joining',
+          userId: user.id,
+          queueData: { allowOnlineJoining: !previousState }
+        })
       });
 
       if (response.ok) {
@@ -265,7 +300,7 @@ export default function AdminQueue() {
         setOnlineJoiningAllowed(previousState);
         showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
       }
-    } catch (error) {
+    } catch {
       // Revert optimistic update on error
       setOnlineJoiningAllowed(previousState);
       showModal('error', 'Error', 'Failed to update online joining settings. Please try again.');
@@ -302,7 +337,7 @@ export default function AdminQueue() {
         setShowDropdown(false);
         setFoundUser(null);
       }
-    } catch (err) {
+    } catch {
       setSearchResults([]);
       setShowDropdown(false);
       setFoundUser(null);
@@ -334,20 +369,22 @@ export default function AdminQueue() {
 
     setAddingPerson(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch('/api/queue/manage', {
+      const response = await fetch('/api/internal/admin/queue-management', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          userName: newPersonForm.username.trim(),
-          phoneNumber: newPersonForm.phone.trim() || null,
-          notes: newPersonForm.notes.trim() || null,
-          computerType: newPersonForm.computerType,
-          isPhysical: true,
-          userId: foundUser?.id || null
+          action: 'add-person',
+          userId: user.id,
+          queueData: {
+            userName: newPersonForm.username.trim(),
+            phoneNumber: newPersonForm.phone.trim() || null,
+            notes: newPersonForm.notes.trim() || null,
+            computerType: newPersonForm.computerType,
+            isPhysical: true,
+            userId: foundUser?.id || null
+          }
         })
       });
 
@@ -358,12 +395,12 @@ export default function AdminQueue() {
         setShowAddForm(false);
         
         // Immediate refresh
-        loadQueueData(0, false);
+        loadQueueDataRef.current?.(0, false);
       } else {
         const error = await response.json();
         showModal('error', 'Failed to Add Person', error.error || 'An error occurred while adding person to queue.');
       }
-    } catch (error) {
+    } catch {
       showModal('error', 'Failed to Add Person', 'An error occurred while adding person to queue.');
     } finally {
       setAddingPerson(false);
@@ -388,10 +425,16 @@ export default function AdminQueue() {
     setQueueList(updatedQueue);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch(`/api/queue/manage?id=${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${sessionData?.session?.access_token}` }
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete-entry',
+          userId: user.id,
+          queueData: { id: id }
+        })
       });
 
       if (response.ok) {
@@ -399,14 +442,14 @@ export default function AdminQueue() {
         
         // Refresh to ensure positions are correct
         setTimeout(() => {
-          loadQueueData(0, false);
+          loadQueueDataRef.current?.(0, false);
         }, 500);
       } else {
         // Revert optimistic update on error
         setQueueList(previousQueueList);
         showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
       }
-    } catch (error) {
+    } catch {
       // Revert optimistic update on error
       setQueueList(previousQueueList);
       showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
@@ -443,23 +486,25 @@ export default function AdminQueue() {
     setQueueList(newQueueList);
     
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch('/api/queue/reorder', {
-        method: 'PATCH',
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData?.session?.access_token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          personId, 
-          direction
+        body: JSON.stringify({
+          action: 'reorder',
+          userId: user.id,
+          queueData: { 
+            personId, 
+            direction
+          }
         })
       });
 
       if (response.ok) {
         // Refresh to ensure data is in sync
         setTimeout(() => {
-          loadQueueData(0, false);
+          loadQueueDataRef.current?.(0, false);
         }, 500);
       } else {
         // Revert optimistic update on error
@@ -487,7 +532,7 @@ export default function AdminQueue() {
   // Load data when page opens and set up real-time subscriptions - IMPROVED
   useEffect(() => {
     if (user && supabase) {
-      loadQueueData();
+      loadQueueDataRef.current?.();
       
       // Set up real-time subscriptions for queue changes - IMMEDIATE UPDATES
       const queueSubscription = supabase
@@ -498,8 +543,8 @@ export default function AdminQueue() {
           table: 'computer_queue'
         }, (payload) => {
           console.log(`📡 Queue data changed (${payload.eventType}), refreshing admin view...`);
-          // Immediate refresh - no debouncing
-          loadQueueData(0, false);
+          // Use debounced refresh to prevent rapid refreshing
+          debouncedRefresh();
         })
         .on('postgres_changes', {
           event: '*',
@@ -507,20 +552,24 @@ export default function AdminQueue() {
           table: 'queue_settings'
         }, (payload) => {
           console.log(`📡 Queue settings changed (${payload.eventType}), refreshing admin view...`);
-          // Immediate refresh - no debouncing
-          loadQueueData(0, false);
+          // Use debounced refresh to prevent rapid refreshing
+          debouncedRefresh();
         })
         .subscribe();
       
       // Reduced backup polling frequency since we have better real-time updates
-      const interval = setInterval(() => loadQueueData(0, false), 30000); // Every 30 seconds
+      const interval = setInterval(() => {
+        if (!isRefreshingRef.current) {
+          loadQueueDataRef.current?.(0, false);
+        }
+      }, 60000); // Every 60 seconds - reduced frequency since real-time updates work well
       
       return () => {
         queueSubscription.unsubscribe();
         clearInterval(interval);
       };
     }
-  }, [user, supabase]);
+  }, [user, supabase, debouncedRefresh]);
 
   // Show loading state while checking auth - OUTSIDE AdminPageWrapper
   if (authLoading) {
@@ -663,7 +712,7 @@ export default function AdminQueue() {
               onClick={() => setShowAddForm(true)}
               disabled={!queueActive && !automaticMode}
             >
-              <FaUserPlus /> Add Person Who's Here Physically
+              <FaUserPlus /> Add Person Who&apos;s Here Physically
             </button>
           ) : (
             <div className={styles.addForm}>
@@ -884,11 +933,11 @@ export default function AdminQueue() {
           <div className={styles.helpCards}>
             <div className={styles.helpCard}>
               <h4>1. Start the Queue</h4>
-              <p>Click "Start Queue System" when all computers are busy and people are waiting</p>
+              <p>Click &quot;Start Queue System&quot; when all computers are busy and people are waiting</p>
             </div>
             <div className={styles.helpCard}>
               <h4>2. Add Physical Waiters</h4>
-              <p>When someone comes to your gaming center, add them using "Add Person" button</p>
+              <p>When someone comes to your gaming center, add them using &quot;Add Person&quot; button</p>
             </div>
             <div className={styles.helpCard}>
               <h4>3. Control Online Access</h4>

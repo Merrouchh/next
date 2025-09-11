@@ -135,7 +135,7 @@ export const AdaptiveLoader = ({ isOldDevice, message }) => {
   );
 };
 
-export default {
+const LoadingStates = {
   EventLoadingSkeleton,
   RegistrationStatusLoading,
   BracketLoading,
@@ -144,4 +144,6 @@ export default {
   ProgressIndicator,
   LoadingOverlay,
   AdaptiveLoader
-}; 
+};
+
+export default LoadingStates; 

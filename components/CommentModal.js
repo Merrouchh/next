@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MdClose } from 'react-icons/md';
 import CommentsSection from './CommentsSection';
 import Portal from './Portal';
@@ -15,6 +15,15 @@ import styles from '../styles/CommentModal.module.css';
  */
 const CommentModal = ({ isOpen, onClose, clipId, clipTitle }) => {
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Handle closing with animation
+  const handleClose = useCallback(() => {
+    setIsAnimating(true);
+    setTimeout(() => {
+      setIsAnimating(false);
+      onClose();
+    }, 300); // Match animation duration
+  }, [onClose]);
   
   // Add escape key handler
   useEffect(() => {
@@ -35,16 +44,7 @@ const CommentModal = ({ isOpen, onClose, clipId, clipTitle }) => {
       // Restore scrolling when modal closes
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
-  
-  // Handle closing with animation
-  const handleClose = () => {
-    setIsAnimating(true);
-    setTimeout(() => {
-      setIsAnimating(false);
-      onClose();
-    }, 300); // Match animation duration
-  };
+  }, [isOpen, handleClose]);
   
   // Handle conditional rendering based on state
   if (!isOpen && !isAnimating) return null;

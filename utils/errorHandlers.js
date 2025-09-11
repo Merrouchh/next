@@ -155,7 +155,7 @@ export const apiCall = async (url, options = {}, context = 'API Call') => {
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (parseError) {
+      } catch {
         // If response is not JSON, use the HTTP error
       }
       
@@ -170,11 +170,13 @@ export const apiCall = async (url, options = {}, context = 'API Call') => {
   }
 };
 
-export default {
+const errorHandlers = {
   ERROR_TYPES,
   classifyError,
   getErrorMessage,
   handleError,
   withErrorHandling,
   apiCall
-}; 
+};
+
+export default errorHandlers; 

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { createClient } from '../utils/supabase/component';
 import styles from '../styles/DashboardSearch.module.css';
@@ -27,35 +27,32 @@ const DashboardUserSearch = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const debouncedSearch = useCallback(
-    debounce(async (query) => {
-      if (!query.trim()) {
-        setSearchResults([]);
-        setIsSearching(false);
-        return;
-      }
+  const debouncedSearch = debounce(async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-      setIsSearching(true);
-      const supabase = createClient();
+    setIsSearching(true);
+    const supabase = createClient();
 
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('username')
-          .ilike('username', `%${query}%`)
-          .limit(5);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('username')
+        .ilike('username', `%${query}%`)
+        .limit(5);
 
-        if (error) throw error;
-        setSearchResults(data || []);
-      } catch (error) {
-        console.error('Error searching users:', error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300),
-    []
-  );
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, 300);
 
   const handleSearch = (e) => {
     const query = e.target.value;

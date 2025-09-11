@@ -1,4 +1,4 @@
-import createClient from '../../utils/supabase/api'
+// import createClient from '../../utils/supabase/api' // Removed unused import
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

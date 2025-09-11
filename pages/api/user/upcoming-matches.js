@@ -95,21 +95,21 @@ export default async function handler(req, res) {
       .in('status', ['registered', 'confirmed']);
 
     // --- NEW: Also get registrations where user is a team member ---
-    const { data: teamMemberRegs, error: teamMemberError } = await supabase
+    const { data: teamMemberRegs } = await supabase
       .from('event_team_members')
       .select('registration_id')
       .eq('user_id', userId);
     const teamRegistrationIds = teamMemberRegs?.map(reg => reg.registration_id) || [];
-    let teamEventIds = [];
+    // let teamEventIds = []; // Removed unused variable
     let teamRegistrations = [];
     if (teamRegistrationIds.length > 0) {
-      const { data: teamRegs, error: teamRegsError } = await supabase
+      const { data: teamRegs } = await supabase
         .from('event_registrations')
         .select('id, event_id, status, events (*)')
         .in('id', teamRegistrationIds)
         .in('status', ['registered', 'confirmed']);
       if (teamRegs) {
-        teamEventIds = teamRegs.map(reg => reg.event_id);
+        // teamEventIds = teamRegs.map(reg => reg.event_id); // Removed unused variable
         teamRegistrations = teamRegs;
       }
     }
@@ -315,8 +315,8 @@ export default async function handler(req, res) {
 
           // Check if this user is a participant in this match
           // Try different formats of the ID for comparison
-          const userRegId = userRegistration.id;
-          const userRegIdStr = `${userRegistration.id}`;
+          // const userRegId = userRegistration.id; // Removed unused variable
+          // const userRegIdStr = `${userRegistration.id}`; // Removed unused variable
           
           console.log('Participant ID debug:', {
             userRegistration: debugId('userRegistration.id', userRegistration.id),

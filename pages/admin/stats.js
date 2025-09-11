@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import { fetchShiftReports } from '../../utils/api';
 import styles from '../../styles/AdminStats.module.css';
@@ -15,14 +15,12 @@ import {
   FaUser, 
   FaExclamationTriangle,
   FaUndo,
-  FaArrowDown,
   FaCalculator,
-  FaWallet,
   FaHandHoldingUsd
 } from 'react-icons/fa';
 
 export default function AdminStats() {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removed unused variable
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState({
@@ -645,7 +643,7 @@ export default function AdminStats() {
                         const elements = [];
                         
                         // For each date group, add a date header row and then the shifts
-                        Object.entries(shiftsByDate).forEach(([dateStr, shifts], index) => {
+                        Object.entries(shiftsByDate).forEach(([dateStr, shifts]) => {
                           // Format the date nicely for display
                           const displayDate = new Date(dateStr).toLocaleDateString('en-US', {
                             weekday: 'long',

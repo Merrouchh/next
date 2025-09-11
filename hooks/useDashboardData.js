@@ -21,6 +21,7 @@ export const useDashboardData = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isRefreshingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const hasInitializedRef = useRef(false);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -29,7 +30,7 @@ export const useDashboardData = () => {
     };
   }, []);
 
-  const fetchDashboardData = useCallback(async (showToast = true) => {
+  const fetchDashboardData = useCallback(async (showToast = true, retryCount = 0) => {
     if (!user?.gizmo_id) return;
     
     // Use a ref to track if we're already refreshing to prevent multiple calls
@@ -37,7 +38,7 @@ export const useDashboardData = () => {
     
     isRefreshingRef.current = true;
     setIsRefreshing(true);
-    setPageState(prev => ({ ...prev, loading: true }));
+    setPageState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
       console.log('🔄 Refreshing dashboard data for user:', user?.username);
@@ -147,13 +148,35 @@ export const useDashboardData = () => {
 
     } catch (error) {
       console.error('Dashboard data fetch error:', error);
+      
+      // Retry logic for connection errors
+      if (retryCount < 2 && (error.message?.includes('fetch') || error.message?.includes('timeout'))) {
+        console.log(`Retrying dashboard data fetch (attempt ${retryCount + 1})`);
+        isRefreshingRef.current = false;
+        setIsRefreshing(false);
+        setTimeout(() => {
+          fetchDashboardData(showToast, retryCount + 1);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to refresh data';
+      if (error.message?.includes('fetch')) {
+        errorMessage = 'Connection error. Please check your internet connection and try again.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timeout. Please try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setPageState(prev => ({
         ...prev,
         loading: false,
-        error: error.message || 'Failed to refresh data'
+        error: errorMessage
       }));
       if (showToast) {
-        toast.error('Failed to refresh data');
+        toast.error(errorMessage);
       }
     } finally {
       isRefreshingRef.current = false;
@@ -169,21 +192,47 @@ export const useDashboardData = () => {
       return;
     }
     
-    if (!user?.gizmo_id) {
-      setPageState({
-        loading: false,
-        error: 'No gaming account linked. Please contact Merrouch Gaming on WhatsApp: +212 656-053641',
-        data: null
-      });
+    // If we already have data for this user, don't reset it and don't check for errors
+    if (pageState.data) {
+      console.log('Dashboard already has data, keeping existing state');
+      hasInitializedRef.current = true;
       return;
     }
-
-    // Only fetch if we don't already have data and aren't currently refreshing
-    if (!pageState.data && !isRefreshingRef.current) {
-      console.log('Starting dashboard data fetch for user:', user?.username);
-      fetchDashboardData(false);
+    
+    // Reset initialization flag when user changes
+    hasInitializedRef.current = false;
+    
+    // Only show error if user exists but definitely has no gizmo_id
+    // AND we don't have existing data AND this is the first time we're checking
+    if (!user?.gizmo_id && !pageState.data && !hasInitializedRef.current) {
+      const timeoutId = setTimeout(() => {
+        // Only show error if we still don't have data and gizmo_id is still missing
+        if (!user?.gizmo_id && !pageState.data) {
+          console.log('User has no gizmo_id after delay - showing error');
+          setPageState({
+            loading: false,
+            error: 'No gaming account linked. Please contact Merrouch Gaming on WhatsApp: +212 656-053641',
+            data: null
+          });
+          hasInitializedRef.current = true;
+        }
+      }, 5000); // 5 second delay to allow auth refresh to complete
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [user?.gizmo_id]); // Removed fetchDashboardData from dependencies
+
+    // Only fetch if we haven't initialized yet and aren't currently refreshing
+    if (!hasInitializedRef.current && !isRefreshingRef.current && user?.gizmo_id) {
+      console.log('Starting dashboard data fetch for user:', user?.username);
+      hasInitializedRef.current = true;
+      // Add a small delay to ensure auth is fully settled
+      const timeoutId = setTimeout(() => {
+        fetchDashboardData(false);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user?.gizmo_id]); // Removed user.username to prevent unnecessary re-runs
   
   // Add a timeout to prevent infinite loading
   useEffect(() => {
@@ -204,16 +253,27 @@ export const useDashboardData = () => {
   
   // Add a safety check to ensure loading state isn't stuck due to auth issues
   useEffect(() => {
-    if (user !== null && !user?.gizmo_id && pageState.loading) {
-      // User is loaded but no gizmo_id, should show error not loading
-      console.log('Fixing stuck loading state - user has no gizmo_id');
-      setPageState({
-        loading: false,
-        error: 'No gaming account linked. Please contact Merrouch Gaming on WhatsApp: +212 656-053641',
-        data: null
-      });
+    // Only show error if we've been loading for a while and user definitely has no gizmo_id
+    // AND we're not in the middle of a refresh AND we've actually tried to load data
+    // AND we don't already have data (to prevent showing error when data is available)
+    if (user !== null && !user?.gizmo_id && pageState.loading && !pageState.data && hasInitializedRef.current && !isRefreshingRef.current) {
+      // Add a longer delay to make sure we're not in the middle of auth refresh or data loading
+      const timeoutId = setTimeout(() => {
+        // Double-check that we're still in the same state and haven't started refreshing
+        // AND that we still don't have data (to prevent race conditions)
+        if (!user?.gizmo_id && !isRefreshingRef.current && pageState.loading && !pageState.data) {
+          console.log('Fixing stuck loading state - user has no gizmo_id after extended wait');
+          setPageState({
+            loading: false,
+            error: 'No gaming account linked. Please contact Merrouch Gaming on WhatsApp: +212 656-053641',
+            data: null
+          });
+        }
+      }, 5000); // Increased to 5 seconds to give more time for data loading
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [user, pageState.loading]);
+  }, [user?.gizmo_id, pageState.loading, pageState.data]); // Added pageState.data to dependencies
 
   // Auto-refresh on visibility change
   useEffect(() => {

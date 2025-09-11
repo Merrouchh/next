@@ -92,7 +92,7 @@ async function handleAuthenticatedRequest(req, res, supabase, eventId) {
 async function getMatchDetails(req, res, supabase, eventId) {
   try {
     // First check if the event exists
-    const { data: event, error: eventError } = await supabase
+    const { error: eventError } = await supabase
       .from('events')
       .select('id')
       .eq('id', eventId)
@@ -131,7 +131,7 @@ async function createMatchDetails(req, res, supabase, eventId) {
     }
     
     // Check if details already exist for this match
-    const { data: existingDetails, error: checkError } = await supabase
+    const { data: existingDetails } = await supabase
       .from('event_match_details')
       .select('id')
       .eq('event_id', eventId)
@@ -182,17 +182,17 @@ async function updateMatchDetails(req, res, supabase, eventId) {
     }
     
     // Check if details exist for this match
-    const { data: existingDetails, error: checkError } = await supabase
+    const { data: existingDetails } = await supabase
       .from('event_match_details')
       .select('id')
       .eq('event_id', eventId)
       .eq('match_id', matchId)
       .single();
     
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking match details:', checkError);
-      return res.status(500).json({ error: 'Failed to check match details' });
-    }
+    // if (checkError && checkError.code !== 'PGRST116') {
+    //   console.error('Error checking match details:', checkError);
+    //   return res.status(500).json({ error: 'Failed to check match details' });
+    // }
     
     let result;
     
@@ -245,7 +245,7 @@ async function updateMatchDetails(req, res, supabase, eventId) {
 async function resetMatchTimes(req, res, supabase, eventId) {
   try {
     // First check if the event exists
-    const { data: event, error: eventError } = await supabase
+    const { error: eventError } = await supabase
       .from('events')
       .select('id')
       .eq('id', eventId)
@@ -257,7 +257,7 @@ async function resetMatchTimes(req, res, supabase, eventId) {
     }
     
     // Update all match details for this event to reset scheduled_time
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('event_match_details')
       .update({
         scheduled_time: null,
@@ -284,7 +284,7 @@ async function resetMatchTimes(req, res, supabase, eventId) {
 async function deleteMatchDetails(req, res, supabase, eventId) {
   try {
     // First check if the event exists
-    const { data: event, error: eventError } = await supabase
+    const { error: eventError } = await supabase
       .from('events')
       .select('id')
       .eq('id', eventId)
@@ -383,7 +383,7 @@ async function swapMatchParticipants(req, res, supabase, eventId) {
     updatedMatches[roundIndex][matchIndex].participant2Name = tempName;
     
     // Update the bracket in the database
-    const { data: updateResult, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('event_brackets')
       .update({
         matches: updatedMatches,

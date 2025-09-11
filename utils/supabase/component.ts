@@ -20,8 +20,8 @@ export function createClient() {
   // This is a synchronous function, so we'll use a cached approach
   if (!configCache) {
     // Fallback: try to get from window if available (for backward compatibility during transition)
-    const fallbackUrl = (window as any).__SUPABASE_URL__;
-    const fallbackKey = (window as any).__SUPABASE_ANON_KEY__;
+    const fallbackUrl = (window as unknown as { __SUPABASE_URL__?: string }).__SUPABASE_URL__;
+    const fallbackKey = (window as unknown as { __SUPABASE_ANON_KEY__?: string }).__SUPABASE_ANON_KEY__;
     
     if (fallbackUrl && fallbackKey) {
       configCache = { url: fallbackUrl, anonKey: fallbackKey };
@@ -50,8 +50,8 @@ export async function initializeSupabaseConfig() {
       configCache = { url: config.url, anonKey: config.anonKey };
       
       // Store in window for immediate access
-      (window as any).__SUPABASE_URL__ = config.url;
-      (window as any).__SUPABASE_ANON_KEY__ = config.anonKey;
+      (window as unknown as { __SUPABASE_URL__: string; __SUPABASE_ANON_KEY__: string }).__SUPABASE_URL__ = config.url;
+      (window as unknown as { __SUPABASE_URL__: string; __SUPABASE_ANON_KEY__: string }).__SUPABASE_ANON_KEY__ = config.anonKey;
     } else {
       console.error('Failed to fetch Supabase config:', response.status, response.statusText);
     }

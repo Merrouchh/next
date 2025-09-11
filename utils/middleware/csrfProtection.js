@@ -67,7 +67,7 @@ export function csrfProtection(options = {}) {
   const {
     ignoreMethods = ['GET', 'HEAD', 'OPTIONS'],
     headerName = 'x-csrf-token',
-    cookieName = 'csrf-token'
+    // cookieName = 'csrf-token' // Removed unused variable
   } = options;
   
   return async (req, res, next) => {

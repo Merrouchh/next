@@ -1,7 +1,7 @@
 import Footer from './Footer';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
@@ -13,7 +13,7 @@ import { MdFileUpload } from 'react-icons/md';
 const Layout = ({ children }) => {
   const router = useRouter();
   const { initialized, user } = useAuth();
-  const isHomePage = router.pathname === '/';
+  // const isHomePage = router.pathname === '/'; // Removed unused variable
   const { isLoginModalOpen, closeLoginModal } = useModal();
   const isVerificationPage = isAuthPage(router.pathname);
   const isMobile = useMediaQuery('(max-width: 768px)');

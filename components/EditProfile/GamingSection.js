@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from '../../styles/EditProfile.module.css';
-import { FaGamepad, FaSave, FaDiscord, FaPlaystation } from 'react-icons/fa';
+import { FaGamepad, FaSave, FaDiscord } from 'react-icons/fa';
 import { SiValorant, SiEpicgames, SiBattledotnet } from 'react-icons/si';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -21,7 +21,7 @@ const GamingSection = () => {
   });
   
   // Popular game options
-  const gameOptions = [
+  const gameOptions = useMemo(() => [
     'Valorant',
     'League of Legends',
     'FIFA',
@@ -37,26 +37,30 @@ const GamingSection = () => {
     'Hearthstone',
     'Rainbow Six Siege',
     'Other'
-  ];
+  ], []);
 
   // Load current profile data
   useEffect(() => {
+    console.log('GamingSection useEffect - user changed:', user);
     if (user) {
       // Check if favorite game is in our predefined list
       const isCustomGame = user.favorite_game && !gameOptions.includes(user.favorite_game) && user.favorite_game !== 'Other';
       
-      setProfiles({
+      const newProfiles = {
         favorite_game: isCustomGame ? 'Other' : (user.favorite_game || ''),
         custom_game: isCustomGame ? user.favorite_game : '',
         discord_id: user.discord_id || '',
         valorant_id: user.valorant_id || '',
         fortnite_name: user.fortnite_name || '',
         battlenet_id: user.battlenet_id || ''
-      });
+      };
+      
+      console.log('Setting profiles from user data:', newProfiles);
+      setProfiles(newProfiles);
       
       setShowCustomGameInput(isCustomGame || user.favorite_game === 'Other');
     }
-  }, [user]);
+  }, [user, gameOptions]);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -84,6 +88,14 @@ const GamingSection = () => {
         ? profiles.custom_game 
         : profiles.favorite_game;
       
+      console.log('Saving gaming profiles:', {
+        favorite_game: favoriteGameToSave,
+        discord_id: profiles.discord_id,
+        valorant_id: profiles.valorant_id,
+        fortnite_name: profiles.fortnite_name,
+        battlenet_id: profiles.battlenet_id
+      });
+      
       const { error } = await supabase
         .from('users')
         .update({
@@ -97,12 +109,16 @@ const GamingSection = () => {
 
       if (error) throw error;
 
+      console.log('Gaming profiles saved successfully');
+
       // Show success message
       setMessage({ type: 'success', text: 'Gaming profiles updated successfully!' });
       
       // Refresh user data in context
       if (refreshUserData) {
+        console.log('Refreshing user data...');
         await refreshUserData();
+        console.log('User data refreshed');
       }
     } catch (error) {
       console.error('Error updating gaming profiles:', error);

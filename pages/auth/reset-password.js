@@ -52,7 +52,7 @@ export default function ResetPassword() {
             const type = hashParams.get('type');
             
             if (accessToken && refreshToken && type === 'recovery') {
-              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              const { error: sessionError } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken
               });
@@ -246,7 +246,7 @@ export default function ResetPassword() {
           ) : (
             <form onSubmit={handlePasswordReset} style={{ width: '100%' }}>
               <p className={styles.message}>
-                Enter your new password below. Make sure it's secure and easy to remember.
+                Enter your new password below. Make sure it&apos;s secure and easy to remember.
               </p>
               
               <div style={{ marginBottom: '1rem' }}>

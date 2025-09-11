@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import styles from '../styles/Dashboard.module.css';
 import sharedStyles from '../styles/Shared.module.css';
 import { fetchUserUpcomingMatches } from '../utils/api';
-import { AiOutlineTrophy, AiOutlineCalendar, AiOutlineEnvironment, AiOutlineClockCircle, AiOutlineReload } from 'react-icons/ai';
+import { AiOutlineTrophy, AiOutlineEnvironment, AiOutlineClockCircle, AiOutlineReload } from 'react-icons/ai';
 
 const UpcomingMatches = ({ userId }) => {
   const router = useRouter();
@@ -132,7 +132,7 @@ const UpcomingMatches = ({ userId }) => {
       </div>
       
       <div className={styles.upcomingMatchesList}>
-        {displayMatches.map((match, index) => (
+        {displayMatches.map((match) => (
           <div 
             key={`${match.eventId}_${match.matchId}`} 
             className={`${styles.matchItem} ${styles.clickableMatch}`}

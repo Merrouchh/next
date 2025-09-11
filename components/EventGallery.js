@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import { 
   FaImage, 
@@ -18,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useWindowDimensions';
 
 // Simplified slideshow image component with fallback, wrapped in React.memo
-const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
+const SlideshowImage = React.memo(function SlideshowImage({ image, onLoaded, onError }) {
   const [imageError, setImageError] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
@@ -29,11 +30,11 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
     : `Event gallery image ${image.id}`;
   
   // Handle image load immediately without setTimeout to prevent race conditions
-  const handleImageLoad = () => {
+  const handleImageLoad = useCallback(() => {
     setIsImageLoaded(true);
     // Call onLoaded immediately without setTimeout
     onLoaded();
-  };
+  }, [onLoaded]);
   
   // Use useEffect to ensure browser knows the image is visible
   useEffect(() => {
@@ -43,19 +44,16 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
     if (imgElement && imgElement.complete && !imageError) {
       handleImageLoad();
     }
-  }, [image.image_url, imageError]);
+  }, [image.image_url, imageError, handleImageLoad]);
   
   return (
     <>
       {!imageError ? (
-          <img 
+          <Image 
             src={image.image_url} 
             alt={imageAlt}
             title={imageTitle}
             className={`${styles.slideImage} ${isImageLoaded ? styles.visible : styles.hidden}`}
-            decoding="async"
-            loading="eager" 
-            fetchpriority="high"
             itemProp="contentUrl"
             onLoad={handleImageLoad}
             onError={() => {
@@ -63,13 +61,16 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
               setImageError(true);
               onError();
             }}
-            style={{
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+            style={{ 
+              objectFit: 'contain',
               transform: 'translateZ(0)', // Force GPU acceleration
               backfaceVisibility: 'hidden', // Prevent flickering
               willChange: 'opacity' // Hint for browser optimization
             }}
           />
-      ) : (
+        ) : (
         // Fallback to placeholder if image fails
         <div className={styles.imagePlaceholder}>
           <FaImage size={48} />
@@ -81,15 +82,15 @@ const SlideshowImage = React.memo(({ image, onLoaded, onError }) => {
 });
 
 // Slideshow Modal component - moved outside to be rendered as a portal
-const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNext, onPrevious }) => {
-  const [slideLoaded, setSlideLoaded] = useState(false);
+const SlideshowModal = React.memo(function SlideshowModal({ isOpen, onClose, images, currentIndex, onNext, onPrevious }) {
+  // const [slideLoaded, setSlideLoaded] = useState(false); // Removed unused state
   const isMobile = useIsMobile(767);
   const slideshowRef = useRef(null);
   
-  // Reset slide loaded state when current index changes
-  useEffect(() => {
-    setSlideLoaded(false);
-  }, [currentIndex]);
+  // Reset slide loaded state when current index changes - REMOVED
+  // useEffect(() => {
+  //   setSlideLoaded(false);
+  // }, [currentIndex]);
   
   // Handle keyboard navigation
   useEffect(() => {
@@ -118,12 +119,10 @@ const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNe
   
   const onSlideLoaded = () => {
     console.log("Slide loaded successfully");
-    setSlideLoaded(true);
   };
   
   const onSlideError = () => {
     console.log("Slide failed to load, still marking as loaded");
-    setSlideLoaded(true);
   };
   
   // Preload adjacent images for smoother navigation
@@ -161,12 +160,6 @@ const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNe
           </div>
           
           <div className={styles.slideContent}>
-            {/* Show loading spinner until image is loaded */}
-            {!slideLoaded && (
-              <div className={styles.slideLoading}>
-                <FaSpinner className={styles.spinnerIcon} />
-              </div>
-            )}
             
             {/* Use SlideshowImage component for error handling */}
             <SlideshowImage 
@@ -219,7 +212,7 @@ const SlideshowModal = React.memo(({ isOpen, onClose, images, currentIndex, onNe
 });
 
 // Placeholder component for when images are loading
-const GalleryPlaceholder = React.memo(() => {
+const GalleryPlaceholder = React.memo(function GalleryPlaceholder() {
   return (
     <div className={styles.galleryItem}>
       <div className={`${styles.imageContainer} ${styles.placeholderContainer}`}>
@@ -236,7 +229,7 @@ const GalleryPlaceholder = React.memo(() => {
 });
 
 // Optimize GalleryThumbnail with memo
-const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
+const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, onDelete, isAdmin }) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
@@ -283,17 +276,19 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
         )}
         
         {!imageError ? (
-          <img 
+          <Image 
             src={image.image_url}
             alt={imageAlt}
             title={imageTitle}
             className={`${styles.thumbnail} ${isVisible ? styles.visible : styles.hidden}`}
-            loading="lazy"
             data-thumbnail-id={image.id}
             itemProp="thumbnailUrl"
             onLoad={handleImageLoad}
             onError={handleImageError}
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
             style={{
+              objectFit: 'cover',
               transform: 'translateZ(0)',
               backfaceVisibility: 'hidden',
               willChange: 'opacity, transform'
@@ -350,7 +345,7 @@ const GalleryThumbnail = React.memo(({ image, onClick, onDelete, isAdmin }) => {
 });
 
 // Create a separate component for the upload modal
-const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption, imagePreview, selectedImage, setSelectedImage, setImagePreview, fileInputRef, isUploading, compressionInfo }) => {
+const UploadModal = React.memo(function UploadModal({ isOpen, onClose, onSubmit, caption, setCaption, imagePreview, selectedImage, setSelectedImage, setImagePreview, fileInputRef, isUploading, compressionInfo }) {
   // Only render portal on client side
   if (!isOpen || typeof window === 'undefined') return null;
   
@@ -399,10 +394,13 @@ const UploadModal = React.memo(({ isOpen, onClose, onSubmit, caption, setCaption
           <div className={styles.fileInputContainer}>
             {imagePreview ? (
               <div className={styles.previewContainer}>
-                <img 
+                <Image 
                   src={imagePreview} 
                   alt="Preview" 
-                  className={styles.imagePreview} 
+                  className={styles.imagePreview}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  style={{ objectFit: 'contain' }}
                 />
                 <button 
                   type="button" 
@@ -507,7 +505,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   // Slideshow state
   const [slideshowOpen, setSlideshowOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [slideLoaded, setSlideLoaded] = useState(false);
+  // const [slideLoaded, setSlideLoaded] = useState(false); // Removed unused state
   
   // For placeholders while images load
   const [imageCount, setImageCount] = useState(0);
@@ -520,97 +518,8 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   // Check if user is an admin
   const isAdmin = user?.isAdmin || false;
 
-  // Fetch initial image count to render placeholders
-  useEffect(() => {
-    if (eventId && !hasRendered.current) {
-      // First do a quick count-only fetch to get the number of images
-      fetchImageCount();
-      
-      // Then fetch the full gallery data
-      fetchGalleryImages();
-      hasRendered.current = true;
-    }
-    
-    // Cleanup any pending image loads when unmounting
-    return () => {
-      setImages([]);
-    };
-  }, [eventId]);
-
-  // Fetch just the count of images for placeholders
-  const fetchImageCount = async () => {
-    try {
-      const response = await fetch(`/api/events/gallery/count?eventId=${eventId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setImageCount(data.count || 0);
-        setHasInitialCount(true);
-      }
-    } catch (error) {
-      console.error('Error fetching image count:', error);
-      // On error, we'll just not show placeholders, which is fine
-    }
-  };
-
-  // Memoize callback functions to prevent re-renders
-  const openSlideshow = React.useCallback((index) => {
-    setCurrentSlideIndex(index);
-    setSlideLoaded(false);
-    setSlideshowOpen(true);
-    // Add analytics tracking if needed
-    try {
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', 'view_gallery_image', {
-          event_id: eventId,
-          image_index: index
-        });
-      }
-    } catch (e) {
-      console.error('Analytics error', e);
-    }
-  }, [eventId]);
-  
-  const closeSlideshow = React.useCallback(() => {
-    setSlideshowOpen(false);
-  }, []);
-
-  const showNextSlide = React.useCallback(() => {
-    setSlideLoaded(false);
-    setCurrentSlideIndex((prev) => 
-      prev === images.length - 1 ? 0 : prev + 1
-    );
-  }, [images.length]);
-  
-  const showPreviousSlide = React.useCallback(() => {
-    setSlideLoaded(false);
-    setCurrentSlideIndex((prev) => 
-      prev === 0 ? images.length - 1 : prev - 1
-    );
-  }, [images.length]);
-
-  // Handle keyboard navigation for slideshow with a stable callback
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!slideshowOpen) return;
-      
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        showPreviousSlide();
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        showNextSlide();
-      } else if (e.key === 'Escape') {
-        closeSlideshow();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [slideshowOpen, showPreviousSlide, showNextSlide, closeSlideshow]);
-
-  const fetchGalleryImages = async () => {
+  // Fetch gallery images
+  const fetchGalleryImages = useCallback(async () => {
     setIsLoading(true);
     try {
       // Simple fetch with a 15-second timeout
@@ -648,9 +557,99 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [eventId]);
 
-  // Handle file selection - memoized
+  // Fetch just the count of images for placeholders
+  const fetchImageCount = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/events/gallery/count?eventId=${eventId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setImageCount(data.count || 0);
+        setHasInitialCount(true);
+      }
+    } catch (error) {
+      console.error('Error fetching image count:', error);
+      // On error, we'll just not show placeholders, which is fine
+    }
+  }, [eventId]);
+
+  // Fetch initial image count to render placeholders
+  useEffect(() => {
+    if (eventId && !hasRendered.current) {
+      // First do a quick count-only fetch to get the number of images
+      fetchImageCount();
+      
+      // Then fetch the full gallery data
+      fetchGalleryImages();
+      hasRendered.current = true;
+    }
+    
+    // Cleanup any pending image loads when unmounting
+    return () => {
+      setImages([]);
+    };
+  }, [eventId, fetchGalleryImages, fetchImageCount]);
+
+
+  // Memoize callback functions to prevent re-renders
+  const openSlideshow = React.useCallback((index) => {
+    setCurrentSlideIndex(index);
+    setSlideshowOpen(true);
+    // Add analytics tracking if needed
+    try {
+      if (typeof window !== 'undefined' && window.gtag) {
+        window.gtag('event', 'view_gallery_image', {
+          event_id: eventId,
+          image_index: index
+        });
+      }
+    } catch (e) {
+      console.error('Analytics error', e);
+    }
+  }, [eventId]);
+  
+  const closeSlideshow = React.useCallback(() => {
+    setSlideshowOpen(false);
+  }, []);
+
+  const showNextSlide = React.useCallback(() => {
+    setCurrentSlideIndex((prev) => 
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  }, [images.length]);
+  
+  const showPreviousSlide = React.useCallback(() => {
+    setCurrentSlideIndex((prev) => 
+      prev === 0 ? images.length - 1 : prev - 1
+    );
+  }, [images.length]);
+
+  // Handle keyboard navigation for slideshow with a stable callback
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!slideshowOpen) return;
+      
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        showPreviousSlide();
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        showNextSlide();
+      } else if (e.key === 'Escape') {
+        closeSlideshow();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [slideshowOpen, showPreviousSlide, showNextSlide, closeSlideshow]);
+
+
+  // Handle file selection - memoized - UNUSED
+  /*
   const handleFileChange = React.useCallback((e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -687,6 +686,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       message: `Image will be automatically compressed for optimal social media sharing (target: <270KB)`
     });
   }, []);
+  */
 
   // Upload image - memoized
   const uploadImage = React.useCallback(async (e) => {
@@ -739,15 +739,14 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       formData.append('eventId', eventId);
       formData.append('caption', caption);
       
-      // Upload image
+      // Upload image using regular gallery API with proper authentication
       console.log('Sending POST request to /api/events/gallery');
       const response = await fetch('/api/events/gallery', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`
         },
-        body: formData,
-        credentials: 'include' // Important to include cookies
+        body: formData
       });
       
       console.log('Response status:', response.status);
@@ -804,7 +803,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [eventId, selectedImage, caption, session, setIsModalOpen]);
+  }, [eventId, selectedImage, caption, session, setIsModalOpen, supabase.auth]);
 
   // Memoize the delete function to maintain a stable reference
   const deleteImage = React.useCallback(async (e, imageId) => {
@@ -851,10 +850,8 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       const response = await fetch(`/api/events/gallery?imageId=${imageId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
-        },
-        credentials: 'include' // Important to include cookies
+        }
       });
       
       console.log('Delete response status:', response.status);
@@ -888,7 +885,7 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
       toast.dismiss(loadingToast);
       toast.error(error.message || 'Failed to delete image');
     }
-  }, [eventId, images, currentSlideIndex, slideshowOpen, closeSlideshow, session]);
+  }, [images, currentSlideIndex, slideshowOpen, closeSlideshow, session, supabase.auth]);
 
   // Open upload modal
   const openModal = React.useCallback(() => {
@@ -909,9 +906,9 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     }
   }, []);
 
-  // Instead of re-rendering on every slide change, keep a stable reference
-  const onSlideLoaded = () => setSlideLoaded(true);
-  const onSlideError = () => setSlideLoaded(true);
+  // Instead of re-rendering on every slide change, keep a stable reference - UNUSED
+  // const onSlideLoaded = () => setSlideLoaded(true);
+  // const onSlideError = () => setSlideLoaded(true);
 
   // Render placeholders while loading
   const renderPlaceholders = () => {

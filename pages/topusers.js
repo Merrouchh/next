@@ -4,7 +4,7 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { UserCard, Timer, LoadingSpinner, ErrorMessage } from '../components/topusers';
 import { useTopUsers } from '../hooks/useTopUsers';
 import { processUserData, withPerformanceMonitoring } from '../utils/topUsersHelpers';
-import { fetchTopUsers } from '../utils/api';
+// import { fetchTopUsers } from '../utils/api'; // Removed unused import
 import styles from '../styles/TopUsers.module.css';
 
 // Use server-side rendering to ensure fresh data every time

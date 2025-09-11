@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import { toast } from 'react-hot-toast';
-import { FaCalendarAlt, FaSpinner, FaImage } from 'react-icons/fa';
-import { useAuth } from '../../contexts/AuthContext';
-import { useModal } from '../../contexts/ModalContext';
+import React, { useCallback } from 'react';
+import Image from 'next/image';
+import { FaCalendarAlt } from 'react-icons/fa';
 import styles from '../../styles/Events.module.css';
 
 // iOS detection utility - moved to shared utils
@@ -17,7 +14,7 @@ const isIOS = () => {
 const safeNavigate = async (router, path) => {
   try {
     await router.push(path);
-  } catch (routerError) {
+  } catch {
     window.location.href = path;
   }
 };
@@ -46,7 +43,7 @@ const truncateTitle = (title, maxWords = 6) => {
 };
 
 // Event Card Badge Component
-export const EventCardBadges = React.memo(({ event, isRegistered, registeredCount }) => {
+export const EventCardBadges = React.memo(function EventCardBadges({ event, isRegistered, registeredCount }) {
   const getBadgeContainerClass = () => {
     const isFull = 
       event.registration_limit !== null && 
@@ -88,7 +85,7 @@ export const EventCardBadges = React.memo(({ event, isRegistered, registeredCoun
 });
 
 // Event Card Image Component
-export const EventCardImage = React.memo(({ event, isRegistered, registeredCount }) => {
+export const EventCardImage = React.memo(function EventCardImage({ event, isRegistered, registeredCount }) {
   // Badge container class logic
   const getBadgeContainerClass = () => {
     const isFull = 
@@ -109,10 +106,13 @@ export const EventCardImage = React.memo(({ event, isRegistered, registeredCount
   return (
     <div className={styles.eventImageContainer}>
       {event.image ? (
-        <img 
+        <Image 
           src={event.image} 
           alt={event.title} 
           className={styles.eventImage}
+          width={400}
+          height={200}
+          unoptimized
           onError={(e) => {
             e.target.onerror = null;
             e.target.style.display = 'none';
@@ -163,7 +163,7 @@ export const EventCardImage = React.memo(({ event, isRegistered, registeredCount
 });
 
 // Event Card Meta Information Component
-export const EventCardMeta = React.memo(({ event, registeredCount }) => {
+export const EventCardMeta = React.memo(function EventCardMeta({ event, registeredCount }) {
   return (
     <div className={styles.eventMeta}>
       <div className={styles.eventTime}>
@@ -196,7 +196,7 @@ export const EventCardMeta = React.memo(({ event, registeredCount }) => {
 });
 
 // Event Card Content Component
-export const EventCardContent = React.memo(({ event }) => {
+export const EventCardContent = React.memo(function EventCardContent({ event }) {
   return (
     <div className={`${styles.eventContent} ${styles.forceRepaint}`}>
       <h3 className={styles.eventTitle} title={event.title}>
@@ -218,7 +218,7 @@ export const EventCardContent = React.memo(({ event }) => {
 });
 
 // Registration Button Component
-export const RegistrationButton = React.memo(({ 
+export const RegistrationButton = React.memo(function RegistrationButton({ 
   event, 
   isRegistered, 
   checkingRegistration, 
@@ -226,7 +226,7 @@ export const RegistrationButton = React.memo(({
   isPublicView, 
   onClick,
   isLoading 
-}) => {
+}) {
   // Get registration button text - memoized to prevent excessive re-calculations
   const getRegistrationButtonText = useCallback(() => {
     // For completed events, always show "View Results"
@@ -311,45 +311,55 @@ export const RegistrationButton = React.memo(({
 });
 
 // Loading Spinner Component
-export const LoadingSpinner = React.memo(() => (
-  <div className={styles.loadingContainer}>
-    <div className={styles.spinner}>
-      <div className={styles.spinnerInner}></div>
+export const LoadingSpinner = React.memo(function LoadingSpinner() {
+  return (
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}>
+        <div className={styles.spinnerInner}></div>
+      </div>
+      <p className={styles.loadingText}>Loading events...</p>
     </div>
-    <p className={styles.loadingText}>Loading events...</p>
-  </div>
-));
+  );
+});
 
 // Empty State Component
-export const EmptyEventsState = React.memo(({ searchQuery, filter, onClearSearch, onResetFilter }) => (
-  <div className={styles.emptyContainer}>
-    <div className={styles.emptyIcon}>🎮</div>
-    <h2>No Events Found</h2>
-    {searchQuery ? (
-      <p>No events matching your search: "{searchQuery}"</p>
-    ) : (
-      <p>There are no events matching your current filter.</p>
-    )}
-    <div className={styles.emptyActions}>
-      {searchQuery && (
-        <button 
-          className={styles.resetButton}
-          onClick={onClearSearch}
-        >
-          Clear Search
-        </button>
+export const EmptyEventsState = React.memo(function EmptyEventsState({ searchQuery, filter, onClearSearch, onResetFilter }) {
+  return (
+    <div className={styles.emptyContainer}>
+      <div className={styles.emptyIcon}>🎮</div>
+      <h2>No Events Found</h2>
+      {searchQuery ? (
+        <p>No events matching your search: &quot;{searchQuery}&quot;</p>
+      ) : (
+        <p>There are no events matching your current filter.</p>
       )}
-      {filter !== 'all' && (
+      <div className={styles.emptyActions}>
+        {searchQuery && (
+          <button 
+            className={styles.resetButton}
+            onClick={onClearSearch}
+          >
+            Clear Search
+          </button>
+        )}
+        {filter && filter !== 'all' && (
+          <button 
+            className={styles.resetButton}
+            onClick={onResetFilter}
+          >
+            Reset Filter
+          </button>
+        )}
         <button 
-          className={styles.resetButton}
-          onClick={onResetFilter}
+          className={styles.primaryButton}
+          onClick={() => window.location.href = '/events'}
         >
           View All Events
         </button>
-      )}
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 // Export utilities for use in the main component
 export { isIOS, safeNavigate, truncateText, truncateTitle }; 

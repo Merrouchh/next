@@ -1,16 +1,21 @@
 import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { FaSitemap } from 'react-icons/fa';
 import { formatDate } from '../../utils/eventDetailHelpers';
 import styles from '../../styles/EventDetail.module.css';
 
-const EventHeader = ({ event, registrationStatus, isPublicView, teamState }) => {
+const EventHeader = ({ event, registrationStatus, isPublicView, teamState, bracketState, eventId }) => {
   return (
     <div className={styles.eventHeader}>
       <div className={styles.eventImageContainer}>
         {event.image ? (
-          <img 
+          <Image 
             src={event.image} 
             alt={event.title} 
             className={styles.eventImage}
+            width={400}
+            height={250}
             onError={(e) => {
               e.target.onerror = null;
               e.target.style.display = 'none';
@@ -28,6 +33,18 @@ const EventHeader = ({ event, registrationStatus, isPublicView, teamState }) => 
       </div>
       <div className={styles.eventInfo}>
         <h1 className={styles.eventTitle}>{event.title}</h1>
+        
+        {/* Tournament Bracket Button - prominently displayed at the top */}
+        {bracketState?.data && bracketState.data.bracket && (
+          <div className={styles.topBracketButton}>
+            <Link 
+              href={`/events/${eventId}/bracket`} 
+              className={styles.tournamentBracketButton}
+            >
+              <FaSitemap className={styles.bracketIcon} /> View Tournament Bracket
+            </Link>
+          </div>
+        )}
         
         {/* Registration status indicator - only for authenticated users */}
         {!isPublicView && registrationStatus.isRegistered && (
@@ -74,12 +91,14 @@ const EventHeader = ({ event, registrationStatus, isPublicView, teamState }) => 
           <div className={styles.infoItem}>
             <span className={styles.infoLabel}>Duo Partner:</span>
             <span className={styles.partnerName}>
-              {registrationStatus.registeredBy ? (
+              {registrationStatus.partnerInfo ? (
+                <>{registrationStatus.partnerInfo.username}</>
+              ) : registrationStatus.registeredBy ? (
                 <>{registrationStatus.registeredBy}</>
               ) : registrationStatus.teamMembers.length > 0 ? (
                 <>{registrationStatus.teamMembers[0].username}</>
               ) : (
-                'None'
+                'Waiting for partner to register'
               )}
             </span>
           </div>

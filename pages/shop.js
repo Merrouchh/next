@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { AiOutlineCopy, AiOutlineDollar, AiOutlineCreditCard, AiOutlineBank, AiOutlineClose } from 'react-icons/ai';
+import React, { useState } from 'react';
+import { AiOutlineCopy, AiOutlineDollar, AiOutlineBank } from 'react-icons/ai';
 import styles from '../styles/Shop.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,7 +25,7 @@ const Shop = () => {
   const router = useRouter();
   const [error] = useState(null);
   const [activeTab, setActiveTab] = useState('prices');
-  const [showPopup, setShowPopup] = useState(false);
+  // const [showPopup, setShowPopup] = useState(false); // Removed unused state
 
 
 

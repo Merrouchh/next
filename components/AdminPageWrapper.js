@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/AdminPageWrapper.module.css';
@@ -17,32 +17,8 @@ export default function AdminPageWrapper({ children, title }) {
   const currentPath = router.pathname;
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  useEffect(() => {
-    // Only redirect if auth is fully initialized
-    if (initialized && !loading) {
-      if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
-        // 🚨 Log unauthorized access attempt
-        logUnauthorizedAccess('admin_access', user, currentPath);
-        
-        toast.error('You do not have permission to access admin pages');
-        router.replace('/dashboard');
-        return;
-      }
-      
-      // Staff users can ONLY access queue page - block access to all other admin pages
-      if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
-        // 🚨 Log staff attempting to access admin-only page
-        logUnauthorizedAccess('staff_admin_access', user, currentPath);
-        
-        toast.error('Staff access is limited to queue management only');
-        router.replace('/admin/queue');
-        return;
-      }
-    }
-  }, [user, isLoggedIn, loading, initialized, router, currentPath]);
-
   // Function to log unauthorized access attempts from client-side
-  const logUnauthorizedAccess = async (type, user, path) => {
+  const logUnauthorizedAccess = useCallback(async (type, user, path) => {
     console.log('🚨 SECURITY: Logging unauthorized access attempt:', {
       type,
       username: user?.username || 'anonymous',
@@ -72,7 +48,32 @@ export default function AdminPageWrapper({ children, title }) {
     } catch (error) {
       console.error('🚨 SECURITY: Failed to log security event:', error);
     }
-  };
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    // Only redirect if auth is fully initialized
+    if (initialized && !loading) {
+      if (!isLoggedIn || (!user?.isAdmin && !user?.isStaff)) {
+        // 🚨 Log unauthorized access attempt
+        logUnauthorizedAccess('admin_access', user, currentPath);
+        
+        toast.error('You do not have permission to access admin pages');
+        router.replace('/dashboard');
+        return;
+      }
+      
+      // Staff users can ONLY access queue page - block access to all other admin pages
+      if (user?.isStaff && !user?.isAdmin && !currentPath.includes('/admin/queue')) {
+        // 🚨 Log staff attempting to access admin-only page
+        logUnauthorizedAccess('staff_admin_access', user, currentPath);
+        
+        toast.error('Staff access is limited to queue management only');
+        router.replace('/admin/queue');
+        return;
+      }
+    }
+  }, [user, isLoggedIn, loading, initialized, router, currentPath, logUnauthorizedAccess]);
+
 
   // Add a timeout to prevent infinite loading
   useEffect(() => {

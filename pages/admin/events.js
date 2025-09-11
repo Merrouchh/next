@@ -42,26 +42,41 @@ export default function AdminEvents() {
   // The admin check is handled by AdminPageWrapper
   useEffect(() => {
     const fetchEvents = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('No user found, skipping fetchEvents');
+        return;
+      }
       
+      console.log('Fetching events for user:', user.id);
       setLoading(true);
       
       try {
-        // Get the session for authentication
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        const response = await fetch('/api/events', {
+        // Use internal API to fetch events
+        const response = await fetch('/api/internal/admin/events', {
+          method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'get-events',
+            userId: user.id
+          })
         });
         
+        console.log('Events API response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch events');
+          const errorText = await response.text();
+          console.error('Events API error response:', errorText);
+          throw new Error(`Failed to fetch events: ${response.status} ${response.statusText}`);
         }
         
-        const data = await response.json();
+        const result = await response.json();
+        console.log('Events API result:', result);
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch events');
+        }
+        const data = result.result;
         setEvents(data);
         
         // Check if there's an edit parameter in the URL
@@ -278,14 +293,14 @@ export default function AdminEvents() {
     
     try {
       // Get the session for authentication
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('Session error:', sessionError);
         throw new Error(`Authentication error: ${sessionError.message}`);
       }
       
-      const accessToken = sessionData?.session?.access_token;
+      // const accessToken = sessionData?.session?.access_token; // Removed unused variable
       
       if (!accessToken) {
         throw new Error('No authentication token available. Please log in again.');
@@ -298,12 +313,16 @@ export default function AdminEvents() {
       formDataObj.append('eventId', eventId);
       
       console.log('Sending image upload request...');
-      const response = await fetch('/api/events/upload-image', {
+      const response = await fetch('/api/internal/admin/events', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
-        body: formDataObj
+        body: JSON.stringify({
+          action: 'upload-image',
+          userId: user.id,
+          eventData: formDataObj
+        })
       });
       
       let responseData;
@@ -396,25 +415,33 @@ export default function AdminEvents() {
       let newEvent;
       
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      await supabase.auth.getSession();
+      // const accessToken = sessionData?.session?.access_token; // Removed unused variable
       
       if (currentEvent) {
         // Update existing event
-        response = await fetch(`/api/events/${currentEvent.id}`, {
-          method: 'PUT',
+        response = await fetch('/api/internal/admin/events', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify(eventData)
+          body: JSON.stringify({
+            action: 'update',
+            userId: user.id,
+            eventId: currentEvent.id,
+            eventData: eventData
+          })
         });
         
         if (!response.ok) {
           throw new Error('Failed to update event');
         }
         
-        newEvent = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update event');
+        }
+        newEvent = result.result;
         
         // Upload image if provided
         if (formData.image) {
@@ -432,20 +459,27 @@ export default function AdminEvents() {
         toast.success('Event updated successfully!');
       } else {
         // Create new event
-        response = await fetch('/api/events', {
+        response = await fetch('/api/internal/admin/events', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify(eventData)
+          body: JSON.stringify({
+            action: 'create',
+            userId: user.id,
+            eventData: eventData
+          })
         });
         
         if (!response.ok) {
           throw new Error('Failed to create event');
         }
         
-        newEvent = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create event');
+        }
+        newEvent = result.result;
         
         // Upload image if provided
         if (formData.image) {
@@ -493,14 +527,19 @@ export default function AdminEvents() {
       setLoading(true);
       
       // Get the session for authentication
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
+      await supabase.auth.getSession();
+      // const accessToken = sessionData?.session?.access_token; // Removed unused variable
       
-      const response = await fetch(`/api/events/${eventId}`, {
-        method: 'DELETE',
+      const response = await fetch('/api/internal/admin/events', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          userId: user.id,
+          eventId: eventId
+        })
       });
       
       if (!response.ok) {
@@ -526,7 +565,7 @@ export default function AdminEvents() {
         month: 'long',
         day: 'numeric'
       });
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };
@@ -755,7 +794,7 @@ export default function AdminEvents() {
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeRaw]}
                         components={{
-                          a: ({ node, ...props }) => {
+                          a: ({ ...props }) => {
                             const isExternal = props.href?.startsWith('http');
                             return (
                               <a 
@@ -766,20 +805,20 @@ export default function AdminEvents() {
                               />
                             );
                           },
-                          h1: ({ node, ...props }) => <h1 className={styles.previewH1} {...props} />,
-                          h2: ({ node, ...props }) => <h2 className={styles.previewH2} {...props} />,
-                          h3: ({ node, ...props }) => <h3 className={styles.previewH3} {...props} />,
-                          ul: ({ node, ...props }) => <ul className={styles.previewList} {...props} />,
-                          ol: ({ node, ...props }) => <ol className={styles.previewList} {...props} />,
-                          code: ({ node, inline, ...props }) => (
+                          h1: ({ ...props }) => <h1 className={styles.previewH1} {...props} />,
+                          h2: ({ ...props }) => <h2 className={styles.previewH2} {...props} />,
+                          h3: ({ ...props }) => <h3 className={styles.previewH3} {...props} />,
+                          ul: ({ ...props }) => <ul className={styles.previewList} {...props} />,
+                          ol: ({ ...props }) => <ol className={styles.previewList} {...props} />,
+                          code: ({ inline, ...props }) => (
                             inline ? 
                               <code className={styles.previewInlineCode} {...props} /> :
                               <code className={styles.previewCode} {...props} />
                           ),
-                          blockquote: ({ node, ...props }) => <blockquote className={styles.previewBlockquote} {...props} />,
-                          table: ({ node, ...props }) => <table className={styles.previewTable} {...props} />,
-                          th: ({ node, ...props }) => <th className={styles.previewTh} {...props} />,
-                          td: ({ node, ...props }) => <td className={styles.previewTd} {...props} />,
+                          blockquote: ({ ...props }) => <blockquote className={styles.previewBlockquote} {...props} />,
+                          table: ({ ...props }) => <table className={styles.previewTable} {...props} />,
+                          th: ({ ...props }) => <th className={styles.previewTh} {...props} />,
+                          td: ({ ...props }) => <td className={styles.previewTd} {...props} />,
                         }}
                       >
                         {formData.description}

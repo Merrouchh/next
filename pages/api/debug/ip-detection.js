@@ -1,5 +1,5 @@
 // Debug endpoint to test IP detection in production
-import { getClientIP, getDetailedIPInfo } from '../../../utils/ip-detection';
+import { getDetailedIPInfo } from '../../../utils/ip-detection';
 
 export default async function handler(req, res) {
   // Only allow GET requests

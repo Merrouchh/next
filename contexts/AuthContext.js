@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { createClient, initializeSupabaseConfig } from '../utils/supabase/component';
 import { useRouter } from 'next/router';
-import { fetchGizmoId } from '../utils/api';
+// import { fetchGizmoId } from '../utils/api'; // Removed unused import
 import { isPublicRoute, isProtectedRoute } from '../utils/routeConfig';
 
 // Enhanced error messages with more specific cases
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children, onError }) => {
   useEffect(() => {
     if (!supabaseRef.current || !mounted) return;
 
-    const { data: { subscription } } = supabaseRef.current.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabaseRef.current.auth.onAuthStateChange(async (event) => {
       console.log('AuthContext: Auth state change event:', event, 'on path:', router.pathname);
       
       // If we're on the reset password page, ignore all auth state changes to prevent automatic login
@@ -163,7 +163,7 @@ export const AuthProvider = ({ children, onError }) => {
         return { success: false, error: validation.error };
       }
       
-      const session = validation.session;
+      // const session = validation.session; // Removed unused variable
       
       console.log('Auth: Session valid, getting user data');
       
@@ -374,6 +374,160 @@ export const AuthProvider = ({ children, onError }) => {
     getInitialSession();
   }, [mounted, router]);
 
+  // Function to notify other tabs about auth changes (with localStorage fallback)
+  const notifyTabs = useCallback((message) => {
+    if (broadcastChannel) {
+      try {
+        broadcastChannel.postMessage(message);
+      } catch (error) {
+        console.error('Failed to broadcast message:', error);
+      }
+    } else if (typeof window !== 'undefined') {
+      // Fallback to localStorage for browsers without BroadcastChannel support
+      try {
+        localStorage.setItem('auth-sync', JSON.stringify({
+          ...message,
+          timestamp: new Date().getTime()
+        }));
+        
+        // Immediately remove and set again to trigger storage events in all tabs
+        const value = localStorage.getItem('auth-sync');
+        localStorage.removeItem('auth-sync');
+        setTimeout(() => {
+          localStorage.setItem('auth-sync', value);
+        }, 0);
+      } catch (error) {
+        console.error('Failed to use localStorage fallback for sync:', error);
+      }
+    }
+  }, [broadcastChannel]);
+
+  // Extract common refresh logic to a single function
+  const refreshUserSession = useCallback(async (retryOptions = {}) => {
+    const { maxRetries = 3, shouldNotifyTabs = false, silent = false } = retryOptions;
+    console.log('Auth: Refreshing session', silent ? '(silent mode)' : '');
+    
+    // Only set loading state when not in silent mode
+    if (!silent) {
+      setIsRefreshing(true);
+    }
+    
+    try {
+      let retryCount = 0;
+      
+      const attemptRefresh = async () => {
+        try {
+          console.log('Auth: Checking current session');
+          const { data: { session }, error } = await supabaseRef.current.auth.getSession();
+          
+          if (error) {
+            console.error('Auth: Error getting session:', error);
+            throw error;
+          }
+          
+          if (!session) {
+            console.warn('Auth: No active session found during refresh');
+            throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
+          }
+
+          console.log('Auth: Refreshing session');
+          // Refresh session
+          const { data: refreshData, error: refreshError } = await supabaseRef.current.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error('Auth: Error refreshing session:', refreshError);
+            throw refreshError;
+          }
+          
+          if (!refreshData.session) {
+            console.warn('Auth: No session data returned from refresh');
+            throw new Error(AUTH_ERRORS.SESSION_EXPIRED);
+          }
+
+          console.log('Auth: Session refreshed successfully');
+          
+          // Get user data from public.users based on auth user ID
+          const { data: userData, error: userDataError } = await supabaseRef.current
+            .from('users')
+            .select('*')
+            .eq('id', refreshData.session.user.id)
+            .single();
+          
+          if (userDataError) {
+            console.error('Error fetching user data during refresh:', userDataError);
+            throw userDataError;
+          }
+          
+          if (userData) {
+            // Process user data to match expected format
+            const processedUserData = {
+              ...userData,
+              isAdmin: userData.is_admin || false,
+              isStaff: userData.is_staff || false,
+              email: userData.email // Use the email from the database
+            };
+            
+            // Update auth state
+            setAuthState(prev => ({
+              ...prev,
+              isLoggedIn: true,
+              user: processedUserData,
+              loading: false,
+              initialized: true
+            }));
+            
+            // Notify other tabs if requested
+            if (shouldNotifyTabs) {
+              notifyTabs({ type: 'SESSION_REFRESHED' });
+            }
+            
+            return { success: true, session: refreshData.session, user: processedUserData };
+          } else {
+            throw new Error('User data not found');
+          }
+        } catch (error) {
+          console.error('Auth: Error in refresh attempt:', error);
+          throw error;
+        }
+      };
+      
+      // Retry logic
+      while (retryCount < maxRetries) {
+        try {
+          return await attemptRefresh();
+        } catch (error) {
+          retryCount++;
+          console.log(`Auth: Refresh attempt ${retryCount} failed:`, error.message);
+          
+          if (retryCount >= maxRetries) {
+            console.error('Auth: All refresh attempts failed');
+            throw error;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+          console.log(`Auth: Retrying refresh in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      
+      throw new Error('Max retries exceeded');
+    } catch (error) {
+      console.error('Auth: Refresh failed:', error);
+      
+      // Update auth state to reflect failure
+      setAuthState(prev => ({
+        ...prev,
+        isLoggedIn: false,
+        loading: false
+      }));
+      
+      return { success: false, error };
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [supabaseRef, notifyTabs]);
+
   // Enhanced session check function with retry logic
   const checkSession = useCallback(async (retryCount = 0) => {
     if (!mounted || !supabaseRef.current) return { success: false };
@@ -423,7 +577,7 @@ export const AuthProvider = ({ children, onError }) => {
       
       return { success: false, error: AUTH_ERRORS.NETWORK_ERROR };
     }
-  }, [authState.isLoggedIn, mounted, validateSession]);
+  }, [authState.isLoggedIn, mounted, validateSession, notifyTabs, refreshUserSession]);
 
   // Enhanced session monitoring with periodic checks
   useEffect(() => {
@@ -482,7 +636,8 @@ export const AuthProvider = ({ children, onError }) => {
   }, [authState.isLoggedIn, checkSession, mounted]);
 
   // Extract common refresh logic to a single function
-  const refreshUserSession = async (retryOptions = {}) => {
+  /*
+  // const refreshUserSession = useCallback(async (retryOptions = {}) => {
     const { maxRetries = 3, shouldNotifyTabs = false, silent = false } = retryOptions;
     console.log('Auth: Refreshing session', silent ? '(silent mode)' : '');
     
@@ -592,7 +747,8 @@ export const AuthProvider = ({ children, onError }) => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [supabaseRef, notifyTabs]);
+  */
 
   // Add a simpler refresh function to expose to components
   const refreshUserData = async () => {
@@ -629,7 +785,7 @@ export const AuthProvider = ({ children, onError }) => {
           }
           
           // Just refresh the token without updating state
-          const { data: refreshData, error: refreshError } = await supabaseRef.current.auth.refreshSession();
+          const { error: refreshError } = await supabaseRef.current.auth.refreshSession();
           
           if (refreshError) {
             console.error('Silent refresh error:', refreshError);
@@ -745,7 +901,7 @@ export const AuthProvider = ({ children, onError }) => {
                   setTimeout(() => {
                     try {
                       router.replace('/dashboard');
-                    } catch (routerError) {
+                    } catch {
                       console.log("Router failed, using window.location");
                       window.location.href = '/dashboard';
                     }
@@ -771,7 +927,7 @@ export const AuthProvider = ({ children, onError }) => {
     };
 
     handleMagicLink();
-  }, [mounted, router.pathname]);
+  }, [mounted, router.pathname, router]);
 
   // Simplified loading check
   const shouldShowLoading = () => {
@@ -884,7 +1040,7 @@ export const AuthProvider = ({ children, onError }) => {
         console.log('Supabase client available:', !!supabaseRef.current);
         
         // Sign in with Supabase using email
-        const { data, error: signInError } = await supabaseRef.current.auth.signInWithPassword({
+        const { error: signInError } = await supabaseRef.current.auth.signInWithPassword({
           email,
           password
         });
@@ -1025,35 +1181,8 @@ export const AuthProvider = ({ children, onError }) => {
         }
       };
     }
-  }, [mounted, router.pathname, checkSession]);
+  }, [mounted, router.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Function to notify other tabs about auth changes (with localStorage fallback)
-  const notifyTabs = (message) => {
-    if (broadcastChannel) {
-      try {
-        broadcastChannel.postMessage(message);
-      } catch (error) {
-        console.error('Failed to broadcast message:', error);
-      }
-    } else if (typeof window !== 'undefined') {
-      // Fallback to localStorage for browsers without BroadcastChannel support
-      try {
-        localStorage.setItem('auth-sync', JSON.stringify({
-          ...message,
-          timestamp: new Date().getTime()
-        }));
-        
-        // Immediately remove and set again to trigger storage events in all tabs
-        const value = localStorage.getItem('auth-sync');
-        localStorage.removeItem('auth-sync');
-        setTimeout(() => {
-          localStorage.setItem('auth-sync', value);
-        }, 0);
-      } catch (error) {
-        console.error('Failed to use localStorage fallback for sync:', error);
-      }
-    }
-  };
 
   // Modified logout to broadcast to other tabs
   const logout = async () => {
@@ -1096,11 +1225,11 @@ export const AuthProvider = ({ children, onError }) => {
     }
   };
 
-  // Manual session refresh function for UI-triggered refreshes
-  const performSessionRefresh = async () => {
-    console.log('Auth: Manually refreshing session');
-    return refreshUserSession({ shouldNotifyTabs: true });
-  };
+  // Manual session refresh function for UI-triggered refreshes - UNUSED
+  // const performSessionRefresh = async () => {
+  //   console.log('Auth: Manually refreshing session');
+  //   return refreshUserSession({ shouldNotifyTabs: true });
+  // };
 
   // Function to check if a user exists in the Supabase database
   const userExists = async (username) => {
@@ -1155,7 +1284,7 @@ export const AuthProvider = ({ children, onError }) => {
       if (insertError) throw insertError;
 
       // Auto login
-      const { data: signInData, error: signInError } = await supabaseRef.current.auth.signInWithPassword({
+      const { error: signInError } = await supabaseRef.current.auth.signInWithPassword({
         email: email.trim(),
         password
       });
@@ -1344,6 +1473,7 @@ export const AuthProvider = ({ children, onError }) => {
     initialized: authState.initialized,
     isLoading, 
     isRefreshing,
+    isLoggingOut,
     error,
     login, 
     logout, 

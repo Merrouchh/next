@@ -11,7 +11,7 @@ const UserSearch = ({ className }) => {
   const [showResults, setShowResults] = useState(false);
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
-  const searchRef = useRef(null);
+  // const searchRef = useRef(null); // Removed unused variable
   const supabase = createClient();
   const router = useRouter();
 

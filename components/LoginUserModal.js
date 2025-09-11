@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaDesktop, FaUser, FaSearch, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaDesktop, FaUser, FaSearch, FaTimes } from 'react-icons/fa';
 import styles from '../styles/LoginUserModal.module.css';
 import Portal from './Portal';
 import { loginUserToComputer, fetchGizmoId } from '../utils/api';

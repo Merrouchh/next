@@ -7,7 +7,7 @@ const AccountPromptModal = ({ onClose, onLogin }) => {
       <div className={styles.modalContent}>
         <h2>Account Required</h2>
         <p>You need to create an account in the Merrouch Gaming Center to use this feature.</p>
-        <p>If you already have an account, click on "Login" to proceed.</p>
+        <p>If you already have an account, click on &quot;Login&quot; to proceed.</p>
         <div className={styles.buttonContainer}>
           <button onClick={onLogin} className={styles.loginButton}>Login</button>
           <button onClick={onClose} className={styles.closeButton}>Close</button>

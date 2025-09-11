@@ -6,7 +6,7 @@ const getSupabase = () => {
   if (!supabase) {
     try {
       supabase = createClient();
-    } catch (error) {
+    } catch {
       console.warn('Supabase client not ready:', error.message);
       return null;
     }
@@ -38,7 +38,7 @@ const getAuthHeaders = async () => {
         'Content-Type': 'application/json'
       };
     }
-  } catch (error) {
+  } catch {
     console.warn('Failed to get auth token:', error);
   }
   
@@ -54,7 +54,7 @@ const isUserAuthenticated = async () => {
     if (!supabaseClient) return false;
     const { data } = await supabaseClient.auth.getSession();
     return !!data?.session?.access_token;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -84,7 +84,7 @@ const enhancedFetch = async (url, options = {}) => {
       }
 
       return response;
-    } catch (error) {
+    } catch {
       clearTimeout(timeout);
       
       if (attempt === MAX_RETRIES - 1) {
@@ -120,7 +120,12 @@ export const validateGamingCredentials = async (username, password) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+      }
       console.error('Gaming validation failed:', errorData);
       return { 
         isValid: false, 
@@ -129,7 +134,16 @@ export const validateGamingCredentials = async (username, password) => {
       };
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response:', error);
+      return { 
+        isValid: false, 
+        error: 'Invalid response format from server'
+      };
+    }
     console.log('Gaming validation response:', data);
     
     // Handle already linked response
@@ -143,7 +157,7 @@ export const validateGamingCredentials = async (username, password) => {
     }
     
     return data;
-  } catch (error) {
+  } catch {
     console.error('Error validating gaming credentials:', error);
     return { 
       isValid: false, 
@@ -216,7 +230,7 @@ export const validateUserCredentials = async (username, password) => {
         details: data.result || {}
       };
     }
-  } catch (error) {
+  } catch {
     console.error('Validation error:', error);
     // Detect common privacy browser errors
     const isPrivacyBlock = error.message?.includes('Failed to fetch') || 
@@ -266,9 +280,15 @@ export const fetchActiveUserSessions = async () => {
       throw new Error('Failed to fetch sessions');
     }
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response in fetchActiveUserSessions:', error);
+      return [];
+    }
     return data.result || [];
-  } catch (error) {
+  } catch {
     console.warn('Error fetching active sessions:', error);
     return [];
   }
@@ -278,9 +298,15 @@ export const fetchActiveUserSessions = async () => {
 export const fetchUserBalance = async (gizmoId) => {
   try {
     const response = await enhancedFetch(`/api/fetchuserbalance/${gizmoId}`);
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response in fetchUserBalance:', error);
+      return 'Error fetching time';
+    }
     return data.balance || 'Error fetching time';
-  } catch (error) {
+  } catch {
     console.error('Error fetching balance:', error);
     return 'Error fetching time';
   }
@@ -307,14 +333,25 @@ export const fetchUserBalanceWithDebt = async (gizmoId) => {
         rawBalance: 0
       };
     }
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response in fetchUserBalanceWithDebt:', error);
+      return {
+        balance: 'Error fetching time',
+        hasDebt: false,
+        debtAmount: 0,
+        rawBalance: 0
+      };
+    }
     return {
       balance: data.balance || 'Error fetching time',
       hasDebt: data.hasDebt || false,
       debtAmount: data.debtAmount || 0,
       rawBalance: data.rawBalance || 0
     };
-  } catch (error) {
+  } catch {
     return {
       balance: 'Error fetching time',
       hasDebt: false,
@@ -330,7 +367,7 @@ export const fetchUserById = async (gizmoId) => {
     if (!response.ok) throw new Error('Error fetching user by ID');
     const data = await response.json();
     return data.result;
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -361,10 +398,16 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
       throw new Error(`Failed to fetch top users: ${response.status}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response in fetchTopUsers:', error);
+      return [];
+    }
     console.log('Top users fetch succeeded:', data);
     return data;
-  } catch (error) {
+  } catch {
     console.error('Error in fetchTopUsers:', error);
     throw error;
   }
@@ -379,7 +422,7 @@ export const fetchGizmoId = async (username) => {
     if (!response.ok) throw new Error('Failed to fetch Gizmo ID');
     const data = await response.json();
     return { gizmoId: data.gizmoId };
-  } catch (error) {
+  } catch {
     console.error('Error in fetchGizmoId:', error);
     return { gizmoId: null };
   }
@@ -419,12 +462,21 @@ export const fetchUserPoints = async (gizmoId) => {
       throw new Error(errorText || 'Failed to fetch user points');
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('Failed to parse JSON response in fetchUserPoints:', error);
+      return {
+        points: 0,
+        success: false
+      };
+    }
     return {
       points: data.result,
       success: !data.isError
     };
-  } catch (error) {
+  } catch {
     console.error('Error fetching user points:', error);
     return { points: 0, success: false };
   }
@@ -480,7 +532,7 @@ export const fetchUserTimeInfo = async (gizmoId) => {
     return {
       total: formatTime(totalSeconds)
     };
-  } catch (error) {
+  } catch {
     console.error('Error fetching user time info:', error);
     // Return default values on error
     return {
@@ -489,7 +541,8 @@ export const fetchUserTimeInfo = async (gizmoId) => {
   }
 };
 
-const fetchUserData = async () => {
+/*
+const fetchUserData = async () => { // Removed unused function
   try {
     const { data, error } = await supabase
       .from('users')
@@ -499,10 +552,11 @@ const fetchUserData = async () => {
     if (error) throw error;
 
     console.log('User data:', data);
-  } catch (error) {
+  } catch {
     console.error('Error fetching user data:', error);
   }
 };
+*/
 
 export const fetchTopClipOfWeek = async (supabase) => {
   try {
@@ -560,7 +614,7 @@ export const fetchTopClipOfWeek = async (supabase) => {
       thumbnailUrl: thumbnailUrl || videoData?.publicUrl
     };
 
-  } catch (error) {
+  } catch {
     console.error('Error fetching top clip:', error);
     return null;
   }
@@ -615,7 +669,7 @@ export const cleanupBlobUrls = () => {
   blobUrls.forEach(url => {
     try {
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       console.error('Error revoking blob URL:', error);
     }
   });
@@ -632,13 +686,13 @@ export const uploadUserPicture = async (gizmoId, file) => {
 
     const base64String = await imageToBase64(resizedImage);
 
-    const response = await enhancedFetch(`/api/users/${gizmoId}/picture`, {
+    await enhancedFetch(`/api/users/${gizmoId}/picture`, {
       method: 'PUT',
       body: JSON.stringify({ picture: base64String })
     });
 
     return true;
-  } catch (error) {
+  } catch {
     console.error('Error uploading picture:', error);
     return false;
   }
@@ -705,7 +759,7 @@ export const getClientIP = async () => {
     const response = await fetch('https://api.ipify.org?format=json', fetchConfig);
     const data = await response.json();
     return data.ip;
-  } catch (error) {
+  } catch {
     console.error('Error getting IP:', error);
     return '0.0.0.0'; // fallback IP
   }
@@ -732,7 +786,7 @@ export const fetchComputers = async () => {
     };
 
     return computers;
-  } catch (error) {
+  } catch {
     console.error('Error in fetchComputers:', error);
     throw error;
   }
@@ -777,7 +831,7 @@ export async function fetchUserUpcomingMatches(userId) {
     const data = await response.json();
     console.log(`Retrieved ${data.matches?.length || 0} upcoming matches for user`);
     return data.matches || [];
-  } catch (error) {
+  } catch {
     console.error('Error fetching upcoming matches:', error);
     // Return empty array instead of throwing, to handle the error gracefully
     return [];
@@ -810,7 +864,7 @@ export const fetchShiftReports = async (dateFrom, dateTo, reportType = 2) => {
     // Return the complete response data
     const data = await response.json();
     return data; // This includes version, result, httpStatusCode, message, isError
-  } catch (error) {
+  } catch {
     console.error('Error fetching shift reports:', error);
     throw error;
   }
@@ -876,7 +930,7 @@ export const loginUserToComputer = async (gizmoId, hostId) => {
       result: data.result,
       message: data.message || 'User logged in successfully'
     };
-  } catch (error) {
+  } catch {
     console.error('Error in loginUserToComputer:', error);
     return {
       success: false,
@@ -900,83 +954,60 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
       };
     }
 
-    // IMPORTANT FIX: The API appears to be treating the seconds value as MINUTES
-    // Divide by 60 to get the correct amount of time (1 hour = 60 minutes)
-    const apiAmount = Math.round(seconds / 60);
+    console.log(`[INTERNAL API] Adding ${seconds} seconds (${seconds/3600} hours) to gizmo ID ${gizmoId}`);
     
-    console.log(`[AMOUNT DEBUG] Original request: ${seconds} seconds (${seconds/3600} hours)`);
-    console.log(`[AMOUNT DEBUG] CORRECTED amount: ${apiAmount} units (should be 60 minutes = 1 hour)`);
-    
-    // Generate a unique request ID to track this specific request
-    const requestId = Date.now().toString();
-    console.log(`[AMOUNT DEBUG] Request ID: ${requestId}`);
-
-    // Use the correct URL path structure with price=0 (free)
-    // But use the corrected amount parameter
-    const apiUrl = `/api/users/${gizmoId}/order/time/${apiAmount}/price/0/invoice`;
-    console.log(`[AMOUNT DEBUG] Calling endpoint: ${apiUrl}`);
-    
-    // Read the current Supabase session token from local storage (client only)
-    let authHeader = {};
+    // First, get the user ID from the gizmo_id
+    let userId = null;
     try {
       if (typeof window !== 'undefined') {
         const supabaseClient = getSupabase();
-        if (!supabaseClient) return {};
-        const { data } = await supabaseClient.auth.getSession();
-        const accessToken = data?.session?.access_token;
-        if (accessToken) {
-          authHeader = { Authorization: `Bearer ${accessToken}` };
+        if (supabaseClient) {
+          const { data: userData, error: userError } = await supabaseClient
+            .from('users')
+            .select('id')
+            .eq('gizmo_id', gizmoId)
+            .single();
+          
+          if (!userError && userData?.id) {
+            userId = userData.id;
+          }
         }
       }
-    } catch {}
+    } catch {
+      console.error('Error getting user ID from gizmo_id:', error);
+    }
 
-    const response = await fetch(apiUrl, {
+    if (!userId) {
+      return {
+        success: false,
+        error: 'Could not find user account for the given gaming ID'
+      };
+    }
+
+    // Call the internal API that handles authentication server-side
+    const response = await fetch('/api/internal/add-game-time-reward', {
       method: 'POST',
       headers: {
-        ...fetchConfig.headers,
         'Content-Type': 'application/json',
-        'X-Request-ID': requestId,
-        ...authHeader
       },
-      // Use empty object as body
-      body: JSON.stringify({})
+      body: JSON.stringify({
+        userId: userId,
+        seconds: seconds,
+        price: 0 // Free reward
+      })
     });
 
-    // First get the response as text
-    const responseText = await response.text();
-    console.log(`[AMOUNT DEBUG] Raw response for request ${requestId}:`, responseText.substring(0, 200));
+    const result = await response.json();
     
-    // Then try to parse it as JSON
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (error) {
-      console.error(`[AMOUNT DEBUG] Invalid JSON response for request ${requestId}:`, responseText);
-      return {
-        success: false,
-        error: `Invalid response: ${responseText.substring(0, 100)}`
-      };
+    if (result.success) {
+      console.log(`[INTERNAL API] SUCCESS: Added ${seconds} seconds (${seconds/3600} hours) to gizmo ID ${gizmoId}`);
+    } else {
+      console.error(`[INTERNAL API] FAILED: Could not add time to gizmo ID ${gizmoId}:`, result.error);
     }
 
-    if (!response.ok) {
-      console.error(`[AMOUNT DEBUG] Request ${requestId} failed: ${response.status}`, data);
-      return {
-        success: false,
-        error: data.error || `Server error: ${response.status}`,
-        details: data.details,
-        status: response.status
-      };
-    }
-    
-    console.log(`[AMOUNT DEBUG] Request ${requestId} successful - added ${apiAmount} units to user ${gizmoId}`);
-    
-    return {
-      success: true,
-      result: data.result,
-      message: data.message || 'Game time added successfully'
-    };
-  } catch (error) {
-    console.error('[AMOUNT DEBUG] Error adding game time:', error);
+    return result;
+  } catch {
+    console.error('Error in addGameTimeToUser:', error);
     return {
       success: false,
       error: error.message || 'Unknown error occurred'

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../../utils/supabase/component';
 import styles from '../../styles/Profile.module.css';
 import ClipCard from '../ClipCard';
-import { FaFilter, FaTimes } from 'react-icons/fa';
+import { FaFilter } from 'react-icons/fa';
 import { useIsMobile } from '../../hooks/useWindowDimensions';
 
 // LoadingSpinner component

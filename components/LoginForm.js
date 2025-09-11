@@ -34,7 +34,7 @@ const LoginForm = () => {
       if (!success) {
         setIsSubmitting(false);
       }
-    } catch (error) {
+    } catch {
       setIsSubmitting(false);
     }
   };

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import path from 'path';
+// import path from 'path'; // Removed unused import
 import { 
   compressEventImage, 
   validateImageFile, 
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
     });
     
     // Upload compressed image to Supabase Storage
-    const { data, error } = await supabase
+    const { error } = await supabase
       .storage
       .from('images')
       .upload(fileName, compressedFileContent, {

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import NextErrorComponent from 'next/error'
 
 // This custom error component will handle specific errors differently
-function CustomError({ statusCode, hasGetInitialPropsRun, err }) {
+function CustomError({ statusCode, err }) {
   // Check if the error is related to verification code
   const isVerificationError = err?.message?.includes('verification code');
 

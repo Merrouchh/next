@@ -77,7 +77,7 @@ const QueueAdminModal = ({
               <button 
                 className={`${styles.button} ${styles.confirmButton}`}
                 onClick={() => {
-                  onConfirm && onConfirm();
+                  onConfirm?.();
                   onClose();
                 }}
               >

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Initialize the Supabase admin client with service role key
 // This allows us to bypass RLS
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   {
     auth: {

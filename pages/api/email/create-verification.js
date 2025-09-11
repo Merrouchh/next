@@ -7,17 +7,17 @@ const supabase = createClient(
 );
 
 // Create a Supabase admin client for operations that require admin privileges
-const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? 
-  createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  ) : null;
+// const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? // Removed unused variable
+//   createClient(
+//     process.env.SUPABASE_URL,
+//     process.env.SUPABASE_SERVICE_ROLE_KEY,
+//     {
+//       auth: {
+//         autoRefreshToken: false,
+//         persistSession: false
+//       }
+//     }
+//   ) : null;
 
 export default async function handler(req, res) {
   // Only allow POST requests

@@ -292,7 +292,7 @@ async function generateBracket(req, res, supabase, eventId, user) {
     }
 
     // Save bracket to database
-    const { data: savedBracket, error: saveError } = await supabase
+    const { error: saveError } = await supabase
       .from('event_brackets')
       .insert({
           event_id: eventId,
@@ -556,14 +556,14 @@ function generateTournamentBracket(participants, bracketSize) {
   // Calculate the perfect bracket size (power of 2)
   const perfectBracketSize = Math.pow(2, numRounds);
   
-  // Calculate number of byes needed
-  const numByes = perfectBracketSize - numParticipants;
+  // Calculate number of byes needed - UNUSED
+  // const numByes = perfectBracketSize - numParticipants;
   
   // Create an array to hold all rounds of matches
   const rounds = [];
   
-  // Calculate total number of matches in the tournament
-  const totalMatches = perfectBracketSize - 1;
+  // Calculate total number of matches in the tournament - UNUSED
+  // const totalMatches = perfectBracketSize - 1;
   
   // Start with match ID 1 for the first round
   let matchId = 1;
@@ -731,7 +731,7 @@ function updateMatchResult(rounds, matchId, winnerId) {
       // If already in the match but in the wrong position, we need to handle the swap case
       if (alreadyInNextMatch) {
         const existingPosition = nextMatch.participant1Id === winnerId ? 'participant1Id' : 'participant2Id';
-        const existingNamePosition = nextMatch.participant1Id === winnerId ? 'participant1Name' : 'participant2Name';
+        // const existingNamePosition = nextMatch.participant1Id === winnerId ? 'participant1Name' : 'participant2Name'; // Removed unused variable
         
         // If it's already in the expected position, nothing to do
         if (existingPosition === targetPosition) {

@@ -5,8 +5,8 @@ import { useRef, useState, useEffect } from 'react';
 
 const LikesModal = ({ isOpen, onClose, likes, isLoadingLikes }) => {
   const modalRef = useRef(null);
-  const [hasScroll, setHasScroll] = useState(false);
-  const [screenPosition, setScreenPosition] = useState({ nearTop: false, nearBottom: false });
+  const [, setHasScroll] = useState(false);
+  // const [, setScreenPosition] = useState({ nearTop: false, nearBottom: false }); // Removed unused variable
 
   // Check if modal has scroll
   useEffect(() => {

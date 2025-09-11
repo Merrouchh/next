@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import Head from 'next/head';
@@ -20,7 +20,7 @@ import styles from '../../styles/AdminNotifications.module.css';
 import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 export default function AdminNotifications() {
-  const { user, supabase } = useAuth();
+  const { supabase } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({
@@ -30,7 +30,7 @@ export default function AdminNotifications() {
   });
 
   // Fetch security events
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -66,17 +66,17 @@ export default function AdminNotifications() {
       }
 
       setNotifications(data || []);
-    } catch (error) {
-      console.error('Error:', error);
+    } catch {
+      console.error('Error:');
       toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, filter]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [filter, supabase]);
+  }, [filter, supabase, fetchNotifications]);
 
   // Get severity icon and color
   const getSeverityInfo = (severity) => {
@@ -119,7 +119,7 @@ export default function AdminNotifications() {
 
       toast.success('Cleared notifications older than 30 days');
       fetchNotifications();
-    } catch (error) {
+    } catch {
       toast.error('Failed to clear notifications');
     }
   };

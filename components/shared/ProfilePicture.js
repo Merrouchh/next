@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { AiOutlineUser, AiOutlineCamera } from 'react-icons/ai';
 import { fetchUserPicture, uploadUserPicture } from '../../utils/api';
 
-// Helper function for image to base64 if it's not exported from utils/api
+// Helper function for image to base64 if it's not exported from utils/api - UNUSED
+/*
 const imageToBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -11,6 +13,7 @@ const imageToBase64 = (file) => {
     reader.onerror = (error) => reject(error);
   });
 };
+*/
 
 const ProfilePicture = ({ 
   userId, 
@@ -182,10 +185,12 @@ const ProfilePicture = ({
           <AiOutlineUser size={size * 0.45} />
         </div>
       ) : pictureUrl ? (
-        <img 
+        <Image 
           src={pictureUrl} 
           alt={`${username || 'User'}'s profile`}
           className="profileImage"
+          width={size}
+          height={size}
           onError={() => setError(true)}
         />
       ) : (

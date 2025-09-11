@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with service role key for admin operations
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     try {
       console.log('Trying admin.updateUserById with empty string');
       
-      const { data, error } = await supabase.auth.admin.updateUserById(
+      const { error } = await supabase.auth.admin.updateUserById(
         userId,
         { phone: '' }
       );
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       try {
         console.log('Trying admin.updateUserById with null');
         
-        const { data, error } = await supabase.auth.admin.updateUserById(
+        const { error } = await supabase.auth.admin.updateUserById(
           userId,
           { phone: null }
         );
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     // Try to clean up verification records - handle possible errors gracefully
     try {
       // Check if phone_verifications table exists before trying to delete
-      const { data: tableData, error: tableError } = await supabase
+      const { error: tableError } = await supabase
         .from('phone_verifications')
         .select('id')
         .limit(1);
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
     // Try to clean up verification codes - handle possible errors gracefully
     try {
       // Check if phone_verification_codes table exists
-      const { data: codesTableData, error: codesTableError } = await supabase
+      const { error: codesTableError } = await supabase
         .from('phone_verification_codes')
         .select('id')
         .limit(1);

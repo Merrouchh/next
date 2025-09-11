@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { createClient as createServerClient } from '../../utils/supabase/server-props';
-import { createClient as createBrowserClient } from '../../utils/supabase/component';
+// import { createClient as createBrowserClient } from '../../utils/supabase/component'; // Removed unused import
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import { useEffect, useState } from 'react';
@@ -75,14 +75,14 @@ export async function getServerSideProps({ req, res, params }) {
       console.log('Private clip, owner access granted');
     }
 
-    // Generate rich description with stats
-    const description = `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. ${
-      clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
-    }${clip.likes_count ? `, ${clip.likes_count.toLocaleString()} likes` : ''
-    }. High-quality gaming clips from our RTX 3070 gaming PCs.`;
+    // Generate rich description with stats - UNUSED
+    // const description = `Watch this amazing gaming moment by ${clip.username} at Merrouch Gaming Center. ${
+    //   clip.views_count ? `${clip.views_count.toLocaleString()} views` : ''
+    // }${clip.likes_count ? `, ${clip.likes_count.toLocaleString()} likes` : ''
+    // }. High-quality gaming clips from our RTX 3070 gaming PCs.`;
 
-    // Generate video and thumbnail URLs
-    const videoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
+    // Generate video and thumbnail URLs - UNUSED
+    // const videoUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/highlight-clips/${clip.file_path}`;
     
     // Determine thumbnail URL with priority order
     let thumbnailUrl = 'https://merrouchgaming.com/top.jpg';

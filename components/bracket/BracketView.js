@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { FaTrophy, FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
 import styles from '../../styles/Bracket.module.css';
-import ZoomControls from './ZoomControls';
-import TournamentWinner from '../shared/TournamentWinner';
+// import ZoomControls from './ZoomControls'; // Removed unused import
+import ChampionBanner from '../ChampionBanner';
+import DeleteBracketButton from './DeleteBracketButton';
 import { getParticipantNameById, getParticipantDisplayName } from '../../utils/participantUtils';
 
 const BracketView = ({ 
@@ -11,8 +12,8 @@ const BracketView = ({
   eventType, 
   isAdmin, 
   handleMatchClick, 
-  tournamentChampion,
-  handleDeleteBracket
+  handleDeleteBracket,
+  eventTitle = 'Tournament'
 }) => {
   const [connectorLines, setConnectorLines] = useState([]);
   const matchRefs = useRef({});
@@ -25,7 +26,7 @@ const BracketView = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const bracketWrapperRef = useRef(null);
-  const isDuoEvent = eventType === 'duo';
+  // const isDuoEvent = eventType === 'duo'; // Removed unused variable
   const [disableMatchInteraction, setDisableMatchInteraction] = useState(true);
 
   // Enhance the effect that detects touch devices
@@ -212,7 +213,7 @@ const BracketView = ({
     }
   };
 
-  const handleDragMove = (e) => {
+  const handleDragMove = useCallback((e) => {
     if (!isDragging) return;
     
     // Prevent default to stop text selection and other browser behaviors
@@ -232,7 +233,7 @@ const BracketView = ({
       bracketScrollRef.current.scrollLeft = scrollPos.x + dx;
       bracketScrollRef.current.scrollTop = scrollPos.y + dy;
     }
-  };
+  }, [isDragging, startPos, scrollPos]);
 
   const handleDragEnd = () => {
     setIsDragging(false);
@@ -251,6 +252,7 @@ const BracketView = ({
   // Add event listeners for drag functionality
   useEffect(() => {
     const scrollContainer = bracketScrollRef.current;
+    const bracketWrapper = bracketWrapperRef.current;
     if (!scrollContainer) return;
     
     // Mouse events
@@ -288,15 +290,24 @@ const BracketView = ({
       
       // Reset cursor and class
       document.body.style.cursor = '';
-      if (bracketWrapperRef.current) {
-        bracketWrapperRef.current.classList.remove('dragging');
+      if (bracketWrapper) {
+        bracketWrapper.classList.remove('dragging');
       }
     };
-  }, [isDragging, startPos, scrollPos]);
+  }, [isDragging, startPos, scrollPos, handleDragMove]);
 
   // Update connector lines when bracket data changes or window resizes or zoom changes
   useEffect(() => {
     if (!bracketData || typeof window === 'undefined') return;
+    
+    console.log('[BracketView] Bracket data for line drawing:', bracketData.map((round) => 
+      round.map(match => ({
+        id: match.id,
+        round: match.round,
+        nextMatchId: match.nextMatchId,
+        participants: `${match.participant1Name || 'TBD'} vs ${match.participant2Name || 'TBD'}`
+      }))
+    ));
 
     // Unified function to generate connector lines with batched DOM reads
     const updateConnectorLines = () => {
@@ -325,6 +336,13 @@ const BracketView = ({
               
               const sourceRef = matchRefs.current[`match-${match.id}`];
               const targetRef = matchRefs.current[`match-${match.nextMatchId}`];
+              
+              console.log(`[BracketView] Drawing line: Match ${match.id} (Round ${match.round}) -> Match ${match.nextMatchId}`, {
+                sourceRef: !!sourceRef,
+                targetRef: !!targetRef,
+                sourceId: `match-${match.id}`,
+                targetId: `match-${match.nextMatchId}`
+              });
               
               if (sourceRef && targetRef) {
                 elementsToMeasure.push({
@@ -648,18 +666,15 @@ const BracketView = ({
     return matchIndex % 2 === 1;
   };
   
+  // Sync overlay state when isAdmin changes
+  useEffect(() => {
+    setDisableMatchInteraction(!isAdmin);
+  }, [isAdmin]);
+  
   if (!bracketData || !Array.isArray(bracketData) || bracketData.length === 0) {
     return null;
   }
   
-  // Find if there's a winner
-  let winner = tournamentChampion;
-  if (!winner) {
-    const finalRound = bracketData[bracketData.length - 1];
-    if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
-      winner = participants.find(p => p.id === finalRound[0].winnerId);
-    }
-  }
 
   // Handle match click for admin
   const handleMatchClickAdmin = (match) => {
@@ -673,11 +688,6 @@ const BracketView = ({
       handleMatchClick(match);
     }
   };
-
-  // Sync overlay state when isAdmin changes
-  useEffect(() => {
-    setDisableMatchInteraction(!isAdmin);
-  }, [isAdmin]);
 
   return (
     <div className={`${styles.bracketContainer} ${isFullscreen ? styles.fullscreen : ''}`}>
@@ -693,16 +703,11 @@ const BracketView = ({
         </div>
       )}
 
-      {tournamentChampion && (
-        <div className={styles.championsContainer}>
-          <TournamentWinner
-            winner={tournamentChampion}
-            teamType={eventType}
-            hideLink={true} // Hide the bracket link in this view
-            className={styles.bracketWinner} // Apply bracket winner styling
-          />
-        </div>
-      )}
+      <ChampionBanner
+        bracketData={{ bracket: bracketData, participants: participants }}
+        event={{ team_type: eventType }}
+        eventType={eventType}
+      />
       
       <div style={{ textAlign: 'center', marginBottom: '10px', color: '#FFD700', fontSize: '0.9rem' }}>
         <span>
@@ -752,6 +757,15 @@ const BracketView = ({
                 </div>
                 <div className={styles.matches} style={{ gap: roundStyle.gap, paddingTop: roundStyle.paddingTop }}>
                   {round.map((match, matchIndex) => {
+                    // Debug logging for winner detection
+                    console.log(`Match ${match.id}:`, {
+                      winnerId: match.winnerId,
+                      participant1Id: match.participant1Id,
+                      participant2Id: match.participant2Id,
+                      isWinner1: match.winnerId === match.participant1Id,
+                      isWinner2: match.winnerId === match.participant2Id
+                    });
+                    
                     // Determine if match is ready to be played
                     const isMatchReady = !match.winnerId && 
                       match.participant1Id && match.participant2Id && 
@@ -798,31 +812,37 @@ const BracketView = ({
                           )}
                         </div>
                         <div className={`${styles.participant} ${match.winnerId === match.participant1Id ? styles.winner : ''}`}>
-                          {match.participant1Id ? 
-                            getParticipantDisplayName(participant1, eventType, {
-                              format: 'jsx',
-                              className: styles.participantName,
-                              styles: {
-                                teamName: styles.teamName,
-                                duoNames: styles.duoPlayerNames,
-                                separator: styles.duoSeparator
-                              }
-                            }) : 
-                            <span>{match.participant1Name || 'TBD'}</span>
+                          {match.participant1Name ? 
+                            <span className={styles.participantName}>{match.participant1Name}</span> :
+                            (match.participant1Id && participant1 ? 
+                              getParticipantDisplayName(participant1, eventType, {
+                                format: 'jsx',
+                                className: styles.participantName,
+                                styles: {
+                                  teamName: styles.teamName,
+                                  duoNames: styles.duoPlayerNames,
+                                  separator: styles.duoSeparator
+                                }
+                              }) : 
+                              <span className={styles.participantName}>TBD</span>
+                            )
                           }
                         </div>
                         <div className={`${styles.participant} ${match.winnerId === match.participant2Id ? styles.winner : ''}`}>
-                          {match.participant2Id ? 
-                            getParticipantDisplayName(participant2, eventType, {
-                              format: 'jsx',
-                              className: styles.participantName,
-                              styles: {
-                                teamName: styles.teamName,
-                                duoNames: styles.duoPlayerNames,
-                                separator: styles.duoSeparator
-                              }
-                            }) : 
-                            <span>{match.participant2Name || 'TBD'}</span>
+                          {match.participant2Name ? 
+                            <span className={styles.participantName}>{match.participant2Name}</span> :
+                            (match.participant2Id && participant2 ? 
+                              getParticipantDisplayName(participant2, eventType, {
+                                format: 'jsx',
+                                className: styles.participantName,
+                                styles: {
+                                  teamName: styles.teamName,
+                                  duoNames: styles.duoPlayerNames,
+                                  separator: styles.duoSeparator
+                                }
+                              }) : 
+                              <span className={styles.participantName}>TBD</span>
+                            )
                           }
                         </div>
                         {!match.winnerId && match.nextMatchId && (
@@ -947,12 +967,11 @@ const BracketView = ({
       
       {isAdmin && (
         <div className={styles.adminActions}>
-          <button 
-            className={styles.deleteButton}
-            onClick={handleDeleteBracket}
-          >
-            Delete Tournament Bracket
-          </button>
+          <DeleteBracketButton
+            onDelete={handleDeleteBracket}
+            eventTitle={eventTitle}
+            variant="default"
+          />
         </div>
       )}
     </div>

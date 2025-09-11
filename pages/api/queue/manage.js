@@ -256,7 +256,7 @@ async function handleAddToQueue(req, res, admin) {
 }
 
 // Update queue entry
-async function handleUpdateQueue(req, res, admin) {
+async function handleUpdateQueue(req, res) {
   const { id, notes, computerType, status, position } = req.body;
 
   if (!id) {
@@ -265,7 +265,7 @@ async function handleUpdateQueue(req, res, admin) {
 
   try {
     // Get the current entry data before updating
-    const { data: currentEntry, error: fetchError } = await supabase
+    const { error: fetchError } = await supabase
       .from('computer_queue')
       .select('position, user_name, phone_number, computer_type')
       .eq('id', id)
@@ -276,7 +276,7 @@ async function handleUpdateQueue(req, res, admin) {
       return res.status(500).json({ error: 'Failed to fetch current entry' });
     }
 
-    const oldPosition = currentEntry.position;
+    // const oldPosition = currentEntry.position; // Removed unused variable
 
     const updates = {};
     if (notes !== undefined) updates.notes = notes;
@@ -311,7 +311,7 @@ async function handleUpdateQueue(req, res, admin) {
 }
 
 // Remove someone from queue
-async function handleRemoveFromQueue(req, res, admin) {
+async function handleRemoveFromQueue(req, res) {
   const { id } = req.query;
 
   if (!id) {
@@ -339,7 +339,7 @@ async function handleRemoveFromQueue(req, res, admin) {
       return res.status(400).json({ error: 'Cannot remove entry that is not waiting' });
     }
 
-    const wasPosition1 = removedEntry.position === 1;
+    // const wasPosition1 = removedEntry.position === 1; // Removed unused variable
     const removedPosition = removedEntry.position;
 
     // Remove from queue with better error handling

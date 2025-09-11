@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       console.log('Server-side processing of magic link token');
       
       // Verify the OTP token
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         token,
         type
       });

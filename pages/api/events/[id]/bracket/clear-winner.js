@@ -129,10 +129,10 @@ export default async function handler(req, res) {
       // Calculate next match index
       const nextRoundMatchIndex = Math.floor(matchIndex / 2);
       
-      // Determine participant position (odd matches go to participant1, even to participant2)
-      const isParticipant1 = matchIndex % 2 === 0;
-      const participantPosition = isParticipant1 ? 'participant1Id' : 'participant2Id';
-      const namePosition = isParticipant1 ? 'participant1Name' : 'participant2Name';
+      // Determine participant position (odd matches go to participant1, even to participant2) - UNUSED
+      // const isParticipant1 = matchIndex % 2 === 0;
+      // const participantPosition = isParticipant1 ? 'participant1Id' : 'participant2Id'; // Removed unused variable
+      // const namePosition = isParticipant1 ? 'participant1Name' : 'participant2Name'; // Removed unused variable
       
       // Get the next match
       if (updatedMatches[currentRoundIndex + 1] && 
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
     }
     
     // Update the bracket in the database
-    const { data: updatedBracket, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('event_brackets')
       .update({ 
         matches: updatedMatches,
@@ -264,8 +264,8 @@ function clearAdvancingWinners(matches, roundIndex, matchIndex, winnerId) {
   // Ensure we're not at the final round
   if (roundIndex >= matches.length - 1) return;
   
-  // Get the current match
-  const match = matches[roundIndex][matchIndex];
+  // Get the current match - UNUSED
+  // const match = matches[roundIndex][matchIndex];
   
   // Clear the winner from this match
   matches[roundIndex][matchIndex].winnerId = null;

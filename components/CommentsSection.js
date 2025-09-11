@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchCommentsByClipId, addComment, deleteComment, updateComment } from '../utils/supabase/comments';
 import { useAuth } from '../contexts/AuthContext';
 import { MdSend, MdEdit, MdDelete, MdClose, MdCheck, MdPerson, MdExpandLess, MdExpandMore } from 'react-icons/md';
@@ -35,28 +35,13 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
   const commentInputRef = useRef(null);
   
   // Auth context for user information
-  const { user, supabase } = useAuth();
+  const { user } = useAuth();
   
   // Constants
   const COMMENTS_PER_PAGE = 10;
 
-  // Load comments on mount and when clipId changes
-  useEffect(() => {
-    if (clipId && isExpanded) {
-      loadComments(0, true);
-    }
-  }, [clipId, isExpanded]);
-  
-  // Only scroll when a new comment is added by the current user
-  useEffect(() => {
-    if (comments.length > 0 && isSubmitting === false && commentText === '') {
-      // This indicates we just submitted a comment
-      scrollToLatestComment();
-    }
-  }, [comments, isSubmitting]);
-
   // Function to load comments
-  const loadComments = async (pageNum = 0, replace = false) => {
+  const loadComments = useCallback(async (pageNum = 0, replace = false) => {
     if (isLoading || !clipId) return;
     
     setIsLoading(true);
@@ -80,7 +65,34 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, clipId]);
+
+  // Load comments on mount and when clipId changes
+  useEffect(() => {
+    if (clipId && isExpanded) {
+      loadComments(0, true);
+    }
+  }, [clipId, isExpanded, loadComments]);
+  
+  // Function to scroll to the latest comment
+  const scrollToLatestComment = useCallback(() => {
+    if (commentsContainerRef.current && comments.length > 0) {
+      // Scroll to the first comment (which is the latest since they're ordered by desc date)
+      const firstComment = commentsContainerRef.current.querySelector(`.${styles.commentItem}`);
+      if (firstComment) {
+        firstComment.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [comments.length]);
+  
+  // Only scroll when a new comment is added by the current user
+  useEffect(() => {
+    if (comments.length > 0 && isSubmitting === false && commentText === '') {
+      // This indicates we just submitted a comment
+      scrollToLatestComment();
+    }
+  }, [comments, isSubmitting, commentText, scrollToLatestComment]);
+
   
   // Function to handle loading more comments
   const handleLoadMore = () => {
@@ -204,16 +216,6 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
     }
   };
   
-  // Function to scroll to the latest comment
-  const scrollToLatestComment = () => {
-    if (commentsContainerRef.current && comments.length > 0) {
-      // Scroll to the first comment (which is the latest since they're ordered by desc date)
-      const firstComment = commentsContainerRef.current.querySelector(`.${styles.commentItem}`);
-      if (firstComment) {
-        firstComment.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    }
-  };
   
   // Function to toggle expanded state
   const toggleExpanded = () => {

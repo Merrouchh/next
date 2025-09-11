@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { FaSearch, FaFilter } from 'react-icons/fa';
@@ -17,8 +17,8 @@ export async function getServerSideProps({ res }) {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   
-  // Default fallback image
-  let previewImage = "https://merrouchgaming.com/top.jpg";
+  // Default fallback image - UNUSED
+  // let previewImage = "https://merrouchgaming.com/top.jpg";
   
   try {
     // Check if environment variables are defined
@@ -51,10 +51,10 @@ export async function getServerSideProps({ res }) {
           .limit(1);
           
         if (anyEvent && anyEvent.length > 0 && anyEvent[0].image) {
-          previewImage = anyEvent[0].image;
+          // previewImage = anyEvent[0].image; // Removed unused variable
         }
       } else if (latestEvent && latestEvent.length > 0 && latestEvent[0].image) {
-        previewImage = latestEvent[0].image;
+        // previewImage = latestEvent[0].image; // Removed unused variable
       }
     }
   } catch (error) {
@@ -72,15 +72,15 @@ const OptimizedEvents = React.memo(() => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [pageLoaded, setPageLoaded] = useState(false);
+  // const [pageLoaded, setPageLoaded] = useState(false); // Removed unused state
 
   // Custom hook for events data
-  const { events, loading, error, isRefreshing, refreshData } = useEventsData();
+  const { events, loading } = useEventsData();
 
-  // Mark the page as loaded after mount
-  useEffect(() => {
-    setPageLoaded(true);
-  }, []);
+  // Mark the page as loaded after mount - REMOVED
+  // useEffect(() => {
+  //   setPageLoaded(true);
+  // }, []);
 
   // Memoized filtered events to prevent unnecessary recalculations
   const filteredEvents = useMemo(() => {

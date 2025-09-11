@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Head from 'next/head';
+// import Head from 'next/head'; // Removed unused import
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
-import { FaSearch, FaTimes, FaImage } from 'react-icons/fa';
+import { FaImage } from 'react-icons/fa';
 import styles from '../../styles/EventDetail.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModal } from '../../contexts/ModalContext';
@@ -11,7 +11,6 @@ import ProtectedPageWrapper from '../../components/ProtectedPageWrapper';
 import EventGallery from '../../components/EventGallery';
 import React from 'react';
 // DynamicMeta removed - metadata now handled in _document.js
-import TournamentWinner from '../../components/shared/TournamentWinner';
 import MobileTeamModal from '../../components/MobileTeamModal';
 import DesktopTeamModal from '../../components/DesktopTeamModal';
 import CancelRegistrationModal from '../../components/CancelRegistrationModal';
@@ -22,24 +21,22 @@ import {
   RegistrationInfo,
   RegistrationInfoLoading,
   AdminSection,
-  EventLoadingSkeleton,
-  AdaptiveLoader,
-  LoadingButton
+  AdaptiveLoader
 } from '../../components/events';
 import {
   isIOS,
   formatDate,
   retryGetSession,
-  getRegistrationButtonText,
-  getRegistrationButtonClass,
-  isRegistrationButtonDisabled,
+  // getRegistrationButtonText, // Removed unused import
+  // getRegistrationButtonClass, // Removed unused import
+  // isRegistrationButtonDisabled, // Removed unused import
   validateTeamSelection,
-  generateDuoTeamName,
+  // generateDuoTeamName, // Removed unused import
   handleTeamMemberSelection as handleTeamMemberSelectionUtil,
   createInitialRegistrationStatus,
-  createAuthHeaders
+  // createAuthHeaders // Removed unused import
 } from '../../utils/eventDetailHelpers';
-import { handleError, withErrorHandling, apiCall } from '../../utils/errorHandlers';
+import { handleError } from '../../utils/errorHandlers';
 
 // Memoize EventGallery component to prevent re-renders
 const MemoizedEventGallery = React.memo(EventGallery);
@@ -109,11 +106,32 @@ export async function getServerSideProps({ params, res }) {
       // If successful, check for a winner
       if (bracketResult.success) {
         const bracketData = bracketResult.data;
+        console.log('[SSR] Champion detection - Bracket data:', bracketData);
+        
         if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
           const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
+          console.log('[SSR] Champion detection - Final round:', finalRound);
+          console.log('[SSR] Champion detection - Participants:', bracketData.participants);
+          
           if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
+            console.log('[SSR] Champion detection - Winner ID found:', finalRound[0].winnerId);
             hasWinner = true;
-            champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
+            
+            // Try multiple lookup methods in order of likelihood
+            champion = bracketData.participants.find(p => p.userId === finalRound[0].winnerId);
+            if (!champion) {
+              champion = bracketData.participants.find(p => p.user_id === finalRound[0].winnerId);
+            }
+            if (!champion) {
+              champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
+            }
+            if (!champion) {
+              champion = bracketData.participants.find(p => p.registration_id === finalRound[0].winnerId);
+            }
+            
+            console.log('[SSR] Champion detection - Champion found:', champion);
+          } else {
+            console.log('[SSR] Champion detection - No winner found in final round');
           }
         }
       }
@@ -323,10 +341,22 @@ export async function getServerSideProps({ params, res }) {
     // Add flag to prevent duplicate structured data at the app level
     metadata.excludeFromAppSeo = true;
     
-    return { props: { /* Server-side metadata now handled in _document.js */ } };
+    return { 
+      props: { 
+        champion: champion || null,
+        hasWinner: hasWinner || false,
+        /* Server-side metadata now handled in _document.js */ 
+      } 
+    };
   } catch (error) {
     console.error('Error fetching event for SEO:', error);
-    return { props: { /* Server-side metadata now handled in _document.js */ } };
+    return { 
+      props: { 
+        champion: null,
+        hasWinner: false,
+        /* Server-side metadata now handled in _document.js */ 
+      } 
+    };
   }
 }
 
@@ -360,7 +390,6 @@ export default function EventDetail() {
   });
   
   // Error state
-  const [authError, setAuthError] = useState(null);
   
   // Refs
   const searchInputRef = useRef(null);
@@ -473,287 +502,116 @@ export default function EventDetail() {
           showToast: false // Don't show toast for background updates
         });
       }
-  }, [event?.id, supabase]);
+  }, [event, supabase]);
 
-  // Fetch event details
-  useEffect(() => {
-    const fetchEventDetails = async () => {
-      setLoading(true);
-      // Ensure registration shows a loading state during initial page load for all users
-      setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
-      
-      if (!id) return;
-      
-      try {
-        // For old devices, use simpler approach
-        if (isOldDevice) {
-          console.log('Old device detected, using simplified loading');
-          
-          // Simpler fetch for old devices
-          const response = await fetch(`/api/events/${id}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch event: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          const eventData = data.event || data;
-          
-          if (!eventData) {
-            throw new Error("Invalid event data format");
-          }
-          
-          setEvent(eventData);
-          setLoading(false);
-          
-          // For old devices, skip complex auth operations and just show basic event info
-          setRegistrationStatus(prev => ({
-            ...prev,
-            isLoading: false,
-            registeredCount: eventData.registered_count || 0,
-            registrationLimit: eventData.registration_limit
-          }));
-          
-          // Simple bracket fetch for old devices
-          try {
-            const bracketResponse = await fetch(`/api/events/${id}/bracket`);
-            if (bracketResponse.ok) {
-              const bracketData = await bracketResponse.json();
-              setBracketState({ data: bracketData, loading: false });
-            } else {
-              setBracketState({ data: null, loading: false });
-            }
-          } catch (bracketError) {
-            console.log('Bracket fetch failed for old device:', bracketError);
-            setBracketState({ data: null, loading: false });
-          }
-          
-          return; // Exit early for old devices
-        }
-        
-        // Modern device logic (original code)
-        // Check if user is authenticated to include auth token
-        let headers = {
-          'Content-Type': 'application/json'
-        };
-        
-        // If user is authenticated, add authorization header
-        const accessToken = session?.access_token;
-        if (user && accessToken) {
-          headers['Authorization'] = `Bearer ${accessToken}`;
-        }
-        
-        // Fetch event details
-        const response = await fetch(`/api/events/${id}`, {
-          method: 'GET',
-          headers
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch event: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Handle both formats: { event: {...} } or the event object directly
-        const eventData = data.event || data;
-        
-        if (!eventData) {
-          throw new Error("Invalid event data format");
-        }
-        
-        setEvent(eventData);
-        
-        // Set loading to false after event data is fetched
-        setLoading(false);
-        
-        // Only fetch additional data if user is logged in
-        if (user && supabase) {
-          console.log(`[Event Detail ${id}] User authenticated, fetching registration status...`);
-          
-          // Always fetch registration status when user is logged in
-          // The function now handles session retry internally
-          setTimeout(() => {
-            fetchRegistrationStatus(session?.access_token).catch(error => {
-              handleError(error, {
-                context: 'Fetch Registration Status',
-                showToast: false
-              });
-            });
-          }, 100); // Small delay to ensure auth context is ready
-          
-          // Try to fetch bracket data - this can work with or without immediate token
-          setTimeout(() => {
-            fetchBracketData(session?.access_token).catch(error => {
-              handleError(error, {
-                context: 'Fetch Bracket Data',
-                showToast: false,
-                onError: () => setBracketState({ data: null, loading: false })
-              });
-            });
-          }, 200); // Slightly longer delay for bracket data
-        } else {
-          // For unauthenticated users, try to fetch public bracket data
-          fetchPublicBracketData().catch(error => {
-            handleError(error, {
-              context: 'Fetch Public Bracket Data',
-              showToast: false,
-              onError: () => setBracketState({ data: null, loading: false })
-            });
-          });
-          
-          // Also fetch the latest count for unauthenticated users to show the registration bar
-          fetchLatestCount();
-          
-          // Set a timeout to show the loading animation for a moment before hiding
-          setTimeout(() => {
-            setRegistrationStatus(prev => ({
-              ...prev,
-              isLoading: false
-            }));
-          }, 1500);
-        }
-      } catch (error) {
-        console.error('Event fetch error:', error);
-        handleError(error, {
-          context: 'Fetch Event Details',
-          onError: () => setLoading(false)
-        });
-      }
-    };
+  // Function to fetch bracket data
+  const fetchBracketData = useCallback(async (accessToken) => {
+    if (!id) return;
     
-    fetchEventDetails();
-  }, [id, user, supabase, session, isOldDevice]);
-  
-  // When the user state changes, update registration loading state
-  useEffect(() => {
-    // Keep loading state active initially for all users, whether authenticated or not
-    // It will be updated after the event data loads and registeredCount is available
-    if (!user) {
-      // Only reset loading state if event data is already loaded (avoid race condition)
-      if (event) {
-        setTimeout(() => {
-          setRegistrationStatus(prev => ({
-            ...prev,
-            isLoading: false
-          }));
-        }, 1000); // Add a small delay to make the animation visible
-      }
-    }
-  }, [user, event]);
-
-  // Set up real-time subscription for registration updates - optimized
-  useEffect(() => {
-    if (!event?.id || !supabase) return;
+    setBracketState(prev => ({ ...prev, loading: true }));
     
-    const eventId = event.id;
-    
-    // For old devices, skip real-time subscriptions and just use polling
-    if (isOldDevice) {
-      console.log('Old device: Skipping real-time subscriptions, using polling only');
-      
-      // Fetch initial count
-      fetchLatestCount();
-      
-      // Use more frequent polling for old devices since no real-time
-      const intervalId = setInterval(fetchLatestCount, 15000); // Every 15 seconds
-      
-      return () => {
-        clearInterval(intervalId);
-      };
-    }
-    
-    // Modern device logic with real-time subscriptions
     try {
-      // Subscribe to changes in the event_registrations table
-      const channel = supabase
-        .channel(`event-${eventId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'event_registrations',
-            filter: `event_id=eq.${eventId}`
-          },
-          (payload) => {
-            fetchLatestCount();
-            toast.success('Someone just registered for this event!', { duration: 3000 });
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'DELETE',
-            schema: 'public',
-            table: 'event_registrations',
-            filter: `event_id=eq.${eventId}`
-          },
-          async (payload) => {
-            // Fetch the latest count and updated registration status
-            fetchLatestCount();
-            
-            // Also force refresh registration status for the user
-            if (user && session?.access_token) {
-              await fetchRegistrationStatus(session.access_token);
-            }
-            
-            toast('Someone cancelled their registration', { duration: 3000 });
-          }
-        )
-        // Add a more reliable way to detect unregistrations through UPDATE events
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'events',
-            filter: `id=eq.${eventId}`
-          },
-          async (payload) => {
-            // This will update the count if it changed
-            fetchLatestCount();
-            
-            // Also refresh registration status for the user
-            if (user && session?.access_token) {
-              await fetchRegistrationStatus(session.access_token);
-            }
-          }
-        )
-        .subscribe();
+      if (!accessToken) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !sessionData?.session?.access_token) {
+          throw new Error('Authentication token not available');
+        }
+        
+        accessToken = sessionData.session.access_token;
+      }
       
-      // Fetch the latest count when the component mounts
-      fetchLatestCount();
+      console.log(`[Event Detail ${id}] Fetching bracket data for eventId: ${id}, userId: ${user?.id || 'public'}`);
       
-      // Less frequent polling for modern devices since they have real-time
-      const intervalId = setInterval(fetchLatestCount, 30000); // Every 30 seconds
+      const response = await fetch('/api/internal/event-bracket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'get-bracket',
+          userId: user?.id || null,
+          eventId: id
+        })
+      });
       
-      // Clean up subscription when component unmounts
-      return () => {
-        supabase.channel(`event-${eventId}`).unsubscribe();
-        clearInterval(intervalId);
-      };
+      console.log(`[Event Detail ${id}] Bracket API response status:`, response.status);
+      
+      // If 404, it means no bracket exists yet, which is not an error
+      if (response.status === 404) {
+        console.log(`[Event Detail ${id}] No bracket found for event`);
+        setBracketState({ data: null, loading: false });
+        return;
+      }
+      
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          console.error('Bracket API non-JSON response:', response.status, response.statusText);
+          throw new Error(`Failed to fetch bracket data: ${response.status} - ${response.statusText}`);
+        }
+        console.error('Bracket API error:', errorData);
+        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status} - ${errorData.message || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      
+      
+      if (data && data.bracket) {
+        setBracketState({ data, loading: false });
+      } else {
+        setBracketState({ data: null, loading: false });
+      }
     } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
-      
-      // Fallback to polling if real-time setup fails
-      fetchLatestCount();
-      const intervalId = setInterval(fetchLatestCount, 20000);
-      
-      return () => {
-        clearInterval(intervalId);
-      };
+      console.error('Error fetching bracket data:', error);
+      setBracketState({ data: null, loading: false });
+      throw error; // Re-throw the error so the caller can handle it
     }
-  }, [event?.id, supabase, session?.access_token, user, fetchLatestCount, isOldDevice]);
-  
+  }, [id, supabase, user?.id]);
+
+  // Function to fetch public bracket data
+  const fetchPublicBracketData = useCallback(async () => {
+    if (!id) return;
+    
+    setBracketState(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const response = await fetch(`/api/events/${id}/bracket`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // If 404, it means no bracket exists yet, which is not an error
+      if (response.status === 404) {
+        setBracketState({ data: null, loading: false });
+        return;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.bracket) {
+        setBracketState({ data, loading: false });
+      } else {
+        setBracketState({ data: null, loading: false });
+      }
+    } catch (error) {
+      console.error('Error fetching bracket data:', error);  
+      setBracketState({ data: null, loading: false });
+      throw error;
+    }
+  }, [id]);
+
   // Fetch registration status
-  const fetchRegistrationStatus = async (accessToken) => {
+  const fetchRegistrationStatus = useCallback(async (accessToken) => {
     try {
       console.log(`[Event Detail ${id}] Starting registration status check...`);
       
@@ -791,12 +649,16 @@ export default function EventDetail() {
       
       console.log(`[Event Detail ${id}] Access token obtained, checking registration status...`);
       
-      const response = await fetch(`/api/events/register?eventId=${id}`, {
-        method: 'GET',
+      const response = await fetch('/api/internal/event-operations', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenToUse}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'get-registration-status',
+          userId: user?.id || null,
+          eventId: id
+        })
       });
       
       if (!response.ok) {
@@ -812,24 +674,31 @@ export default function EventDetail() {
         throw new Error(`Failed to fetch registration status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get registration status');
+      }
+      const data = result; // The API returns data directly, not in a 'result' field
       console.log(`[Event Detail ${id}] Registration status response:`, data);
+      console.log(`[Event Detail ${id}] Partner info:`, data.partnerInfo);
       
-              // Update team type from event data if available
-        if (data.event && data.event.team_type) {
-          setTeamState(prev => ({ ...prev, teamType: data.event.team_type }));
+        // Update team type from event data if available
+        if (data.eventData && data.eventData.team_type) {
+          setTeamState(prev => ({ ...prev, teamType: data.eventData.team_type }));
         }
       
       // Update registration status - ensure registeredBy is handled properly
       setRegistrationStatus({
         isRegistered: data.isRegistered,
         isLoading: false,
-        registeredCount: data.event?.registered_count || 0,
-        registrationLimit: data.event?.registration_limit || null,
+        registeredCount: data.eventData?.registered_count || 0,
+        registrationLimit: data.eventData?.registration_limit || null,
         teamMembers: data.teamMembers || [],
         availableTeamMembers: data.availableTeamMembers || [],
         // Ensure registeredBy is null if user is the main registrant
-        registeredBy: data.registeredBy || null
+        registeredBy: data.registeredBy || null,
+        // Add partner information for duo events
+        partnerInfo: data.partnerInfo || null
       });
       
       console.log(`[Event Detail ${id}] Registration status updated - isRegistered: ${data.isRegistered}, registeredBy: ${data.registeredBy || 'NULL'}`);
@@ -846,57 +715,369 @@ export default function EventDetail() {
       
       return false;
     }
-  };
-  
-  // Function to fetch bracket data
-  const fetchBracketData = async (accessToken) => {
-    if (!id) return;
+  }, [id, supabase, user?.id]);
+
+  const closeTeamModal = useCallback(() => {
+    setModalState(prev => ({ ...prev, isTeamModalOpen: false }));
+    setTeamState(prev => ({ ...prev, searchQuery: '' }));
+  }, []);
+
+  // Handle registration
+  const handleRegistration = useCallback(async () => {
+    if (registrationStatus.isLoading) return;
     
-    setBracketState(prev => ({ ...prev, loading: true }));
+    setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
     
     try {
+      // Use the retry session utility
+      const accessToken = await retryGetSession(supabase);
+      
       if (!accessToken) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !sessionData?.session?.access_token) {
-          throw new Error('Authentication token not available');
-        }
-        
-        accessToken = sessionData.session.access_token;
-      }
-      
-      const response = await fetch(`/api/events/${id}/bracket`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      // If 404, it means no bracket exists yet, which is not an error
-      if (response.status === 404) {
-        setBracketState({ data: null, loading: false });
+        toast.error('Authentication token not available - please try logging out and back in');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
         return;
       }
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status}`);
+      // Validate team selection using the utility function
+      const validationError = validateTeamSelection(teamState.teamType, teamState.selectedMembers, teamState.teamName);
+      if (validationError) {
+        toast.error(validationError);
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        return;
       }
+        
+      // Prepare API call
+      const response = await fetch('/api/internal/event-registration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'register',
+          userId: user?.id || null,
+          eventId: id,
+          registrationData: {
+            teamMembers: teamState.selectedMembers,
+            notes: teamState.registrationNotes,
+            teamName: teamState.teamName.trim() || (teamState.teamType === 'duo' && teamState.selectedMembers.length === 1 ? 
+            `${user.username || 'You'} & ${teamState.selectedMembers[0].username}` : '') // Auto-generate team name for duo events if not provided
+          }
+        })
+      });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+        // Display error as toast instead of throwing an error
+        toast.error(result.error || 'Registration failed');
+          setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+          return;
+        }
+        
+        if (!result.success) {
+          toast.error(result.error || 'Registration failed');
+          setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+          return;
+        }
+        
+        // Success!
+        toast.success(result.message || 'Registered for event successfully');
       
-      const data = await response.json();
+      // Reset form fields
+      setTeamState(prev => ({
+        ...prev,
+        selectedMembers: [],
+        registrationNotes: '',
+        teamName: ''
+      }));
       
-      if (data && data.bracket) {
-        setBracketState({ data, loading: false });
-      } else {
-        setBracketState({ data: null, loading: false });
-      }
+      // Close the modal
+      closeTeamModal();
+        
+        // Refresh registration status to get team members
+        await fetchRegistrationStatus(accessToken);
     } catch (error) {
-      console.error('Error fetching bracket data:', error);
-      setBracketState({ data: null, loading: false });
-      throw error; // Re-throw the error so the caller can handle it
+      handleError(error, {
+        context: 'Handle Registration',
+        onError: () => setRegistrationStatus(prev => ({ ...prev, isLoading: false }))
+      });
     }
-  };
+  }, [registrationStatus.isLoading, supabase, teamState.teamType, teamState.selectedMembers, teamState.teamName, teamState.registrationNotes, id, user, closeTeamModal, fetchRegistrationStatus]);
+
+  // Fetch event details - only when id changes
+  useEffect(() => {
+    const fetchEventDetails = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      // Ensure registration shows a loading state during initial page load for all users
+      setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
+      
+      try {
+        // For old devices, use simpler approach
+        if (isOldDevice) {
+          console.log('Old device detected, using simplified loading');
+          
+          // Simpler fetch for old devices
+          const response = await fetch(`/api/events/${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch event: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const eventData = data.event || data;
+          
+          if (!eventData) {
+            throw new Error("Invalid event data format");
+          }
+          
+          setEvent(eventData);
+          console.log('Event data loaded (old device), setting loading to false');
+          setLoading(false);
+          
+          // For old devices, skip complex auth operations and just show basic event info
+          setRegistrationStatus(prev => ({
+            ...prev,
+            isLoading: false,
+            registeredCount: eventData.registered_count || 0,
+            registrationLimit: eventData.registration_limit
+          }));
+          
+          // Simple bracket fetch for old devices
+          try {
+            const bracketResponse = await fetch(`/api/events/${id}/bracket`);
+            if (bracketResponse.ok) {
+              const bracketData = await bracketResponse.json();
+              setBracketState({ data: bracketData, loading: false });
+            } else {
+              setBracketState({ data: null, loading: false });
+            }
+          } catch (bracketError) {
+            console.log('Bracket fetch failed for old device:', bracketError);
+            setBracketState({ data: null, loading: false });
+          }
+          
+          return; // Exit early for old devices
+        }
+        
+        // Modern device logic (original code)
+        // Fetch event details (public endpoint, no auth needed)
+        const response = await fetch(`/api/events/${id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch event: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Handle both formats: { event: {...} } or the event object directly
+        const eventData = data.event || data;
+        
+        if (!eventData) {
+          throw new Error("Invalid event data format");
+        }
+        
+        setEvent(eventData);
+        
+        // Set loading to false after event data is fetched
+        console.log('Event data loaded, setting loading to false');
+        setLoading(false);
+      } catch (error) {
+        console.error('Event fetch error:', error);
+        handleError(error, {
+          context: 'Fetch Event Details',
+          onError: () => setLoading(false)
+        });
+      }
+    };
+    
+    fetchEventDetails();
+  }, [id, isOldDevice]); // Only depend on id and isOldDevice
+  
+  // Handle user-dependent data fetching separately
+  useEffect(() => {
+    if (!event || !id) return; // Wait for event data to be loaded first
+    
+    if (user && supabase) {
+      console.log(`[Event Detail ${id}] User authenticated, fetching registration status...`);
+      
+      // Always fetch registration status when user is logged in
+      setTimeout(() => {
+        fetchRegistrationStatus(session?.access_token).catch(error => {
+          handleError(error, {
+            context: 'Fetch Registration Status',
+            showToast: false
+          });
+        });
+      }, 100);
+      
+      // Try to fetch bracket data
+      setTimeout(() => {
+        fetchBracketData(session?.access_token).catch(error => {
+          handleError(error, {
+            context: 'Fetch Bracket Data',
+            showToast: false,
+            onError: () => setBracketState({ data: null, loading: false })
+          });
+        });
+      }, 200);
+    } else {
+      // For unauthenticated users, try to fetch public bracket data
+      fetchPublicBracketData().catch(error => {
+        handleError(error, {
+          context: 'Fetch Public Bracket Data',
+          showToast: false,
+          onError: () => setBracketState({ data: null, loading: false })
+        });
+      });
+      
+      // Also fetch the latest count for unauthenticated users
+      fetchLatestCount();
+      
+      // Set a timeout to show the loading animation for a moment before hiding
+      setTimeout(() => {
+        setRegistrationStatus(prev => ({
+          ...prev,
+          isLoading: false
+        }));
+      }, 1500);
+    }
+  }, [event, user, supabase, session, id, fetchRegistrationStatus, fetchBracketData, fetchPublicBracketData, fetchLatestCount]);
+  
+  // When the user state changes, update registration loading state
+  useEffect(() => {
+    // Keep loading state active initially for all users, whether authenticated or not
+    // It will be updated after the event data loads and registeredCount is available
+    if (!user) {
+      // Only reset loading state if event data is already loaded (avoid race condition)
+      if (event) {
+        setTimeout(() => {
+          setRegistrationStatus(prev => ({
+            ...prev,
+            isLoading: false
+          }));
+        }, 1000); // Add a small delay to make the animation visible
+      }
+    }
+  }, [user, event]);
+
+  // Set up real-time subscription for registration updates - optimized
+  useEffect(() => {
+    if (!event?.id || !supabase) return;
+    
+    // const eventId = event.id; // Removed unused variable
+    
+    // For old devices, skip real-time subscriptions and just use polling
+    if (isOldDevice) {
+      console.log('Old device: Skipping real-time subscriptions, using polling only');
+      
+      // Fetch initial count
+      fetchLatestCount();
+      
+      // Use more frequent polling for old devices since no real-time
+      const intervalId = setInterval(fetchLatestCount, 15000); // Every 15 seconds
+      
+      return () => {
+        clearInterval(intervalId);
+      };
+    }
+    
+    // Modern device logic with real-time subscriptions - UNUSED
+    // try {
+    //   // Subscribe to changes in the event_registrations table
+    //   const channel = supabase
+    //     .channel(`event-${eventId}`)
+    //     .on(
+    //       'postgres_changes',
+    //       {
+    //         event: 'INSERT',
+    //         schema: 'public',
+    //         table: 'event_registrations',
+    //         filter: `event_id=eq.${eventId}`
+    //       },
+    //       (payload) => {
+    //         fetchLatestCount();
+    //         toast.success('Someone just registered for this event!', { duration: 3000 });
+    //       }
+    //     )
+    //     .on(
+    //       'postgres_changes',
+    //       {
+    //         event: 'DELETE',
+    //         schema: 'public',
+    //         table: 'event_registrations',
+    //         filter: `event_id=eq.${eventId}`
+    //       },
+    //       async (payload) => {
+    //         // Fetch the latest count and updated registration status
+    //         fetchLatestCount();
+    //         
+    //         // Also force refresh registration status for the user
+    //         if (user && session?.access_token) {
+    //           await fetchRegistrationStatus(session.access_token);
+    //         }
+    //         
+    //         toast('Someone cancelled their registration', { duration: 3000 });
+    //       }
+    //     )
+    //     // Add a more reliable way to detect unregistrations through UPDATE events
+    //     .on(
+    //       'postgres_changes',
+    //       {
+    //         event: 'UPDATE',
+    //         schema: 'public',
+    //         table: 'events',
+    //         filter: `id=eq.${eventId}`
+    //       },
+    //       async (payload) => {
+    //         // This will update the count if it changed
+    //         fetchLatestCount();
+    //         
+    //         // Also refresh registration status for the user
+    //         if (user && session?.access_token) {
+    //           await fetchRegistrationStatus(session.access_token);
+    //         }
+    //       }
+    //     )
+    //     .subscribe();
+      
+      // Fetch the latest count when the component mounts
+      fetchLatestCount();
+      
+      // Less frequent polling for modern devices since they have real-time
+      const intervalId = setInterval(fetchLatestCount, 30000); // Every 30 seconds
+      
+      // Clean up subscription when component unmounts
+      return () => {
+        // supabase.channel(`event-${eventId}`).unsubscribe(); // Commented out since subscription is disabled
+        clearInterval(intervalId);
+      };
+    // } catch (error) {
+    //   console.error('Error setting up real-time subscription:', error);
+    //   
+    //   // Fallback to polling if real-time setup fails
+    //   fetchLatestCount();
+    //   const intervalId = setInterval(fetchLatestCount, 20000);
+    //   
+    //   return () => {
+    //     clearInterval(intervalId);
+    //   };
+    // }
+  }, [event?.id, supabase, session?.access_token, user, fetchLatestCount, isOldDevice]);
+  
+  
   
   // Add this function to generate a bracket (admin only)
   const handleGenerateBracket = async () => {
@@ -912,12 +1093,16 @@ export default function EventDetail() {
       }
       
       // Generate bracket
-      const response = await fetch(`/api/events/${id}/bracket`, {
+      const response = await fetch('/api/internal/event-bracket', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionData.session.access_token}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'generate',
+          userId: user?.id || null,
+          eventId: id
+        })
       });
       
       if (!response.ok) {
@@ -925,7 +1110,11 @@ export default function EventDetail() {
         throw new Error(errorData.error || `Failed to generate bracket: ${response.status}`);
       }
       
-      const data = await response.json();
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate bracket');
+      }
+      const data = result.result;
       
       if (data && data.bracket) {
         setBracketState({ data, loading: false });
@@ -957,9 +1146,16 @@ export default function EventDetail() {
       }
       
       // Delete bracket
-      const response = await fetch(`/api/events/${id}/bracket`, {
-        method: 'DELETE',
-        headers: createAuthHeaders(accessToken)
+      const response = await fetch('/api/internal/event-bracket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete-bracket',
+          userId: user?.id || null,
+          eventId: id
+        })
       });
       
       if (!response.ok) {
@@ -994,10 +1190,6 @@ export default function EventDetail() {
     }, 100);
   }, []);
   
-  const closeTeamModal = useCallback(() => {
-    setModalState(prev => ({ ...prev, isTeamModalOpen: false }));
-    setTeamState(prev => ({ ...prev, searchQuery: '' }));
-  }, []);
   
   const openCancelModal = useCallback(() => {
     setModalState(prev => ({ ...prev, isCancelModalOpen: true }));
@@ -1031,22 +1223,34 @@ export default function EventDetail() {
       }
       
       // Cancel registration
-      const response = await fetch('/api/events/register', {
-        method: 'DELETE',
-        headers: createAuthHeaders(accessToken),
-        body: JSON.stringify({ eventId: id })
+      const response = await fetch('/api/internal/event-registration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'unregister',
+          userId: user?.id || null,
+          eventId: id
+        })
       });
       
-      const data = await response.json();
+      const result = await response.json();
       
       if (!response.ok) {
         // Display specific error message from API if available
-        toast.error(data.message || 'Failed to cancel registration');
+        toast.error(result.error || 'Failed to cancel registration');
         setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
         return;
       }
       
-      toast.success(data.message || 'Registration cancelled successfully');
+      if (!result.success) {
+        toast.error(result.error || 'Failed to cancel registration');
+        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+        return;
+      }
+      
+      toast.success(result.message || 'Registration cancelled successfully');
       
       // Immediately update local state
       setRegistrationStatus(prev => ({
@@ -1124,7 +1328,7 @@ export default function EventDetail() {
     // Close the modal and proceed with registration
     closeTeamModal();
     handleRegistration();
-  }, [teamState.teamType, teamState.selectedMembers, teamState.teamName, closeTeamModal]);
+  }, [teamState.teamType, teamState.selectedMembers, teamState.teamName, closeTeamModal, handleRegistration]);
   
   // Handle team member selection - memoized
   const handleTeamMemberSelection = useCallback((member) => {
@@ -1157,83 +1361,14 @@ export default function EventDetail() {
     }
   }, [modalState.isTeamModalOpen]);
   
-  // Handle registration
-  const handleRegistration = async () => {
-    if (registrationStatus.isLoading) return;
-    
-    setRegistrationStatus(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      // Use the retry session utility
-      const accessToken = await retryGetSession(supabase);
-      
-      if (!accessToken) {
-        toast.error('Authentication token not available - please try logging out and back in');
-        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
-      
-      // Validate team selection using the utility function
-      const validationError = validateTeamSelection(teamState.teamType, teamState.selectedMembers, teamState.teamName);
-      if (validationError) {
-        toast.error(validationError);
-        setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
-        
-      // Prepare API call
-      const response = await fetch('/api/events/register', {
-        method: 'POST',
-        headers: createAuthHeaders(accessToken),
-        body: JSON.stringify({ 
-          eventId: id,
-          teamMembers: teamState.selectedMembers,
-          notes: teamState.registrationNotes,
-          teamName: teamState.teamName.trim() || (teamState.teamType === 'duo' && teamState.selectedMembers.length === 1 ? 
-            `${user.username || 'You'} & ${teamState.selectedMembers[0].username}` : '') // Auto-generate team name for duo events if not provided
-        })
-      });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-        // Display error as toast instead of throwing an error
-        toast.error(data.message || 'Registration failed');
-          setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
-          return;
-        }
-        
-        // Success!
-        toast.success(data.message || 'Registered for event successfully');
-      
-      // Reset form fields
-      setTeamState(prev => ({
-        ...prev,
-        selectedMembers: [],
-        registrationNotes: '',
-        teamName: ''
-      }));
-      
-      // Close the modal
-      closeTeamModal();
-        
-        // Refresh registration status to get team members
-        await fetchRegistrationStatus(accessToken);
-    } catch (error) {
-      handleError(error, {
-        context: 'Handle Registration',
-        onError: () => setRegistrationStatus(prev => ({ ...prev, isLoading: false }))
-      });
-    }
-  };
   
   // Use utility functions for registration button logic (isPublicView defined elsewhere)
 
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
     if (loading) {
-      // Much shorter timeout for old devices
-      const timeoutMs = isOldDevice ? 2000 : (isIOS() ? 3000 : 5000);
+      // Longer timeout to avoid premature loading state reset
+      const timeoutMs = isOldDevice ? 5000 : 10000; // Increased timeouts
       const timeoutId = setTimeout(() => {
         console.log('Loading timeout reached, forcing loading to false');
         setLoading(false);
@@ -1243,7 +1378,7 @@ export default function EventDetail() {
           // For old devices, just show basic message without toast (toast might not work)
           console.log('Old device: Loading took too long');
         } else {
-          toast.error('Loading is taking longer than expected. Please try refreshing the page.');
+          console.log('Loading took longer than expected, but continuing...');
         }
       }, timeoutMs);
       
@@ -1251,7 +1386,7 @@ export default function EventDetail() {
     }
   }, [loading, isOldDevice]);
 
-  // Emergency fallback for old devices - force show content after very short delay
+  // Emergency fallback for old devices - force show content after delay
   useEffect(() => {
     if (isOldDevice && loading) {
       const emergencyTimeoutId = setTimeout(() => {
@@ -1280,44 +1415,6 @@ export default function EventDetail() {
     }
   }, [isOldDevice, loading, event, id]);
 
-  // Add a function to fetch public bracket data
-  const fetchPublicBracketData = async () => {
-    if (!id) return;
-    
-    setBracketState(prev => ({ ...prev, loading: true }));
-    
-    try {
-      const response = await fetch(`/api/events/${id}/bracket`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // If 404, it means no bracket exists yet, which is not an error
-      if (response.status === 404) {
-        setBracketState({ data: null, loading: false });
-        return;
-      }
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch bracket data: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data && data.bracket) {
-        setBracketState({ data, loading: false });
-      } else {
-        setBracketState({ data: null, loading: false });
-      }
-    } catch (error) {
-      console.error('Error fetching bracket data:', error);  
-      setBracketState({ data: null, loading: false });
-      throw error;
-    }
-  };
 
   return (
     <ProtectedPageWrapper>
@@ -1336,26 +1433,24 @@ export default function EventDetail() {
         ) : !event ? (
           <div className={styles.notFoundContainer}>
             <h1 className={styles.notFoundTitle}>Event Not Found</h1>
-            <p>The event you're looking for doesn't exist or has been removed.</p>
+            <p>The event you&apos;re looking for doesn&apos;t exist or has been removed.</p>
             <Link href="/events" className={styles.backButton}>
               Back to Events
             </Link>
           </div>
         ) : (
           <>
-            {authError && (
-              <div className={styles.errorContainer}>
-                <h2>Authentication Error</h2>
-                <p>{authError}</p>
-              </div>
-            )}
             <div className={styles.eventDetail}>
               <EventHeader 
                 event={event}
                 registrationStatus={registrationStatus}
                 isPublicView={isPublicView}
                 teamState={teamState}
+                bracketState={bracketState}
+                eventId={id}
               />
+              
+              
               <div className={styles.eventContent}>
                 {/* Safe event description rendering for old devices */}
                 {isOldDevice ? (
@@ -1378,7 +1473,6 @@ export default function EventDetail() {
                   onRegistrationClick={handleRegistrationClick}
                   onCancelClick={handleCancelClick}
                   onLoginClick={openLoginModal}
-                  eventId={id}
                 />
                 
                 {/* Registration information - for all users */}

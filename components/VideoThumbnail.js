@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import styles from '../styles/VideoThumbnail.module.css';
 import { MdPlayCircle, MdMovie } from 'react-icons/md';
 
@@ -100,7 +101,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
             console.log(`Slow blob URL creation (${Math.round(blobTime)}ms), possibly a network file`);
             setIsSlowFile(true);
           }
-        } catch (error) {
+        } catch {
           console.log('Using fallback due to blob creation error');
           setLoading(false);
           setError(true);
@@ -146,7 +147,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         let videoElement;
         try {
           videoElement = await videoLoadPromise;
-        } catch (error) {
+        } catch {
           console.log('Using fallback due to video loading issue');
           // Clean up
           if (videoUrlRef.current) {
@@ -207,7 +208,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
           videoUrlRef.current = null;
         }
 
-      } catch (error) {
+        } catch {
         console.log('Using fallback due to thumbnail generation issue');
         setLoading(false);
         setError(true);
@@ -234,7 +235,7 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         videoUrlRef.current = null;
       }
     };
-  }, [file, onThumbnailGenerated, onError, loading, thumbnail]);
+  }, [file, onThumbnailGenerated, onError, loading, thumbnail, isSlowFile]);
 
   // Handle conditional rendering based on state
   if (!file) return null;
@@ -264,10 +265,12 @@ const VideoThumbnail = ({ file, onThumbnailGenerated, onError }) => {
         </div>
       ) : thumbnail ? (
         <div className={styles.thumbnailWrapper}>
-          <img 
+          <Image 
             src={thumbnail} 
             alt="Video thumbnail" 
             className={styles.thumbnail}
+            width={300}
+            height={200}
             onError={() => {
               setError(true);
               if (onError) onError(new Error('Failed to load thumbnail'));

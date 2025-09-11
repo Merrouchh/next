@@ -27,19 +27,12 @@ export const useEventsData = () => {
     setError(null);
 
     try {
-      // Check if user is authenticated to include auth token
-      let headers = {
-        'Content-Type': 'application/json'
-      };
-      
-      // If user is authenticated, add authorization header
-      if (user && session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-      
+      // Fetch events data (public endpoint, no auth needed)
       const response = await fetch('/api/events', {
         method: 'GET',
-        headers
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (!response.ok) {
@@ -170,7 +163,7 @@ export const useEventsData = () => {
       supabase.channel('events-updates-combined').unsubscribe();
       clearInterval(intervalId);
     };
-  }, [events, supabase, user, syncRegistrationCounts]);
+  }, [events, supabase, user]);
 
   // Initial fetch
   useEffect(() => {

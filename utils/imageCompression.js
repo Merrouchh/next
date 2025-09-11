@@ -1,6 +1,6 @@
 import sharp from 'sharp';
-import fs from 'fs';
-import path from 'path';
+// import fs from 'fs'; // Removed unused import
+// import path from 'path'; // Removed unused import
 
 // Social media metadata requirements
 const SOCIAL_MEDIA_REQUIREMENTS = {

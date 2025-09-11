@@ -1,32 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState, useEffect, useCallback } from 'react';
+// import { useRouter } from 'next/router'; // Removed unused import
 import Head from 'next/head';
 import { FaTrophy, FaCheck, FaTimes, FaEye, FaUserCircle, FaExternalLinkAlt } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AchievementAdmin.module.css';
-import sharedStyles from '../../styles/Shared.module.css';
 import toast from 'react-hot-toast';
-import Image from 'next/image';
 import Link from 'next/link';
+import Image from 'next/image';
 import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
 export default function AchievementReviews() {
   const { user, supabase } = useAuth();
-  const router = useRouter();
+  // const router = useRouter(); // Removed unused variable
   const [pendingReviews, setPendingReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentImageUrl, setCurrentImageUrl] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [processingId, setProcessingId] = useState(null);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchPendingReviews();
-    }
-  }, [user]);
-
-  const fetchPendingReviews = async () => {
+  const fetchPendingReviews = useCallback(async () => {
     setLoading(true);
     try {
       // Get all pending review screenshots
@@ -83,7 +76,13 @@ export default function AchievementReviews() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchPendingReviews();
+    }
+  }, [user, fetchPendingReviews]);
 
   const handleViewImage = (url) => {
     setCurrentImageUrl(url);
@@ -358,10 +357,13 @@ export default function AchievementReviews() {
                 <FaTimes />
               </button>
               <div className={styles.imageContainer}>
-                <img 
+                <Image 
                   src={currentImageUrl} 
                   alt="Screenshot review" 
                   className={styles.modalImage}
+                  width={800}
+                  height={600}
+                  unoptimized
                 />
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
-import path from 'path';
+// import path from 'path'; // Removed unused import
 import { 
   compressImageForSocialMedia, 
   validateImageFile, 
@@ -103,23 +103,11 @@ const authenticateAdmin = async (authHeaders) => {
     
     console.log("Auth header starts with Bearer:", authHeader.startsWith('Bearer '));
     
+    
     // Create new client specifically for this authentication attempt
     const supabase = getSupabaseClient(authHeaders);
     
-    // Try getting session first
-    console.log("Attempting to get session from auth...");
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.log("Session error:", sessionError);
-    } else {
-      console.log("Session data available:", !!sessionData);
-      if (sessionData && sessionData.session) {
-        console.log("User in session:", sessionData.session.user.id);
-      }
-    }
-    
-    // Try getting user directly
+    // Get user directly (secure method)
     console.log("Getting user data...");
     const { data, error: authError } = await supabase.auth.getUser();
     
@@ -311,10 +299,13 @@ export default async function handler(req, res) {
         console.log('Attempting admin authentication...');
         
         // Verify admin status
-        const user = await withTimeout(authenticateAdmin(authHeaders), 10000);
+        const authResult = await withTimeout(authenticateAdmin(authHeaders), 10000);
         
         console.log('Admin authentication successful, processing upload...');
-        console.log('Authenticated user ID:', user.id);
+        console.log('Authenticated user ID:', authResult.id);
+        
+        // Handle service role authentication
+        // const user = authResult.isServiceRole ? { id: 'service-role' } : authResult;
         
         // Parse form data with timeout
         let fields, files;
@@ -387,7 +378,7 @@ export default async function handler(req, res) {
         console.log(`Uploading optimized gallery image: ${fileName}, size: ${compressedFileContent.length} bytes`);
         
         // Upload compressed image to Supabase Storage with timeout
-        const { data, error } = await withTimeout(
+        const { error } = await withTimeout(
           supabase
             .storage
             .from('images')
@@ -484,10 +475,13 @@ export default async function handler(req, res) {
         console.log('Attempting admin authentication for delete...');
         
         // Verify admin status
-        const user = await withTimeout(authenticateAdmin(authHeaders), 10000);
+        const authResult = await withTimeout(authenticateAdmin(authHeaders), 10000);
         
         console.log('Admin authentication successful, processing delete...');
-        console.log('Authenticated user ID for delete:', user.id);
+        console.log('Authenticated user ID for delete:', authResult.id);
+        
+        // Handle service role authentication
+        // const user = authResult.isServiceRole ? { id: 'service-role' } : authResult;
         
         // Get image URL first
         const { data: imageData, error: getError } = await withTimeout(

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaDesktop, FaTimes } from 'react-icons/fa';
 import styles from '../styles/UserLoginModal.module.css';
 import Portal from './Portal';
@@ -39,6 +39,15 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
     }
   }, [isOpen]);
 
+  // Close modal and reset state
+  const handleClose = useCallback(() => {
+    // Reset state
+    setErrorMessage('');
+    setSuccessMessage('');
+    // Close modal
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape' && isOpen) {
@@ -48,16 +57,7 @@ const UserLoginModal = ({ isOpen, onClose, selectedComputer, onSuccess, autoLogi
     
     window.addEventListener('keydown', handleEscKey);
     return () => window.removeEventListener('keydown', handleEscKey);
-  }, [isOpen]);
-
-  // Close modal and reset state
-  const handleClose = () => {
-    // Reset state
-    setErrorMessage('');
-    setSuccessMessage('');
-    // Close modal
-    onClose();
-  };
+  }, [isOpen, handleClose]);
 
   // Handle login confirmation (Yes button click)
   const handleLoginConfirm = async () => {

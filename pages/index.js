@@ -90,7 +90,7 @@ const Home = () => {
           
           // Set the session with tokens
           console.log('Setting session with magic link tokens');
-          const { data, error } = await supabase.auth.setSession({
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
@@ -179,7 +179,7 @@ const Home = () => {
         }, 100);
       }
     }
-  }, [user, loading, router.isReady, isVerifying, initialized, processingMagicLink]);
+  }, [user, loading, router.isReady, isVerifying, initialized, processingMagicLink, router]);
 
   const handleCheckAvailability = () => {
     if (!user) {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
@@ -18,7 +18,7 @@ import {
   checkTournamentParticipation,
   claimAchievement,
   markAchievementNotified,
-  checkUserHasInteracted,
+  // checkUserHasInteracted, // Removed unused import
   addGameHours
 } from '../lib/achievements/achievementService';
 import { 
@@ -54,21 +54,24 @@ const AwardsPage = () => {
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState(null);
   const [userPoints, setUserPoints] = useState(0);
-  const [lastReviewStatus, setLastReviewStatus] = useState(null);
   // Ref to track notifications shown in the current session
   const notifiedAchievementsRef = useRef(new Set());
+  // Ref to track the last review status to prevent infinite loops
+  const lastReviewStatusRef = useRef(null);
+  // Ref to store achievements to prevent infinite loops
+  const achievementsRef = useRef([]);
 
   /**
    * Check for async achievements like clips and tournament participation
    * This function only checks and doesn't show notifications
    * @returns {Promise<Array>} Array of newly completed achievement IDs
    */
-  const checkAsyncAchievements = async () => {
+  const checkAsyncAchievements = useCallback(async () => {
     if (!user?.id) return [];
     
     try {
       let newlyCompleted = [];
-      const currentAchievements = [...achievements];
+      const currentAchievements = [...achievementsRef.current];
       
       // 1. Check clips achievement
       const clipAchievement = currentAchievements.find(a => a.id === 'first-clip');
@@ -161,10 +164,15 @@ const AwardsPage = () => {
       
       // Return the newly completed achievement IDs
       return newlyCompleted;
-    } catch (error) {
+    } catch {
       return [];
     }
-  };
+  }, [user?.id, supabase]);
+
+  // Keep achievements ref in sync with state
+  useEffect(() => {
+    achievementsRef.current = achievements;
+  }, [achievements]);
 
   // Load user data and achievements
   useEffect(() => {
@@ -272,18 +280,17 @@ const AwardsPage = () => {
                                
         // Check if a pending review was verified by an admin
         const reviewWasVerified = 
-          lastReviewStatus === 'pending_verification' && 
+          lastReviewStatusRef.current === 'pending_verification' && 
           reviewAchievement && 
           reviewAchievement.status !== 'pending_verification' && 
           (reviewAchievement.completed || reviewAchievement.status === 'completed') &&
           !reviewAchievement.was_notified;
         
         // Update the last known review status for next comparison
-        setLastReviewStatus(
-          reviewAchievement?.pending ? 'pending_verification' : 
+        const newReviewStatus = reviewAchievement?.pending ? 'pending_verification' : 
           reviewAchievement?.completed ? 'completed' : 
-          reviewAchievement?.claimed ? 'claimed' : null
-        );
+          reviewAchievement?.claimed ? 'claimed' : null;
+        lastReviewStatusRef.current = newReviewStatus;
         
         // If a review was verified, add it to the newly completed list
         const newCompletions = [];
@@ -363,7 +370,7 @@ const AwardsPage = () => {
             for (const achievement of achievementsToNotify) {
               try {
                 await markAchievementNotified(supabase, user.id, achievement.id);
-              } catch (error) {
+              } catch {
                 // Error handling
               }
             }
@@ -378,7 +385,7 @@ const AwardsPage = () => {
             );
           }
         }
-      } catch (error) {
+      } catch {
         toast.error('Failed to load achievements');
       } finally {
         setLoading(false);
@@ -386,7 +393,7 @@ const AwardsPage = () => {
     };
 
     loadData();
-  }, [user, supabase, lastReviewStatus]);
+  }, [user, supabase, checkAsyncAchievements]);
 
   /**
    * Handle claiming an achievement reward

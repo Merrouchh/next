@@ -28,7 +28,7 @@ const Custom404 = () => {
             <h1 className={styles.errorCode}>404</h1>
             <h2 className={styles.errorTitle}>Page Not Found</h2>
             <p className={styles.errorDescription}>
-              The page you're looking for doesn't exist or has been moved.
+              The page you&apos;re looking for doesn&apos;t exist or has been moved.
             </p>
             <div className={styles.errorActions}>
               <button 

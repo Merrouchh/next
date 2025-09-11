@@ -132,7 +132,7 @@ export function getParticipantNameById(participantId, participants, eventType, o
  * @param {string} eventType - The event type
  * @returns {Object} - Normalized participant object
  */
-export function normalizeParticipantData(rawParticipant, eventType) {
+export function normalizeParticipantData(rawParticipant) {
   if (!rawParticipant) return null;
 
   return {

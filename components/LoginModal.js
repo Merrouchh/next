@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { validateGamingCredentials } from '../utils/api';
 import { useAuth } from "../contexts/AuthContext";
 import styles from '../styles/LoginModal.module.css';
-import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail, AiOutlineTrophy, AiOutlineCheckCircle } from 'react-icons/ai';
+import { AiOutlineLoading3Quarters, AiOutlineUser, AiOutlineLock, AiOutlineMail, AiOutlineCheckCircle } from 'react-icons/ai';
 import { createClient } from '../utils/supabase/component';
 import React from 'react';
 import { toast } from 'react-hot-toast';
 import PasswordResetModal from './PasswordResetModal';
 
 const LoginModal = ({ isOpen, onClose }) => {
-  const { login, userExists, createUser } = useAuth();
+  const { login, createUser } = useAuth();
   const [step, setStep] = useState('LOGIN'); // Always start with the login form
   const [formData, setFormData] = useState({
     username: '',
@@ -92,7 +92,8 @@ const LoginModal = ({ isOpen, onClose }) => {
     setStep(newStep);
   };
 
-  // Initial step - Choose login or create account
+  // Initial step - Choose login or create account - UNUSED
+  /*
   const renderInitialStep = () => (
     <div className={styles.stepContainer}>
       <h2>Welcome Back!</h2>
@@ -120,6 +121,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+  */
 
   // Login step
   const handleLogin = async (e) => {
@@ -258,7 +260,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         setError(
           <div style={{ textAlign: 'center', padding: '15px' }}>
             <div style={{ marginBottom: '15px', fontSize: '16px', color: '#e74c3c' }}>
-              "{formData.username}" already has an account
+              &quot;{formData.username}&quot; already has an account
             </div>
             <button 
               onClick={() => {
@@ -636,7 +638,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         </div>
         <h2>Account Created!</h2>
         <p className={styles.successText}>
-          Welcome to MerrouchGaming! You've been automatically logged in.
+          Welcome to MerrouchGaming! You&apos;ve been automatically logged in.
         </p>
         <button 
           className={styles.continueButton}

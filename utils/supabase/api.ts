@@ -8,7 +8,7 @@ export default function createClient(req: NextApiRequest, res: NextApiResponse) 
     {
       cookies: {
         getAll() {
-          return Object.keys(req.cookies).map((name) => ({ name, value: req.cookies[name] || '' }))
+          return Object.keys(req.cookies || {}).map((name) => ({ name, value: req.cookies[name] || '' }))
         },
         setAll(cookiesToSet) {
           res.setHeader(

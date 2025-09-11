@@ -2,7 +2,7 @@ import React from 'react';
 import { AiOutlineReload } from 'react-icons/ai';
 import DashboardCard from './DashboardCard';
 import styles from '../../styles/Dashboard.module.css';
-import sharedStyles from '../../styles/Shared.module.css';
+// import sharedStyles from '../../styles/Shared.module.css'; // Removed unused import
 
 const RefreshCard = React.memo(({ onRefresh, isLoading }) => {
   return (

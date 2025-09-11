@@ -234,6 +234,13 @@
   box-shadow: 0 2px 10px rgba(255, 215, 0, 0.2);
 }
 
+.warningText {
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
 .loading {
   color: #aaa;
 }

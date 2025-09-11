@@ -7,7 +7,7 @@ import ProfileDashboard from '../../components/profile/ProfileDashboard';
 import UploadButton from '../../components/profile/UploadButton';
 import UserClips from '../../components/profile/UserClips';
 import { FaVideo, FaGamepad, FaPlus } from 'react-icons/fa';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 
@@ -59,60 +59,60 @@ export async function getServerSideProps({ req, res, params }) {
       };
     }
 
-    // Get clips count and fetch the latest clip for the preview image
-    const { count: clipsCount } = await supabase
-      .from('clips')
-      .select('id', { count: 'exact' })
-      .eq('user_id', userData.id)
-      .eq('visibility', 'public');
+    // Get clips count and fetch the latest clip for the preview image - UNUSED
+    // const { count: clipsCount } = await supabase
+    //   .from('clips')
+    //   .select('id', { count: 'exact' })
+    //   .eq('user_id', userData.id)
+    //   .eq('visibility', 'public');
 
-    // Fetch the user's latest public clip for the thumbnail
-    const { data: latestClip } = await supabase
-      .from('clips')
-      .select('id, title, thumbnail_path, cloudflare_uid, game, views_count, likes_count')
-      .eq('user_id', userData.id)
-      .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .single();
+    // Fetch the user's latest public clip for the thumbnail - UNUSED
+    // const { data: latestClip } = await supabase
+    //   .from('clips')
+    //   .select('id, title, thumbnail_path, cloudflare_uid, game, views_count, likes_count')
+    //   .eq('user_id', userData.id)
+    //   .eq('visibility', 'public')
+    //   .order('uploaded_at', { ascending: false })
+    //   .limit(1)
+    //   .single();
 
-    // Count user's event participations
-    const { count: eventsCount } = await supabase
-      .from('event_registrations')
-      .select('id', { count: 'exact' })
-      .eq('user_id', userData.id);
+    // Count user's event participations - UNUSED
+    // const { count: eventsCount } = await supabase
+    //   .from('event_registrations')
+    //   .select('id', { count: 'exact' })
+    //   .eq('user_id', userData.id);
     
-    // Get the thumbnail URL from the latest clip or use default
-    const profileImage = latestClip?.cloudflare_uid 
-      ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
-      : latestClip?.thumbnail_path || "https://merrouchgaming.com/top.jpg";
+    // Get the thumbnail URL from the latest clip or use default - UNUSED
+    // const profileImage = latestClip?.cloudflare_uid 
+    //   ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${latestClip.cloudflare_uid}/thumbnails/thumbnail.jpg`
+    //   : latestClip?.thumbnail_path || "https://merrouchgaming.com/top.jpg";
         
-    // Create a more detailed and personalized description
-    let userDescription = `${normalizedUsername}'s gaming profile at Merrouch Gaming Center`;
+    // Create a more detailed and personalized description - UNUSED
+    // let userDescription = `${normalizedUsername}'s gaming profile at Merrouch Gaming Center`;
     
-    if (userData.favorite_game) {
-      userDescription += ` | ${userData.favorite_game} Player`;
-    }
+    // if (userData.favorite_game) {
+    //   userDescription += ` | ${userData.favorite_game} Player`;
+    // }
         
-    if (clipsCount) {
-      userDescription += ` featuring ${clipsCount} public gaming ${clipsCount === 1 ? 'clip' : 'clips'}`;
-    }
+    // if (clipsCount) {
+    //   userDescription += ` featuring ${clipsCount} public gaming ${clipsCount === 1 ? 'clip' : 'clips'}`;
+    // }
     
-    if (eventsCount) {
-      userDescription += ` and participation in ${eventsCount} ${eventsCount === 1 ? 'event' : 'events'}`;
-    }
+    // if (eventsCount) {
+    //   userDescription += ` and participation in ${eventsCount} ${eventsCount === 1 ? 'event' : 'events'}`;
+    // }
     
-    if (latestClip?.title) {
-      userDescription += `. Latest clip: "${latestClip.title}"`;
-      if (latestClip.game) {
-        userDescription += ` in ${latestClip.game}`;
-                      }
-      if (latestClip.views_count) {
-        userDescription += ` with ${latestClip.views_count} ${latestClip.views_count === 1 ? 'view' : 'views'}`;
-      }
-    }
+    // if (latestClip?.title) {
+    //   userDescription += `. Latest clip: "${latestClip.title}"`;
+    //   if (latestClip.game) {
+    //     userDescription += ` in ${latestClip.game}`;
+    //   }
+    //   if (latestClip.views_count) {
+    //     userDescription += ` with ${latestClip.views_count} ${latestClip.views_count === 1 ? 'view' : 'views'}`;
+    //   }
+    // }
     
-    userDescription += `. Check out their gaming achievements and statistics!`;
+    // userDescription += `. Check out their gaming achievements and statistics!`;
 
     return {
       props: {
@@ -144,97 +144,8 @@ const ProfilePage = ({ username }) => {
   // Determine if current user is profile owner after userData loads
   const isOwner = user?.id && userData?.id ? user.id === userData.id : false;
 
-  // Reset states when username changes
-  useEffect(() => {
-    setUserAchievements([]);
-    setLoadingAchievements(true);
-    setUserData(null);
-    setLoadingUser(true);
-    setError(null);
-  }, [username]);
-
-  // Fetch the user data on client side
-  useEffect(() => {
-    setMounted(true);
-    
-    const fetchUserData = async () => {
-      try {
-        // Fetch user data
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            id,
-            username,
-            gizmo_id,
-            discord_id,
-            valorant_id,
-            fortnite_name,
-            battlenet_id,
-            favorite_game,
-            points
-          `)
-          .eq('username', username)
-          .single();
-
-        if (userError || !userData) {
-          console.error('User not found:', userError);
-          setError('User not found');
-          setLoadingUser(false);
-          return;
-        }
-
-        // Get clips count
-        const { count: clipsCount } = await supabase
-          .from('clips')
-          .select('id', { count: 'exact' })
-          .eq('user_id', userData.id)
-          .eq('visibility', 'public');
-
-        // Get total clips count (public and private) for the owner
-        let totalClipsCount = clipsCount;
-        if (user && user.id === userData.id) {
-          const { count: ownerClipsCount } = await supabase
-            .from('clips')
-            .select('id', { count: 'exact' })
-            .eq('user_id', userData.id);
-          totalClipsCount = ownerClipsCount || 0;
-        }
-
-        // Set the user data with clips count
-        setUserData({
-          ...userData,
-          clips_count: clipsCount || 0,
-          total_clips_count: totalClipsCount
-        });
-        setLoadingUser(false);
-
-        // Update meta data with user info
-        updateMetaData(userData, clipsCount);
-        
-        // Now fetch achievements for this user
-        fetchAchievements(userData.id);
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-        setError('Failed to load user profile');
-        setLoadingUser(false);
-      }
-    };
-
-    if (supabase && username && mounted) {
-      fetchUserData();
-    }
-  }, [username, supabase, mounted]);
-
-  // Function to update meta data with user info
-  const updateMetaData = (userData, clipsCount) => {
-    // This would normally update the page's meta data
-    // For Next.js, we'd typically use a meta data component
-    // This is left as a placeholder as this would normally
-    // be handled by Next.js head management
-  };
-
   // Fetch achievements 
-  const fetchAchievements = async (userId) => {
+  const fetchAchievements = useCallback(async (userId) => {
     if (!userId) return;
     
     try {
@@ -508,7 +419,85 @@ const ProfilePage = ({ username }) => {
     } finally {
       setLoadingAchievements(false);
     }
-  };
+  }, [supabase]);
+
+  // Reset states when username changes
+  useEffect(() => {
+    setUserAchievements([]);
+    setLoadingAchievements(true);
+    setUserData(null);
+    setLoadingUser(true);
+    setError(null);
+  }, [username]);
+
+  // Fetch the user data on client side
+  useEffect(() => {
+    setMounted(true);
+    
+    const fetchUserData = async () => {
+      try {
+        // Fetch user data
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select(`
+            id,
+            username,
+            gizmo_id,
+            discord_id,
+            valorant_id,
+            fortnite_name,
+            battlenet_id,
+            favorite_game,
+            points
+          `)
+          .eq('username', username)
+          .single();
+
+        if (userError || !userData) {
+          console.error('User not found:', userError);
+          setError('User not found');
+          setLoadingUser(false);
+          return;
+        }
+
+        // Get clips count
+        const { count: clipsCount } = await supabase
+          .from('clips')
+          .select('id', { count: 'exact' })
+          .eq('user_id', userData.id)
+          .eq('visibility', 'public');
+
+        // Get total clips count (public and private) for the owner
+        let totalClipsCount = clipsCount;
+        if (user && user.id === userData.id) {
+          const { count: ownerClipsCount } = await supabase
+            .from('clips')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userData.id);
+          totalClipsCount = ownerClipsCount || 0;
+        }
+
+        // Set the user data with clips count
+        setUserData({
+          ...userData,
+          clips_count: clipsCount || 0,
+          total_clips_count: totalClipsCount
+        });
+        setLoadingUser(false);
+        
+        // Now fetch achievements for this user
+        fetchAchievements(userData.id);
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setError('Failed to load user profile');
+        setLoadingUser(false);
+      }
+    };
+
+    if (supabase && username && mounted) {
+      fetchUserData();
+    }
+  }, [username, supabase, mounted, fetchAchievements, user]);
 
   if (!mounted) {
     return (
@@ -549,7 +538,7 @@ const ProfilePage = ({ username }) => {
     return (
       <>
         <Head>
-          <title>Loading {username}'s Profile | Merrouch Gaming Center</title>
+          <title>Loading {username}&#39;s Profile | Merrouch Gaming Center</title>
         </Head>
         <ProtectedPageWrapper>
           <LoadingSpinner message={`Loading ${username}'s profile...`} />
@@ -561,7 +550,7 @@ const ProfilePage = ({ username }) => {
   return (
     <>
       <Head>
-        <title>{username}'s Gaming Profile | Merrouch Gaming Center</title>
+        <title>{username}&#39;s Gaming Profile | Merrouch Gaming Center</title>
         <meta name="description" content={`View ${username}'s gaming profile, clips, achievements, and gaming statistics at Merrouch Gaming Center in Tangier.`} />
       </Head>
       

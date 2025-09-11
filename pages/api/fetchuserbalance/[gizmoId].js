@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       debtAmount: Math.abs(balance),
       rawBalance: balance
     });
-  } catch (error) {
+  } catch {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 } 

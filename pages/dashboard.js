@@ -113,15 +113,21 @@ const Dashboard = React.memo(() => {
   });
 
   // Show loading state when no data or during auth
-  if (authLoading || !data) {
+  if (authLoading || (!data && !error)) {
     console.log('Dashboard loading state:', { authLoading, data: data ? 'DATA_EXISTS' : 'DATA_NULL', error, user: user?.username, loading });
     return (
       <ProtectedPageWrapper>
-        {error ? (
-          <ErrorDisplay error={error} />
-          ) : (
-          <LoadingSpinner />
-          )}
+        <LoadingSpinner />
+      </ProtectedPageWrapper>
+    );
+  }
+
+  // Show error state if there's an error and no data
+  if (error && !data) {
+    console.log('Dashboard error state:', { error, user: user?.username });
+    return (
+      <ProtectedPageWrapper>
+        <ErrorDisplay error={error} />
       </ProtectedPageWrapper>
     );
   }

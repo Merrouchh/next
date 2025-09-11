@@ -16,7 +16,7 @@ const formatDate = (dateString) => {
       month: 'long',
       day: 'numeric'
     });
-  } catch (error) {
+  } catch {
     return dateString;
   }
 };
@@ -41,18 +41,20 @@ const formatTimestamp = (timestamp, isMobile = false) => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  } catch (error) {
+  } catch {
     return timestamp;
   }
 };
 
-// Truncate email for mobile display
+// Truncate email for mobile display - UNUSED
+/*
 const truncateEmail = (email, isMobile) => {
   if (!email) return 'No email available';
   
   // Always return the full email
   return email;
 };
+*/
 
 // Generate a color based on a string (username)
 const generateColorFromString = (str) => {
@@ -110,21 +112,6 @@ const hashString = (str) => {
   return hash;
 };
 
-// Add this function to look for duo partners in team members
-const findDuoPartnerFromTeamMembers = (registration) => {
-  if (registration.teamMembers && registration.teamMembers.length === 1) {
-    // In a duo event, if a registration has exactly one team member, that's the partner
-    return {
-      username: registration.teamMembers[0].username,
-      user_id: registration.teamMembers[0].user_id,
-      // Other properties can be extracted from the team member if available
-      user: {
-        email: registration.teamMembers[0].email || 'No email available'
-      }
-    };
-  }
-  return null;
-};
 
 export default function EventRegistrations() {
   const [event, setEvent] = useState(null);
@@ -176,19 +163,27 @@ export default function EventRegistrations() {
         }
         
         // Fetch event details
-        const eventResponse = await fetch(`/api/events/${id}`, {
-          method: 'GET',
+        const eventResponse = await fetch('/api/internal/admin/event-registrations', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'get-event',
+            userId: user.id,
+            eventId: id
+          })
         });
         
         if (!eventResponse.ok) {
           throw new Error('Failed to fetch event details');
         }
         
-        const eventData = await eventResponse.json();
+        const eventResult = await eventResponse.json();
+        if (!eventResult.success) {
+          throw new Error(eventResult.error || 'Failed to fetch event details');
+        }
+        const eventData = eventResult.result;
         console.log('Event data received:', JSON.stringify(eventData, null, 2));
         
         // Make sure we're using the correct property from the API response
@@ -196,26 +191,34 @@ export default function EventRegistrations() {
         setEvent(eventData.event || eventData);
         
         // Fetch registrations
-        const registrationsResponse = await fetch(`/api/events/registrations?eventId=${id}`, {
-          method: 'GET',
+        const registrationsResponse = await fetch('/api/internal/admin/event-registrations', {
+          method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'get-registrations',
+            userId: user.id,
+            eventId: id
+          })
         });
         
         if (!registrationsResponse.ok) {
           throw new Error('Failed to fetch registrations');
         }
         
-        const registrationsData = await registrationsResponse.json();
+        const registrationsResult = await registrationsResponse.json();
+        if (!registrationsResult.success) {
+          throw new Error(registrationsResult.error || 'Failed to fetch registrations');
+        }
+        const registrationsData = registrationsResult.result;
         console.log('Registration data received:', JSON.stringify(registrationsData, null, 2));
         
-        if (registrationsData.registrations && registrationsData.registrations.length > 0) {
-          console.log('First registration:', JSON.stringify(registrationsData.registrations[0], null, 2));
+        if (registrationsData && registrationsData.length > 0) {
+          console.log('First registration:', JSON.stringify(registrationsData[0], null, 2));
           
           // Check if team members have email
-          registrationsData.registrations.forEach(reg => {
+          registrationsData.forEach(reg => {
             if (reg.teamMembers && reg.teamMembers.length > 0) {
               console.log(`Team members for ${reg.username}:`, JSON.stringify(reg.teamMembers, null, 2));
               reg.teamMembers.forEach((member, index) => {
@@ -225,12 +228,12 @@ export default function EventRegistrations() {
           });
           
           // Log partner relationships for duo events
-          if (registrationsData.event.team_type === 'duo') {
+          if (event && event.team_type === 'duo') {
             console.log('Duo event detected, analyzing partner relationships:');
             
             // Find main registrants and their partners
-            const mainRegistrants = registrationsData.registrations.filter(reg => !reg.isPartner);
-            const partners = registrationsData.registrations.filter(reg => reg.isPartner);
+            const mainRegistrants = registrationsData.filter(reg => !reg.isPartner);
+            const partners = registrationsData.filter(reg => reg.isPartner);
             
             console.log(`Found ${mainRegistrants.length} main registrants and ${partners.length} partners`);
             
@@ -342,7 +345,7 @@ export default function EventRegistrations() {
           }
         }
         
-        setRegistrations(registrationsData.registrations || []);
+        setRegistrations(registrationsData || []);
       } catch (error) {
         console.error('Error fetching event registrations:', error);
         toast.error('Failed to load registrations');
@@ -411,7 +414,7 @@ export default function EventRegistrations() {
     if (user?.isAdmin && id) {
       fetchEventRegistrations();
     }
-  }, [id, user, supabase]);
+  }, [id, user, supabase, event]);
   
   // Export registrations to CSV
   const exportToCSV = async () => {
@@ -469,15 +472,19 @@ export default function EventRegistrations() {
         throw new Error('Authentication token not available');
       }
       
-      const response = await fetch('/api/events/registrations', {
-        method: 'DELETE',
+      const response = await fetch('/api/internal/admin/event-registrations', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          registrationId,
-          eventId: id
+        body: JSON.stringify({
+          action: 'delete-registration',
+          userId: user.id,
+          eventId: event.id,
+          registrationData: { 
+            registrationId,
+            eventId: id
+          }
         })
       });
       
@@ -551,7 +558,7 @@ export default function EventRegistrations() {
         ) : !event ? (
           <div className={styles.notFoundContainer}>
             <h2>Event Not Found</h2>
-            <p>The event you're looking for doesn't exist or has been removed.</p>
+            <p>The event you&apos;re looking for doesn&apos;t exist or has been removed.</p>
             <Link href="/admin/events" className={styles.backButton}>
               Return to Events
             </Link>
@@ -611,7 +618,7 @@ export default function EventRegistrations() {
               <div className={styles.emptyState}>
                 <div className={styles.emptyIcon}>👥</div>
                 <h2>No Registrations Yet</h2>
-                <p>This event doesn't have any registrations yet.</p>
+                <p>This event doesn&apos;t have any registrations yet.</p>
               </div>
             ) : (
               <div className={styles.registrationsTable}>
@@ -626,27 +633,30 @@ export default function EventRegistrations() {
                  event.team_type.trim().toLowerCase() === 'duo' ? (
                   // For duo events, group partners together
                   registrations
-                    // With the new approach, we show all registrations since partners are stored as team members
                     .map((registration, index) => {
-                      // Find partner from notes or team members
+                      // Extract partner name from notes
+                      const partnerMatch = registration.notes?.match(/Duo partner:\s*(.+)/i);
+                      const partnerName = partnerMatch ? partnerMatch[1].trim() : null;
+                      // Find partner from notes
                       let partner = null;
                       
-                      // First check if this is using the old approach (partner is a separate registration)
-                      if (!registration.isPartner) {
-                        partner = registrations.find(
-                          reg => reg.isPartner && reg.registeredBy === registration.username
+                      if (partnerName) {
+                        // Look for a registration with the partner's username
+                        partner = registrations.find(reg => 
+                          reg.user?.username?.toLowerCase() === partnerName.toLowerCase() ||
+                          reg.username?.toLowerCase() === partnerName.toLowerCase()
                         );
-                      }
-                      
-                      // If no partner found with old approach, try the new approach (partner in team_members)
-                      if (!partner && registration.notes && registration.notes.includes('Duo partner:')) {
-                        // Extract partner from team members
-                        partner = findDuoPartnerFromTeamMembers(registration);
-                      }
-                      
-                      // Skip this registration if it's a partner in the old approach (to avoid duplication)
-                      if (registration.isPartner) {
-                        return null;
+                        
+                        // If not found by username, create a placeholder partner
+                        if (!partner) {
+                          partner = {
+                            username: partnerName,
+                            user: {
+                              email: 'Partner not registered',
+                              phone: null
+                            }
+                          };
+                        }
                       }
                       
                       // Generate a unique color for this team

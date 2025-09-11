@@ -16,7 +16,7 @@ const ProtectedPageWrapper = ({ children }) => {
   const { user, initialized } = useAuth();
   const router = useRouter();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const { isLoginModalOpen, openLoginModal } = useModal();
+  const { openLoginModal } = useModal();
   const routeConfig = getRouteConfig(router.pathname);
   const isVerificationPage = isAuthPage(router.pathname);
   const isAdminRequired = requiresAdmin(router.pathname);

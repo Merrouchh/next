@@ -77,7 +77,7 @@ export const safeNavigate = async (router, path) => {
     }
     
     await router.push(path);
-  } catch (routerError) {
+    } catch {
     console.log("Router failed, using window.location fallback");
     
     // Fallback to window.location for problematic devices
@@ -139,10 +139,10 @@ export const createOptimizedThrottle = (func, limit) => {
   
   return function() {
     const args = arguments;
-    const context = this;
+    // const context = this; // Removed unused variable
     
     if (!inThrottle) {
-      func.apply(context, args);
+      func.apply(this, args);
       inThrottle = true;
       setTimeout(() => inThrottle = false, adjustedLimit);
     }
@@ -279,7 +279,7 @@ export const createMemoryOptimizedCleanup = (cleanup) => {
         setTimeout(() => {
           try {
             window.gc();
-          } catch (e) {
+          } catch {
             // Ignore if gc is not available
           }
         }, 100);
@@ -350,7 +350,7 @@ export const deviceConfig = {
   }
 };
 
-export default {
+const deviceOptimization = {
   isIOS,
   isOldDevice,
   hasLimitedPerformance,
@@ -366,4 +366,6 @@ export default {
   createMemoryOptimizedCleanup,
   measurePerformance,
   deviceConfig
-}; 
+};
+
+export default deviceOptimization; 

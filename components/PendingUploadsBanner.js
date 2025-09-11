@@ -4,6 +4,18 @@ import styles from '../styles/PendingUploadsBanner.module.css';
 import { MdSync, MdExpandMore, MdExpandLess, MdCancel, MdCheckCircle } from 'react-icons/md';
 import { FaCloudUploadAlt } from 'react-icons/fa';
 
+// List of statuses that are considered "in progress"
+const PROCESSING_STATUSES = [
+  'uploading',      // Initial upload to Cloudflare
+  'queue',          // Queued in Cloudflare
+  'processing',     // Processing by Cloudflare
+  'ready_to_stream', // Ready to stream from Cloudflare
+  'mp4_processing',  // MP4 version being processed
+  'mp4_downloading', // MP4 is being downloaded
+  'r2_uploading'     // MP4 is being uploaded to R2
+  // 'complete' status is not included as those should be hidden after 2 seconds
+];
+
 /**
  * A banner component that displays currently processing uploads for the current user
  * Uses standardized status names throughout the video processing pipeline
@@ -15,18 +27,6 @@ const PendingUploadsBanner = ({ userId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { supabase } = useAuth();
   const [cancellingIds, setCancellingIds] = useState([]);
-
-  // List of statuses that are considered "in progress"
-  const PROCESSING_STATUSES = [
-    'uploading',      // Initial upload to Cloudflare
-    'queue',          // Queued in Cloudflare
-    'processing',     // Processing by Cloudflare
-    'ready_to_stream', // Ready to stream from Cloudflare
-    'mp4_processing',  // MP4 version being processed
-    'mp4_downloading', // MP4 is being downloaded
-    'r2_uploading'     // MP4 is being uploaded to R2
-    // 'complete' status is not included as those should be hidden after 2 seconds
-  ];
 
   // Fetch uploads that are currently being processed
   const fetchUploads = useCallback(async () => {

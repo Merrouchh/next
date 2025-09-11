@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+// import Head from 'next/head'; // Removed unused import
 import Link from 'next/link';
-import { FaArrowLeft, FaTrophy, FaUsers, FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
+import { FaArrowLeft } from 'react-icons/fa';
 import styles from '../../../styles/Bracket.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
@@ -12,10 +12,9 @@ import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
 import BracketView from '../../../components/bracket/BracketView';
 import ParticipantsList from '../../../components/bracket/ParticipantsList';
 import WinnerModal from '../../../components/bracket/WinnerModal';
-import ZoomControls from '../../../components/bracket/ZoomControls';
-import TournamentWinner from '../../../components/shared/TournamentWinner';
+// import ZoomControls from '../../../components/bracket/ZoomControls'; // Removed unused import
 
-export async function getServerSideProps({ params, req, res }) {
+export async function getServerSideProps({ params, res }) {
   const { id } = params;
   
   // Disable all caching - always fresh data
@@ -56,8 +55,8 @@ export async function getServerSideProps({ params, req, res }) {
       return { props: {} };
     }
     
-    // Extract event data
-    const event = eventResult.data.event || eventResult.data;
+    // Extract event data - UNUSED
+    // const event = eventResult.data.event || eventResult.data;
     
     // Try to fetch bracket data for SEO info
     let bracketResult = await fetchWithErrorHandling(`${baseUrl}/api/events/${id}/bracket`);
@@ -69,20 +68,20 @@ export async function getServerSideProps({ params, req, res }) {
       });
     }
     
-    // Check for champion information in bracket data
-    let champion = null;
-    let hasWinner = false;
+    // Check for champion information in bracket data - UNUSED
+    // let champion = null;
+    // let hasWinner = false;
     
-    if (bracketResult.success) {
-      const bracketData = bracketResult.data;
-      if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
-        const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
-        if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
-          hasWinner = true;
-          champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
-        }
-      }
-    }
+    // if (bracketResult.success) {
+    //   const bracketData = bracketResult.data;
+    //   if (bracketData.bracket && bracketData.participants && bracketData.bracket.length > 0) {
+    //     const finalRound = bracketData.bracket[bracketData.bracket.length - 1];
+    //     if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
+    //       hasWinner = true;
+    //       champion = bracketData.participants.find(p => p.id === finalRound[0].winnerId);
+    //     }
+    //   }
+    // }
     
     // Metadata generation removed - now handled in _document.js
     
@@ -96,7 +95,7 @@ export async function getServerSideProps({ params, req, res }) {
 export default function EventBracket() {
   const router = useRouter();
   const { id } = router.query;
-  const { user, supabase, session } = useAuth();
+  const { user, session } = useAuth();
   const [event, setEvent] = useState(null);
   const [bracketData, setBracketData] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -105,12 +104,11 @@ export default function EventBracket() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(100);
+  // const [zoomLevel, setZoomLevel] = useState(100); // Removed unused state
   const [hasBracket, setHasBracket] = useState(true);
-  const [tournamentChampion, setTournamentChampion] = useState(null);
-  const [matchDetails, setMatchDetails] = useState([]);
+  // const [matchDetails] = useState([]); // Removed unused state
   const [eventType, setEventType] = useState('solo'); // Default to solo
-  const [isDuoEvent, setIsDuoEvent] = useState(false);
+  // const [isDuoEvent, setIsDuoEvent] = useState(false); // Removed unused state
 
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
@@ -195,8 +193,6 @@ export default function EventBracket() {
           
           // Update the eventType state
           setEventType(eventType);
-          // Also set isDuoEvent for backward compatibility
-          setIsDuoEvent(eventType === 'duo');
           
           // Ensure team names are included in participants data
           const participantsWithTeamNames = data.participants.map(participant => {
@@ -212,16 +208,6 @@ export default function EventBracket() {
           setParticipants(participantsWithTeamNames);
           setHasBracket(true);
           
-          // Check for champion
-          if (data.bracket.length > 0) {
-            const finalRound = data.bracket[data.bracket.length - 1];
-            if (finalRound && finalRound.length > 0 && finalRound[0].winnerId) {
-              const champion = data.participants.find(p => p.id === finalRound[0].winnerId);
-              setTournamentChampion(champion || null);
-            } else {
-              setTournamentChampion(null);
-            }
-          }
           
           // Fetch match details for displaying scheduled times
           const matchDetailsResponse = await fetch(`/api/events/${id}/match-details?t=${timestamp}`, {
@@ -233,7 +219,6 @@ export default function EventBracket() {
           
           if (matchDetailsResponse.ok) {
             const matchDetailsData = await matchDetailsResponse.json();
-            setMatchDetails(matchDetailsData.details || []);
             
             // Merge match details into bracket data
             if (matchDetailsData.details && matchDetailsData.details.length > 0) {
@@ -289,12 +274,16 @@ export default function EventBracket() {
       }
 
       // Generate bracket
-      const response = await fetch(`/api/events/${id}/bracket`, {
+      const response = await fetch('/api/internal/event-bracket', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'generate',
+          userId: user.id,
+          eventId: id
+        })
       });
 
       if (!response.ok) {
@@ -353,15 +342,19 @@ export default function EventBracket() {
       }
 
       // Update match result
-      const response = await fetch(`/api/events/${id}/bracket`, {
-        method: 'PUT',
+      const response = await fetch('/api/internal/event-bracket', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          matchId: selectedMatch.id,
-          winnerId: participantId
+          action: 'update-match',
+          userId: user.id,
+          eventId: id,
+          bracketData: {
+            matchId: selectedMatch.id,
+            winnerId: participantId
+          }
         })
       });
 
@@ -372,10 +365,15 @@ export default function EventBracket() {
 
       const data = await response.json();
       
-      if (data && data.bracket) {
-        setBracketData(data.bracket);
+      if (data && data.success) {
+        if (data.result && data.result.bracket) {
+          setBracketData(data.result.bracket);
+          
+        }
         setShowWinnerModal(false);
         setSelectedMatch(null);
+      } else {
+        throw new Error(data.error || 'Failed to update match');
       }
     } catch (error) {
       console.error('Error updating match:', error);
@@ -402,12 +400,16 @@ export default function EventBracket() {
       }
       
       // Delete bracket
-      const response = await fetch(`/api/events/${id}/bracket`, {
-        method: 'DELETE',
+      const response = await fetch('/api/internal/event-bracket', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete-bracket',
+          userId: user.id,
+          eventId: id
+        })
       });
       
       if (!response.ok) {
@@ -470,6 +472,7 @@ export default function EventBracket() {
           </div>
         ) : (
           <div className={styles.content}>
+            
             {!hasBracket ? renderNoBracketMessage() : (
               <BracketView
                 bracketData={bracketData}
@@ -477,8 +480,8 @@ export default function EventBracket() {
                 eventType={eventType}
                 isAdmin={isAdmin}
                 handleMatchClick={handleMatchClick}
-                tournamentChampion={tournamentChampion}
                 handleDeleteBracket={handleDeleteBracket}
+                eventTitle={event?.title || 'Tournament'}
               />
             )}
             <ParticipantsList 

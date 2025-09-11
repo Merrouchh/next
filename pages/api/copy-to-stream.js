@@ -87,7 +87,7 @@ export default async function handler(req, res) {
   // ===== STEP 0: HANDLE SPECIAL REQUESTS =====
   // Handle DELETE requests for cleanup
   if (req.method === 'DELETE') {
-    const { uid, status } = req.query;
+    const { uid } = req.query;
     
     if (!uid) {
       return res.status(400).json({ error: 'Missing uid parameter' });

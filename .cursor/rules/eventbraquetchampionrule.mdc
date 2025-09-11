@@ -1,0 +1,21 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+Events : events name : style : ( duo , team , solo ) 
+
+ok 
+
+in admin bracket when we generate the tournament bracket :
+
+if it a solo , we just put the names of the individual 
+
+if it a duo , we put the team name from tabe event_registrations colom team_name
+
+if it a team , we put the team name from tabe event_registrations colom team_name
+
+
+when we have a chamption , the winner of the last braquet . put the team_name  if it a duo team 
+
+if it individual we put the participant name 

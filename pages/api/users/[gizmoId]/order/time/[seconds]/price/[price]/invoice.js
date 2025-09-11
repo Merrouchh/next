@@ -42,7 +42,7 @@ async function handler(req, res) {
       return res.status(401).json({ error: `Unauthorized: ${authResult.error}` });
     }
 
-    const { user: authenticatedUser, supabase } = authResult;
+    const { user: authenticatedUser } = authResult;
 
     // Use validated parameters
     const secondsInt = validatedSeconds;
@@ -105,7 +105,7 @@ async function handler(req, res) {
     try {
       data = JSON.parse(responseText);
       console.log(`[AMOUNT DEBUG] Request ${requestId} - Parsed response: ${JSON.stringify(data).substring(0, 200)}`);
-    } catch (e) {
+    } catch {
       console.error(`[AMOUNT DEBUG] Request ${requestId} - Non-JSON response:`, responseText);
       data = { text: responseText };
     }

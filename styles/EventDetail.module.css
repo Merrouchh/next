@@ -40,6 +40,57 @@
   overflow-x: hidden;
 }
 
+/* ===== CHAMPION BANNER ===== */
+.championBanner {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  border: 2px solid #FFD700;
+  border-radius: 12px;
+  margin: 1rem 0;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.championBanner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.championBanner .tournamentWinner {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== EVENT COMPLETION MESSAGE ===== */
+.eventCompletedMessage {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: 2px solid #28a745;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(40, 167, 69, 0.2);
+}
+
+.eventCompletedMessage p {
+  margin: 0;
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
 .eventDetail {
   background: linear-gradient(135deg, #1e1e24 0%, #252438 85%, #2c2752 100%);
   border-radius: 12px;
@@ -205,8 +256,12 @@
 }
 
 .statusCompleted {
-  background: linear-gradient(135deg, #455a64 0%, #37474f 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  box-shadow: 
+    0 4px 12px rgba(16, 185, 129, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  font-weight: 700;
 }
 
 /* ===== TYPOGRAPHY ===== */
@@ -665,36 +720,101 @@
   background-color: #2d3748;
 }
 
+/* ===== TOP BRACKET BUTTON ===== */
+.topBracketButton {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: flex-start; /* Align left on desktop */
+}
+
+@media (max-width: 768px) {
+  .topBracketButton {
+    justify-content: center; /* Center on mobile */
+  }
+}
+
 /* ===== TOURNAMENT BRACKET ===== */
 .tournamentBracketButton {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem 1.75rem;
-  background: linear-gradient(135deg, #6200ea 0%, #3700b3 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 8px 25px rgba(102, 126, 234, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   min-width: 220px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Special styling for completed events */
+.topBracketButton .tournamentBracketButton {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 
+    0 8px 25px rgba(245, 158, 11, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .tournamentBracketButton:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 6px 15px rgba(98, 0, 234, 0.5);
+  transform: translateY(-4px) scale(1.05);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  box-shadow: 
+    0 12px 35px rgba(124, 58, 237, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   color: white;
+}
+
+/* Special hover for completed events */
+.topBracketButton .tournamentBracketButton:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  box-shadow: 
+    0 12px 35px rgba(251, 191, 36, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tournamentBracketButton:active {
+  transform: translateY(-2px) scale(1.02);
+  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #a855f7 100%);
+  box-shadow: 
+    0 6px 20px rgba(91, 33, 182, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.tournamentBracketButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.tournamentBracketButton:hover::before {
+  left: 100%;
 }
 
 .tournamentBracketButton .bracketIcon {
   font-size: 1.3rem;
   margin-right: 10px;
   color: white;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 .endedEventActions {
@@ -715,7 +835,6 @@
 }
 
 .bracketWinner {
-  background-color: #FFD700;
   color: #111;
   padding: 0.75rem 2rem;
   display: inline-flex;
@@ -725,7 +844,7 @@
   border-radius: 50px;
   font-size: 1.2rem;
   font-weight: bold;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.35);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   width: auto;
 }
 

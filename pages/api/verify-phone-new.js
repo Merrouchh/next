@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import { markAchievementCompleted } from '../../lib/achievements/achievementService';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -286,7 +286,7 @@ export default async function handler(req, res) {
           console.log('Updating auth user phone number');
           
           // First try admin.updateUserById
-          const { data: updateData, error: updateAuthError } = await supabase.auth.admin.updateUserById(
+          const { error: updateAuthError } = await supabase.auth.admin.updateUserById(
             userId,
             { phone }
           );
@@ -462,7 +462,7 @@ export default async function handler(req, res) {
           try {
             const parsedError = JSON.parse(jsonPart);
             errorDetails = parsedError;
-          } catch (parseError) {
+          } catch {
             // Ignore parse errors
           }
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/EditProfile.module.css';
 import { AiOutlineUser, AiOutlineMail, AiOutlinePhone, AiOutlineLock } from 'react-icons/ai';
@@ -27,7 +27,7 @@ const EditProfile = () => {
     currentPasswordForPasswordChange: ''
   });
   
-  const [gamingAccount, setGamingAccount] = useState({
+  const [, setGamingAccount] = useState({
     username: '',
     currentPassword: '',
     newPassword: '',
@@ -81,6 +81,7 @@ const EditProfile = () => {
     otpCode: ''
   });
 
+
   // Modal states for each section
   const [activeModal, setActiveModal] = useState(null);
 
@@ -133,7 +134,7 @@ const EditProfile = () => {
       }));
       
       // Clear the query parameter after showing success message
-      const { verified, type, ...restQuery } = router.query;
+      const { ...restQuery } = router.query;
       router.replace({
         pathname: router.pathname,
         query: restQuery
@@ -250,7 +251,6 @@ const EditProfile = () => {
         >
           <PhoneSection 
             user={user}
-            supabase={supabase}
             websiteAccount={websiteAccount}
             setWebsiteAccount={setWebsiteAccount}
             message={message}

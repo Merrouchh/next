@@ -15,7 +15,7 @@ export default function DesktopTeamModal({
   notes,
   onNotesChange,
   registrationStatus,
-  eventTitle,
+  // eventTitle, // Removed unused parameter
 }) {
   // Function to handle team member selection with input reset
   const handleSelection = (member) => {

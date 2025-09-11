@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient as createServerClient } from '../utils/supabase/server-props';
-import { createClient as createBrowserClient } from '../utils/supabase/component';
+// import { createClient as createBrowserClient } from '../utils/supabase/component'; // Removed unused import
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import ClipCard from '../components/ClipCard';
 import styles from '../styles/Discover.module.css';
-import { fetchClips } from '../utils/api';
-import { useRouter } from 'next/router';
+// import { fetchClips } from '../utils/api'; // Removed unused import
+// import { useRouter } from 'next/router'; // Removed unused import
 import Head from 'next/head';
 
 const CLIPS_PER_PAGE = 5;
@@ -121,7 +121,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
     loadInitialClips();
   }, [mounted, supabase, clips.length, totalClips]);
 
-  const loadMoreClips = async () => {
+  const loadMoreClips = useCallback(async () => {
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
@@ -173,7 +173,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, hasMore, clips.length, totalClips, supabase]);
 
   // Set up intersection observer for infinite scrolling
   useEffect(() => {
@@ -192,14 +192,15 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
       }
     }, options);
     
-    observer.observe(loaderRef.current);
+    const currentLoader = loaderRef.current;
+    observer.observe(currentLoader);
     
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
       }
     };
-  }, [mounted, hasMore, isLoading, initialLoad, clips.length]);
+  }, [mounted, hasMore, isLoading, initialLoad, clips.length, loadMoreClips]);
 
   // Subscribe to changes in clips
   useEffect(() => {
@@ -328,7 +329,7 @@ const Discover = ({ initialClips, totalClips, hasMore: initialHasMore }) => {
                       ) : !hasMore ? (
                         <div className={styles.endMessage}>
                           <span className={styles.endIcon}>🎮</span>
-                          <p>You've seen all the clips!</p>
+                          <p>You&apos;ve seen all the clips!</p>
                           <p className={styles.endSubtext}>Check back later for more gaming moments</p>
                         </div>
                       ) : null}

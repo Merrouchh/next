@@ -76,6 +76,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         playerIdRef.current = `player_${clip.id || Math.random().toString(36).substring(2)}`;
 
         // Initialize Video.js with minimal loading
+        console.log('Initializing Video.js player for clip:', clip.id);
         const player = videojs(videoElementRef.current, {
           controls: true,
           autoplay: false,
@@ -172,6 +173,16 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
 
         // Set the source
         setVideoSource();
+        
+        console.log('Video.js player created and source set:', {
+          playerId: playerIdRef.current,
+          player: !!player,
+          readyState: player.readyState(),
+          paused: player.paused(),
+          src: player.src(),
+          clipId: clip.id,
+          mp4link: clip.mp4link
+        });
 
         // Event handlers
         player.on('play', () => {
@@ -272,7 +283,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           onLoadingChange?.(false);
         });
 
-        player.on('error', (e) => {
+        player.on('error', () => {
           const error = player.error();
           console.error('Video.js Error:', error);
           
@@ -360,6 +371,16 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
       // Log that we're cleaning up
       console.log(`Cleaning up player: ${playerIdRef.current}`);
       
+      // Check if player is currently playing before disposing
+      if (playerRef.current && !playerRef.current.paused()) {
+        console.log(`Player ${playerIdRef.current} is currently playing, pausing before cleanup`);
+        try {
+          playerRef.current.pause();
+        } catch (pauseError) {
+          console.error('Error pausing player during cleanup:', pauseError);
+        }
+      }
+      
       // Unregister from video player manager first
       try {
         // If this is the currently playing video, clear that reference
@@ -414,10 +435,18 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         }
       }
     };
-  }, [clip?.id, clip?.mp4link, mounted, isInClipCard]);
+  }, [clip?.id, clip?.mp4link, mounted, isInClipCard, clip.thumbnail_path, onLoadingChange, videoInitialized]);
 
   // Handle custom play button click - starts preloading and plays
   const handleCustomPlayButtonClick = () => {
+    console.log('Custom play button clicked!', {
+      playerRef: !!playerRef.current,
+      playerId: playerIdRef.current,
+      clipId: clip?.id,
+      mp4link: clip?.mp4link,
+      videoInitialized
+    });
+    
     if (playerRef.current) {
       // Start preloading if not already done
       if (!videoInitialized) {
@@ -427,7 +456,20 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
       }
       
       // Play the video
-      playerRef.current.play();
+      console.log('Attempting to play video...');
+      const playPromise = playerRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log('Video play promise resolved successfully');
+        }).catch(error => {
+          console.error('Video play promise rejected:', error);
+          setError(`Playback failed: ${error.message}`);
+        });
+      }
+    } else {
+      console.error('Player reference is null - cannot play video');
+      setError('Video player not initialized');
     }
   };
 
@@ -477,7 +519,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         trackViewAsync();
       }
     }
-  }, [playbackTime, hasTrackedView, clip?.id, user?.id, isActuallyPlaying, isBuffering, isFullscreen]);
+  }, [playbackTime, hasTrackedView, clip?.id, user?.id, isActuallyPlaying, isBuffering, isFullscreen, user]);
 
   // Handle pending view tracking when exiting fullscreen
   useEffect(() => {
@@ -513,7 +555,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
       
       executeTrackingAfterFullscreen();
     }
-  }, [isFullscreen, hasTrackedView, clip?.id, user?.id]);
+  }, [isFullscreen, hasTrackedView, clip?.id, user?.id, user]);
 
   // Handle missing clip data
   if (!clip) {

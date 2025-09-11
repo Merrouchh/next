@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
  */
 const ReviewUploader = ({ supabase, userId, onSuccess }) => {
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   

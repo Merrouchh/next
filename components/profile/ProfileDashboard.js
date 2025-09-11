@@ -1,32 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FaGamepad, FaDiscord, FaTrophy, FaCalendarCheck, 
-  FaChevronDown, FaChevronUp, FaCopy, FaUser, FaExternalLinkAlt, FaEdit, FaStar
+  FaChevronDown, FaChevronUp, FaCopy, FaEdit, FaStar
 } from 'react-icons/fa';
 import { IoMdPodium } from 'react-icons/io';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
-import { AiOutlineCamera, AiOutlineEdit, AiOutlineSave, AiOutlineClose, AiOutlineTrophy } from 'react-icons/ai';
+import { AiOutlineCamera } from 'react-icons/ai';
 import Link from 'next/link';
-import Image from 'next/image';
+// import Image from 'next/image'; // Removed unused import
 import toast from 'react-hot-toast';
-import { createClient } from '../../utils/supabase/component';
+// import { createClient } from '../../utils/supabase/component'; // Removed unused import
 import { useRouter } from 'next/router';
-import { fetchUserPicture, cleanupBlobUrls, uploadUserPicture } from '../../utils/api';
+// import { fetchUserPicture, cleanupBlobUrls, uploadUserPicture } from '../../utils/api'; // Removed unused imports
 import ProfilePicture from '../shared/ProfilePicture';
-import { useAuth } from '../../contexts/AuthContext';
-import { updateGamingProfiles } from '../../utils/api';
-import TournamentWinner from '../shared/TournamentWinner';
+// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
+// import { updateGamingProfiles } from '../../utils/api'; // Removed unused import
 import styles from '../../styles/ProfileDashboard.module.css';
 
 const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [profilesExpanded, setProfilesExpanded] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  // const [isEditing, setIsEditing] = useState(false); // Removed unused variable
   const router = useRouter();
-  const [gamingProfiles, setGamingProfiles] = useState(profiles || {});
+  // const [gamingProfiles, setGamingProfiles] = useState(profiles || {}); // Removed unused variables
   const [winCount, setWinCount] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
-  const { refreshUserData } = useAuth();
+  // const [isSaving, setIsSaving] = useState(false); // Removed unused variable
+  // const { refreshUserData } = useAuth(); // Removed unused variable
   
   // Check if user is new (just created account)
   useEffect(() => {
@@ -61,14 +60,14 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
   // Parse the valorant ID into name and tag parts
   const valorantParts = splitValorantId(profiles?.valorant_id);
 
-  // State for edited profiles
-  const [editedProfiles, setEditedProfiles] = useState({
-    discord_id: profiles?.discord_id || '',
-    valorant_name: valorantParts.name,
-    valorant_tag: valorantParts.tag,
-    fortnite_name: profiles?.fortnite_name || '',
-    battlenet_id: profiles?.battlenet_id || ''
-  });
+  // State for edited profiles - UNUSED
+  // const [editedProfiles, setEditedProfiles] = useState({
+  //   discord_id: profiles?.discord_id || '',
+  //   valorant_name: valorantParts.name,
+  //   valorant_tag: valorantParts.tag,
+  //   fortnite_name: profiles?.fortnite_name || '',
+  //   battlenet_id: profiles?.battlenet_id || ''
+  // });
 
   useEffect(() => {
     // Count winning achievements
@@ -93,67 +92,67 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
     });
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditedProfiles(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  // const handleInputChange = (e) => { // Removed unused function
+  //   const { name, value } = e.target;
+  //   setEditedProfiles(prev => ({
+  //     ...prev,
+  //     [name]: value
+  //   }));
+  // };
 
-  const handleSaveProfiles = async () => {
-    try {
-      // Make sure we have the complete Valorant ID
-      let valorantId = editedProfiles.valorant_id;
-      
-      // If valorant_name exists but tag is empty, don't add the #
-      if (editedProfiles.valorant_name && !editedProfiles.valorant_tag) {
-        valorantId = editedProfiles.valorant_name;
-      } 
-      // If both name and tag exist, format properly
-      else if (editedProfiles.valorant_name && editedProfiles.valorant_tag) {
-        valorantId = `${editedProfiles.valorant_name}#${editedProfiles.valorant_tag}`;
-      } 
-      // Neither exists, empty string
-      else {
-        valorantId = '';
-      }
-      
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('users')
-        .update({
-          discord_id: editedProfiles.discord_id,
-          valorant_id: valorantId,
-          fortnite_name: editedProfiles.fortnite_name,
-          battlenet_id: editedProfiles.battlenet_id,
-        })
-        .eq('id', profiles.user_id);
+  // const handleSaveProfiles = async () => { // Removed unused function
+  //   try {
+  //     // Make sure we have the complete Valorant ID
+  //     let valorantId = editedProfiles.valorant_id;
+  //     
+  //     // If valorant_name exists but tag is empty, don't add the #
+  //     if (editedProfiles.valorant_name && !editedProfiles.valorant_tag) {
+  //       valorantId = editedProfiles.valorant_name;
+  //     } 
+  //     // If both name and tag exist, format properly
+  //     else if (editedProfiles.valorant_name && editedProfiles.valorant_tag) {
+  //       valorantId = `${editedProfiles.valorant_name}#${editedProfiles.valorant_tag}`;
+  //     } 
+  //     // Neither exists, empty string
+  //     else {
+  //       valorantId = '';
+  //     }
+  //     
+  //     const supabase = createClient();
+  //     const { error } = await supabase
+  //       .from('users')
+  //       .update({
+  //         discord_id: editedProfiles.discord_id,
+  //         valorant_id: valorantId,
+  //         fortnite_name: editedProfiles.fortnite_name,
+  //         battlenet_id: editedProfiles.battlenet_id,
+  //       })
+  //       .eq('id', profiles.user_id);
 
-      if (error) throw error;
+  //     if (error) throw error;
 
-      toast.success('Gaming profiles updated!', {
-        position: 'top-right',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #FFD700',
-        },
-        iconTheme: {
-          primary: '#FFD700',
-          secondary: '#333',
-        },
-      });
+  //     toast.success('Gaming profiles updated!', {
+  //       position: 'top-right',
+  //       style: {
+  //         background: '#333',
+  //         color: '#fff',
+  //         border: '1px solid #FFD700',
+  //       },
+  //       iconTheme: {
+  //         primary: '#FFD700',
+  //         secondary: '#333',
+  //       },
+  //     });
 
-      setIsEditing(false);
-      router.reload();
-    } catch (error) {
-      console.error('Error updating profiles:', error);
-      toast.error('Failed to update profiles', {
-        position: 'top-right'
-      });
-    }
-  };
+  //     setIsEditing(false);
+  //     router.reload();
+    // } catch (error) {
+    //   console.error('Error updating profiles:', error);
+    //   toast.error('Failed to update profiles', {
+    //     position: 'top-right'
+    //   });
+    // }
+  // };
 
   const formatDate = (dateString) => {
     try {
@@ -164,7 +163,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
         month: 'short', 
         day: 'numeric' 
       });
-    } catch (error) {
+    } catch {
       return "";
     }
   };
@@ -178,7 +177,7 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
     // Then by date (newest first)
     try {
       return new Date(b.eventDate) - new Date(a.eventDate);
-    } catch (error) {
+    } catch {
       return 0;
     }
   }) : [];
@@ -367,10 +366,21 @@ const ProfileDashboard = ({ user, profiles, achievements, isOwner }) => {
                       {achievement.eventTitle || "Unnamed Event"}
                     </h4>
                     {achievement.isWinner && (
-                      <TournamentWinner 
-                        winner={{ username: user?.username }} 
-                        showBadgeOnly={true} 
-                      />
+                      <span 
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: '0.5rem',
+                          background: '#FFD700',
+                          color: '#000',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          padding: '2px 6px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        Winner
+                      </span>
                     )}
                   </div>
                   

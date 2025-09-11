@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext'; // Removed unused import
 import styles from '../styles/MobileDashboardHeader.module.css';
 import { AiOutlineDashboard, AiOutlineTrophy, AiOutlineDesktop } from 'react-icons/ai';
 import { fetchActiveUserSessions } from '../utils/api';
 
 const MobileDashboardHeader = () => {
   const router = useRouter();
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Removed unused variable
   const currentPath = router.pathname;
   const isDragging = useRef(false);
   const navContainerRef = useRef(null);

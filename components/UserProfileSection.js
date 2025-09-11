@@ -1,17 +1,18 @@
 import { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import { FaDiscord, FaGamepad } from 'react-icons/fa';
 import { SiValorant, SiBattledotnet, SiEpicgames } from 'react-icons/si';
 import { AiOutlineUser, AiOutlineCopy } from 'react-icons/ai';
-import { MdCloudUpload } from 'react-icons/md';
-import { useRouter } from 'next/router';
-import { fetchGizmoId, fetchUserPicture, cleanupBlobUrls } from '../utils/api';
+// import { MdCloudUpload } from 'react-icons/md'; // Removed unused import
+// import { useRouter } from 'next/router'; // Removed unused import
+import { fetchUserPicture, cleanupBlobUrls } from '../utils/api';
 import styles from '../styles/Profile.module.css';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext'; // Removed unused import
 import { createClient } from '../utils/supabase/component';
 
-const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated }) => {
-  const router = useRouter();
-  const { user, isLoggedIn } = useAuth();
+const UserProfileSection = memo(({ username, isOwner, supabase }) => {
+  // const router = useRouter(); // Removed unused variable
+  // const { user, isLoggedIn } = useAuth(); // Removed unused variables
   const [userPicture, setUserPicture] = useState(null);
   const [pictureLoading, setPictureLoading] = useState(true);
   const [isEditingProfiles, setIsEditingProfiles] = useState(false);
@@ -29,7 +30,7 @@ const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated 
       console.log('User logged out, resetting edit state');
       setIsEditingProfiles(false);
     }
-  }, [isLoggedIn]);
+  }, []);
 
   // Subscribe to real-time profile changes
   useEffect(() => {
@@ -154,10 +155,12 @@ const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated 
                 <div className={styles.spinner}></div>
               </div>
             ) : userPicture ? (
-              <img 
+              <Image 
                 src={userPicture}
                 alt={`${username}'s profile`}
                 className={styles.profileImage}
+                width={120}
+                height={120}
               />
             ) : (
               <div className={styles.profileImagePlaceholder}>
@@ -166,7 +169,7 @@ const UserProfileSection = memo(({ username, isOwner, supabase, isAuthenticated 
             )}
           </div>
           <div className={styles.profileDetails}>
-            <h1>{username}'s Profile</h1>
+            <h1>{username}&#39;s Profile</h1>
           </div>
         </div>
       </div>

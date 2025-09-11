@@ -75,9 +75,9 @@ function MyApp({ Component, pageProps }) {
   }
 
   const isAuthPage = router.pathname.startsWith('/auth/');
-  const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
-                      router.pathname.startsWith('/events/') || 
-                      router.pathname.startsWith('/profile/');
+  // const isPublicPage = ['/', '/shop', '/events', '/topusers', '/discover'].includes(router.pathname) || 
+  //                     router.pathname.startsWith('/events/') || 
+  //                     router.pathname.startsWith('/profile/'); // Removed unused variable
 
   const AppContent = (
     <ErrorBoundary>

@@ -1,14 +1,14 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { 
-  FaUsers, FaDesktop, FaClock, FaChartBar, FaTimes, FaTh, 
-  FaList, FaLaptop, FaCheck 
+  FaUsers, FaDesktop, FaClock, FaTh, 
+  FaList, FaCheck 
 } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
-import sharedStyles from '../../styles/Shared.module.css';
+// import sharedStyles from '../../styles/Shared.module.css'; // Removed unused import
 import { fetchActiveUserSessions } from '../../utils/api';
 import LoginUserModal from '../../components/LoginUserModal';
 import { withServerSideStaff } from '../../utils/supabase/server-admin';
@@ -404,9 +404,9 @@ export default function SessionsPage() {
   };
 
   // Toggle view mode between grid and list
-  const toggleSessionViewMode = () => {
-    setSessionViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
-  };
+  // const toggleSessionViewMode = () => { // Removed unused function
+  //   setSessionViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
+  // };
 
   // Formatting functions
   const formatTimeLeft = (timeLeft) => {
@@ -497,64 +497,64 @@ export default function SessionsPage() {
     return hours * 60 + minutes;
   };
 
-  // Fetch username by Gizmo ID
-  const fetchUsernameByGizmoId = async (gizmoId) => {
-    try {
-      debugLog(`Fetching username for gizmo_id`, gizmoId);
+  // Fetch username by Gizmo ID - UNUSED
+  // const fetchUsernameByGizmoId = async (gizmoId) => {
+  //   try {
+  //     debugLog(`Fetching username for gizmo_id`, gizmoId);
+  //     
+  //     // First try to get username from Gizmo API
+  //     try {
+  //       // Use the fetchuserdata endpoint to get user info
+  //       const response = await fetch(`/api/fetchuserdata/${gizmoId}`, {
+  //         method: 'GET',
+  //         headers: { 'Content-Type': 'application/json' }
+  //       });
+  //       
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         debugLog(`User data from API for ${gizmoId}`, data);
+  //         
+  //         if (data && data.username) {
+  //           return data.username;
+  //         }
+  //         
+  //         if (data && data.result && data.result.name) {
+  //           return data.result.name;
+  //         }
+  //       }
+  //     } catch (apiError) {
+  //       console.error(`API error fetching username for ${gizmoId}:`, apiError);
+  //     }
       
-      // First try to get username from Gizmo API
-      try {
-        // Use the fetchuserdata endpoint to get user info
-        const response = await fetch(`/api/fetchuserdata/${gizmoId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          debugLog(`User data from API for ${gizmoId}`, data);
-          
-          if (data && data.username) {
-            return data.username;
-          }
-          
-          if (data && data.result && data.result.name) {
-            return data.result.name;
-          }
-        }
-      } catch (apiError) {
-        console.error(`API error fetching username for ${gizmoId}:`, apiError);
-      }
-      
-      // Alternative: Try fetching from the user info endpoint
-      try {
-        const userResponse = await fetch(`/api/users/info/${gizmoId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          debugLog(`User info for ${gizmoId}`, userData);
-          
-          if (userData && userData.username) {
-            return userData.username;
-          }
-          
-          if (userData && userData.name) {
-            return userData.name;
-          }
-        }
-      } catch (userApiError) {
-        console.error(`User API error for ${gizmoId}:`, userApiError);
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Exception in fetchUsernameByGizmoId:', error);
-      return null;
-    }
-  };
+  //     // Alternative: Try fetching from the user info endpoint
+  //     try {
+  //       const userResponse = await fetch(`/api/users/info/${gizmoId}`, {
+  //         method: 'GET',
+  //         headers: { 'Content-Type': 'application/json' }
+  //       });
+  //       
+  //       if (userResponse.ok) {
+  //         const userData = await userResponse.json();
+  //         debugLog(`User info for ${gizmoId}`, userData);
+  //         
+  //         if (userData && userData.username) {
+  //           return userData.username;
+  //         }
+  //         
+  //         if (userData && userData.name) {
+  //           return userData.name;
+  //         }
+  //       }
+  //     } catch (userApiError) {
+  //       console.error(`User API error for ${gizmoId}:`, userApiError);
+  //     }
+  //     
+  //     return null;
+    // } catch (error) {
+    //   console.error('Exception in fetchUsernameByGizmoId:', error);
+    //   return null;
+    // }
+  // };
   
   // Fetch active sessions with details
   const fetchActiveSessionsWithDetails = async (signal) => {
@@ -708,7 +708,7 @@ export default function SessionsPage() {
   };
 
   // Function to fetch session data
-  const fetchSessionData = async () => {
+  const fetchSessionData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -730,7 +730,7 @@ export default function SessionsPage() {
         setStats(prev => ({ ...prev, loading: false }));
       }
     }
-  };
+  }, [user]);
 
   // Set up auto-refresh with useInterval
   useInterval(() => {
@@ -754,7 +754,7 @@ export default function SessionsPage() {
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, [user, supabase]);
+  }, [user, supabase, fetchSessionData]);
 
   // Add cleanup effect for network requests
   useEffect(() => {

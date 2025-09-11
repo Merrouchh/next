@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import styles from '../../styles/EditProfile.module.css';
-import { AiOutlineLock, AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
+// import { AiOutlineLock, AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'; // Removed unused imports
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import OtpVerificationModal from './OtpVerificationModal';
 
 const PhoneSection = ({
   user,
-  supabase,
   websiteAccount,
   setWebsiteAccount,
   phoneVerification,
@@ -16,15 +15,15 @@ const PhoneSection = ({
   setMessage,
   isLoading,
   setIsLoading,
-  showPasswords,
-  togglePasswordVisibility
+  // showPasswords, // Removed unused parameter
+  // togglePasswordVisibility // Removed unused parameter
 }) => {
 
   const phoneInputRef = useRef(null);
   const [isChangingPhone, setIsChangingPhone] = useState(false);
   const checkCountRef = useRef(0);
-  const [isCheckingVerification, setIsCheckingVerification] = useState(false);
   const [verificationDetails, setVerificationDetails] = useState(null);
+  const isCancellingRef = useRef(false);
 
   // Reference to main phone input container
   const phoneContainerRef = useRef(null);
@@ -56,73 +55,26 @@ const PhoneSection = ({
     }
   }, [isChangingPhone]); // Re-run when change mode toggles
 
-  // Check for pending phone verification on component mount
-  useEffect(() => {
-    const checkPhoneVerification = async () => {
-      if (!user?.id || isCheckingVerification) return;
-      
-      // Don't run check if we've reached the limit
-      if (checkCountRef.current >= 10) {
-        console.log('Skipping phone verification check - reached limit or disabled');
-        return;
-      }
-      
-      setIsCheckingVerification(true);
-      console.log('Checking phone verification status on mount');
-      
-      try {
-        // Check phone_verification_attempts table for pending verification
-        const { data: verificationData, error } = await supabase
-          .from('phone_verification_attempts')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('verified', false)
-          .eq('otp_sent', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (!error && verificationData) {
-          console.log('Found pending phone verification:', verificationData);
-          
-          // Only update state if we don't have cancellation in progress
-          if (checkCountRef.current < 10) {
-            setVerificationDetails(verificationData);
-            setPhoneVerification({
-              isPending: true,
-              pendingPhone: verificationData.phone,
-              otpCode: ''
-            });
-          }
-        } else {
-          console.log('No pending phone verification found');
-          setVerificationDetails(null);
-          setPhoneVerification({
-            isPending: false,
-            pendingPhone: '',
-            otpCode: ''
-          });
-        }
-      } catch (error) {
-        console.warn('Error checking phone verification status:', error);
-      } finally {
-        setIsCheckingVerification(false);
-      }
-    };
-    
-    // Run the check immediately when component mounts
-    checkPhoneVerification();
-  }, [user?.id, supabase]);
 
   // Update display when verificationDetails changes
   useEffect(() => {
+    console.log('VerificationDetails useEffect - verificationDetails:', verificationDetails, 'isCancelling:', isCancellingRef.current);
+    
+    // Don't update state if we're in the middle of cancelling
+    if (isCancellingRef.current) {
+      console.log('Skipping verificationDetails update - cancelling in progress');
+      return;
+    }
+    
     if (verificationDetails && !verificationDetails.verified) {
+      console.log('Setting phone verification to pending from verificationDetails');
       setPhoneVerification({
         isPending: true,
         pendingPhone: verificationDetails.phone,
         otpCode: ''
       });
     } else if (!verificationDetails) {
+      console.log('Clearing phone verification from verificationDetails');
       setPhoneVerification({
         isPending: false,
         pendingPhone: '',
@@ -496,23 +448,40 @@ const PhoneSection = ({
 
   // Check if verification is pending and open modal automatically
   useEffect(() => {
-    if (phoneVerification.isPending && !showOtpModal) {
+    console.log('OTP Modal useEffect - phoneVerification.isPending:', phoneVerification.isPending, 'isCancelling:', isCancellingRef.current);
+    
+    // Don't update modal state if we're cancelling
+    if (isCancellingRef.current) {
+      console.log('Skipping OTP modal update - cancelling in progress');
+      return;
+    }
+    
+    if (phoneVerification.isPending) {
+      console.log('Opening OTP modal');
       setShowOtpModal(true);
-    } else if (!phoneVerification.isPending && showOtpModal) {
+    } else {
+      console.log('Closing OTP modal');
       setShowOtpModal(false);
     }
   }, [phoneVerification.isPending]);
 
   const cancelPhoneVerification = async () => {
+    console.log('Cancel button clicked - starting cancellation');
     try {
+      // Set cancellation flag to prevent useEffect from interfering
+      isCancellingRef.current = true;
+      console.log('Set isCancellingRef to true');
+      
       // Immediately update UI state to prevent flashing
       setPhoneVerification({
         isPending: false,
         pendingPhone: '',
         otpCode: ''
       });
+      console.log('Set phoneVerification to false');
       
       setVerificationDetails(null);
+      console.log('Set verificationDetails to null');
       
       // Set flag to prevent verification checks
       checkCountRef.current = 999;
@@ -574,9 +543,14 @@ const PhoneSection = ({
       }));
     } finally {
       setIsLoading(prev => ({ ...prev, phone: false }));
+      // Reset cancellation flag after a short delay to allow state updates to complete
+      setTimeout(() => {
+        isCancellingRef.current = false;
+      }, 100);
     }
   };
 
+  /*
   const handleRemovePhone = async () => {
     try {
       setIsLoading(prev => ({ ...prev, phone: true }));
@@ -639,6 +613,8 @@ const PhoneSection = ({
       setIsLoading(prev => ({ ...prev, phone: false }));
     }
   };
+  */
+
 
   return (
     <div className={styles.subsection}>
@@ -658,7 +634,7 @@ const PhoneSection = ({
           }}
         >
           <p><strong>Phone verification pending!</strong></p>
-          <p>We've sent a verification code to <strong>{phoneVerification.pendingPhone}</strong></p>
+          <p>We&#39;ve sent a verification code to <strong>{phoneVerification.pendingPhone}</strong></p>
           <p>Please enter the 6-digit code to verify your phone number.</p>
           
           <button 

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       }
     });
 
-  } catch (error) {
+  } catch {
     return res.status(500).json({ 
       result: {
         balance: 0

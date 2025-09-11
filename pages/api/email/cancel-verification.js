@@ -2,15 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 
 // Create a Supabase client
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
 );
 
 // Initialize the Supabase admin client with service role key
 // This allows us to directly modify user data
 const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY ? 
   createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ userId }),
       });
 
-      const data = await response.json();
+      await response.json();
       
       if (!response.ok) {
         console.warn('Warning: Main cancellation API call failed, but custom table was updated.');

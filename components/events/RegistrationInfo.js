@@ -22,6 +22,20 @@ const RegistrationInfo = ({ event, registrationStatus }) => {
         </p>
       )}
       
+      {/* Show duo partner information if available */}
+      {event.team_type === 'duo' && registrationStatus.isRegistered && registrationStatus.partnerInfo && (
+        <div className={styles.duoPartnerInfo}>
+          <p><strong>Duo Partner:</strong> {registrationStatus.partnerInfo.username}</p>
+        </div>
+      )}
+      
+      {/* Show "Waiting for partner" if it's a duo event but no partner found */}
+      {event.team_type === 'duo' && registrationStatus.isRegistered && !registrationStatus.partnerInfo && (
+        <div className={styles.duoPartnerInfo}>
+          <p><strong>Duo Partner:</strong> <span style={{color: '#ffc107'}}>Waiting for partner to register</span></p>
+        </div>
+      )}
+      
       <div className={styles.progressBarContainer}>
         <div 
           className={styles.progressBar}

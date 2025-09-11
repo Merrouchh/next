@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { fetchActiveUserSessions, fetchUserBalance, fetchComputers, loginUserToComputer } from '../utils/api';
+import { fetchActiveUserSessions, fetchUserBalance, fetchComputers } from '../utils/api';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Head from 'next/head';
 import styles from '../styles/avcomputers.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
-import { createClient as createServerClient } from '../utils/supabase/server-props';
+// import { createClient as createServerClient } from '../utils/supabase/server-props'; // Removed unused import
 // DynamicMeta removed - metadata now handled in _document.js
-import { MdChevronRight } from 'react-icons/md';
+// import { MdChevronRight } from 'react-icons/md'; // Removed unused import
 import UserLoginModal from '../components/UserLoginModal';
 
 export const getServerSideProps = async ({ res }) => {
@@ -124,7 +124,7 @@ const TopComputers = ({
   lastUpdate, 
   highlightActive, 
   onOpenLoginModal, 
-  isLoading, 
+  // isLoading, // Removed unused parameter
   userAlreadyLoggedIn,
   userCurrentComputer,
   isComputerLoaded
@@ -268,8 +268,14 @@ const TopComputers = ({
 };
 
 // Custom hook for queue management
-const useQueueSystem = (user, supabase) => {
-  const [queueStatus, setQueueStatus] = useState(null);
+const useQueueSystem = (user, supabase, modalSetters = {}) => {
+  const { setErrorMessage, setShowErrorModal, setSuccessMessage, setShowSuccessModal, setConfirmMessage, setShowConfirmModal, setConfirmAction } = modalSetters;
+  const [queueStatus, setQueueStatus] = useState({ 
+    is_active: false, 
+    allow_online_joining: true, // Default to true to show button initially
+    current_queue_size: 0,
+    automatic_mode: false 
+  });
   const [userInQueue, setUserInQueue] = useState(null);
   const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
   
@@ -282,7 +288,15 @@ const useQueueSystem = (user, supabase) => {
         const data = await response.json();
         const status = data.status; // Status is now always an object due to API fix
         console.log('Queue status updated:', status); // Debug log
-        setQueueStatus(status);
+        
+        // Ensure allow_online_joining is true unless explicitly set to false by admin
+        const safeStatus = {
+          ...status,
+          allow_online_joining: status.allow_online_joining !== false // Default to true unless explicitly false
+        };
+        
+        console.log('Button should be visible:', safeStatus.allow_online_joining && !userInQueue); // Debug log
+        setQueueStatus(safeStatus);
         
         // Check if current user is in queue
         if (data.queue) {
@@ -294,15 +308,18 @@ const useQueueSystem = (user, supabase) => {
       }
     } catch (error) {
       console.error('Error fetching queue status:', error);
-      // Set default status to prevent UI errors
-      setQueueStatus({ 
-        is_active: false, 
-        allow_online_joining: false, 
-        current_queue_size: 0,
-        automatic_mode: false 
-      });
+      // Don't immediately hide the button on error - keep current state
+      // Only update if we don't have any status yet
+      if (!queueStatus) {
+        setQueueStatus({ 
+          is_active: false, 
+          allow_online_joining: true, // Keep button visible on error
+          current_queue_size: 0,
+          automatic_mode: false 
+        });
+      }
     }
-  }, [user]);
+  }, [user, queueStatus, userInQueue]);
 
   // Set up real-time subscriptions and polling
   useEffect(() => {
@@ -349,7 +366,8 @@ const useQueueSystem = (user, supabase) => {
 
     // Check if user is already in queue (immediate local check)
     if (userInQueue) {
-      alert('You are already in the queue!');
+      setErrorMessage('You are already in the queue!');
+      setShowErrorModal(true);
       return false;
     }
 
@@ -361,17 +379,21 @@ const useQueueSystem = (user, supabase) => {
       const accessToken = session?.access_token;
 
       if (!accessToken) {
-        alert('Authentication required. Please log in again.');
+        setErrorMessage('Authentication required. Please log in again.');
+        setShowErrorModal(true);
         return false;
       }
 
-      const response = await fetch('/api/queue/join', {
+      const response = await fetch('/api/internal/queue-management', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ computerType })
+        body: JSON.stringify({
+          action: 'join',
+          userId: user.id,
+          queueData: { computerType }
+        })
       });
 
       const result = await response.json();
@@ -383,15 +405,18 @@ const useQueueSystem = (user, supabase) => {
           computer_type: computerType,
           id: result.id 
         });
-        alert('You have been added to the queue! We\'ll notify you when a computer becomes available.');
+        setSuccessMessage('You have been added to the queue! We\'ll notify you when a computer becomes available.');
+        setShowSuccessModal(true);
         return true;
       } else {
-        alert('Unable to join queue: ' + result.error);
+        setErrorMessage('Unable to join queue: ' + result.error);
+        setShowErrorModal(true);
         return false;
       }
     } catch (error) {
       console.error('Error joining queue:', error);
-      alert('Error joining queue');
+      setErrorMessage('Error joining queue');
+      setShowErrorModal(true);
       return false;
     } finally {
       setIsJoiningQueue(false);
@@ -399,7 +424,16 @@ const useQueueSystem = (user, supabase) => {
   };
 
   const leaveQueue = async () => {
-    if (!userInQueue || !confirm('Are you sure you want to leave the queue?')) return;
+    if (!userInQueue) return;
+    
+    // Show custom confirmation modal instead of browser confirm
+    setConfirmMessage('Are you sure you want to leave the queue?');
+    setConfirmAction(() => performLeaveQueue);
+    setShowConfirmModal(true);
+  };
+
+  const performLeaveQueue = async () => {
+    setShowConfirmModal(false); // Close confirmation modal
     
     try {
       // Properly await the session to get the access token
@@ -407,28 +441,36 @@ const useQueueSystem = (user, supabase) => {
       const accessToken = session?.access_token;
 
       if (!accessToken) {
-        alert('Authentication required. Please log in again.');
+        setErrorMessage('Authentication required. Please log in again.');
+        setShowErrorModal(true);
         return false;
       }
 
-      const response = await fetch('/api/queue/join', {
-        method: 'DELETE',
+      const response = await fetch('/api/internal/queue-management', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'leave',
+          userId: user.id
+        })
       });
 
       if (response.ok) {
-        alert('You have left the queue');
+        setSuccessMessage('You have left the queue');
+        setShowSuccessModal(true);
         return true;
       } else {
         const errorData = await response.json();
-        alert('Error leaving queue: ' + errorData.error);
+        setErrorMessage('Error leaving queue: ' + errorData.error);
+        setShowErrorModal(true);
         return false;
       }
     } catch (error) {
       console.error('Error leaving queue:', error);
-      alert('Error leaving queue');
+      setErrorMessage('Error leaving queue');
+      setShowErrorModal(true);
       return false;
     }
   };
@@ -455,12 +497,12 @@ const useQueueSystem = (user, supabase) => {
  *    - Users must have sufficient time balance to log in
  */
 const AvailableComputers = () => {
-  const { user, supabase, session } = useAuth();
+  const { user, supabase } = useAuth();
   const router = useRouter();
   const [computers, setComputers] = useState({ normal: [], vip: [] });
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pageReady, setPageReady] = useState(false); // State for full page readiness
+  const [pageReady, setPageReady] = useState(true); // State for full page readiness - start as ready
   const [lastUpdate, setLastUpdate] = useState({});
   const prevComputers = useRef({ normal: [], vip: [] });
   const [highlightActive, setHighlightActive] = useState(false);
@@ -482,6 +524,15 @@ const AvailableComputers = () => {
   const [showQueueModal, setShowQueueModal] = useState(false);
   const [showQueueConfirmation, setShowQueueConfirmation] = useState(false);
   const [selectedQueueType, setSelectedQueueType] = useState(null);
+  // Success/Error modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  // Confirmation modal states
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // Move computersList to useMemo to prevent unnecessary recreations
   const computersList = useMemo(() => ({
@@ -522,7 +573,15 @@ const AvailableComputers = () => {
   }, [user, supabase]);
 
   // Queue management
-  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase);
+  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase, {
+    setErrorMessage,
+    setShowErrorModal,
+    setSuccessMessage,
+    setShowSuccessModal,
+    setConfirmMessage,
+    setShowConfirmModal,
+    setConfirmAction
+  });
 
   // Handle queue type selection - show confirmation modal
   const handleQueueSelection = (queueType) => {
@@ -679,11 +738,9 @@ const AvailableComputers = () => {
       setComputers(initialComputers);
       prevComputers.current = initialComputers;
       
-      // Only set loading to false after a short delay to ensure UI updates
-      setTimeout(() => {
-        setIsLoading(false);
-        setPageReady(true);
-      }, 500);
+      // Set loading to false immediately
+      setIsLoading(false);
+      setPageReady(true);
     }
   }, [computersList, computers.normal.length, computers.vip.length]);
 
@@ -810,7 +867,8 @@ const AvailableComputers = () => {
     return positionAmongEligible === 1;
   };
 
-  // Helper function to get user's position within their specific queue type
+  // Helper function to get user's position within their specific queue type - UNUSED
+  /*
   const getUserPositionInQueueType = async (queueType) => {
     try {
       const { data: queueEntries, error } = await supabase
@@ -833,6 +891,7 @@ const AvailableComputers = () => {
       return 999;
     }
   };
+  */
 
   // Helper function to get user's position among all people eligible for a computer type
   const getUserPositionAmongEligibleQueues = async (eligibleQueueTypes) => {
@@ -1059,106 +1118,25 @@ const AvailableComputers = () => {
     return loadedComputers[computerId] === true;
   }, [loadedComputers]);
 
-      // Memoized component to display user's position in their specific queue type
-  const QueuePositionDisplay = useMemo(() => {
-    // Create a component that only updates when actual values change
-    return ({ userInQueue }) => {
-      const [displayText, setDisplayText] = useState('');
-      const [isStable, setIsStable] = useState(false);
-      
-      // Create stable values 
-      const userId = userInQueue?.user_id || userInQueue?.id;
-      const userPosition = userInQueue?.position;
-      const userComputerType = userInQueue?.computer_type;
-      
-      // Create a stable key based on actual values
-      const stableKey = userId && userPosition && userComputerType ? `${userId}-${userPosition}-${userComputerType}` : null;
-      const lastStableKey = useRef(null);
-      const lastDisplayText = useRef('');
-      
-      useEffect(() => {
-        if (!userInQueue || !stableKey) return;
-        
-        // If key hasn't changed, keep showing the same text
-        if (stableKey === lastStableKey.current && lastDisplayText.current) {
-          setDisplayText(lastDisplayText.current);
-          setIsStable(true);
-          return;
-        }
-        
-        // Only fetch new data if the key actually changed
-        let isCancelled = false;
-        
-        const fetchAndUpdateText = async () => {
-          try {
-            const breakdown = await getQueueBreakdownBeforeUser(userInQueue);
-            
-            if (isCancelled) return;
-            
-            const { position, anyAhead, bottomAhead, topAhead } = breakdown;
-            const isYourTurn = position === 1;
-            
-            const queueTypeLabel = userInQueue.computer_type === 'any' ? 'any computer' 
-              : userInQueue.computer_type === 'bottom' ? 'bottom floor computers' 
-              : 'top floor computers';
+  // Simple component to display user's position in their specific queue type
+  const QueuePositionDisplay = ({ userInQueue }) => {
+    if (!userInQueue) return null;
+    
+    const userPosition = userInQueue?.position;
+    const userComputerType = userInQueue?.computer_type;
+    
+    const queueTypeLabel = userComputerType === 'any' ? 'any computer' 
+      : userComputerType === 'bottom' ? 'bottom floor computers' 
+      : 'top floor computers';
 
-            let newText = '';
-            if (isYourTurn) {
-              newText = `You're next for ${queueTypeLabel} - Your turn!`;
-            } else {
-              const ahead = [];
-              if (anyAhead > 0) ahead.push(`${anyAhead} any`);
-              if (bottomAhead > 0) ahead.push(`${bottomAhead} bottom`);
-              if (topAhead > 0) ahead.push(`${topAhead} top`);
-              
-              if (ahead.length > 0) {
-                newText = `${ahead.join(', ')} before your turn - you're #${position} for ${queueTypeLabel}`;
-              } else {
-                newText = `You're #${position} for ${queueTypeLabel}`;
-              }
-              
-              if (position !== userInQueue.position) {
-                newText += ` (#${userInQueue.position} overall)`;
-              }
-            }
-            
-            // Only update if text actually changed
-            if (newText !== lastDisplayText.current) {
-              setDisplayText(newText);
-              lastDisplayText.current = newText;
-              lastStableKey.current = stableKey;
-            }
-            setIsStable(true);
-            
-          } catch (error) {
-            console.error('Error fetching queue breakdown:', error);
-            // Keep showing previous text on error
-            if (lastDisplayText.current) {
-              setDisplayText(lastDisplayText.current);
-              setIsStable(true);
-            }
-          }
-        };
-        
-        fetchAndUpdateText();
-        
-        return () => {
-          isCancelled = true;
-        };
-      }, [stableKey]);
-
-      if (!userInQueue) return null;
-      
-      // Show stable text or fallback
-      const finalText = displayText || `You're #${userInQueue.position} in queue`;
-      
-      return (
-        <span className={styles.positionText} style={{ opacity: isStable ? 1 : 0.7 }}>
-          {finalText}
-        </span>
-      );
-    };
-  }, []); // Empty dependency array - component never changes
+    const displayText = `Position ${userPosition} for ${queueTypeLabel}`;
+    
+    return (
+      <span className={styles.positionText}>
+        {displayText}
+      </span>
+    );
+  };
 
   // Check occupancy status for different computer types
   const computerOccupancy = useMemo(() => {
@@ -1187,18 +1165,7 @@ const AvailableComputers = () => {
 
 
 
-  // If the page is not yet ready, show the full page loading screen
-  if (!pageReady) {
-    return (
-      <ProtectedPageWrapper>
-        <div className={styles.loading}>
-          <div className={styles.loadingDot}></div>
-          <div className={styles.loadingDot}></div>
-          <div className={styles.loadingDot}></div>
-        </div>
-      </ProtectedPageWrapper>
-    );
-  }
+  // Page is always ready now - no loading screen needed
 
   // Only show the error screen if there's an error and the page is ready
   if (error && pageReady) {
@@ -1229,6 +1196,7 @@ const AvailableComputers = () => {
           <div className={styles.liveDot}></div>
           <span className={styles.liveText}>Live</span>
         </div>
+
 
         {/* Compact Queue Status Display with Breakdown */}
         {queueStatus && (queueStatus.is_active || queueStatus.current_queue_size > 0) && (
@@ -1279,27 +1247,16 @@ const AvailableComputers = () => {
           </div>
         )}
 
-        {/* Always Available Queue Option - For Floor Specific Queuing */}
-        {!userInQueue && !userAlreadyLoggedIn && (!queueStatus || !queueStatus.is_active) && (
-          <div className={styles.flexibleQueueSection}>
-            <div className={styles.flexibleQueueHeader}>
-              <h3>📋 Queue for Specific Floor</h3>
-              <p>Want to wait for a specific computer floor? Join the queue even if some computers are available!</p>
-            </div>
-            <div className={styles.flexibleQueueActions}>
-              <button 
-                className={styles.flexibleQueueButton} 
-                onClick={() => setShowQueueModal(true)}
-                disabled={isJoiningQueue}
-              >
-                {isJoiningQueue ? 'Joining...' : 'Choose Your Queue Preference'}
-              </button>
-            </div>
-            <div className={styles.flexibleQueueInfo}>
-              <p>• Wait specifically for top floor computers (PC 9-14)</p>
-              <p>• Wait specifically for bottom floor computers (PC 1-8)</p>
-              <p>• Get notified when your preferred floor has availability</p>
-            </div>
+        {/* Simple Join Queue Button */}
+        {!userInQueue && !userAlreadyLoggedIn && (
+          <div className={styles.simpleQueueSection}>
+            <button 
+              className={styles.simpleJoinButton} 
+              onClick={() => setShowQueueModal(true)}
+              disabled={isJoiningQueue}
+            >
+              {isJoiningQueue ? 'Joining...' : 'Join Queue'}
+            </button>
           </div>
         )}
 
@@ -1444,7 +1401,7 @@ const AvailableComputers = () => {
               <h3>🎮 Join Queue Confirmation</h3>
               <div className={styles.confirmationMessage}>
                 <p>
-                  <strong>You're about to join the queue for {
+                  <strong>You&apos;re about to join the queue for {
                     selectedQueueType === 'any' ? 'any available computer' :
                     selectedQueueType === 'bottom' ? 'bottom floor computers' :
                     'top floor computers'
@@ -1454,15 +1411,15 @@ const AvailableComputers = () => {
                 <div className={styles.confirmationInfo}>
                   <p>📋 <strong>What happens next:</strong></p>
                   <ul>
-                    <li>✅ You'll be added to the waiting list</li>
-                    <li>🔔 We'll notify you when it's your turn</li>
+                    <li>✅ You&apos;ll be added to the waiting list</li>
+                    <li>🔔 We&apos;ll notify you when it&apos;s your turn</li>
                     <li>🎮 <strong>We will automatically log you in</strong> when a computer becomes available</li>
                     <li>❌ If you change your mind, you can remove yourself from the queue</li>
                   </ul>
                 </div>
 
                 <div className={styles.importantNote}>
-                  <p>⚠️ <strong>Important:</strong> Make sure you're ready to start gaming when it's your turn!</p>
+                  <p>⚠️ <strong>Important:</strong> Make sure you&apos;re ready to start gaming when it&apos;s your turn!</p>
                 </div>
               </div>
 
@@ -1482,6 +1439,70 @@ const AvailableComputers = () => {
                   disabled={isJoiningQueue}
                 >
                   {isJoiningQueue ? 'Joining...' : 'Confirm & Join Queue'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className={styles.queueModal}>
+            <div className={styles.queueModalContent}>
+              <h3>✅ Success!</h3>
+              <p>{successMessage}</p>
+              <div className={styles.queueModalActions}>
+                <button 
+                  className={styles.queueConfirmButton}
+                  onClick={() => setShowSuccessModal(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Modal */}
+        {showErrorModal && (
+          <div className={styles.queueModal}>
+            <div className={styles.queueModalContent}>
+              <h3>❌ Error</h3>
+              <p>{errorMessage}</p>
+              <div className={styles.queueModalActions}>
+                <button 
+                  className={styles.queueCancelButton}
+                  onClick={() => setShowErrorModal(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Modal */}
+        {showConfirmModal && (
+          <div className={styles.queueModal}>
+            <div className={styles.queueModalContent}>
+              <h3>⚠️ Confirm Action</h3>
+              <p>{confirmMessage}</p>
+              <div className={styles.queueModalActions}>
+                <button 
+                  className={styles.queueCancelButton}
+                  onClick={() => setShowConfirmModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className={styles.queueConfirmButton}
+                  onClick={() => {
+                    if (confirmAction) {
+                      confirmAction();
+                    }
+                  }}
+                >
+                  Yes, Leave Queue
                 </button>
               </div>
             </div>

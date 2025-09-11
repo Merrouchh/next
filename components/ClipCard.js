@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { MdFavorite, MdFavoriteBorder, MdVisibility, MdPerson, MdExpandMore, 
-  MdPublic, MdLock, MdDelete, MdShare, MdClose, MdSync, MdComment } from 'react-icons/md';
+import { MdVisibility, MdPerson, 
+  MdPublic, MdLock, MdDelete, MdShare, MdSync, MdComment } from 'react-icons/md';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
 import VideoPlayer from './VideoPlayer';
@@ -12,7 +12,7 @@ import VisibilityModal from './VisibilityModal';
 import ShareModal from './ShareModal';
 import { useRouter } from 'next/router';
 import ExpandedTitleModal from './ExpandedTitleModal';
-import CommentsSection from './CommentsSection';
+// import CommentsSection from './CommentsSection'; // Removed unused import
 import CommentModal from './CommentModal';
 import { fetchCommentsByClipId } from '../utils/supabase/comments';
 import Link from 'next/link';
@@ -121,10 +121,10 @@ function getProcessingStage(status) {
 
 const ClipCard = ({ 
   clip, 
-  isFullWidth = false, 
+  // isFullWidth = false, // Removed unused parameter 
   onClipUpdate = null // Make it optional with default null
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [showFullTitle, setShowFullTitle] = useState(false);
   const titleRef = useRef(null);
@@ -136,7 +136,7 @@ const ClipCard = ({
   const [showVisibilityModal, setShowVisibilityModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const router = useRouter();
-  const [isClosing, setIsClosing] = useState(false);
+  // const [, setIsClosing] = useState(false); // Removed unused state
   const [showTitleModal, setShowTitleModal] = useState(false);
   const cardRef = useRef(null);
   const subscriptionRef = useRef(null);
@@ -149,7 +149,7 @@ const ClipCard = ({
   // Add state for comments 
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [commentsCount, setCommentsCount] = useState(0);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [, setIsLoadingComments] = useState(false);
 
   // Check if the clip is still processing
   // Add safety check - if status is missing, assume clip is complete
@@ -222,9 +222,9 @@ const ClipCard = ({
   const isOwner = user?.id === clipData.user_id;
   const isPublic = clipData.visibility === 'public';
 
-  const handleLoadingChange = useCallback((loading) => {
-    setIsLoading(loading);
-  }, []);
+  // const handleLoadingChange = useCallback((loading) => {
+  //   setIsLoading(loading);
+  // }, []); // Removed unused function
 
   // Set up real-time subscription for clip updates
   useEffect(() => {
@@ -272,7 +272,7 @@ const ClipCard = ({
         supabase.removeChannel(subscriptionRef.current);
       }
     };
-  }, [clipData.id, isProcessing, supabase, onClipUpdate, refreshClipData]);
+  }, [clipData.id, isProcessing, supabase, onClipUpdate, refreshClipData, clipData.status]);
 
   // Handle scroll to hide expanded title
   useEffect(() => {
@@ -382,7 +382,7 @@ const ClipCard = ({
     
     setIsUpdating(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('clips')
         .update({ visibility: newVisibility })
         .eq('id', clipData.id)
@@ -457,19 +457,19 @@ const ClipCard = ({
     }
   };
 
-  const handleTitleClick = () => {
-    if (isTruncated) {
-      setShowFullTitle(true);
-    }
-  };
+  // const handleTitleClick = () => {
+  //   if (isTruncated) {
+  //     setShowFullTitle(true);
+  //   }
+  // }; // Removed unused function
 
-  const handleCloseTitle = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setShowFullTitle(false);
-      setIsClosing(false);
-    }, 200);
-  };
+  // const handleCloseTitle = () => {
+  //   setIsClosing(true);
+  //   setTimeout(() => {
+  //     setShowFullTitle(false);
+  //     setIsClosing(false);
+  //   }, 200);
+  // }; // Removed unused function
 
   // Enhanced like handler with multiple floating hearts animation
   const handleLikeWithAnimation = () => {

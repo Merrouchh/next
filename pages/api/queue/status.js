@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       // If it's a JSON string, parse it
       try {
         status = JSON.parse(statusData);
-      } catch (e) {
+      } catch {
         status = statusData;
       }
     } else {

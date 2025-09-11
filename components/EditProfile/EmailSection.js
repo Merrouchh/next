@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useReducer } from 'react';
 import styles from '../../styles/EditProfile.module.css';
 import { AiOutlineMail, AiOutlineLock, AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
 
 const EmailSection = ({ 
   user, 
@@ -18,7 +18,7 @@ const EmailSection = ({
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [emailUpdatePending, setEmailUpdatePending] = useState(false);
   const [verificationDetails, setVerificationDetails] = useState(null);
-  const { refreshUserData } = useAuth();
+  // const { refreshUserData } = useAuth(); // Removed unused destructuring
   const [isCheckingVerification, setIsCheckingVerification] = useState(false);
   const checkCountRef = useRef(0);
   // Add a forceUpdate mechanism
@@ -113,7 +113,7 @@ const EmailSection = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [user?.id, isCheckingVerification]);
+  }, [user?.id, isCheckingVerification, setWebsiteAccount, user.email, websiteAccount.email]);
 
   const handleEmailUpdate = async (e) => {
     e.preventDefault();
@@ -224,7 +224,7 @@ const EmailSection = ({
       }
       
       // Update email in Supabase - this will send a verification email
-      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         email: websiteAccount.email,
         options: {
           emailRedirectTo: redirectUrl.toString()
@@ -533,7 +533,7 @@ const EmailSection = ({
   return (
     <div className={styles.subsection}>
       <h3>Email Address</h3>
-      {verificationDetails && verificationDetails.status === 'pending' && verificationDetails.new_email && (
+      {emailUpdatePending && verificationDetails && verificationDetails.status === 'pending' && verificationDetails.new_email && (
         <div 
           className={`${styles.message} ${styles.info}`}
           style={{
@@ -553,7 +553,7 @@ const EmailSection = ({
           }}
         >
           <p><strong>Email verification pending!</strong></p>
-          <p>We've sent a confirmation link to <strong>{verificationDetails.new_email}</strong></p>
+          <p>We&#39;ve sent a confirmation link to <strong>{verificationDetails.new_email}</strong></p>
           <p>Please check your email inbox and click the confirmation link to complete the change.</p>
           <p>You can continue using the site with your current email until verification is complete.</p>
           

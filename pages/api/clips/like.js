@@ -14,13 +14,14 @@ export default async function handler(req, res) {
   // Create Supabase client
   const supabase = createClient({ req, res });
 
-  // Get user session for authentication
+  // Get authenticated user (secure method)
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   // Check authentication
-  if (!session) {
+  if (userError || !user) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
       .from('video_likes')
       .select('id')
       .eq('clip_id', clipId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (likeError && likeError.code !== 'PGRST116') {
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
         .from('video_likes')
         .delete()
         .eq('clip_id', clipId)
-        .eq('user_id', session.user.id);
+        .eq('user_id', user.id);
 
       if (unlikeError) {
         console.error('Error removing like:', unlikeError);
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
         .from('video_likes')
         .insert({
           clip_id: clipId,
-          user_id: session.user.id
+          user_id: user.id
         });
 
       if (likeError) {
@@ -80,12 +81,12 @@ export default async function handler(req, res) {
         const { count: commentsCount, error: commentsError } = await supabase
           .from('clip_comments')
           .select('id', { count: 'exact' })
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
           .limit(1);
           
         if (!commentsError && commentsCount > 0) {
           // User has both liked and commented, so award the achievement
-          await markAchievementCompleted(supabase, session.user.id, 'first-interaction');
+          await markAchievementCompleted(supabase, user.id, 'first-interaction');
         }
       } catch (achievementError) {
         console.error('Error checking/triggering achievement:', achievementError);
