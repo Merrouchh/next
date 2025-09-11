@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
 import styles from '../../styles/Bracket.module.css';
 // import ZoomControls from './ZoomControls'; // Removed unused import
-import ChampionBanner from '../ChampionBanner';
+import ChampionBanner from '../shared/ChampionBanner';
 import DeleteBracketButton from './DeleteBracketButton';
 import { getParticipantNameById, getParticipantDisplayName } from '../../utils/participantUtils';
 

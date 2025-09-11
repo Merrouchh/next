@@ -5,7 +5,7 @@ import {
   getRegistrationButtonClass, 
   isRegistrationButtonDisabled 
 } from '../../utils/eventDetailHelpers';
-import ChampionBanner from '../ChampionBanner';
+import ChampionBanner from '../shared/ChampionBanner';
 import styles from '../../styles/EventDetail.module.css';
 
 const EventActions = ({ 

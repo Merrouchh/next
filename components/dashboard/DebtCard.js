@@ -56,17 +56,6 @@ const DebtCard = React.memo(({ debtAmount, hasTime }) => {
           <div className={styles.debtPolicy}>
             <strong>No more debt can be accumulated until your current debt is fully paid.</strong>
           </div>
-          <div className={styles.debtRules}>
-            <div className={styles.debtRuleItem}>
-              <strong>Debt Rules:</strong>
-            </div>
-            <div className={styles.debtRuleItem}>
-              - Only one 50 DH pack OR one single hour can be taken as debt at a time.
-            </div>
-            <div className={styles.debtRuleItem}>
-              - Snacks and drinks cannot be purchased on debt
-            </div>
-          </div>
         </div>
       </div>
     </DashboardCard>

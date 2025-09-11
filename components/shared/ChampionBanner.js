@@ -152,21 +152,22 @@ const ChampionBanner = ({
           padding: 4px 12px;
           border-radius: 16px;
           font-size: 0.75rem;
-          font-weight: 600;
+          font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           margin-bottom: 8px;
+          font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
         }
 
         .champion-name {
           margin: 0;
-          font-size: 1.5rem;
-          font-weight: 600;
+          font-size: 1.7rem;
+          font-weight: 800;
           color: #000000;
-          line-height: 1.3;
-          letter-spacing: -0.3px;
+          line-height: 1.25;
+          letter-spacing: -0.4px;
+          font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
         }
-
 
         @media (max-width: 768px) {
           .champion-banner {
@@ -179,7 +180,7 @@ const ChampionBanner = ({
           }
 
           .champion-name {
-            font-size: 1.25rem;
+            font-size: 1.35rem;
           }
         }
 
@@ -189,7 +190,7 @@ const ChampionBanner = ({
           }
 
           .champion-name {
-            font-size: 1.125rem;
+            font-size: 1.2rem;
           }
         }
       `}</style>
@@ -198,3 +199,5 @@ const ChampionBanner = ({
 };
 
 export default ChampionBanner;
+
+

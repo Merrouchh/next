@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { toast } from 'react-hot-toast';
 import { 
   FaImage, 
@@ -49,7 +49,7 @@ const SlideshowImage = React.memo(function SlideshowImage({ image, onLoaded, onE
   return (
     <>
       {!imageError ? (
-          <Image 
+          <NextImage 
             src={image.image_url} 
             alt={imageAlt}
             title={imageTitle}
@@ -276,7 +276,7 @@ const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, 
         )}
         
         {!imageError ? (
-          <Image 
+          <NextImage 
             src={image.image_url}
             alt={imageAlt}
             title={imageTitle}
@@ -394,7 +394,7 @@ const UploadModal = React.memo(function UploadModal({ isOpen, onClose, onSubmit,
           <div className={styles.fileInputContainer}>
             {imagePreview ? (
               <div className={styles.previewContainer}>
-                <Image 
+                <NextImage 
                   src={imagePreview} 
                   alt="Preview" 
                   className={styles.imagePreview}

@@ -239,10 +239,11 @@ export const AuthProvider = ({ children, onError }) => {
           }
         }
         
+        // Safari and some mobile browsers do not support LockManager.
+        // Do NOT block authentication if it's missing; just record a warning.
         if (typeof window !== 'undefined' && !('locks' in navigator)) {
-          setLockManagerError('Your browser does not support the LockManager API required for secure authentication. Please use a modern browser like Chrome, Firefox, or Edge.');
-          setAuthState(prev => ({ ...prev, loading: false, initialized: true }));
-          return;
+          console.warn('LockManager API not supported. Proceeding without it.');
+          setLockManagerError(null);
         }
 
         let session, sessionError;
@@ -258,7 +259,8 @@ export const AuthProvider = ({ children, onError }) => {
               break;
             }
           } catch (err) {
-            if (err.name && err.name.includes('Lock')) {
+            // If LockManager-related error occurs on browsers without support, continue without blocking
+            if ((err.name && err.name.includes('Lock')) || (typeof navigator !== 'undefined' && !('locks' in navigator))) {
               // LockManager error, retry
               await new Promise(res => setTimeout(res, attempt * 1000));
               continue;
@@ -269,11 +271,7 @@ export const AuthProvider = ({ children, onError }) => {
             }
           }
         }
-        if (sessionError && sessionError.name && sessionError.name.includes('Lock')) {
-          setLockManagerError('Authentication failed due to a browser LockManager error. Please close other tabs of this app, refresh, or try a different browser.');
-          setAuthState(prev => ({ ...prev, loading: false, initialized: true }));
-          return;
-        }
+        // Do not hard-fail on LockManager errors; continue gracefully
         
         if (session?.user) {
           console.log('Auth: Found existing session, getting user data');
