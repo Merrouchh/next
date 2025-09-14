@@ -165,6 +165,7 @@ async function handleCreateEvent(req, res, eventData) {
         image: eventData.image || null,
         registration_limit: eventData.registration_limit || null,
         team_type: eventData.team_type || 'solo',
+        phone_verification_required: eventData.phone_verification_required !== false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

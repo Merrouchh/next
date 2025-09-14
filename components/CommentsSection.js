@@ -33,6 +33,7 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
   // Reference for scrolling
   const commentsContainerRef = useRef(null);
   const commentInputRef = useRef(null);
+  const isLoadingRef = useRef(false);
   
   // Auth context for user information
   const { user } = useAuth();
@@ -42,8 +43,9 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
 
   // Function to load comments
   const loadComments = useCallback(async (pageNum = 0, replace = false) => {
-    if (isLoading || !clipId) return;
+    if (!clipId || isLoadingRef.current) return;
     
+    isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
     
@@ -59,18 +61,29 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
       setTotalComments(result.count);
       setHasMore(result.comments.length === COMMENTS_PER_PAGE);
       setPage(pageNum);
+      
+      // Ensure loading is set to false after successful data fetch
+      setIsLoading(false);
+      isLoadingRef.current = false;
     } catch (err) {
       console.error('Error loading comments:', err);
       setError('Failed to load comments. Please try again.');
-    } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
-  }, [isLoading, clipId]);
+  }, [clipId]);
 
   // Load comments on mount and when clipId changes
   useEffect(() => {
     if (clipId && isExpanded) {
       loadComments(0, true);
+    } else if (!clipId) {
+      // Reset state when no clipId
+      setComments([]);
+      setTotalComments(0);
+      setIsLoading(false);
+      setError(null);
+      isLoadingRef.current = false;
     }
   }, [clipId, isExpanded, loadComments]);
   
@@ -222,35 +235,6 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
     setIsExpanded(prev => !prev);
   };
   
-  // Function to format date
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return 'Invalid date';
-    }
-    
-    // If today, show time only
-    const now = new Date();
-    const isToday = date.getDate() === now.getDate() &&
-                    date.getMonth() === now.getMonth() &&
-                    date.getFullYear() === now.getFullYear();
-    
-    if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // If this year, show month and day
-    const isThisYear = date.getFullYear() === now.getFullYear();
-    
-    if (isThisYear) {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-    
-    // Otherwise show full date
-    return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
-  };
 
   return (
     <div className={styles.commentsSection}>
@@ -315,11 +299,23 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
           
           {/* Comments list */}
           <div ref={commentsContainerRef} className={styles.commentsList}>
-            {comments.length === 0 && !isLoading ? (
+            {/* Show loading indicator only when actually loading and no comments yet */}
+            {isLoading && comments.length === 0 && (
+              <div className={styles.loadingIndicator}>
+                <div className={styles.loadingSpinner}></div>
+                Loading comments...
+              </div>
+            )}
+            
+            {/* Show no comments message when not loading and no comments exist */}
+            {!isLoading && comments.length === 0 && (
               <div className={styles.noComments}>
                 No comments yet. Be the first to comment!
               </div>
-            ) : (
+            )}
+            
+            {/* Show comments when they exist */}
+            {comments.length > 0 && (
               comments.map(comment => (
                 <div key={comment.id} className={styles.commentItem}>
                   <div className={styles.commentHeader}>
@@ -328,7 +324,7 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
                       <span className={styles.username}>{comment.username}</span>
                     </div>
                     <span className={styles.commentDate}>
-                      {formatDate(comment.created_at)}
+                      {new Date(comment.created_at).toLocaleDateString()} at {new Date(comment.created_at).toLocaleTimeString()}
                       {comment.updated_at !== comment.created_at && ' (edited)'}
                     </span>
                   </div>
@@ -400,14 +396,6 @@ const CommentsSection = ({ clipId, isCollapsible = true, initiallyExpanded = tru
               >
                 {isLoading ? 'Loading...' : 'Load More Comments'}
               </button>
-            )}
-            
-            {/* Loading indicator */}
-            {isLoading && comments.length === 0 && (
-              <div className={styles.loadingIndicator}>
-                <div className={styles.loadingSpinner}></div>
-                Loading comments...
-              </div>
             )}
           </div>
         </>

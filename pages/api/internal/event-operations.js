@@ -159,9 +159,9 @@ async function handleGetRegistrationStatus(req, res, eventId, supabase) {
       }
     }
 
-    // If user is not registered but it's a duo event, check if they are a partner in someone else's registration
-    if (!isRegistered && eventData.team_type === 'duo') {
-      console.log('[INTERNAL API] User not registered, checking if they are a partner in someone else\'s registration');
+    // If user is not registered, check if they are a team member in someone else's registration
+    if (!isRegistered && (eventData.team_type === 'duo' || eventData.team_type === 'team')) {
+      console.log('[INTERNAL API] User not registered, checking if they are a team member in someone else\'s registration');
       
       // Check if this user is a team member in someone else's registration
       const { data: partnerTeamMembers, error: partnerTeamError } = await supabase
@@ -187,13 +187,22 @@ async function handleGetRegistrationStatus(req, res, eventId, supabase) {
         const teamMember = partnerTeamMembers[0];
         const mainRegistrant = teamMember.event_registrations;
         
+        // Mark user as registered since they are part of a team
+        isRegistered = true;
+        registrationInfo = {
+          id: teamMember.registration_id,
+          team_name: mainRegistrant.team_name,
+          user_id: req.body.userId,
+          username: teamMember.username
+        };
+        
         partnerInfo = {
           username: mainRegistrant.username,
           userId: mainRegistrant.user_id
         };
-        console.log('[INTERNAL API] User is a partner of:', partnerInfo);
+        console.log('[INTERNAL API] User is a team member of:', partnerInfo, 'Registration info:', registrationInfo);
       } else {
-        console.log('[INTERNAL API] User is not a partner in any registration');
+        console.log('[INTERNAL API] User is not a team member in any registration');
       }
     }
 
@@ -203,7 +212,11 @@ async function handleGetRegistrationStatus(req, res, eventId, supabase) {
       isRegistered,
       registrationInfo,
       partnerInfo,
-      eventData
+      eventData,
+      // Add fields that frontend expects
+      teamMembers: [], // Will be populated by frontend if needed
+      availableTeamMembers: [], // Will be populated by frontend if needed
+      registeredBy: isRegistered && partnerInfo ? partnerInfo.username : null
     });
     
   } catch (error) {

@@ -23,6 +23,50 @@ export const formatDate = (dateString) => {
   }
 };
 
+// Format time for display (converts 24-hour format to 12-hour with AM/PM)
+export const formatTime = (timeString) => {
+  if (!timeString || timeString === 'TBD') {
+    return timeString || 'TBD';
+  }
+  
+  try {
+    // Handle different time formats
+    let timeStr = timeString.trim();
+    
+    // If it's already in 12-hour format with AM/PM, return as is
+    if (timeStr.includes('AM') || timeStr.includes('PM')) {
+      return timeStr;
+    }
+    
+    // Parse the time string (handle formats like "11:00:00" or "11:00")
+    const timeParts = timeStr.split(':');
+    if (timeParts.length < 2) {
+      return timeStr; // Return original if can't parse
+    }
+    
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    
+    if (isNaN(hours) || isNaN(minutes)) {
+      return timeStr; // Return original if invalid numbers
+    }
+    
+    // Convert to 12-hour format
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    
+    // Format with minutes if they're not 00
+    if (minutes === 0) {
+      return `${displayHours} ${period}`;
+    } else {
+      return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+    }
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeString; // Return original string if formatting fails
+  }
+};
+
 // Session retry utility - reusable across different functions
 export const retryGetSession = async (supabase, maxRetries = 3, delayMs = 300) => {
   let accessToken = null;

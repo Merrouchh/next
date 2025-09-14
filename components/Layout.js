@@ -5,6 +5,7 @@ import { useState, useCallback, useRef } from 'react';
 import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
+// import CookieConsent from './CookieConsent';
 import { useModal } from '../contexts/ModalContext';
 import { isAuthPage, isAdminPage } from '../utils/routeConfig';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -114,6 +115,9 @@ const Layout = ({ children }) => {
       <div id="modal-root" className={styles.modalRoot}>
         <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       </div>
+      
+      {/* Cookie Consent Banner (disabled for now) */}
+      {/* <CookieConsent /> */}
       
       {/* Floating upload button for desktop logged-in users (hidden on upload page) */}
       {user && !isMobile && router.pathname !== '/upload' && (

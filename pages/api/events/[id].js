@@ -77,17 +77,17 @@ async function getEvent(req, res, supabase, id) {
   try {
     console.log("Executing getEvent query for ID:", id);
     
-    const { data, error } = await supabase
+    const { data, error, status } = await supabase
       .from('events')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
-    if (error) {
+    if (error && status !== 406) {
       console.error("Database error:", error);
       throw error;
     }
-    
+
     if (!data) {
       console.log("Event not found with ID:", id);
       return res.status(404).json({ message: 'Event not found' });
@@ -113,24 +113,8 @@ async function getEvent(req, res, supabase, id) {
     
     if (!countError && actualRegistrationCount !== null) {
       console.log("Actual registration count:", actualRegistrationCount, "Database count:", data.registered_count);
-      
-      // Update the response data with the actual count
+      // Only override in the response; don't update DB from public endpoint
       data.registered_count = actualRegistrationCount;
-      
-      // If the count in the database is wrong, update it
-      if (data.registered_count !== actualRegistrationCount) {
-        console.log("Updating database registration count to:", actualRegistrationCount);
-        const { error: updateError } = await supabase
-          .from('events')
-          .update({ registered_count: actualRegistrationCount })
-          .eq('id', id);
-        
-        if (updateError) {
-          console.error("Error updating event registration count:", updateError);
-        } else {
-          console.log("Successfully updated event registration count in database");
-        }
-      }
     } else if (countError) {
       console.error("Error counting registrations:", countError);
     }

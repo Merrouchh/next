@@ -242,28 +242,15 @@ export default function AdminStats() {
     const activeShift = validShifts.find(shift => shift.isActive) || 
                         (validShifts.length > 0 ? validShifts[validShifts.length - 1] : null);
     
-    // Calculate active shift expected as: Start Amount + Sales - Refunds + Net Cash Flow
-    const activeShiftExpected = activeShift ? (() => {
-      const startCash = Number.isFinite(activeShift.startCash) ? activeShift.startCash : 0;
-      const sales = Number.isFinite(activeShift.sales) ? activeShift.sales : 0;
-      const refunds = Number.isFinite(activeShift.refunds) ? activeShift.refunds : 0;
-      
-      // Calculate net cash flow (payIns - payOuts)
-      let netCashFlow = 0;
-      if (Number.isFinite(activeShift.payOuts)) {
-        const payIns = activeShift.payIns || 0;
-        const payOuts = activeShift.payOuts || 0;
-        netCashFlow = payIns - payOuts;
-      } else if (activeShift.details && activeShift.details.length > 0) {
-        netCashFlow = activeShift.details.reduce((sum, d) => {
+    // Calculate active shift expected as (expected - net payouts)
+    const activeShiftExpected = activeShift ? 
+      (Number.isFinite(activeShift.expected) ? activeShift.expected : 0) - 
+      (activeShift.details && activeShift.details.length > 0 ? 
+        activeShift.details.reduce((sum, d) => {
           const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
           const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
-          return sum + (detailPayIns - detailPayouts);
-        }, 0);
-      }
-      
-      return startCash + sales - refunds + netCashFlow;
-    })() : 0;
+          return sum + (detailPayouts - detailPayIns);
+        }, 0) : 0) : 0;
 
     // Calculate real-time total duration including active shifts
     let totalMinutes = 0;
@@ -306,24 +293,24 @@ export default function AdminStats() {
           detail.paymentMethodName.toLowerCase().includes('cash')
         );
         
-        // Add net cash flow from cash method if found (payIns - payOuts)
+        // Add net payouts from cash method if found (payOuts - payIns)
         if (cashDetails) {
           const cashPayouts = Number.isFinite(cashDetails.payOuts) ? cashDetails.payOuts : 0;
           const cashPayIns = Number.isFinite(cashDetails.payIns) ? cashDetails.payIns : 0;
-          shiftCashPayouts = cashPayIns - cashPayouts;
+          shiftCashPayouts = cashPayouts - cashPayIns;
         }
         
-        // Calculate total net cash flow across all payment methods (payIns - payOuts)
+        // Calculate total net payouts across all payment methods (payOuts - payIns)
         shiftTotalPayouts = shift.details.reduce((sum, detail) => {
           const detailPayouts = Number.isFinite(detail.payOuts) ? detail.payOuts : 0;
           const detailPayIns = Number.isFinite(detail.payIns) ? detail.payIns : 0;
-          return sum + (detailPayIns - detailPayouts);
+          return sum + (detailPayouts - detailPayIns);
         }, 0);
       } else if (Number.isFinite(shift.payOuts)) {
         // If we have payOuts at the shift level (and possibly payIns)
         const payOuts = shift.payOuts || 0;
         const payIns = shift.payIns || 0;
-        shiftTotalPayouts = payIns - payOuts;
+        shiftTotalPayouts = payOuts - payIns;
       }
       
       return {
@@ -402,40 +389,16 @@ export default function AdminStats() {
         <td>{Number.isFinite(shift.startCash) ? formatCurrency(shift.startCash) : '0 MAD'}</td>
         <td>{Number.isFinite(shift.sales) ? formatCurrency(shift.sales) : '0 MAD'}</td>
         <td>{Number.isFinite(shift.refunds) ? formatCurrency(shift.refunds) : '0 MAD'}</td>
+        <td>{Number.isFinite(shift.expected) ? formatCurrency(shift.expected) : '0 MAD'}</td>
         <td>
-          {/* Calculate expected as: Start Amount + Sales - Refunds + Net Cash Flow */}
-          {(() => {
-            const startCash = Number.isFinite(shift.startCash) ? shift.startCash : 0;
-            const sales = Number.isFinite(shift.sales) ? shift.sales : 0;
-            const refunds = Number.isFinite(shift.refunds) ? shift.refunds : 0;
-            
-            // Calculate net cash flow (payIns - payOuts)
-            let netCashFlow = 0;
-            if (Number.isFinite(shift.payOuts)) {
-              const payIns = shift.payIns || 0;
-              const payOuts = shift.payOuts || 0;
-              netCashFlow = payIns - payOuts;
-            } else if (shift.details && shift.details.length > 0) {
-              netCashFlow = shift.details.reduce((sum, d) => {
-                const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
-                const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
-                return sum + (detailPayIns - detailPayouts);
-              }, 0);
-            }
-            
-            const calculatedExpected = startCash + sales - refunds + netCashFlow;
-            return formatCurrency(calculatedExpected);
-          })()}
-        </td>
-        <td>
-          {/* Net Cash Flow (payIns - payOuts) */}
+          {/* Net Payouts (payOuts - payIns) */}
           {Number.isFinite(shift.payOuts) ? 
-            formatCurrency((shift.payIns || 0) - (shift.payOuts || 0)) : 
+            formatCurrency((shift.payOuts || 0) - (shift.payIns || 0)) : 
             (shift.details && shift.details.length > 0) 
               ? formatCurrency(shift.details.reduce((sum, d) => {
                   const detailPayouts = Number.isFinite(d.payOuts) ? d.payOuts : 0;
                   const detailPayIns = Number.isFinite(d.payIns) ? d.payIns : 0;
-                  return sum + (detailPayIns - detailPayouts);
+                  return sum + (detailPayouts - detailPayIns);
                 }, 0))
               : '0 MAD'
           }
@@ -581,7 +544,7 @@ export default function AdminStats() {
                     <FaHandHoldingUsd />
                   </div>
                   <div>
-                    <h3 title="Net cash flow (Pay-Ins minus Pay-Outs)">Net Cash Flow</h3>
+                    <h3 title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</h3>
                     <p className={styles.amount}>{formatCurrency(summary?.totalPayouts || 0)}</p>
                   </div>
                 </div>
@@ -648,7 +611,7 @@ export default function AdminStats() {
                       <th>Sales</th>
                       <th>Refunds</th>
                       <th>Expected</th>
-                      <th title="Net cash flow (Pay-Ins minus Pay-Outs)">Net Cash Flow</th>
+                      <th title="Net payouts (Pay-Outs minus Pay-Ins)">Net Payouts</th>
                       <th>End Amount</th>
                       <th title="Cash removed between shifts (payment to previous operator)">Cash Out</th>
                       <th>Difference</th>

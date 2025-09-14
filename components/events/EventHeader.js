@@ -2,7 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaSitemap } from 'react-icons/fa';
-import { formatDate } from '../../utils/eventDetailHelpers';
+import { formatDate, formatTime } from '../../utils/eventDetailHelpers';
 import styles from '../../styles/EventDetail.module.css';
 
 const EventHeader = ({ event, registrationStatus, isPublicView, teamState, bracketState, eventId }) => {
@@ -67,7 +67,7 @@ const EventHeader = ({ event, registrationStatus, isPublicView, teamState, brack
         </div>
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>Time:</span>
-          <span>{event.time || 'TBD'}</span>
+          <span>{formatTime(event.time)}</span>
         </div>
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>Location:</span>

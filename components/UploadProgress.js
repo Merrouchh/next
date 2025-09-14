@@ -151,7 +151,7 @@ const UploadProgress = ({
         if (typeof onClose === 'function') {
           onClose();
         }
-      }, 2000); // Close after 2 seconds to let user see success state
+      }, 1000); // Close after 1 second to let user see success state
       
       return () => clearTimeout(timer);
     }
@@ -180,7 +180,9 @@ const UploadProgress = ({
     <div className={styles.overlay} onClick={e => e.stopPropagation()}>
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
-          <h3 title={title || 'Uploading Video'}>
+          <h3 
+            title={title && title.length > 30 ? title : (title || 'Uploading Video')}
+          >
             {title || 'Uploading Video'}
           </h3>
           {allowClose && status !== 'success' && (
@@ -218,7 +220,7 @@ const UploadProgress = ({
           {status === 'success' && (
             <div style={successStyle}>
               <MdCheckCircle size={24} />
-              <span>Upload completed successfully! Closing automatically...</span>
+              <span>Upload completed successfully!</span>
             </div>
           )}
 

@@ -278,6 +278,7 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
   });
   const [userInQueue, setUserInQueue] = useState(null);
   const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
+  const refreshTimeoutRef = useRef(null);
   
   const fetchQueueStatus = useCallback(async () => {
     if (!user) return;
@@ -295,7 +296,6 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
           allow_online_joining: status.allow_online_joining !== false // Default to true unless explicitly false
         };
         
-        console.log('Button should be visible:', safeStatus.allow_online_joining && !userInQueue); // Debug log
         setQueueStatus(safeStatus);
         
         // Check if current user is in queue
@@ -308,18 +308,22 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
       }
     } catch (error) {
       console.error('Error fetching queue status:', error);
-      // Don't immediately hide the button on error - keep current state
-      // Only update if we don't have any status yet
-      if (!queueStatus) {
-        setQueueStatus({ 
-          is_active: false, 
-          allow_online_joining: true, // Keep button visible on error
-          current_queue_size: 0,
-          automatic_mode: false 
-        });
-      }
+      // Keep a safe default on error
+      setQueueStatus({ 
+        is_active: false, 
+        allow_online_joining: true,
+        current_queue_size: 0,
+        automatic_mode: false 
+      });
     }
-  }, [user, queueStatus, userInQueue]);
+  }, [user]);
+
+  const scheduleQueueRefresh = useCallback(() => {
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = setTimeout(() => {
+      fetchQueueStatus();
+    }, 400);
+  }, [fetchQueueStatus]);
 
   // Set up real-time subscriptions and polling
   useEffect(() => {
@@ -327,7 +331,7 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
     
     fetchQueueStatus();
     
-    // Set up real-time subscription for queue changes
+    // Set up real-time subscription for queue changes (debounced)
     const queueSubscription = supabase
       .channel('queue-changes-users')
       .on('postgres_changes', {
@@ -336,7 +340,7 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
         table: 'computer_queue'
       }, (payload) => {
         console.log('Queue data changed:', payload);
-        fetchQueueStatus();
+        scheduleQueueRefresh();
       })
       .on('postgres_changes', {
         event: '*',
@@ -344,18 +348,19 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
         table: 'queue_settings'
       }, (payload) => {
         console.log('Queue settings changed:', payload);
-        fetchQueueStatus();
+        scheduleQueueRefresh();
       })
       .subscribe();
 
-    // More frequent polling for queue status to ensure sync - every 10 seconds
-    const queueInterval = setInterval(fetchQueueStatus, 10000);
+    // Backup polling every 60 seconds since we have real-time updates
+    const queueInterval = setInterval(fetchQueueStatus, 60000);
     
     return () => {
       queueSubscription.unsubscribe();
       clearInterval(queueInterval);
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     };
-  }, [user, supabase, fetchQueueStatus]);
+  }, [user, supabase, fetchQueueStatus, scheduleQueueRefresh]);
 
   const joinQueue = async (computerType = 'any') => {
     // Prevent multiple simultaneous joins

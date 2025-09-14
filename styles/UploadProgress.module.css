@@ -16,7 +16,8 @@
   border-radius: 8px;
   padding: 2rem;
   width: 90%;
-  max-width: 400px;
+  max-width: 500px; /* Increased from 400px to accommodate longer titles */
+  min-width: 320px; /* Ensure minimum width for mobile */
   position: relative;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -32,6 +33,11 @@
   color: #fff;
   margin: 0;
   font-size: 1.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px; /* Leave space for close button, increased with modal width */
+  flex: 1;
 }
 
 .closeButton {

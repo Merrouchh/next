@@ -1,0 +1,461 @@
+/* Bubble Container */
+.bubbleContainer {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  z-index: 9999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  pointer-events: auto;
+}
+
+/* Bubble Button */
+.bubbleButton {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #FFD700;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: visible;
+  animation: floatingButtonAppear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.bubbleButton * {
+  cursor: pointer;
+}
+
+@keyframes floatingButtonAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bubbleButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  background-color: #FFE44D;
+}
+
+.bubbleButton.expanded {
+  transform: scale(1.05);
+  background-color: #FFE44D;
+}
+
+/* Bell Icon */
+.bellIcon {
+  font-size: 28px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.bubbleButton:hover .bellIcon {
+  transform: translateY(-10px);
+}
+
+.bubbleButton.expanded .bellIcon {
+  transform: translateY(-10px);
+}
+
+/* Notification Count Badge */
+.notificationCount {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  min-width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border: 3px solid #FFD700;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  animation: pulse 2s infinite;
+  transition: opacity 180ms ease, transform 180ms ease;
+  z-index: 10;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Notifications Panel */
+.notificationsPanel {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 350px;
+  max-height: 500px;
+  background: #0f1119;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 16px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 215, 0, 0.05);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Panel Header */
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #1a1a1a;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.headerIcon {
+  font-size: 16px;
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 215, 0, 0.05);
+  color: #FFD700;
+}
+
+/* Notifications List */
+.notificationsList {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.notificationsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notificationsList::-webkit-scrollbar-track {
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 3px;
+}
+
+.notificationsList::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.3);
+  border-radius: 3px;
+}
+
+.notificationsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.5);
+}
+
+/* Notification Item */
+.notificationItem {
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notificationItem.info {
+  background: #1a1a1a;
+}
+
+.notificationItem.success {
+  background: #1a1a1a;
+}
+
+.notificationItem.warning {
+  background: #1a1a1a;
+}
+
+.notificationItem.error {
+  background: #1a1a1a;
+}
+
+.notificationItem.like .notificationTitle {
+  color: #ffb6c1;
+}
+
+.notificationItem.like .notificationMessage {
+  color: #ffb6c1;
+}
+
+.notificationItem.comment .notificationTitle {
+  color: #87ceeb;
+}
+
+.notificationItem.comment .notificationMessage {
+  color: #87ceeb;
+}
+
+.notificationItem.upload .notificationTitle {
+  color: #98fb98;
+}
+
+.notificationItem.upload .notificationMessage {
+  color: #98fb98;
+}
+
+.notificationItem.event .notificationTitle {
+  color: #c7a6ff;
+}
+
+.notificationItem.event .notificationMessage {
+  color: #c7a6ff;
+}
+
+/* Read/Unread States */
+.notificationItem.unread {
+  opacity: 1;
+  background: #1a1a1a;
+}
+
+.notificationItem.read {
+  opacity: 0.6;
+  background: #0f0f0f;
+}
+
+.notificationItem.read .notificationTitle {
+  color: #888;
+}
+
+.notificationItem.read .notificationMessage {
+  color: #666;
+}
+
+.notificationItem.read .notificationMeta {
+  color: #555;
+}
+
+.notificationItem:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background: #222;
+}
+
+/* Notification Content */
+.notificationContent {
+  width: 100%;
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.notificationTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFD700;
+  line-height: 1.3;
+  flex: 1;
+  margin-right: 8px;
+}
+
+.dismissButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dismissButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.notificationMessage {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #fff;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.notificationMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.notificationDate {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+/* Loading State */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #fff;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 215, 0, 0.3);
+  border-top: 3px solid #FFD700;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadingState p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.emptyIcon {
+  font-size: 32px;
+  color: rgba(255, 215, 0, 0.5);
+  margin-bottom: 12px;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .bubbleContainer {
+    bottom: 90px;
+    right: 24px;
+  }
+  
+  .bubbleButton {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .bellIcon {
+    font-size: 22px;
+  }
+  
+  .notificationCount {
+    min-width: 24px;
+    height: 24px;
+    font-size: 10px;
+    top: -7px;
+    right: -7px;
+  }
+  
+  .notificationsPanel {
+    width: 320px;
+    right: -10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .notificationsPanel {
+    width: 280px;
+    right: -20px;
+  }
+  
+  .notificationCount {
+    min-width: 22px;
+    height: 22px;
+    font-size: 9px;
+    top: -6px;
+    right: -6px;
+  }
+}

@@ -323,14 +323,14 @@ const UploadPage = () => {
       await uploadWithUrl(selectedFile, uploadUrl, uid);
       console.log(`[Frontend-Upload] File upload completed successfully`);
 
+      // Show success state immediately after upload completes
+      setLocalUploadStatus('success');
+
+      // Log completion in background (non-blocking)
       logEvent('UPLOAD_COMPLETED', {
         uid: uid,
         duration: `${Date.now() - new Date()}ms`
       });
-      
-      // Show success state before auto-closing
-      console.log(`[Frontend-Upload] Showing success state before auto-closing`);
-      setLocalUploadStatus('success');
       
       // Auto-close will be handled by the UploadProgress component
       

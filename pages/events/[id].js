@@ -26,6 +26,7 @@ import {
 import {
   isIOS,
   formatDate,
+  formatTime,
   retryGetSession,
   // getRegistrationButtonText, // Removed unused import
   // getRegistrationButtonClass, // Removed unused import
@@ -826,8 +827,23 @@ export default function EventDetail() {
             }
           });
           
+          if (response.status === 404) {
+            // Deleted or missing event - show Not Found gracefully
+            setEvent(null);
+            setLoading(false);
+            setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+            setBracketState({ data: null, loading: false });
+            return;
+          }
+
           if (!response.ok) {
-            throw new Error(`Failed to fetch event: ${response.status}`);
+            // Best-effort parse of error; fall back to status text
+            let message = `Failed to fetch event: ${response.status}`;
+            try {
+              const err = await response.json();
+              message = err?.error || message;
+            } catch {}
+            throw new Error(message);
           }
           
           const data = await response.json();
@@ -875,9 +891,23 @@ export default function EventDetail() {
           }
         });
         
+        if (response.status === 404) {
+          // Deleted or missing event - show Not Found gracefully
+          setEvent(null);
+          setLoading(false);
+          setRegistrationStatus(prev => ({ ...prev, isLoading: false }));
+          setBracketState({ data: null, loading: false });
+          return;
+        }
+
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch event: ${response.status}`);
+          // Best-effort parse of error; fall back to status text
+          let message = `Failed to fetch event: ${response.status}`;
+          try {
+            const err = await response.json();
+            message = err?.error || message;
+          } catch {}
+          throw new Error(message);
         }
         
         const data = await response.json();
@@ -1458,7 +1488,7 @@ export default function EventDetail() {
                     <h2>Event Description</h2>
                     <p>{event.description || 'Event details will be displayed here.'}</p>
                     {event.date && <p><strong>Date:</strong> {formatDate(event.date)}</p>}
-                    {event.time && <p><strong>Time:</strong> {event.time}</p>}
+                    {event.time && <p><strong>Time:</strong> {formatTime(event.time)}</p>}
                     {event.location && <p><strong>Location:</strong> {event.location}</p>}
                   </div>
                 ) : (

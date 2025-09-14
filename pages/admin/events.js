@@ -292,37 +292,26 @@ export default function AdminEvents() {
     setCompressionInfo(prev => prev ? { ...prev, status: 'compressing' } : null);
     
     try {
-      // Get the session for authentication
-      const { error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error(`Authentication error: ${sessionError.message}`);
+      // Ensure user is authenticated before upload and get access token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData?.session) {
+        throw new Error('Authentication required. Please log in again.');
       }
-      
-      // const accessToken = sessionData?.session?.access_token; // Removed unused variable
-      
-      if (!accessToken) {
-        throw new Error('No authentication token available. Please log in again.');
-      }
+      const accessToken = sessionData.session.access_token;
       
       console.log(`Preparing to upload image for event ID: ${eventId}`);
       
       const formDataObj = new FormData();
       formDataObj.append('image', formData.image);
-      formDataObj.append('eventId', eventId);
+      formDataObj.append('eventId', String(eventId));
       
       console.log('Sending image upload request...');
-      const response = await fetch('/api/internal/admin/events', {
+      const response = await fetch('/api/events/upload-image', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          action: 'upload-image',
-          userId: user.id,
-          eventData: formDataObj
-        })
+        body: formDataObj
       });
       
       let responseData;

@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import Image from 'next/image';
 import { FaCalendarAlt } from 'react-icons/fa';
 import styles from '../../styles/Events.module.css';
+import { formatTime } from '../../utils/eventDetailHelpers';
 
 // iOS detection utility - moved to shared utils
 const isIOS = () => {
@@ -167,7 +168,7 @@ export const EventCardMeta = React.memo(function EventCardMeta({ event, register
   return (
     <div className={styles.eventMeta}>
       <div className={styles.eventTime}>
-        <FaCalendarAlt className={styles.metaIcon} /> {event.time}
+        <FaCalendarAlt className={styles.metaIcon} /> {formatTime(event.time)}
       </div>
       <div className={styles.eventLocation}>
         <span className={styles.metaIcon}>📍</span> {event.location}

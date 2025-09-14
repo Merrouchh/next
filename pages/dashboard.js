@@ -4,6 +4,7 @@ import Head from 'next/head';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DashboardUserSearch from '../components/DashboardUserSearch';
+import NotificationBubble from '../components/NotificationBubble';
 import {
   LoadingSpinner,
   ErrorDisplay,
@@ -50,6 +51,7 @@ const Dashboard = React.memo(() => {
 
   // Create navigation handler
   const handleNavigation = createNavigationHandler(router);
+
 
   // Debounced refresh with rate limiting
   const handleRefreshClick = useCallback(() => {
@@ -157,6 +159,7 @@ const Dashboard = React.memo(() => {
       </Head>
       <ProtectedPageWrapper>
       <main className={styles.dashboardMain} suppressHydrationWarning>
+
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
                           <h1 className={styles.welcomeText}>
@@ -240,6 +243,9 @@ const Dashboard = React.memo(() => {
         <span className={styles.refreshButtonText}>Refresh</span>
       </button>
     )}
+
+    {/* Floating Notification Bubble */}
+    <NotificationBubble />
     </>
   );
 });

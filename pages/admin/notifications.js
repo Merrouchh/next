@@ -1,330 +1,478 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import AdminPageWrapper from '../../components/AdminPageWrapper';
-import Head from 'next/head';
 import { toast } from 'react-hot-toast';
 import { 
-  FaBell, 
-  FaExclamationTriangle, 
-  FaShieldAlt, 
-  FaEye, 
-  FaFilter,
-  FaCalendarAlt,
-  FaUser,
-  FaGlobe,
-  FaSearch,
-  FaTrash,
-  FaDownload
-} from 'react-icons/fa';
+  MdAdd, 
+  MdEdit, 
+  MdDelete, 
+  MdSchedule,
+  MdClose,
+  MdVisibility
+} from 'react-icons/md';
 import styles from '../../styles/AdminNotifications.module.css';
-import { withServerSideAdmin } from '../../utils/supabase/server-admin';
+import AdminPageWrapper from '../../components/AdminPageWrapper';
 
 export default function AdminNotifications() {
   const { supabase } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({
-    severity: 'all',
-    type: 'all',
-    dateRange: '7d'
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingNotification, setEditingNotification] = useState(null);
+  const [activeTab, setActiveTab] = useState('notifications'); // 'notifications' or 'read-stats'
+  const [readStats, setReadStats] = useState([]);
+  const [formData, setFormData] = useState({
+    title: '',
+    message: '',
+    expires_at: ''
   });
 
-  // Fetch security events
+  // Fetch read statistics
+  const fetchReadStats = useCallback(async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/admin/notifications/read-stats', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setReadStats(result.notifications || []);
+      } else {
+        console.error('Failed to fetch read stats:', result);
+        setReadStats([]); // Set empty array on error
+        toast.error(result.message || 'Failed to fetch read statistics');
+      }
+    } catch (error) {
+      console.error('Error fetching read stats:', error);
+      setReadStats([]); // Set empty array on error
+      toast.error('Error fetching read statistics');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
-      setLoading(true);
-      
-      let query = supabase
-        .from('security_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
 
-      // Apply filters
-      if (filter.severity !== 'all') {
-        query = query.eq('severity', filter.severity);
+      const response = await fetch('/api/admin/notifications', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setNotifications(result.notifications);
+      } else {
+        console.error('Failed to fetch notifications:', result);
+        if (result.error === 'database_error') {
+          toast.error('Database error: Please ensure the notifications table is created. Check the SQL migration.');
+        } else {
+          toast.error(result.message || 'Failed to fetch notifications');
+        }
       }
-      
-      if (filter.type !== 'all') {
-        query = query.eq('event_type', filter.type);
-      }
-
-      // Date range filter
-      if (filter.dateRange !== 'all') {
-        const days = parseInt(filter.dateRange.replace('d', ''));
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        query = query.gte('created_at', startDate.toISOString());
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
+    } catch (error) {
         console.error('Error fetching notifications:', error);
-        toast.error('Failed to load security notifications');
-        return;
-      }
-
-      setNotifications(data || []);
-    } catch {
-      console.error('Error:');
-      toast.error('Failed to load notifications');
+      toast.error('Failed to fetch notifications');
     } finally {
       setLoading(false);
     }
-  }, [supabase, filter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // Load notifications on mount
   useEffect(() => {
     fetchNotifications();
-  }, [filter, supabase, fetchNotifications]);
+    fetchReadStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
-  // Get severity icon and color
-  const getSeverityInfo = (severity) => {
-    switch (severity) {
-      case 'critical':
-        return { icon: FaExclamationTriangle, color: '#ff4444', bgColor: '#ffe6e6' };
-      case 'high':
-        return { icon: FaShieldAlt, color: '#ff8800', bgColor: '#fff2e6' };
-      case 'medium':
-        return { icon: FaBell, color: '#ffaa00', bgColor: '#fff8e6' };
-      case 'low':
-        return { icon: FaEye, color: '#4CAF50', bgColor: '#e8f5e8' };
-      default:
-        return { icon: FaBell, color: '#666', bgColor: '#f5f5f5' };
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      message: '',
+      expires_at: ''
+    });
+    setEditingNotification(null);
+    setShowCreateForm(false);
+  };
+
+  // Create notification
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim() || !formData.message.trim()) {
+      toast.error('Title and message are required');
+      return;
+    }
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          message: formData.message.trim(),
+          expires_at: formData.expires_at || null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Notification created successfully');
+        resetForm();
+        fetchNotifications();
+        fetchReadStats(); // Refresh statistics tab
+      } else {
+        toast.error(result.message || 'Failed to create notification');
+      }
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      toast.error('Failed to create notification');
     }
   };
 
-  // Format event type for display
-  const formatEventType = (type) => {
-    return type.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+  // Edit notification
+  const handleEdit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim() || !formData.message.trim()) {
+      toast.error('Title and message are required');
+      return;
+    }
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch('/api/admin/notifications', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: editingNotification.id,
+          title: formData.title.trim(),
+          message: formData.message.trim(),
+          expires_at: formData.expires_at || null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Notification updated successfully');
+        resetForm();
+        fetchNotifications();
+        fetchReadStats(); // Refresh statistics tab
+      } else {
+        toast.error(result.message || 'Failed to update notification');
+      }
+    } catch (error) {
+      console.error('Error updating notification:', error);
+      toast.error('Failed to update notification');
+    }
   };
 
-  // Clear old notifications
-  const clearOldNotifications = async () => {
-    try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { error } = await supabase
-        .from('security_events')
-        .delete()
-        .lt('created_at', thirtyDaysAgo.toISOString());
-
-      if (error) {
-        toast.error('Failed to clear old notifications');
+  // Delete notification
+  const handleDelete = async (notification) => {
+    if (!confirm('Are you sure you want to delete this notification?')) {
         return;
       }
 
-      toast.success('Cleared notifications older than 30 days');
-      fetchNotifications();
-    } catch {
-      toast.error('Failed to clear notifications');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch(`/api/admin/notifications?id=${notification.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Notification deleted successfully');
+        fetchNotifications();
+        fetchReadStats(); // Refresh statistics tab
+      } else {
+        toast.error(result.message || 'Failed to delete notification');
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
-  // Export notifications as JSON
-  const exportNotifications = () => {
-    const dataStr = JSON.stringify(notifications, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `security-events-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+  // Start editing
+  const startEdit = (notification) => {
+    setFormData({
+      title: notification.title,
+      message: notification.message,
+      expires_at: notification.expires_at ? notification.expires_at.split('T')[0] : ''
+    });
+    setEditingNotification(notification);
+    setShowCreateForm(true);
   };
 
-  return (
-    <AdminPageWrapper title="Security Notifications">
-      <Head>
-        <title>Security Notifications - Admin Dashboard</title>
-      </Head>
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-      <div className={styles.notificationsContainer}>
+  if (loading) {
+  return (
+      <AdminPageWrapper>
+        <div className={styles.loading}>
+          <div className={styles.spinner}></div>
+          <p>Loading notifications...</p>
+        </div>
+      </AdminPageWrapper>
+    );
+  }
+
+  return (
+    <AdminPageWrapper>
+      <div className={styles.container}>
         <div className={styles.header}>
-          <div className={styles.titleSection}>
-            <FaBell className={styles.titleIcon} />
-            <h1>Security Notifications</h1>
-            <span className={styles.count}>({notifications.length})</span>
+          <h1>Notification Management</h1>
+          <button 
+            className={styles.createButton}
+            onClick={() => setShowCreateForm(true)}
+          >
+            <MdAdd />
+            Create Notification
+          </button>
           </div>
           
-          <div className={styles.actions}>
+        {/* Tab Navigation */}
+        <div className={styles.tabNavigation}>
             <button 
-              onClick={exportNotifications}
-              className={styles.exportBtn}
-              disabled={notifications.length === 0}
+            className={`${styles.tabButton} ${activeTab === 'notifications' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('notifications')}
             >
-              <FaDownload /> Export
+            <MdSchedule />
+            Notifications
             </button>
             <button 
-              onClick={clearOldNotifications}
-              className={styles.clearBtn}
+            className={`${styles.tabButton} ${activeTab === 'read-stats' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('read-stats')}
             >
-              <FaTrash /> Clear Old
+            <MdVisibility />
+            Read Statistics
+            </button>
+        </div>
+          
+        {/* Create/Edit Form */}
+        {showCreateForm && (
+          <div className={styles.formOverlay}>
+            <div className={styles.formContainer}>
+              <div className={styles.formHeader}>
+                <h2>{editingNotification ? 'Edit Notification' : 'Create Notification'}</h2>
+            <button 
+                  className={styles.closeButton}
+                  onClick={resetForm}
+            >
+                  <MdClose />
             </button>
           </div>
+
+              <form className={styles.notificationForm} onSubmit={editingNotification ? handleEdit : handleCreate}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="title">Title *</label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Enter notification title"
+                    maxLength={255}
+                    required
+                  />
         </div>
 
-        {/* Filters */}
-        <div className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <label>
-              <FaFilter /> Severity:
-              <select 
-                value={filter.severity} 
-                onChange={(e) => setFilter(prev => ({ ...prev, severity: e.target.value }))}
-              >
-                <option value="all">All Severities</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </label>
+                <div className={styles.formGroup}>
+                  <label htmlFor="message">Message *</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    placeholder="Enter notification message"
+                    rows={4}
+                    required
+                  />
           </div>
 
-          <div className={styles.filterGroup}>
-            <label>
-              <FaSearch /> Event Type:
-              <select 
-                value={filter.type} 
-                onChange={(e) => setFilter(prev => ({ ...prev, type: e.target.value }))}
-              >
-                <option value="all">All Types</option>
-                <option value="unauthorized_admin_access">Unauthorized Admin Access</option>
-                <option value="unauthorized_staff_access">Unauthorized Staff Access</option>
-                <option value="api_abuse">API Abuse</option>
-              </select>
-            </label>
+                <div className={styles.formGroup}>
+                  <label htmlFor="expires_at">Expiration Date (Optional)</label>
+                  <input
+                    type="date"
+                    id="expires_at"
+                    name="expires_at"
+                    value={formData.expires_at}
+                    onChange={handleInputChange}
+                  />
           </div>
 
-          <div className={styles.filterGroup}>
-            <label>
-              <FaCalendarAlt /> Time Range:
-              <select 
-                value={filter.dateRange} 
-                onChange={(e) => setFilter(prev => ({ ...prev, dateRange: e.target.value }))}
-              >
-                <option value="1d">Last 24 hours</option>
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="all">All time</option>
-              </select>
-            </label>
+                <div className={styles.formActions}>
+                  <button type="button" onClick={resetForm} className={styles.cancelButton}>
+                    Cancel
+                  </button>
+                  <button type="submit" className={styles.submitButton}>
+                    {editingNotification ? 'Update' : 'Create'} Notification
+                  </button>
+          </div>
+              </form>
           </div>
         </div>
+        )}
 
-        {/* Notifications List */}
+        {/* Tab Content */}
+        {activeTab === 'notifications' && (
         <div className={styles.notificationsList}>
-          {loading ? (
-            <div className={styles.loading}>
-              <div className={styles.spinner}></div>
-              <p>Loading security notifications...</p>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className={styles.empty}>
-              <FaShieldAlt className={styles.emptyIcon} />
-              <h3>No Security Events</h3>
-              <p>No security notifications found for the selected filters.</p>
+            {notifications.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No notifications created yet.</p>
+                <button 
+                  className={styles.createFirstButton}
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  Create your first notification
+                </button>
             </div>
           ) : (
-            notifications.map((notification) => {
-              const severityInfo = getSeverityInfo(notification.severity);
-              const SeverityIcon = severityInfo.icon;
-
-              return (
-                <div 
-                  key={notification.id} 
-                  className={styles.notificationCard}
-                  style={{ borderLeftColor: severityInfo.color }}
-                >
+              notifications.map((notification) => (
+              <div key={notification.id} className={styles.notificationCard}>
                   <div className={styles.notificationHeader}>
-                    <div className={styles.severityBadge} style={{ backgroundColor: severityInfo.bgColor, color: severityInfo.color }}>
-                      <SeverityIcon />
-                      <span>{notification.severity.toUpperCase()}</span>
-                    </div>
-                    <div className={styles.timestamp}>
-                      <FaCalendarAlt />
-                      {new Date(notification.created_at).toLocaleString()}
-                    </div>
+                  <h3 className={styles.notificationTitle}>{notification.title}</h3>
                   </div>
 
                   <div className={styles.notificationContent}>
-                    <h3 className={styles.eventType}>
-                      {formatEventType(notification.event_type)}
-                    </h3>
-                    
-                    <div className={styles.details}>
-                      {notification.username && (
-                        <div className={styles.detail}>
-                          <FaUser />
-                          <span><strong>User:</strong> {notification.username}</span>
+                  <p>{notification.message}</p>
                         </div>
-                      )}
-                      
-                      {notification.ip_address && (
-                        <div className={styles.detail}>
-                          <FaGlobe />
-                          <span><strong>IP:</strong> {notification.ip_address}</span>
-                        </div>
-                      )}
-                      
-                      {notification.attempted_path && (
-                        <div className={styles.detail}>
-                          <FaSearch />
-                          <span><strong>Path:</strong> {notification.attempted_path}</span>
-                        </div>
+
+                <div className={styles.notificationMeta}>
+                  <div className={styles.metaInfo}>
+                    <span>Created: {formatDate(notification.created_at)}</span>
+                    {notification.expires_at && (
+                      <span>
+                        <MdSchedule /> Expires: {formatDate(notification.expires_at)}
+                      </span>
                       )}
                     </div>
 
-                    {notification.details && (
-                      <div className={styles.additionalDetails}>
-                        <p>{notification.details}</p>
-                      </div>
-                    )}
+                  <div className={styles.notificationActions}>
+                    <button
+                      onClick={() => startEdit(notification)}
+                      className={styles.editButton}
+                      title="Edit notification"
+                    >
+                      <MdEdit />
+                    </button>
 
-                    {notification.user_agent && (
-                      <div className={styles.userAgent}>
-                        <small><strong>User Agent:</strong> {notification.user_agent}</small>
+                    <button
+                      onClick={() => handleDelete(notification)}
+                      className={styles.deleteButton}
+                      title="Delete notification"
+                    >
+                      <MdDelete />
+                    </button>
+                  </div>
+                </div>
+                        </div>
+            ))
+                      )}
+                        </div>
+                      )}
+                      
+        {/* Read Statistics Tab */}
+        {activeTab === 'read-stats' && (
+          <div className={styles.readStatsList}>
+            {!readStats || readStats.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>No read statistics available yet.</p>
+              </div>
+            ) : (
+              readStats.map((stat) => (
+                <div key={stat.id} className={styles.readStatsCard}>
+                  <div className={styles.readStatsHeader}>
+                    <h3 className={styles.readStatsTitle}>{stat.title}</h3>
+                    <div className={styles.readStatsMeta}>
+                      <span>Created: {formatDate(stat.created_at)}</span>
+                        </div>
+                    </div>
+
+                  <div className={styles.readStatsContent}>
+                    <div className={styles.readStatsGrid}>
+                      <div className={styles.readStatsItem}>
+                        <div className={styles.readStatsLabel}>Total Users</div>
+                        <div className={styles.readStatsValue}>{stat.stats.total_users}</div>
+                      </div>
+                      <div className={styles.readStatsItem}>
+                        <div className={styles.readStatsLabel}>Read Users</div>
+                        <div className={styles.readStatsValue}>{stat.stats.read_users}</div>
+                      </div>
+                      <div className={styles.readStatsItem}>
+                        <div className={styles.readStatsLabel}>Read Percentage</div>
+                        <div className={styles.readStatsValue}>{stat.stats.read_percentage}%</div>
+                      </div>
+                      </div>
+                    
+                    {stat.stats.read_percentage > 0 && (
+                      <div className={styles.progressBar}>
+                        <div 
+                          className={styles.progressFill} 
+                          style={{ width: `${stat.stats.read_percentage}%` }}
+                        ></div>
                       </div>
                     )}
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Summary Stats */}
-        {notifications.length > 0 && (
-          <div className={styles.summary}>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>Critical Events:</span>
-              <span className={styles.statValue}>
-                {notifications.filter(n => n.severity === 'critical').length}
-              </span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>High Priority:</span>
-              <span className={styles.statValue}>
-                {notifications.filter(n => n.severity === 'high').length}
-              </span>
-            </div>
-            <div className={styles.stat}>
-              <span className={styles.statLabel}>Unique IPs:</span>
-              <span className={styles.statValue}>
-                {new Set(notifications.map(n => n.ip_address).filter(Boolean)).size}
-              </span>
-            </div>
+              ))
+            )}
           </div>
         )}
       </div>
     </AdminPageWrapper>
   );
 }
-
-// 🛡️ SERVER-SIDE PROTECTION: Require admin privileges
-export const getServerSideProps = withServerSideAdmin(true);
