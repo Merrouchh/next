@@ -5,6 +5,7 @@ import { useState, useCallback, useRef } from 'react';
 import React from 'react';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
+import NotificationBubble from './NotificationBubble';
 // import CookieConsent from './CookieConsent';
 import { useModal } from '../contexts/ModalContext';
 import { isAuthPage, isAdminPage } from '../utils/routeConfig';
@@ -133,6 +134,9 @@ const Layout = ({ children }) => {
           {ripple && <span className={styles.ripple} style={rippleStyle} />}
         </button>
       )}
+
+      {/* Notification Bubble - Show for all logged-in users on all pages */}
+      {user && <NotificationBubble />}
     </>
   );
 };

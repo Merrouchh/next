@@ -4,7 +4,6 @@ import Head from 'next/head';
 import { useAuth } from '../contexts/AuthContext';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 import DashboardUserSearch from '../components/DashboardUserSearch';
-import NotificationBubble from '../components/NotificationBubble';
 import {
   LoadingSpinner,
   ErrorDisplay,
@@ -244,8 +243,6 @@ const Dashboard = React.memo(() => {
       </button>
     )}
 
-    {/* Floating Notification Bubble */}
-    <NotificationBubble />
     </>
   );
 });
