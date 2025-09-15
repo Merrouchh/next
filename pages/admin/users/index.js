@@ -387,8 +387,7 @@ export default function AdminUsers() {
         setShowGiftHoursModal(false);
         setGiftHoursUser(null);
         setGiftHours('');
-        setGiftHoursSearch('');
-        setGiftHoursSearchResults([]);
+        // Removed undefined setters for gift hours search state
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || 'Failed to gift hours');
