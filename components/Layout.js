@@ -124,6 +124,7 @@ const Layout = ({ children }) => {
       {user && !isMobile && router.pathname !== '/upload' && (
         <button 
           ref={uploadButtonRef}
+          id="floating-upload-button"
           className={styles.floatingUploadButton}
           onClick={handleUploadClick}
           aria-label="Upload new content"

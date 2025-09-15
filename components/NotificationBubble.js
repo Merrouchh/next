@@ -122,15 +122,32 @@ const NotificationBubble = () => {
 
   const handleNotificationClick = useCallback(async (notification) => {
     try {
-      // Navigate based on type
+      // Build a URL that forces navigation even if you are already on the same page
       const clipId = notification?.data?.clip_id;
       const eventId = notification?.data?.event_id;
+      const uniqueParam = `notif=${encodeURIComponent(notification.id)}&ts=${Date.now()}`;
+
       if ((notification?.type === 'like' || notification?.type === 'comment' || notification?.type === 'upload') && clipId) {
-        router.push(`/clip/${clipId}`);
+        const baseTarget = `/clip/${clipId}`;
+        const target = `${baseTarget}?${uniqueParam}`;
+        // If already on this clip page, replace to force a rerender with a fresh ts
+        if (router.asPath.split('?')[0] === baseTarget) {
+          await router.replace(target, undefined, { scroll: false });
+        } else {
+          router.push(target);
+        }
       } else if (notification?.type === 'event' && eventId) {
-        router.push(`/events/${eventId}`);
+        const baseTarget = `/events/${eventId}`;
+        const target = `${baseTarget}?${uniqueParam}`;
+        if (router.asPath.split('?')[0] === baseTarget) {
+          await router.replace(target, undefined, { scroll: false });
+        } else {
+          router.push(target);
+        }
       }
-      // Optionally mark this single item as read optimistically
+      // Close the bubble immediately so navigation isn't blocked visually
+      setIsExpanded(false);
+      // Optimistically mark this item as read
       setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
       await markNotificationAsRead(notification.id);
     } catch {
@@ -145,6 +162,21 @@ const NotificationBubble = () => {
       setIsExpanded(true);
     }
   };
+
+  const handleItemKeyDown = useCallback((e, notification) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleNotificationClick(notification);
+    }
+  }, [handleNotificationClick]);
+
+  const isActionableNotification = useCallback((n) => {
+    const clipId = n?.data?.clip_id;
+    const eventId = n?.data?.event_id;
+    if ((n?.type === 'like' || n?.type === 'comment' || n?.type === 'upload') && clipId) return true;
+    if (n?.type === 'event' && eventId) return true;
+    return false;
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -210,8 +242,35 @@ const NotificationBubble = () => {
 
   // Always show the bubble (don't hide when no notifications)
 
+  // Dynamic offset to avoid overlapping the floating upload button
+  const [bottomOffset, setBottomOffset] = useState(24);
+  useEffect(() => {
+    const computeOffset = () => {
+      // Stack over any known floating controls in bottom-right
+      const ids = ['floating-upload-button', 'floating-refresh-button'];
+      const elements = ids
+        .map(id => document.getElementById(id))
+        .filter(Boolean)
+        .sort((a, b) => a.getBoundingClientRect().bottom - b.getBoundingClientRect().bottom);
+
+      let offset = 24; // default bottom spacing
+      elements.forEach(() => {
+        // stack each item height + gap
+        offset += 60 + 16; // assume 60x60 fab like upload/refresh + 16px gap
+      });
+      setBottomOffset(offset);
+    };
+    computeOffset();
+    window.addEventListener('resize', computeOffset);
+    const interval = setInterval(computeOffset, 500);
+    return () => {
+      window.removeEventListener('resize', computeOffset);
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
-    <div className={styles.bubbleContainer} ref={bubbleRef}>
+    <div className={styles.bubbleContainer} ref={bubbleRef} style={{ bottom: `${bottomOffset}px` }}>
       
       {/* Bubble Button */}
       <button 
@@ -247,39 +306,43 @@ const NotificationBubble = () => {
               <div className={styles.emptyState}>
                 <FaBell className={styles.emptyIcon} />
                 <p>No notifications</p>
-                <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-                  Debug: Total: {notifications.length}, Unread: {unreadNotifications.length}, Read: {readNotifications.length}
-                </div>
               </div>
             ) : (
-              allNotifications.map((notification) => (
-                <div 
-                  key={notification.id} 
-                  className={`${styles.notificationItem} ${styles[notification.type || 'info']} ${notification.isRead ? styles.read : styles.unread}`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className={styles.notificationContent}>
-                    <div className={styles.notificationHeader}>
-                      <h4 className={styles.notificationTitle}>
-                        {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_id
-                          ? `${notification.title}`
-                          : notification.title}
-                      </h4>
-                    </div>
-                    <p className={styles.notificationMessage}>
-                      {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_title
-                        ? `${notification.message}`
-                        : notification.message}
-                    </p>
-                    <div className={styles.notificationMeta}>
-                      <span className={styles.notificationDate}>
-                        {new Date(notification.created_at).toLocaleDateString()} at{' '}
-                        {new Date(notification.created_at).toLocaleTimeString()}
-                      </span>
+              allNotifications.map((notification) => {
+                const actionable = isActionableNotification(notification);
+                return (
+                  <div 
+                    key={notification.id} 
+                    className={`${styles.notificationItem} ${styles[notification.type || 'info']} ${notification.isRead ? styles.read : styles.unread} ${actionable ? styles.actionable : ''}`}
+                    role={actionable ? "button" : undefined}
+                    tabIndex={actionable ? 0 : -1}
+                    onClick={actionable ? () => handleNotificationClick(notification) : undefined}
+                    onKeyDown={actionable ? (e) => handleItemKeyDown(e, notification) : undefined}
+                    aria-disabled={!actionable}
+                  >
+                    <div className={styles.notificationContent}>
+                      <div className={styles.notificationHeader}>
+                        <h4 className={styles.notificationTitle}>
+                          {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_id
+                            ? `${notification.title}`
+                            : notification.title}
+                        </h4>
+                      </div>
+                      <p className={styles.notificationMessage}>
+                        {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_title
+                          ? `${notification.message}`
+                          : notification.message}
+                      </p>
+                      <div className={styles.notificationMeta}>
+                        <span className={styles.notificationDate}>
+                          {new Date(notification.created_at).toLocaleDateString()} at{' '}
+                          {new Date(notification.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

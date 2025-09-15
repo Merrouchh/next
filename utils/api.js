@@ -841,9 +841,16 @@ export async function fetchUserUpcomingMatches(userId) {
 // Fetch shift reports from Gizmo API
 export const fetchShiftReports = async (dateFrom, dateTo, reportType = 2) => {
   try {
-    // Format dates correctly for the API
-    const formattedDateFrom = encodeURIComponent(dateFrom.toISOString());
-    const formattedDateTo = encodeURIComponent(dateTo.toISOString());
+    // Format dates for the API using LOCAL time (no trailing 'Z').
+    // Using toISOString() sends UTC and shifts the window, causing mismatched sales totals.
+    const toLocalIsoNoZ = (date) => {
+      const tzOffsetMs = date.getTimezoneOffset() * 60000;
+      const local = new Date(date.getTime() - tzOffsetMs);
+      return local.toISOString().slice(0, 19); // YYYY-MM-DDTHH:mm:ss (no 'Z')
+    };
+
+    const formattedDateFrom = encodeURIComponent(toLocalIsoNoZ(dateFrom));
+    const formattedDateTo = encodeURIComponent(toLocalIsoNoZ(dateTo));
     
     // Make request to our API endpoint that will handle authentication
     const response = await fetch(

@@ -126,6 +126,11 @@ const ClipPage = ({ clip, status, error, isOwnClip, isPrivate }) => {
   const [localClip, setLocalClip] = useState(clip);
   const [shouldShowClip, setShouldShowClip] = useState(true);
 
+  // Keep local state in sync if server props update due to client navigation
+  useEffect(() => {
+    setLocalClip(clip);
+  }, [clip]);
+
   // Effect to handle real-time updates
   useEffect(() => {
     if (!clip?.id) return;
@@ -197,6 +202,7 @@ const ClipPage = ({ clip, status, error, isOwnClip, isPrivate }) => {
         <main className={styles.main}>
           <div className={styles.clipContainer}>
             <ClipCard
+              key={router.asPath}
               clip={localClip}
               isFullWidth={true}
               onClipUpdate={(clipId, action) => {
@@ -280,6 +286,7 @@ const ClipPage = ({ clip, status, error, isOwnClip, isPrivate }) => {
       <main className={styles.main}>
         <div className={styles.clipContainer}>
           <ClipCard
+            key={router.asPath}
             clip={localClip}
             isFullWidth={true}
             onClipUpdate={(clipId, action) => {

@@ -232,6 +232,7 @@ const Dashboard = React.memo(() => {
     {/* Floating refresh button for mobile */}
     {isMobile && (
       <button 
+        id="floating-refresh-button"
         className={styles.floatingRefreshButton}
         onClick={handleRefreshClick}
         disabled={loading || isRefreshing}

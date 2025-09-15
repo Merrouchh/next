@@ -209,6 +209,20 @@
   border-radius: 12px;
   transition: all 0.2s ease;
   animation: fadeIn 0.3s ease;
+  cursor: pointer;
+}
+
+.notificationItem * {
+  cursor: pointer;
+}
+
+/* Non-actionable items (admin/general without link) should not show pointer */
+.notificationItem:not(.actionable) {
+  cursor: default;
+}
+
+.notificationItem:not(.actionable) * {
+  cursor: default;
 }
 
 @keyframes fadeIn {
@@ -277,20 +291,20 @@
 }
 
 .notificationItem.read {
-  opacity: 0.6;
-  background: #0f0f0f;
+  opacity: 0.9;
+  background: #151515;
 }
 
 .notificationItem.read .notificationTitle {
-  color: #888;
+  color: #ddd;
 }
 
 .notificationItem.read .notificationMessage {
-  color: #666;
+  color: #cfcfcf;
 }
 
 .notificationItem.read .notificationMeta {
-  color: #555;
+  color: #b3b3b3;
 }
 
 .notificationItem:hover {
