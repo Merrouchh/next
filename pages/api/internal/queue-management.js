@@ -143,10 +143,10 @@ async function handleJoinQueue(req, res, queueData) {
       });
     }
 
-    // Get user profile for username
+    // Get user profile for username and phone
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('username')
+      .select('username, phone')
       .eq('id', user.id)
       .single();
 
@@ -163,6 +163,7 @@ async function handleJoinQueue(req, res, queueData) {
       .insert({
         user_name: profile.username,
         user_id: user.id,
+        phone_number: profile.phone || null,
         computer_type: queueData.computer_type || 'any',
         position: currentSize + 1,
         is_physical: false,

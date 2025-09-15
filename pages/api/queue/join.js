@@ -151,7 +151,7 @@ async function handleJoinQueue(req, res, user) {
     // Get user details
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, username')
+      .select('id, username, phone')
       .eq('id', user.id)
       .single();
 
@@ -202,6 +202,7 @@ async function handleJoinQueue(req, res, user) {
       .from('computer_queue')
       .insert({
         user_name: userData.username,
+        phone_number: userData.phone || null,
         computer_type: computerType,
         position: nextPos,
         is_physical: false,
@@ -223,6 +224,7 @@ async function handleJoinQueue(req, res, user) {
           .from('computer_queue')
           .insert({
             user_name: userData.username,
+            phone_number: userData.phone || null,
             computer_type: computerType,
             position: retryPos,
             is_physical: false,
