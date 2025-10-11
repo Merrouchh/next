@@ -292,20 +292,20 @@ const LoginModal = ({ isOpen, onClose }) => {
         const supabase = createClient();
 
         // Check if this gizmo ID already exists in our database
-        const { data: existingUser, error: checkError } = await supabase
-          .from('users')
-          .select('username')
-          .eq('gizmo_id', gizmoId)
-          .single();
+        // Use RPC function to avoid infinite recursion in RLS
+        const { data: linkCheck, error: checkError } = await supabase
+          .rpc('check_gizmo_linked', { gizmo_user_id: gizmoId.toString() });
 
-        if (checkError && checkError.code !== 'PGRST116') {
+        if (checkError) {
+          console.error('Error checking gizmo link:', checkError);
           throw checkError;
         }
 
-        if (existingUser) {
+        // Check if the gizmo account is already linked
+        if (linkCheck && linkCheck.length > 0 && linkCheck[0].is_linked) {
           setError(
             <div>
-              This gaming account is already linked to an existing account.
+              This gaming account is already linked to an existing account ({linkCheck[0].linked_username}).
               <button onClick={() => {
                 setError('');
                 handleStepChange('LOGIN');

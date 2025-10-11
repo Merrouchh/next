@@ -56,7 +56,7 @@ async function handler(req, res) {
       
       // Check if the gaming credentials are valid and get the user ID
       if (data.result && data.result.identity && data.result.identity.userId) {
-        const gizmoId = data.result.identity.userId;
+        const gizmoId = data.result.identity.userId.toString();
         
         try {
           // Create Supabase client with environment variables
@@ -65,24 +65,24 @@ async function handler(req, res) {
             process.env.SUPABASE_ANON_KEY
           );
           
-          // Check if this gizmo_id is already linked to a website account
-          const { data: existingUser, error: userError } = await supabase
-            .from('users')
-            .select('id, username, email')
-            .eq('gizmo_id', gizmoId)
-            .single();
+          // Use RPC function to check if gizmo_id is already linked
+          // This bypasses RLS and prevents infinite recursion issues
+          const { data: linkCheck, error: rpcError } = await supabase
+            .rpc('check_gizmo_linked', { gizmo_user_id: gizmoId });
             
-          if (userError && userError.code !== 'PGRST116') { // PGRST116 = no rows found
-            console.error('Error checking for existing user:', userError);
-          } else if (existingUser) {
+          if (rpcError) {
+            console.error('Error checking for existing user via RPC:', rpcError);
+            // Continue with normal flow even if check fails
+          } else if (linkCheck && linkCheck.length > 0 && linkCheck[0].is_linked) {
             // Gaming account is already linked
-            console.log(`[AUDIT] Gaming account ${username} (ID: ${gizmoId}) is already linked to website account ${existingUser.username}`);
+            const linkedData = linkCheck[0];
+            console.log(`[AUDIT] Gaming account ${username} (ID: ${gizmoId}) is already linked to website account ${linkedData.linked_username}`);
             return res.status(200).json({
               ...data,
               alreadyLinked: true,
               linkedAccount: {
-                username: existingUser.username,
-                email: existingUser.email
+                username: linkedData.linked_username,
+                email: linkedData.linked_email
               }
             });
           }
