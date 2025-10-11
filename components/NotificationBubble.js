@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { FaBell } from 'react-icons/fa';
+import { FaBell, FaEllipsisV } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/NotificationBubble.module.css';
 
@@ -11,9 +11,11 @@ const NotificationBubble = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const bubbleRef = useRef(null);
+  const menuRef = useRef(null);
   const isMarkingRef = useRef(false);
   const refreshTimeoutRef = useRef(null);
   const [userId, setUserId] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -94,31 +96,32 @@ const NotificationBubble = () => {
     }
   }, [supabase]);
 
-  const handleCloseWithMarkAsRead = useCallback(async () => {
+  const handleClose = useCallback(() => {
     if (!isExpanded) return;
     // Close immediately for snappy UX
     setIsExpanded(false);
-    
+    setIsMenuOpen(false);
+  }, [isExpanded]);
+
+  const handleMarkAllAsRead = useCallback(async () => {
     // Prevent concurrent mark-read jobs
     if (isMarkingRef.current) return;
+    const unread = notifications.filter(n => !n.isRead);
+    if (unread.length === 0) return;
+
     isMarkingRef.current = true;
-
     try {
-      const unread = notifications.filter(n => !n.isRead);
-      if (unread.length === 0) return;
-
       // Optimistic UI: locally flip to read to update badge instantly
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-
+      setNotifications(prev => prev.map(n => (n.isRead ? n : { ...n, isRead: true })));
       for (const n of unread) {
         await markNotificationAsRead(n.id);
       }
-      // Soft refresh in background (no spinner)
-      fetchNotifications();
+      // Debounced refresh
+      scheduleRefresh();
     } finally {
       isMarkingRef.current = false;
     }
-  }, [isExpanded, notifications, markNotificationAsRead, fetchNotifications]);
+  }, [notifications, markNotificationAsRead, scheduleRefresh]);
 
   const handleNotificationClick = useCallback(async (notification) => {
     try {
@@ -155,9 +158,26 @@ const NotificationBubble = () => {
     }
   }, [router, markNotificationAsRead]);
 
-  const handleToggle = async () => {
+  const handleMarkOneAsRead = useCallback(async (notificationId) => {
+    if (isMarkingRef.current) return;
+    // If already read, do nothing
+    const target = notifications.find(n => n.id === notificationId);
+    if (!target || target.isRead) return;
+
+    isMarkingRef.current = true;
+    try {
+      // Optimistic UI
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n));
+      await markNotificationAsRead(notificationId);
+      scheduleRefresh();
+    } finally {
+      isMarkingRef.current = false;
+    }
+  }, [notifications, markNotificationAsRead, scheduleRefresh]);
+
+  const handleToggle = () => {
     if (isExpanded) {
-      await handleCloseWithMarkAsRead();
+      handleClose();
     } else {
       setIsExpanded(true);
     }
@@ -187,7 +207,7 @@ const NotificationBubble = () => {
     // Close bubble when clicking outside
     const handleClickOutside = (event) => {
       if (bubbleRef.current && !bubbleRef.current.contains(event.target)) {
-        handleCloseWithMarkAsRead();
+        handleClose();
       }
     };
 
@@ -195,7 +215,19 @@ const NotificationBubble = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [handleCloseWithMarkAsRead]);
+  }, [handleClose]);
+
+  // Close header menu when clicking outside of it
+  useEffect(() => {
+    const handleMenuOutside = (event) => {
+      if (!isMenuOpen) return;
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMenuOutside);
+    return () => document.removeEventListener('mousedown', handleMenuOutside);
+  }, [isMenuOpen]);
 
   // Supabase Realtime: live update on notifications and read-status changes
   useEffect(() => {
@@ -294,6 +326,31 @@ const NotificationBubble = () => {
               <FaBell className={styles.headerIcon} />
               Notifications
             </h3>
+            <div className={styles.menuWrapper} ref={menuRef}>
+              <button
+                type="button"
+                className={styles.menuButton}
+                aria-haspopup="true"
+                aria-expanded={isMenuOpen}
+                aria-label="Open notifications menu"
+                onClick={() => setIsMenuOpen(v => !v)}
+              >
+                <FaEllipsisV />
+              </button>
+              {isMenuOpen && (
+                <div className={styles.menuDropdown} role="menu">
+                  <button
+                    type="button"
+                    className={`${styles.menuItem} ${unreadCount === 0 ? styles.menuItemDisabled : ''}`}
+                    role="menuitem"
+                    onClick={() => { if (unreadCount > 0) { handleMarkAllAsRead(); setIsMenuOpen(false); } }}
+                    disabled={unreadCount === 0}
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className={styles.notificationsList}>
@@ -322,22 +379,23 @@ const NotificationBubble = () => {
                   >
                     <div className={styles.notificationContent}>
                       <div className={styles.notificationHeader}>
-                        <h4 className={styles.notificationTitle}>
-                          {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_id
-                            ? `${notification.title}`
-                            : notification.title}
-                        </h4>
+                        <h4 className={styles.notificationTitle}>{notification.title}</h4>
                       </div>
-                      <p className={styles.notificationMessage}>
-                        {(notification.type === 'like' || notification.type === 'comment' || notification.type === 'upload') && notification.data?.clip_title
-                          ? `${notification.message}`
-                          : notification.message}
-                      </p>
+                      <p className={styles.notificationMessage}>{notification.message}</p>
                       <div className={styles.notificationMeta}>
                         <span className={styles.notificationDate}>
                           {new Date(notification.created_at).toLocaleDateString()} at{' '}
                           {new Date(notification.created_at).toLocaleTimeString()}
                         </span>
+                        {!notification.isRead && (
+                          <button
+                            className={styles.markOneButton}
+                            onClick={(e) => { e.stopPropagation(); handleMarkOneAsRead(notification.id); }}
+                            aria-label="Mark notification as read"
+                          >
+                            Mark read
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

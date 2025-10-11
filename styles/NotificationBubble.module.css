@@ -154,6 +154,67 @@
   color: #FFD700;
 }
 
+
+/* Header menu */
+.menuWrapper {
+  position: relative;
+  margin-left: auto;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.menuButton:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.menuDropdown {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  min-width: 180px;
+  background: #0f1119;
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  padding: 6px;
+  z-index: 5;
+}
+
+.menuItem {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #fff;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.menuItem:hover {
+  background: rgba(255, 215, 0, 0.06);
+}
+
+.menuItemDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .headerIcon {
   font-size: 16px;
 }
@@ -375,6 +436,27 @@
   font-size: 11px;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
+}
+
+.markOneButton {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f1119;
+  background: #FFD700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.markOneButton:hover {
+  background: #ffe44d;
+}
+
+.markOneButton:active {
+  transform: translateY(1px);
 }
 
 /* Loading State */

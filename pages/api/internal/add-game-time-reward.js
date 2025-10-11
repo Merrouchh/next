@@ -53,15 +53,22 @@ async function handler(req, res) {
       });
     }
 
-    // Check if this gizmo_id already received a reward
-    const { data: existingReward } = await supabase
+    // SECURITY CHECK: Verify this gizmo_id hasn't already received a reward
+    // This check is critical to prevent abuse where users delete their record and claim again
+    // Note: The game_time_rewards table has RLS enabled to prevent users from deleting records
+    const { data: existingReward, error: checkError } = await supabase
       .from('game_time_rewards')
       .select('id, created_at, seconds_added, user_id')
       .eq('gizmo_id', userData.gizmo_id)
       .single();
 
+    // Log any errors during check (except 'not found' which is expected)
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error(`[INTERNAL API] Error checking existing rewards:`, checkError);
+    }
+
     if (existingReward) {
-      console.log(`[INTERNAL API] Gizmo ID ${userData.gizmo_id} already received reward`);
+      console.log(`[INTERNAL API] SECURITY: Gizmo ID ${userData.gizmo_id} already received reward. Rejecting duplicate claim.`);
       return res.status(400).json({
         success: false,
         error: 'Reward already claimed',
@@ -135,8 +142,9 @@ async function handler(req, res) {
 
     console.log(`[INTERNAL API] Game time added successfully for user ${userData.username}`);
 
-    // Record the reward in the database
-    const { error: recordError } = await supabase
+    // CRITICAL: Record the reward in the database to prevent duplicate claims
+    // This uses service role which bypasses RLS, so it should always succeed
+    const { data: insertedRecord, error: recordError } = await supabase
       .from('game_time_rewards')
       .insert({
         gizmo_id: userData.gizmo_id,
@@ -144,11 +152,48 @@ async function handler(req, res) {
         seconds_added: seconds,
         price: price,
         reward_type: 'achievement'
-      });
+      })
+      .select()
+      .single();
 
     if (recordError) {
-      console.error('[INTERNAL API] Error recording reward:', recordError);
-      // Don't fail the request if recording fails, but log it
+      // CRITICAL ERROR: User received the reward but we couldn't record it
+      // This means they could potentially claim it again
+      // Log this as a critical security issue that needs manual review
+      console.error('[INTERNAL API] CRITICAL SECURITY ERROR: Failed to record reward in database!', {
+        user_id: userData.id,
+        gizmo_id: userData.gizmo_id,
+        username: userData.username,
+        seconds: seconds,
+        error: recordError,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Still return success since the user did receive the time
+      // but flag this for manual review
+      return res.status(200).json({
+        success: true,
+        result: data.result,
+        message: 'Game time added successfully',
+        warning: 'Reward record could not be saved - please contact support',
+        user: {
+          username: userData.username,
+          gizmo_id: userData.gizmo_id
+        },
+        audit: {
+          timestamp: new Date().toISOString(),
+          action: `Added ${seconds}s (${seconds/3600}h) to user ${userData.username}`,
+          gizmo_id: userData.gizmo_id,
+          recording_failed: true
+        }
+      });
+    }
+
+    // Verify the record was actually inserted
+    if (!insertedRecord) {
+      console.error('[INTERNAL API] WARNING: Insert returned no error but no record created');
+    } else {
+      console.log(`[INTERNAL API] Reward record created successfully: ID ${insertedRecord.id}`);
     }
 
     return res.status(200).json({
