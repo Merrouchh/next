@@ -240,7 +240,17 @@ export const RegistrationButton = React.memo(function RegistrationButton({
       return 'View Tournament';
     }
     
-    // Only show loading state if user is logged in and we're checking registration
+    // For public users on upcoming events
+    if (isPublicView) {
+      return event.status === 'Upcoming' ? 'Login to Register' : 'View Event';
+    }
+    
+    // If user is registered, always show that state (even while checking)
+    if (!isPublicView && isRegistered) {
+      return 'Registered ✓';
+    }
+    
+    // Show checking state while verifying registration for authenticated users
     if (!isPublicView && checkingRegistration) {
       return 'Loading...';
     }
@@ -252,13 +262,8 @@ export const RegistrationButton = React.memo(function RegistrationButton({
       return 'Registration Full';
     }
     
-    // For public users on upcoming events
-    if (isPublicView) {
-      return event.status === 'Upcoming' ? 'Login to Register' : 'View Event';
-    }
-    
-    // For authenticated users
-    return isRegistered ? 'Already Registered' : 'Register Now';
+    // For authenticated users who are not registered
+    return 'Register Now';
   }, [event.status, event.registration_limit, isPublicView, checkingRegistration, registeredCount, isRegistered]);
   
   // Get registration button class - memoized to prevent excessive re-calculations
@@ -275,6 +280,11 @@ export const RegistrationButton = React.memo(function RegistrationButton({
       return `${baseClass} ${styles.inProgressButton}`;
     }
     
+    // For authenticated users who are registered (takes priority over checking state)
+    if (!isPublicView && isRegistered) {
+      return `${baseClass} ${styles.registeredButton} ${styles.nonClickable}`;
+    }
+    
     // Only show loading state if user is logged in and we're checking registration
     if (!isPublicView && checkingRegistration) {
       return `${baseClass} ${styles.loadingButton}`;
@@ -287,14 +297,14 @@ export const RegistrationButton = React.memo(function RegistrationButton({
       return `${baseClass} ${styles.fullButton}`;
     }
     
-    // For authenticated users who are registered
-    if (!isPublicView && isRegistered) {
-      return `${baseClass} ${styles.registeredButton} ${styles.nonClickable}`;
-    }
-    
     // Default case
     return baseClass;
   }, [event.status, event.registration_limit, isPublicView, checkingRegistration, registeredCount, isRegistered]);
+
+  // Check if registration is full
+  const isFull = event.registration_limit !== null && 
+                 registeredCount >= event.registration_limit &&
+                 !isRegistered;
 
   return (
     <button 
@@ -303,8 +313,10 @@ export const RegistrationButton = React.memo(function RegistrationButton({
       disabled={
         (!isPublicView && checkingRegistration) ||
         (!isPublicView && isRegistered) ||
-        isLoading
+        isLoading ||
+        isFull
       }
+      style={isRegistered || isFull ? { cursor: 'default', opacity: 0.9 } : {}}
     >
       {getRegistrationButtonText()}
     </button>

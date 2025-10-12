@@ -45,7 +45,7 @@ async function handler(req, res) {
 
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, username, is_admin, is_staff')
+      .select('id, username, is_admin, is_staff, phone')
       .eq('id', userId)
       .single();
 
@@ -109,10 +109,10 @@ async function handleRegister(req, res, eventId, registrationData, userId, userD
       });
     }
 
-    // Get event details to check registration limit
+    // Get event details to check registration limit and phone verification
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('registration_limit, registered_count, team_type')
+      .select('registration_limit, registered_count, team_type, phone_verification_required')
       .eq('id', eventId)
       .single();
 
@@ -132,6 +132,75 @@ async function handleRegister(req, res, eventId, registrationData, userId, userD
         error: 'Registration full',
         message: 'This event has reached its registration limit'
       });
+    }
+
+    // Check if phone verification is required
+    if (eventData.phone_verification_required && !userData.phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number required',
+        message: 'This event requires a phone number. Please add a phone number to your profile before registering.'
+      });
+    }
+
+    // Validate and check phone for team members if this is a team event
+    if (eventData.team_type !== 'solo' && registrationData.teamMembers && registrationData.teamMembers.length > 0) {
+      const teamMemberIds = registrationData.teamMembers.map(member => member.userId || member.user_id);
+      
+      // For duo events, exactly one team member is required
+      if (eventData.team_type === 'duo' && teamMemberIds.length !== 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid team size',
+          message: 'For duo events, you must select exactly one team member.'
+        });
+      }
+      
+      // Check if phone verification is required for team members
+      if (eventData.phone_verification_required && teamMemberIds.length > 0) {
+        const { data: teamMemberProfiles, error: teamPhoneError } = await supabase
+          .from('users')
+          .select('id, username, phone')
+          .in('id', teamMemberIds);
+        
+        if (teamPhoneError) {
+          console.error('[INTERNAL API] Error checking team member phone numbers:', teamPhoneError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to verify team members',
+            message: 'Unable to verify team member phone numbers'
+          });
+        }
+        
+        // Check for any team members without phone numbers
+        const invalidTeamMembers = teamMemberProfiles
+          .filter(member => !member.phone || member.phone.trim() === '')
+          .map(member => member.username);
+        
+        if (invalidTeamMembers.length > 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Phone number required',
+            message: `The following team members don't have phone numbers: ${invalidTeamMembers.join(', ')}. All participants must have a phone number for this event.`
+          });
+        }
+      }
+      
+      // Check if any team members are already registered for this event
+      const { data: existingTeamMembers } = await supabase
+        .from('event_registrations')
+        .select('user_id, username')
+        .eq('event_id', eventId)
+        .in('user_id', teamMemberIds);
+      
+      if (existingTeamMembers && existingTeamMembers.length > 0) {
+        const alreadyRegistered = existingTeamMembers.map(member => member.username).join(', ');
+        return res.status(400).json({
+          success: false,
+          error: 'Team member already registered',
+          message: `The following team members are already registered for this event: ${alreadyRegistered}`
+        });
+      }
     }
 
     // Prepare registration data
@@ -157,6 +226,36 @@ async function handleRegister(req, res, eventId, registrationData, userId, userD
         error: 'Failed to register for event',
         message: 'Database error occurred'
       });
+    }
+
+    // Insert team members if this is a team event
+    if (eventData.team_type !== 'solo' && registrationData.teamMembers && registrationData.teamMembers.length > 0) {
+      const teamMembersToInsert = registrationData.teamMembers.map(member => ({
+        registration_id: newRegistration.id,
+        user_id: member.userId || member.user_id,
+        username: member.username
+      }));
+      
+      const { error: teamMemberError } = await supabase
+        .from('event_team_members')
+        .insert(teamMembersToInsert);
+      
+      if (teamMemberError) {
+        console.error('[INTERNAL API] Error adding team members:', teamMemberError);
+        // If there's an error adding team members, delete the registration to maintain consistency
+        await supabase
+          .from('event_registrations')
+          .delete()
+          .eq('id', newRegistration.id);
+        
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add team members',
+          message: 'Unable to complete registration with team members'
+        });
+      }
+      
+      console.log('[INTERNAL API] Successfully added team members:', teamMembersToInsert.length);
     }
 
     // Update event registered count
@@ -215,6 +314,17 @@ async function handleUnregister(req, res, eventId, userId) {
         error: 'Not registered',
         message: 'User is not registered for this event'
       });
+    }
+
+    // Delete team members first if they exist
+    const { error: teamDeleteError } = await supabase
+      .from('event_team_members')
+      .delete()
+      .eq('registration_id', existingRegistration.id);
+    
+    if (teamDeleteError) {
+      console.error('[INTERNAL API] Error deleting team members:', teamDeleteError);
+      // Continue with registration deletion even if team member deletion fails
     }
 
     // Delete registration

@@ -184,6 +184,53 @@ async function handleGetRegistrations(req, res, eventId) {
       }
     }
 
+    // Get team members for each registration
+    let teamMembersData = {};
+    if (registrations.length > 0) {
+      const registrationIds = registrations.map(reg => reg.id);
+      
+      const { data: teamMembers, error: teamMembersError } = await supabase
+        .from('event_team_members')
+        .select('registration_id, user_id, username')
+        .in('registration_id', registrationIds);
+      
+      if (!teamMembersError && teamMembers && teamMembers.length > 0) {
+        // Get user details for team members (email, phone)
+        const teamMemberUserIds = [...new Set(teamMembers.map(tm => tm.user_id).filter(Boolean))];
+        let teamMemberUsers = {};
+        
+        if (teamMemberUserIds.length > 0) {
+          const { data: teamMemberUsersData, error: teamMemberUsersError } = await supabase
+            .from('users')
+            .select('id, username, email, phone')
+            .in('id', teamMemberUserIds);
+          
+          if (!teamMemberUsersError && teamMemberUsersData) {
+            teamMemberUsers = teamMemberUsersData.reduce((acc, user) => {
+              acc[user.id] = user;
+              return acc;
+            }, {});
+          }
+        }
+        
+        // Group team members by registration_id and add user details
+        teamMembers.forEach(member => {
+          if (!teamMembersData[member.registration_id]) {
+            teamMembersData[member.registration_id] = [];
+          }
+          
+          // Add email and phone from users table
+          const userDetails = teamMemberUsers[member.user_id] || {};
+          teamMembersData[member.registration_id].push({
+            ...member,
+            email: userDetails.email || null,
+            phone: userDetails.phone || null
+          });
+        });
+        console.log('[INTERNAL API] Successfully fetched team members with user details for registrations');
+      }
+    }
+
     // Format the registrations data
     const formattedRegistrations = registrations.map(reg => {
       const user = users[reg.user_id] || {
@@ -200,6 +247,8 @@ async function handleGetRegistrations(req, res, eventId) {
         id: reg.id,
         event_id: reg.event_id,
         user_id: reg.user_id,
+        username: user.username, // Add username at top level for easier access
+        team_name: reg.team_name || null, // Add team_name if it exists
         status: reg.status,
         notes: reg.notes,
         registration_date: registrationDate,
@@ -210,6 +259,7 @@ async function handleGetRegistrations(req, res, eventId) {
           hour: '2-digit',
           minute: '2-digit'
         }),
+        teamMembers: teamMembersData[reg.id] || [], // Add team members if they exist
         user: user
       };
     });

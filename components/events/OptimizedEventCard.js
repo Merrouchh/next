@@ -17,7 +17,7 @@ const OptimizedEventCard = React.memo(({ event }) => {
   const { user, supabase, session } = useAuth();
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
-  const [checkingRegistration, setCheckingRegistration] = useState(false);
+  const [checkingRegistration, setCheckingRegistration] = useState(true); // Start as true for smoother loading
   const [isLoading, setIsLoading] = useState(false);
   const isPublicView = !user;
   const { openLoginModal } = useModal();
@@ -90,6 +90,9 @@ const OptimizedEventCard = React.memo(({ event }) => {
       return;
     }
     
+    // Set checking state to true when starting the check
+    setCheckingRegistration(true);
+    
     // Use ref to track if check is already in progress to prevent duplicates
     const checkRegistrationStatus = async () => {
       // Check if already checking using ref to avoid infinite loops
@@ -113,7 +116,7 @@ const OptimizedEventCard = React.memo(({ event }) => {
           }
           
           // Wait a bit and try to get the session again
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 150));
           
           try {
             const { data: sessionData } = await supabase.auth.getSession();
@@ -147,9 +150,17 @@ const OptimizedEventCard = React.memo(({ event }) => {
         
         if (response.ok) {
           const result = await response.json();
-          if (result.success && result.result) {
-            setIsRegistered(result.result.isRegistered || false);
+          console.log(`[Event ${event.id}] API Response:`, result);
+          console.log(`[Event ${event.id}] result.success:`, result.success);
+          console.log(`[Event ${event.id}] result.isRegistered:`, result.isRegistered);
+          
+          if (result.success) {
+            // The API returns isRegistered directly, not nested under result.result
+            const registrationStatus = result.isRegistered || false;
+            setIsRegistered(registrationStatus);
+            console.log(`[Event ${event.id}] Setting isRegistered to:`, registrationStatus);
           } else {
+            console.log(`[Event ${event.id}] API returned success: false`);
             setIsRegistered(false);
           }
         } else {
@@ -165,10 +176,10 @@ const OptimizedEventCard = React.memo(({ event }) => {
       }
     };
     
-    // Add a delay to ensure authentication context is fully loaded
+    // Very small delay to ensure authentication context is fully loaded
     const timeoutId = setTimeout(() => {
       checkRegistrationStatus();
-    }, 800); // Increased delay to prevent rapid fire calls
+    }, 100); // Minimal delay for fastest loading while avoiding race conditions
     
     return () => {
       clearTimeout(timeoutId);

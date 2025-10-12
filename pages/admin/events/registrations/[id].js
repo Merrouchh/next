@@ -227,122 +227,7 @@ export default function EventRegistrations() {
             }
           });
           
-          // Log partner relationships for duo events
-          if (event && event.team_type === 'duo') {
-            console.log('Duo event detected, analyzing partner relationships:');
-            
-            // Find main registrants and their partners
-            const mainRegistrants = registrationsData.filter(reg => !reg.isPartner);
-            const partners = registrationsData.filter(reg => reg.isPartner);
-            
-            console.log(`Found ${mainRegistrants.length} main registrants and ${partners.length} partners`);
-            
-            // Log each main registrant and their partner
-            mainRegistrants.forEach(main => {
-              const mainPartners = partners.filter(p => p.registeredBy === main.username);
-              console.log(`Main registrant: ${main.username} (ID: ${main.id}) has ${mainPartners.length} partners:`);
-              mainPartners.forEach(partner => {
-                console.log(`  - Partner: ${partner.username} (ID: ${partner.id})`);
-              });
-            });
-            
-            // If we have partners but they're not properly linked, try to fix the relationships
-            if (partners.length > 0 && mainRegistrants.length > 0) {
-              // Ensure each partner has a registeredBy field
-              const updatedRegistrations = [...registrationsData.registrations];
-              let modified = false;
-              
-              for (let i = 0; i < updatedRegistrations.length; i++) {
-                const reg = updatedRegistrations[i];
-                
-                // If this is a partner without a registeredBy field
-                if (reg.isPartner && !reg.registeredBy && reg.notes) {
-                  // Try to extract the registeredBy from notes
-                  const match = reg.notes.match(/Auto-registered as partner of (.+)/);
-                  if (match && match[1]) {
-                    reg.registeredBy = match[1];
-                    modified = true;
-                    console.log(`Fixed partner relationship for ${reg.username}, registered by ${reg.registeredBy}`);
-                  }
-                }
-              }
-              
-              if (modified) {
-                registrationsData.registrations = updatedRegistrations;
-              }
-            }
-            
-            // For duo events, ensure we have proper partner relationships
-            if (registrationsData.event.team_type === 'duo') {
-              // Find main registrants and their partners
-              const mainRegistrants = registrationsData.registrations.filter(reg => !reg.isPartner);
-              const partners = registrationsData.registrations.filter(reg => reg.isPartner);
-              
-              console.log(`Found ${mainRegistrants.length} main registrants and ${partners.length} partners`);
-              
-              // If we have main registrants but no partners, check if they have team members
-              if (partners.length === 0 && mainRegistrants.length > 0) {
-                console.log('No partners found, checking team members');
-                
-                // Create partner registrations from team members if needed
-                const updatedRegistrations = [...registrationsData.registrations];
-                
-                for (const main of mainRegistrants) {
-                  if (main.teamMembers && main.teamMembers.length > 0) {
-                    console.log(`Main registrant ${main.username} has team members but no partner registration`);
-                    
-                    // Check if we already have a partner registration for this team member
-                    const teamMember = main.teamMembers[0];
-                    const existingPartner = partners.find(p => p.user_id === teamMember.user_id);
-                    
-                    if (!existingPartner) {
-                      console.log(`Creating virtual partner for ${teamMember.username}`);
-                      
-                      // Fetch partner user data if available
-                      let partnerUserData = null;
-                      try {
-                        // Try to get the partner's user data from Supabase
-                        const { data: userData } = await supabase
-                          .from('users')
-                          .select('id, email, username, avatar_url')
-                          .eq('id', teamMember.user_id)
-                          .single();
-                        
-                        if (userData) {
-                          partnerUserData = userData;
-                          console.log(`Found user data for partner ${teamMember.username}:`, partnerUserData);
-                        }
-                      } catch (error) {
-                        console.error(`Error fetching user data for partner ${teamMember.username}:`, error);
-                      }
-                      
-                      // Create a virtual partner registration
-                      const virtualPartner = {
-                        ...main,
-                        id: `virtual_${main.id}_${teamMember.user_id}`,
-                        user_id: teamMember.user_id,
-                        username: teamMember.username,
-                        isPartner: true,
-                        registeredBy: main.username,
-                        user: partnerUserData || {
-                          ...main.user,
-                          id: teamMember.user_id,
-                          username: teamMember.username
-                        }
-                      };
-                      
-                      updatedRegistrations.push(virtualPartner);
-                    }
-                  }
-                }
-                
-                if (updatedRegistrations.length > registrationsData.registrations.length) {
-                  console.log('Added virtual partners to the registrations');
-                  registrationsData.registrations = updatedRegistrations;
-                }
-              }
-            }
-          }
+          // Team members are now provided by the API, no client-side processing needed
         }
         
         setRegistrations(registrationsData || []);
@@ -414,7 +299,9 @@ export default function EventRegistrations() {
     if (user?.isAdmin && id) {
       fetchEventRegistrations();
     }
-  }, [id, user, supabase, event]);
+    // Only re-fetch when id, user.id, or isAdmin status changes, not when user object reference changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id, user?.isAdmin, supabase]);
   
   // Export registrations to CSV
   const exportToCSV = async () => {
@@ -634,21 +521,24 @@ export default function EventRegistrations() {
                   // For duo events, group partners together
                   registrations
                     .map((registration, index) => {
-                      // Extract partner name from notes
-                      const partnerMatch = registration.notes?.match(/Duo partner:\s*(.+)/i);
-                      const partnerName = partnerMatch ? partnerMatch[1].trim() : null;
-                      // Find partner from notes
+                      // Get partner from teamMembers array (API provides this)
                       let partner = null;
                       
-                      if (partnerName) {
-                        // Look for a registration with the partner's username
-                        partner = registrations.find(reg => 
-                          reg.user?.username?.toLowerCase() === partnerName.toLowerCase() ||
-                          reg.username?.toLowerCase() === partnerName.toLowerCase()
-                        );
+                      if (registration.teamMembers && registration.teamMembers.length > 0) {
+                        const teamMember = registration.teamMembers[0];
+                        partner = {
+                          username: teamMember.username,
+                          user: {
+                            email: teamMember.email || 'No email available',
+                            phone: teamMember.phone || null
+                          }
+                        };
+                      } else {
+                        // Fallback: extract partner name from notes if teamMembers not available
+                        const partnerMatch = registration.notes?.match(/Duo partner:\s*(.+)/i);
+                        const partnerName = partnerMatch ? partnerMatch[1].trim() : null;
                         
-                        // If not found by username, create a placeholder partner
-                        if (!partner) {
+                        if (partnerName) {
                           partner = {
                             username: partnerName,
                             user: {
@@ -959,7 +849,7 @@ export default function EventRegistrations() {
                   // For solo events, show registrations normally
                   registrations.map((registration, index) => {
                     // Find the partner for this registration if it's a duo event
-                    const partner = event.team_type === 'duo' && !registration.isPartner
+                    const partner = event && event.team_type === 'duo' && !registration.isPartner
                       ? registrations.find(reg => 
                           reg.isPartner && 
                           reg.registeredBy === registration.username
@@ -975,10 +865,10 @@ export default function EventRegistrations() {
                           <div 
                             className={`${styles.tableRow} ${styles.mainRow}`}
                             style={{
-                              borderLeft: event.team_type === 'duo' ? `4px solid ${generateColorFromString(registration.username)}` : 'none'
+                              borderLeft: event && event.team_type === 'duo' ? `4px solid ${generateColorFromString(registration.username)}` : 'none'
                             }}
                           >
-                            {event.team_type === 'duo' && (
+                            {event && event.team_type === 'duo' && (
                               <div className={styles.teamIndicator}>
                                 Team {index + 1}
                               </div>
