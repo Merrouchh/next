@@ -45,7 +45,7 @@
     "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-virtual": "^3.13.0",
     "@types/leaflet": "^1.9.15",
-    "@videojs/http-streaming": "^3.17.0",
+    "@videojs/http-streaming": "^3.18.0",
     "axios": "^1.10.0",
     "body-parser": "^1.20.3",
     "brackets-json-db": "^1.0.2",
@@ -104,7 +104,7 @@
     "swr": "^2.3.3",
     "utf-8-validate": "^6.0.5",
     "uuid": "^11.0.5",
-    "video.js": "^8.22.0",
+    "video.js": "^8.23.0",
     "web-push": "^3.6.7",
     "ws": "^8.18.0"
   },
