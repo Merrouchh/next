@@ -441,14 +441,21 @@ export default function BracketManager() {
         // Add participant 1 if it exists and isn't a bye
         if (match.participant1Id && match.participant1Id !== 'bye') {
           const participant = participants.find(p => p.id === match.participant1Id);
+          console.log('Found participant for swap:', participant);
+          console.log('Participant fields:', Object.keys(participant));
           if (participant) {
-            swappableParticipants.push({
+            // Normalize participant data for display
+            const normalizedParticipant = {
               ...participant,
+              name: participant.users?.username || 'Unknown',
+              username: participant.users?.username || 'Unknown',
+              email: participant.users?.email || '',
               matchId: match.id,
               position: 'participant1',
               opponentId: match.participant2Id,
               opponentName: match.participant2Name
-            });
+            };
+            swappableParticipants.push(normalizedParticipant);
           }
         }
         
@@ -456,13 +463,18 @@ export default function BracketManager() {
         if (match.participant2Id && match.participant2Id !== 'bye') {
           const participant = participants.find(p => p.id === match.participant2Id);
           if (participant) {
-            swappableParticipants.push({
+            // Normalize participant data for display
+            const normalizedParticipant = {
               ...participant,
+              name: participant.users?.username || 'Unknown',
+              username: participant.users?.username || 'Unknown',
+              email: participant.users?.email || '',
               matchId: match.id,
               position: 'participant2',
               opponentId: match.participant1Id,
               opponentName: match.participant1Name
-            });
+            };
+            swappableParticipants.push(normalizedParticipant);
           }
         }
       });
@@ -481,14 +493,19 @@ export default function BracketManager() {
       // Add unassigned participants (those not in any match)
       participants.forEach(participant => {
         if (!participantsInMatches.has(participant.id)) {
-          swappableParticipants.push({
+          // Normalize participant data for display
+          const normalizedParticipant = {
             ...participant,
+            name: participant.users?.username || 'Unknown',
+            username: participant.users?.username || 'Unknown',
+            email: participant.users?.email || '',
             matchId: null,
             position: null,
             opponentId: null,
             opponentName: null,
             isUnassigned: true
-          });
+          };
+          swappableParticipants.push(normalizedParticipant);
         }
       });
       
@@ -497,6 +514,18 @@ export default function BracketManager() {
         setLoading(false);
         return;
       }
+      
+      // Debug logging
+      console.log('Participants array:', participants);
+      console.log('Swappable participants:', swappableParticipants);
+      console.log('Current participant to replace:', {
+        position: participantPosition,
+        currentId: currentParticipantId,
+        currentName: participantPosition === 'participant1' 
+          ? getParticipantName(selectedMatch.participant1Id)
+          : getParticipantName(selectedMatch.participant2Id),
+        matchId: selectedMatch.id
+      });
       
       // Show custom participant selection modal
       setAvailableParticipants(swappableParticipants);
@@ -1705,9 +1734,20 @@ export default function BracketManager() {
     
     saveScrollPosition();
     try {
+      // Get the session for authentication
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      if (!accessToken) {
+        throw new Error('No authentication token available');
+      }
+      
       const response = await fetch(`/api/events/${selectedEvent.id}/match-details?action=resetTimes`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
       });
 
       if (response.ok) {

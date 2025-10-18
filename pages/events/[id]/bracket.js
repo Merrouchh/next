@@ -12,6 +12,7 @@ import ProtectedPageWrapper from '../../../components/ProtectedPageWrapper';
 import BracketView from '../../../components/bracket/BracketView';
 import ParticipantsList from '../../../components/bracket/ParticipantsList';
 import WinnerModal from '../../../components/bracket/WinnerModal';
+import DeleteBracketModal from '../../../components/DeleteBracketModal';
 // import ZoomControls from '../../../components/bracket/ZoomControls'; // Removed unused import
 
 export async function getServerSideProps({ params, res }) {
@@ -109,6 +110,7 @@ export default function EventBracket() {
   // const [matchDetails] = useState([]); // Removed unused state
   const [eventType, setEventType] = useState('solo'); // Default to solo
   // const [isDuoEvent, setIsDuoEvent] = useState(false); // Removed unused state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Add a safety timeout to ensure loading state is reset if it gets stuck
   useEffect(() => {
@@ -384,13 +386,17 @@ export default function EventBracket() {
   };
 
   // Add a function to delete the bracket (Only visible to admins with proper UI)
-  const handleDeleteBracket = async () => {
+  const handleDeleteBracket = () => {
     if (!isAdmin || !id) return;
     
-    if (!confirm('Are you sure you want to delete this tournament bracket? This action cannot be undone.')) {
-      return;
-    }
-    
+    console.log('Opening delete modal for event:', event);
+    console.log('Event title:', event?.event?.title);
+    console.log('Event keys:', event ? Object.keys(event) : 'No event');
+    setShowDeleteModal(true);
+  };
+
+  // Handle actual bracket deletion after modal confirmation
+  const handleConfirmDeleteBracket = async () => {
     setLoading(true);
     
     try {
@@ -423,6 +429,8 @@ export default function EventBracket() {
       console.error('Error deleting bracket:', error);
       setError(error.message || 'Failed to delete tournament bracket');
       setLoading(false);
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
@@ -481,7 +489,6 @@ export default function EventBracket() {
                 isAdmin={isAdmin}
                 handleMatchClick={handleMatchClick}
                 handleDeleteBracket={handleDeleteBracket}
-                eventTitle={event?.title || 'Tournament'}
               />
             )}
             <ParticipantsList 
@@ -499,6 +506,15 @@ export default function EventBracket() {
             onSetWinner={handleSetWinner}
           />
         )}
+
+        {/* Bracket deletion confirmation modal */}
+        <DeleteBracketModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleConfirmDeleteBracket}
+          eventTitle={event?.event?.title || 'Tournament'}
+          loading={loading}
+        />
       </div>
     </ProtectedPageWrapper>
   );

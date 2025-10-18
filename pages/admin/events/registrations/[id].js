@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import styles from '../../../../styles/AdminEventRegistrations.module.css';
 import { useAuth } from '../../../../contexts/AuthContext';
 import AdminPageWrapper from '@/components/AdminPageWrapper';
+import QueueAdminModal from '../../../../components/QueueAdminModal';
 import { withServerSideAdmin } from '../../../../utils/supabase/server-admin';
 
 // Format date for display - moved to a utility function outside component
@@ -119,6 +120,8 @@ export default function EventRegistrations() {
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [registrationToDelete, setRegistrationToDelete] = useState(null);
   const router = useRouter();
   const { id } = router.query;
   const { user, supabase } = useAuth();
@@ -230,7 +233,11 @@ export default function EventRegistrations() {
           // Team members are now provided by the API, no client-side processing needed
         }
         
-        setRegistrations(registrationsData || []);
+         setRegistrations(registrationsData || []);
+         
+         // Debug: Log the actual registration count
+         console.log('Total registrations received from API:', registrationsData?.length || 0);
+         console.log('Event registered_count from API:', eventData?.registered_count);
       } catch (error) {
         console.error('Error fetching event registrations:', error);
         toast.error('Failed to load registrations');
@@ -346,9 +353,16 @@ export default function EventRegistrations() {
   
   // Remove registration
   const removeRegistration = async (registrationId, userName) => {
-    if (!confirm(`Are you sure you want to remove ${userName}'s registration?`)) {
-      return;
-    }
+    // Store the registration data for deletion
+    setRegistrationToDelete({ id: registrationId, userName });
+    setShowDeleteModal(true);
+  };
+
+  // Handle actual deletion after modal confirmation
+  const handleConfirmDelete = async () => {
+    if (!registrationToDelete) return;
+
+    const { id: registrationId, userName } = registrationToDelete;
     
     try {
       // Get the session for authentication
@@ -395,6 +409,10 @@ export default function EventRegistrations() {
     } catch (error) {
       console.error('Error removing registration:', error);
       toast.error(error.message || 'Failed to remove registration');
+    } finally {
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setRegistrationToDelete(null);
     }
   };
 
@@ -492,7 +510,8 @@ export default function EventRegistrations() {
                       <span className={styles.loadingRegistrations}>Loading...</span>
                     ) : (
                       <>
-                        {typeof event.registered_count === 'number' ? event.registered_count : registrations.length}
+                        {/* Use actual registration count instead of stored registered_count to ensure accuracy */}
+                        {registrations.length}
                         {event.registration_limit ? ` / ${event.registration_limit}` : ''}
                       </>
                     )}
@@ -680,8 +699,7 @@ export default function EventRegistrations() {
                     event.team_type.trim().toLowerCase() === 'team' ? (
                   // For team events, show main registrant with all team members
                   registrations
-                    // Filter to only show main registrants (not team members)
-                    .filter(reg => !reg.isPartner)
+                    // Note: Admin API doesn't create virtual partner registrations, so no filtering needed
                     .map((registration, index) => {
                       // Generate a unique color for this team
                       const teamColor = generateTeamColor(registration.id);
@@ -1050,6 +1068,25 @@ export default function EventRegistrations() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <QueueAdminModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setRegistrationToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        type="confirm"
+        title="Remove Registration"
+        message={
+          registrationToDelete 
+            ? `Are you sure you want to remove ${registrationToDelete.userName}'s registration? This action cannot be undone.`
+            : ''
+        }
+        confirmText="Yes, Remove"
+        cancelText="Cancel"
+      />
     </AdminPageWrapper>
   );
 }

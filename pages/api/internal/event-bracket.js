@@ -1,6 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
+ * Shuffle array using Fisher-Yates algorithm
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Internal API for event bracket operations
  * This API handles authentication server-side and calls the original APIs internally
  * This prevents authorization headers from being exposed to the client
@@ -216,8 +228,11 @@ async function handleGenerateBracket(req, res, eventId, supabase) {
       };
     });
 
+    // Shuffle participants to create different brackets on regeneration
+    const shuffledParticipants = shuffleArray([...participants]);
+    
     // Create a simple single-elimination bracket
-    const bracket = generateSingleEliminationBracket(participants);
+    const bracket = generateSingleEliminationBracket(shuffledParticipants);
 
     // Store the bracket in the database
     console.log('[INTERNAL API] Saving bracket to database:', { 

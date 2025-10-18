@@ -120,6 +120,28 @@ async function handleGetEvent(req, res, eventId) {
 
     console.log('[INTERNAL API] Successfully fetched event:', event.id);
 
+    // Sync the registered_count with the actual registration count
+    const { count: actualCount, error: countError } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+
+    if (!countError && actualCount !== null && event.registered_count !== actualCount) {
+      console.log(`[INTERNAL API] Syncing registered_count: ${event.registered_count} -> ${actualCount}`);
+      
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registered_count: actualCount })
+        .eq('id', eventId);
+
+      if (!updateError) {
+        event.registered_count = actualCount;
+        console.log('[INTERNAL API] Successfully synced registered_count to', actualCount);
+      } else {
+        console.error('[INTERNAL API] Error syncing registered_count:', updateError);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       result: { event }
@@ -266,6 +288,29 @@ async function handleGetRegistrations(req, res, eventId) {
 
     console.log('[INTERNAL API] Successfully fetched registrations:', formattedRegistrations.length);
 
+    // Sync the registered_count with the actual registration count
+    const actualCount = formattedRegistrations.length;
+    const { data: eventData, error: eventError } = await supabase
+      .from('events')
+      .select('registered_count')
+      .eq('id', eventId)
+      .single();
+
+    if (!eventError && eventData && eventData.registered_count !== actualCount) {
+      console.log(`[INTERNAL API] Syncing registered_count: ${eventData.registered_count} -> ${actualCount}`);
+      
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registered_count: actualCount })
+        .eq('id', eventId);
+
+      if (updateError) {
+        console.error('[INTERNAL API] Error syncing registered_count:', updateError);
+      } else {
+        console.log('[INTERNAL API] Successfully synced registered_count to', actualCount);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       result: formattedRegistrations
@@ -292,11 +337,44 @@ async function handleDeleteRegistration(req, res, eventId, registrationData) {
 
     console.log('[INTERNAL API] Deleting registration:', registrationData);
 
+    // First, get the event details to check if it's a team event
+    const { data: eventData, error: eventError } = await supabase
+      .from('events')
+      .select('team_type')
+      .eq('id', eventId)
+      .single();
+
+    if (eventError) {
+      console.error('[INTERNAL API] Error fetching event data:', eventError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch event data',
+        message: eventError.message
+      });
+    }
+
+    // If this is a team event, delete team members first
+    if (eventData && eventData.team_type !== 'solo') {
+      console.log('[INTERNAL API] Deleting team members for registration:', registrationData.registrationId);
+      
+      const { error: teamDeleteError } = await supabase
+        .from('event_team_members')
+        .delete()
+        .eq('registration_id', registrationData.registrationId);
+      
+      if (teamDeleteError) {
+        console.error('[INTERNAL API] Error deleting team members:', teamDeleteError);
+        // Continue with registration deletion even if team member deletion fails
+      } else {
+        console.log('[INTERNAL API] Successfully deleted team members');
+      }
+    }
+
     // Delete registration directly from Supabase
     const { error: deleteError } = await supabase
       .from('event_registrations')
       .delete()
-      .eq('id', registrationData.id)
+      .eq('id', registrationData.registrationId)
       .eq('event_id', eventId);
 
     if (deleteError) {
@@ -308,7 +386,30 @@ async function handleDeleteRegistration(req, res, eventId, registrationData) {
       });
     }
 
-    console.log('[INTERNAL API] Successfully deleted registration:', registrationData.id);
+    console.log('[INTERNAL API] Successfully deleted registration:', registrationData.registrationId);
+
+    // Update event registered count
+    const { data: currentEventData, error: countError } = await supabase
+      .from('events')
+      .select('registered_count')
+      .eq('id', eventId)
+      .single();
+
+    if (!countError && currentEventData) {
+      const newCount = Math.max(0, (currentEventData.registered_count || 0) - 1);
+      
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registered_count: newCount })
+        .eq('id', eventId);
+
+      if (updateError) {
+        console.error('[INTERNAL API] Error updating registered count:', updateError);
+        // Don't fail the request if count update fails
+      } else {
+        console.log('[INTERNAL API] Updated registered count to:', newCount);
+      }
+    }
 
     return res.status(200).json({
       success: true,

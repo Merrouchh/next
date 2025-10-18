@@ -14,6 +14,7 @@ import React from 'react';
 import MobileTeamModal from '../../components/MobileTeamModal';
 import DesktopTeamModal from '../../components/DesktopTeamModal';
 import CancelRegistrationModal from '../../components/CancelRegistrationModal';
+import DeleteBracketModal from '../../components/DeleteBracketModal';
 import {
   EventHeader,
   EventDescription,
@@ -381,7 +382,8 @@ export default function EventDetail() {
     isTeamModalOpen: false,
     isCancelModalOpen: false,
     modalStep: 1, // For mobile step-by-step flow
-    isMobile: false
+    isMobile: false,
+    isDeleteBracketModalOpen: false
   });
   
   // Bracket state - consolidated
@@ -1144,12 +1146,16 @@ export default function EventDetail() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to generate bracket');
       }
-      const data = result.result;
       
-      if (data && data.bracket) {
-        setBracketState({ data, loading: false });
-        toast.success('Tournament bracket generated successfully!');
-      }
+      // The API returns bracket directly, not in result.bracket
+      const bracketData = {
+        bracket: result.bracket,
+        participants: result.participants,
+        event_id: result.event_id
+      };
+      
+      setBracketState({ data: bracketData, loading: false });
+      toast.success('Tournament bracket generated successfully!');
     } catch (error) {
       console.error('Error generating bracket:', error);
       toast.error(error.message || 'Failed to generate tournament bracket');
@@ -1158,13 +1164,15 @@ export default function EventDetail() {
   };
   
   // Add this function to delete a bracket (admin only)
-  const handleDeleteBracket = async () => {
+  const handleDeleteBracket = () => {
     if (!user?.isAdmin || !id) return;
     
-    if (!confirm('Are you sure you want to delete this tournament bracket? This action cannot be undone.')) {
-      return;
-    }
-    
+    // Show confirmation modal
+    setModalState(prev => ({ ...prev, isDeleteBracketModalOpen: true }));
+  };
+
+  // Handle actual bracket deletion after modal confirmation
+  const handleConfirmDeleteBracket = async () => {
     setBracketState(prev => ({ ...prev, loading: true }));
     
     try {
@@ -1201,6 +1209,9 @@ export default function EventDetail() {
       console.error('Error deleting bracket:', error);
       toast.error(error.message || 'Failed to delete tournament bracket');
       setBracketState(prev => ({ ...prev, loading: false }));
+    } finally {
+      // Close modal
+      setModalState(prev => ({ ...prev, isDeleteBracketModalOpen: false }));
     }
   };
   
@@ -1602,6 +1613,15 @@ export default function EventDetail() {
             eventTitle={event?.title || 'this event'}
           />
         )}
+
+        {/* Bracket deletion confirmation modal */}
+        <DeleteBracketModal
+          isOpen={modalState.isDeleteBracketModalOpen}
+          onClose={() => setModalState(prev => ({ ...prev, isDeleteBracketModalOpen: false }))}
+          onConfirm={handleConfirmDeleteBracket}
+          eventTitle={event?.title || ''}
+          loading={bracketState.loading}
+        />
       </div>
     </ProtectedPageWrapper>
   );

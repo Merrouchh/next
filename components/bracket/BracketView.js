@@ -3,7 +3,7 @@ import { FaPlus, FaMinus, FaExpand, FaCompress, FaClock } from 'react-icons/fa';
 import styles from '../../styles/Bracket.module.css';
 // import ZoomControls from './ZoomControls'; // Removed unused import
 import ChampionBanner from '../shared/ChampionBanner';
-import DeleteBracketButton from './DeleteBracketButton';
+// import DeleteBracketButton from './DeleteBracketButton'; // Removed - using unified modal system
 import { getParticipantNameById, getParticipantDisplayName } from '../../utils/participantUtils';
 
 const BracketView = ({ 
@@ -12,8 +12,7 @@ const BracketView = ({
   eventType, 
   isAdmin, 
   handleMatchClick, 
-  handleDeleteBracket,
-  eventTitle = 'Tournament'
+  handleDeleteBracket
 }) => {
   const [connectorLines, setConnectorLines] = useState([]);
   const matchRefs = useRef({});
@@ -82,98 +81,13 @@ const BracketView = ({
     }
   };
 
-  // Enhance the toggleFullscreen function with better mobile support
+  // Use CSS-based fullscreen instead of browser API to allow modals to work
   const toggleFullscreen = () => {
-    try {
-      const container = document.querySelector(`.${styles.bracketContainer}`);
-      if (!container) return;
-
-      // Check if we're in fullscreen mode
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement
-      );
-
-      if (!isCurrentlyFullscreen) {
-        // Try to enter fullscreen
-        if (container.requestFullscreen) {
-          container.requestFullscreen();
-        } else if (container.webkitRequestFullscreen) { // Safari & Opera
-          container.webkitRequestFullscreen();
-        } else if (container.mozRequestFullScreen) { // Firefox
-          container.mozRequestFullScreen();
-        } else if (container.msRequestFullscreen) { // IE/Edge
-          container.msRequestFullscreen();
-        } else {
-          // Fallback for browsers without fullscreen API
-          console.log("Fullscreen API not supported by this browser");
-          // Toggle manual fullscreen class instead
-          setIsFullscreen(true);
-        }
-      } else {
-        // Try to exit fullscreen
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { // Safari & Opera
-          document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) { // Firefox
-          document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) { // IE/Edge
-          document.msExitFullscreen();
-        } else {
-          // Fallback for browsers without fullscreen API
-          setIsFullscreen(false);
-        }
-      }
-      
-      // Force update the fullscreen state after a short delay
-      setTimeout(() => {
-        const isInFullscreen = !!(
-          document.fullscreenElement ||
-          document.webkitFullscreenElement ||
-          document.mozFullScreenElement ||
-          document.msFullscreenElement
-        );
-        setIsFullscreen(isInFullscreen);
-        console.log("Fullscreen state updated:", isInFullscreen);
-      }, 100);
-    } catch (err) {
-      console.error("Error toggling fullscreen:", err);
-      // Fallback to manual fullscreen toggle
-      setIsFullscreen(!isFullscreen);
-    }
+    setIsFullscreen(!isFullscreen);
+    console.log("Fullscreen state toggled:", !isFullscreen);
   };
 
-  // Update the fullscreen change event listener
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isInFullscreen = !!(
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement
-      );
-      
-      setIsFullscreen(isInFullscreen);
-      console.log("Fullscreen state changed:", isInFullscreen);
-    };
-
-    // Add event listeners for all browser variants
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-    
-    return () => {
-      // Clean up event listeners
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, []);
+  // No longer need fullscreen change event listeners since we're using CSS-based fullscreen
 
   // Mouse and touch event handlers for dragging
   const handleDragStart = (e) => {
@@ -941,21 +855,8 @@ const BracketView = ({
             <button 
               className={styles.controlButton} 
               onClick={() => {
-                try {
-                  if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                  } else {
-                    const container = document.querySelector(`.${styles.bracketContainer}`);
-                    if (container) container.requestFullscreen();
-                  }
-                  // Force update fullscreen state after a short delay
-                  setTimeout(() => {
-                    setIsFullscreen(!!document.fullscreenElement);
-                  }, 100);
-                } catch (err) {
-                  console.error("Fullscreen error:", err);
-                  setIsFullscreen(!isFullscreen);
-                }
+                // Use CSS-based fullscreen instead of browser API to allow modals to work
+                setIsFullscreen(!isFullscreen);
               }} 
               aria-label="Toggle fullscreen"
             >
@@ -965,13 +866,15 @@ const BracketView = ({
         )}
       </div>
       
-      {isAdmin && (
+      {isAdmin && !isFullscreen && (
         <div className={styles.adminActions}>
-          <DeleteBracketButton
-            onDelete={handleDeleteBracket}
-            eventTitle={eventTitle}
-            variant="default"
-          />
+          <button 
+            className={styles.deleteButton}
+            onClick={handleDeleteBracket}
+            title="Delete bracket"
+          >
+            Delete Bracket
+          </button>
         </div>
       )}
     </div>
