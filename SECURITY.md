@@ -32,13 +32,22 @@
 
 ## 🚨 Critical Endpoints Secured
 
-### Game Time API (`/api/users/[gizmoId]/order/time/[seconds]/price/[price]/invoice`)
+### Internal Game Time APIs
+Game time additions are handled exclusively through secure server-side APIs:
+
+#### `/api/internal/add-game-time-reward`
+- **Purpose**: Add game time rewards for achievements
+- **Authentication**: Server-side only, uses service role
+- **Security**: Prevents duplicate claims via database tracking
+- **Validation**: Only allows 3600 seconds (1 hour)
+- **Audit**: All operations logged with user and gizmo_id
+
+#### `/api/admin/gift-hours`
+- **Purpose**: Admin endpoint to gift hours to users
 - **Authentication**: Required (Supabase JWT)
-- **Authorization**: Owner or Admin/Staff only
-- **Rate Limit**: 3 requests/hour
-- **Validation**: Strict parameter validation
-- **Audit**: All requests logged
-- **Constraints**: Max 60 seconds, price must be 0
+- **Authorization**: Admin only
+- **Validation**: Validates user exists and has linked Gizmo account
+- **Audit**: All operations logged with admin and recipient info
 
 ### Admin Pages (`/admin/*`)
 - **Server-side auth**: Verified before page render
@@ -138,20 +147,22 @@ API_AUTH=username:password
 
 ## 🔧 Testing Security
 
-### Test Rate Limiting
+### Test Admin Gift Hours API
 ```bash
-# Test game time API rate limit (should block after 3 requests)
-for i in {1..5}; do
-  curl -X POST "https://your-site.com/api/users/1/order/time/60/price/0/invoice" \
-    -H "Authorization: Bearer YOUR_TOKEN"
-done
+# Test gifting hours (admin only)
+curl -X POST "https://your-site.com/api/admin/gift-hours" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-uuid", "hours": 2}'
 ```
 
 ### Test Input Validation
 ```bash
 # Test invalid parameters (should return 400)
-curl -X POST "https://your-site.com/api/users/abc/order/time/-1/price/100/invoice" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl -X POST "https://your-site.com/api/admin/gift-hours" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "invalid", "hours": -1}'
 ```
 
 ## 📞 Security Incident Response

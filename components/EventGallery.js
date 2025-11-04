@@ -360,9 +360,9 @@ const UploadModal = React.memo(function UploadModal({ isOpen, onClose, onSubmit,
       return;
     }
     
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be less than 10MB');
       return;
     }
     
