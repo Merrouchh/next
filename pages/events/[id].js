@@ -40,8 +40,8 @@ import {
 } from '../../utils/eventDetailHelpers';
 import { handleError } from '../../utils/errorHandlers';
 
-// Memoize EventGallery component to prevent re-renders
-const MemoizedEventGallery = React.memo(EventGallery);
+// Don't memoize EventGallery - it needs to re-render when user context changes
+// const MemoizedEventGallery = React.memo(EventGallery); // Removed to fix logout issue
 
 export async function getServerSideProps({ params, res }) {
   const { id } = params;
@@ -493,9 +493,14 @@ export default function EventDetail() {
       if (error) throw error;
       
       if (data) {
+        // For completed events, always show as full (UI "cheat" to display properly)
+        const displayCount = event?.status === 'Completed' && data.registration_limit !== null
+          ? data.registration_limit
+          : (data.registered_count || 0);
+        
         setRegistrationStatus(prev => ({
           ...prev,
-          registeredCount: data.registered_count || 0,
+          registeredCount: displayCount,
           registrationLimit: data.registration_limit
         }));
       }
@@ -691,10 +696,15 @@ export default function EventDetail() {
         }
       
       // Update registration status - ensure registeredBy is handled properly
+      // For completed events, always show as full (UI "cheat" to display properly)
+      const displayCount = data.eventData?.status === 'Completed' && data.eventData?.registration_limit !== null
+        ? data.eventData.registration_limit
+        : (data.eventData?.registered_count || 0);
+      
       setRegistrationStatus({
         isRegistered: data.isRegistered,
         isLoading: false,
-        registeredCount: data.eventData?.registered_count || 0,
+        registeredCount: displayCount,
         registrationLimit: data.eventData?.registration_limit || null,
         teamMembers: data.teamMembers || [],
         availableTeamMembers: data.availableTeamMembers || [],
@@ -860,10 +870,15 @@ export default function EventDetail() {
           setLoading(false);
           
           // For old devices, skip complex auth operations and just show basic event info
+          // For completed events, always show as full (UI "cheat" to display properly)
+          const displayCount = eventData.status === 'Completed' && eventData.registration_limit !== null
+            ? eventData.registration_limit
+            : (eventData.registered_count || 0);
+          
           setRegistrationStatus(prev => ({
             ...prev,
             isLoading: false,
-            registeredCount: eventData.registered_count || 0,
+            registeredCount: displayCount,
             registrationLimit: eventData.registration_limit
           }));
           
@@ -1540,10 +1555,10 @@ export default function EventDetail() {
                   <FaImage /> Event Gallery
                 </h2>
                 <div className={styles.galleryContainer}>
-                  {/* Use memoized component to prevent re-renders */}
+                  {/* Include user.id in key to force re-render when user changes */}
                   {eventId.current && (
-                    <MemoizedEventGallery 
-                      key={`gallery-${eventId.current}`} 
+                    <EventGallery 
+                      key={`gallery-${eventId.current}-${user?.id || 'public'}`} 
                       eventId={eventId.current}
                       hideTitle={true}
                     />

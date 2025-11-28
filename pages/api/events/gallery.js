@@ -54,12 +54,31 @@ function getSupabaseClient(headers = {}) {
 }
 
 // Disable the default body parser for POST requests to handle form data
+// We'll manually parse JSON for PATCH requests
 export const config = {
   api: {
     bodyParser: false,
     // Add API timeout
     externalResolver: true,
   },
+};
+
+// Helper function to parse JSON body when bodyParser is disabled
+const parseJSONBody = async (req) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+    req.on('error', reject);
+  });
 };
 
 // Helper function to parse form data with formidable
@@ -152,7 +171,8 @@ const authenticateAdmin = async (authHeaders) => {
             }
             
             console.log("Admin authentication successful for:", userData.username);
-            return jwtData.user;
+            // Return user object with isAdmin property
+            return { ...jwtData.user, isAdmin: true };
           } else {
             throw new Error('Unauthorized: No user found in token');
           }
@@ -196,7 +216,8 @@ const authenticateAdmin = async (authHeaders) => {
     }
     
     console.log("Admin authentication successful for:", userData.username);
-    return user;
+    // Return user object with isAdmin property
+    return { ...user, isAdmin: true };
   } catch (error) {
     console.error('Authentication error:', error.message);
     throw error;
@@ -550,6 +571,62 @@ export default async function handler(req, res) {
         return res.status(200).json({ message: 'Image successfully deleted' });
       } catch (error) {
         console.error('Error handling image deletion:', error);
+        const isTimeout = error.message && error.message.includes('timed out');
+        
+        if (isTimeout) {
+          return res.status(504).json({ error: 'Delete operation timed out' });
+        }
+        
+        return res.status(error.message.includes('Unauthorized') ? 401 : error.message.includes('Forbidden') ? 403 : 500)
+          .json({ error: error.message || 'Failed to delete image' });
+      }
+    }
+    
+    // PATCH: Update image caption
+    else if (req.method === 'PATCH') {
+      try {
+        // Parse JSON body manually since bodyParser is disabled
+        const body = await parseJSONBody(req);
+        const { imageId, caption } = body;
+        
+        if (!imageId) {
+          return res.status(400).json({ error: 'Image ID is required' });
+        }
+        
+        // Verify admin status
+        const authHeaders = {
+          Authorization: req.headers.authorization || '',
+          Cookie: req.headers.cookie || ''
+        };
+        
+        const authResult = await withTimeout(authenticateAdmin(authHeaders), 10000);
+        
+        if (!authResult || !authResult.isAdmin) {
+          return res.status(403).json({ error: 'Admin access required' });
+        }
+        
+        // Update the caption
+        const { data, error } = await withTimeout(
+          supabase
+            .from('event_gallery')
+            .update({ caption: caption || null })
+            .eq('id', imageId)
+            .select()
+            .single(),
+          10000
+        );
+        
+        if (error) {
+          console.error('Error updating image caption:', error);
+          return res.status(500).json({ error: 'Failed to update image caption' });
+        }
+        
+        return res.status(200).json({ 
+          message: 'Image caption updated successfully',
+          image: data
+        });
+      } catch (error) {
+        console.error('Error handling caption update:', error);
         const isTimeout = error.message && error.message.includes('timed out');
         
         if (isTimeout) {

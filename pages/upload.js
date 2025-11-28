@@ -77,6 +77,7 @@ export async function getServerSideProps() {
 const UploadPage = () => {
   const [title, setTitle] = useState('');
   const [game, setGame] = useState('');
+  const [customGame, setCustomGame] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -279,7 +280,9 @@ const UploadPage = () => {
 
     try {
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${username}_${Date.now()}_${game.replace(/\s+/g, '_')}.${fileExt}`;
+      // Use custom game name if "Other" is selected, otherwise use the selected game
+      const gameName = game === 'Other' ? customGame : game;
+      const fileName = `${username}_${Date.now()}_${gameName.replace(/\s+/g, '_')}.${fileExt}`;
       
       logEvent('UPLOAD_STARTED', {
         fileName,
@@ -293,7 +296,7 @@ const UploadPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          game,
+          game: gameName,
           visibility,
           username,
           fileName
@@ -363,6 +366,7 @@ const UploadPage = () => {
     // Reset all form fields and states
     setTitle('');
     setGame('');
+    setCustomGame('');
     setVisibility('public');
     setSelectedFile(null);
     cleanupBlobUrl();
@@ -455,6 +459,7 @@ const UploadPage = () => {
       // Reset form fields
       setTitle('');
       setGame('');
+      setCustomGame('');
       setVisibility('public');
       setSelectedFile(null);
       setShowProgress(false);
@@ -630,7 +635,6 @@ const UploadPage = () => {
       
       // For network files, we'll skip blob URL creation and thumbnail generation
       setSelectedFile(file);
-      setTitle(file.name.split('.')[0]);
       setIsProcessing(false);
       
       // Show a warning about network files
@@ -653,9 +657,8 @@ const UploadPage = () => {
     // Use setTimeout to prevent UI blocking
     processingTimeoutRef.current = setTimeout(() => {
       setSelectedFile(file);
-      setTitle(file.name.split('.')[0]);
       logEvent('FILE_PREPARED', { 
-        title: file.name.split('.')[0],
+        fileName: file.name,
         readyForUpload: true 
       });
       setIsProcessing(false);
@@ -760,7 +763,13 @@ const UploadPage = () => {
             <div className={styles.formGroup}>
               <select
                 value={game}
-                onChange={(e) => setGame(e.target.value)}
+                onChange={(e) => {
+                  setGame(e.target.value);
+                  // Clear custom game when switching away from "Other"
+                  if (e.target.value !== 'Other') {
+                    setCustomGame('');
+                  }
+                }}
                 className={styles.select}
                 required
                 disabled={isProcessing}
@@ -773,6 +782,18 @@ const UploadPage = () => {
                 <option value="Call of Duty">Call of Duty</option>
                 <option value="Other">Other</option>
               </select>
+              {game === 'Other' && (
+                <input
+                  type="text"
+                  value={customGame}
+                  onChange={(e) => setCustomGame(e.target.value)}
+                  placeholder="Enter game name"
+                  className={styles.input}
+                  required
+                  disabled={isProcessing}
+                  style={{ marginTop: '10px' }}
+                />
+              )}
             </div>
 
             <div className={styles.formGroup}>
@@ -822,7 +843,7 @@ const UploadPage = () => {
             <button 
               type="submit"
               className={styles.uploadButton}
-              disabled={!selectedFile || uploadStatus === 'uploading' || isProcessing || fileError}
+              disabled={!selectedFile || uploadStatus === 'uploading' || isProcessing || fileError || (game === 'Other' && !customGame.trim())}
             >
               Upload Clip
             </button>
@@ -860,7 +881,7 @@ const UploadPage = () => {
         }}
         onReset={handleSuccess}
         title={title}
-        game={game}
+        game={game === 'Other' ? customGame : game}
         allowClose={uploadStatus !== 'uploading' && localUploadStatus !== 'uploading'}
         isNetworkFile={fileError && fileError.includes("Network file")}
       />

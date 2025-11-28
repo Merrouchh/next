@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AiOutlineCopy, AiOutlineDollar, AiOutlineBank } from 'react-icons/ai';
 import styles from '../styles/Shop.module.css';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
@@ -26,6 +26,30 @@ const Shop = () => {
   const [error] = useState(null);
   const [activeTab, setActiveTab] = useState('prices');
   // const [showPopup, setShowPopup] = useState(false); // Removed unused state
+
+  // Read hash from URL on mount and when hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash;
+        if (hash === '#bank') {
+          setActiveTab('bank');
+        } else {
+          setActiveTab('prices');
+        }
+      }
+    };
+
+    // Check hash on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
 
 
@@ -162,6 +186,17 @@ const Shop = () => {
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
+    if (tab === 'bank') {
+      // Add hash to URL when clicking bank transfer
+      if (typeof window !== 'undefined') {
+        window.location.hash = 'bank';
+      }
+    } else {
+      // Remove hash when clicking gaming prices
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '/shop');
+      }
+    }
   };
 
   return (
@@ -244,30 +279,6 @@ const Shop = () => {
     </table>
   </section>
 )}
-
-  {/* Events/Tournament Pricing Notice */}
-  {activeTab === 'prices' && (
-    <section className={styles.section}>
-      <div className={styles.centeredText} style={{ marginTop: '2rem', color: '#FF4655' }}>Events / Tournament Pricing</div>
-      <table className={styles.priceTable}>
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Price</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td data-label="Type">Event/Tournament</td>
-            <td data-label="Price">20 Dh / hour</td>
-            <td data-label="Note">Normal time cannot be used</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-  )}
-
 
         {/* Bank Transfer Section */}
         {activeTab === 'bank' && (

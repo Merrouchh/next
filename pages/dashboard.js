@@ -7,7 +7,6 @@ import DashboardUserSearch from '../components/DashboardUserSearch';
 import {
   LoadingSpinner,
   ErrorDisplay,
-  DebtCard,
   ProfileInfoCard,
   TimeRemainingCard,
   TopUsersCard,
@@ -18,9 +17,6 @@ import {
 } from '../components/dashboard';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { 
-  shouldShowDebtCard, 
-  getDebtAmount, 
-  hasAnyTime, 
   createNavigationHandler 
 } from '../utils/dashboardHelpers';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -175,14 +171,6 @@ const Dashboard = React.memo(() => {
         </section>
 
         <div className={styles.statsGrid}>
-            {/* Debt Card - Show if user has debt */}
-            {shouldShowDebtCard(data.balanceInfo) && (
-            <DebtCard 
-                debtAmount={getDebtAmount(data.balanceInfo)} 
-                hasTime={hasAnyTime(data.timeInfo)}
-              />
-            )}
-            
             {/* Profile Info Card */}
             <ProfileInfoCard 
               user={user}

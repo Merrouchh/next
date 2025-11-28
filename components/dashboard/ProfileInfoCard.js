@@ -6,6 +6,7 @@ import ProfilePicture from '../shared/ProfilePicture';
 import styles from '../../styles/Dashboard.module.css';
 import sharedStyles from '../../styles/Shared.module.css';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ProfileInfoCard = React.memo(({ user, userPoints, balanceInfo }) => {
   const router = useRouter();
 
@@ -13,12 +14,12 @@ const ProfileInfoCard = React.memo(({ user, userPoints, balanceInfo }) => {
     return points < 73 ? styles.lowPoints : styles.highPoints;
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatDebt = (amount) => {
     if (amount === 0) {
       return (
         <span className={styles.positiveDebt}>
           All Paid
-          <span role="img" aria-label="checkmark">✅</span>
         </span>
       );
     }
@@ -27,7 +28,6 @@ const ProfileInfoCard = React.memo(({ user, userPoints, balanceInfo }) => {
     return (
       <span className={isNegative ? styles.negativeDebt : styles.positiveDebt}>
         {isNegative ? '-' : ''}{absAmount} DH
-        {isNegative && <span role="img" aria-label="warning">⚠️</span>}
       </span>
     );
   };

@@ -11,7 +11,8 @@ import {
   FaArrowLeft, 
   FaArrowRight,
   FaExpand,
-  FaCheck
+  FaCheck,
+  FaEdit
 } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
 import styles from '../styles/EventGallery.module.css';
@@ -229,10 +230,19 @@ const GalleryPlaceholder = React.memo(function GalleryPlaceholder() {
 });
 
 // Optimize GalleryThumbnail with memo
-const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, onDelete, isAdmin }) {
+const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, onDelete, onEdit, isAdmin, isEditing, editCaption, onEditCaptionChange, onSaveEdit, onCancelEdit, isUpdatingCaption }) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
+  const inputRef = React.useRef(null);
+  
+  // Focus input when editing starts
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
   
   // Create proper alt text and title for SEO
   const imageTitle = image.caption || `Event image ${image.id}`;
@@ -263,8 +273,14 @@ const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, 
 
   return (
     <div 
-      className={styles.galleryItem}
-      onClick={onClick}
+      className={`${styles.galleryItem} ${isEditing ? styles.editingItem : ''}`}
+      onClick={isEditing ? (e) => {
+        // Only allow clicks on the edit container, block everything else
+        if (!e.target.closest(`.${styles.editCaptionContainer}`)) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      } : onClick}
       itemScope
       itemType="http://schema.org/ImageObject"
     >
@@ -302,17 +318,30 @@ const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, 
         )}
         
         {isAdmin && (
-          <button
-            className={styles.deleteButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(e, image.id);
-            }}
-            aria-label="Delete image"
-            title="Delete image"
-          >
-            <FaTrashAlt />
-          </button>
+          <>
+            <button
+              className={styles.editButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(image);
+              }}
+              aria-label="Edit caption"
+              title="Edit caption"
+            >
+              <FaEdit />
+            </button>
+            <button
+              className={styles.deleteButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(e, image.id);
+              }}
+              aria-label="Delete image"
+              title="Delete image"
+            >
+              <FaTrashAlt />
+            </button>
+          </>
         )}
         
         <button
@@ -327,10 +356,95 @@ const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, 
         </button>
       </div>
       
-      {image.caption && (
-        <div className={styles.imageCaption} itemProp="name">
-          {image.caption}
+      {isEditing ? (
+        <div 
+          className={styles.editCaptionContainer}
+          style={{ pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={editCaption || ''}
+            onChange={(e) => {
+              e.stopPropagation();
+              const newValue = e.target.value;
+              onEditCaptionChange(newValue);
+            }}
+            className={styles.editCaptionInput}
+            placeholder="Enter caption..."
+            autoFocus
+            style={{ pointerEvents: 'auto' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            onMouseUp={(e) => {
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            onFocus={(e) => {
+              e.stopPropagation();
+            }}
+            onKeyDown={(e) => {
+              // Only stop propagation for Enter and Escape to prevent opening slideshow
+              if (e.key === 'Enter' || e.key === 'Escape') {
+                e.stopPropagation();
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  onSaveEdit(image.id, editCaption);
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  onCancelEdit();
+                }
+              }
+              // Allow normal typing - don't stop propagation for other keys
+            }}
+            onCompositionStart={(e) => {
+              e.stopPropagation();
+            }}
+            onCompositionEnd={(e) => {
+              e.stopPropagation();
+            }}
+            disabled={isUpdatingCaption}
+          />
+          <div className={styles.editCaptionActions}>
+            <button
+              className={styles.saveButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSaveEdit(image.id, editCaption);
+              }}
+              disabled={isUpdatingCaption}
+              title="Save (Enter)"
+            >
+              <FaCheck />
+            </button>
+            <button
+              className={styles.cancelButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancelEdit();
+              }}
+              disabled={isUpdatingCaption}
+              title="Cancel (Esc)"
+            >
+              <FaTimes />
+            </button>
+          </div>
         </div>
+      ) : (
+        image.caption && (
+          <div className={styles.imageCaption} itemProp="name">
+            {image.caption}
+          </div>
+        )
       )}
       
       {/* Hidden metadata for SEO */}
@@ -340,8 +454,13 @@ const GalleryThumbnail = React.memo(function GalleryThumbnail({ image, onClick, 
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if the image changes
-  return prevProps.image.id === nextProps.image.id;
+  // Re-render if the image changes OR if isAdmin changes OR if editing state changes OR if editCaption changes
+  return prevProps.image.id === nextProps.image.id && 
+         prevProps.isAdmin === nextProps.isAdmin &&
+         prevProps.isEditing === nextProps.isEditing &&
+         prevProps.editCaption === nextProps.editCaption &&
+         prevProps.image.caption === nextProps.image.caption &&
+         prevProps.isUpdatingCaption === nextProps.isUpdatingCaption;
 });
 
 // Create a separate component for the upload modal
@@ -502,6 +621,11 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [compressionInfo, setCompressionInfo] = useState(null);
   
+  // Edit caption state
+  const [editingImageId, setEditingImageId] = useState(null);
+  const [editCaption, setEditCaption] = useState('');
+  const [isUpdatingCaption, setIsUpdatingCaption] = useState(false);
+  
   // Slideshow state
   const [slideshowOpen, setSlideshowOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -515,8 +639,9 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   const fileInputRef = useRef(null);
   const hasRendered = useRef(false);
 
-  // Check if user is an admin
-  const isAdmin = user?.isAdmin || false;
+  // Check if user is an admin - this will update when user changes
+  // Explicitly check for true to ensure it updates when user logs out
+  const isAdmin = user !== null && user !== undefined && user.isAdmin === true;
 
   // Fetch gallery images
   const fetchGalleryImages = useCallback(async () => {
@@ -805,6 +930,82 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
     }
   }, [eventId, selectedImage, caption, session, setIsModalOpen, supabase.auth]);
 
+  // Function to update image caption
+  const updateImageCaption = React.useCallback(async (imageId, newCaption) => {
+    setIsUpdatingCaption(true);
+    
+    try {
+      let accessToken = session?.access_token;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!accessToken && retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          accessToken = sessionData?.session?.access_token;
+        } catch (sessionError) {
+          console.error('Session fetch error:', sessionError);
+        }
+        retryCount++;
+      }
+      
+      if (!accessToken) {
+        toast.error('Authentication required');
+        return;
+      }
+      
+      const response = await fetch('/api/events/gallery', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          imageId,
+          caption: newCaption.trim() || null
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update caption');
+      }
+      
+      const result = await response.json();
+      
+      // Update the image in the local state
+      setImages(prevImages => 
+        prevImages.map(img => 
+          img.id === imageId 
+            ? { ...img, caption: result.image.caption }
+            : img
+        )
+      );
+      
+      toast.success('Caption updated successfully');
+      setEditingImageId(null);
+      setEditCaption('');
+    } catch (error) {
+      console.error('Error updating caption:', error);
+      toast.error(error.message || 'Failed to update caption');
+    } finally {
+      setIsUpdatingCaption(false);
+    }
+  }, [session, supabase]);
+
+  // Handle edit button click
+  const handleEditCaption = React.useCallback((image) => {
+    setEditingImageId(image.id);
+    setEditCaption(image.caption || '');
+  }, []);
+
+  // Handle cancel edit
+  const handleCancelEdit = React.useCallback(() => {
+    setEditingImageId(null);
+    setEditCaption('');
+  }, []);
+
   // Memoize the delete function to maintain a stable reference
   const deleteImage = React.useCallback(async (e, imageId) => {
     e.stopPropagation(); // Prevent opening slideshow when clicking delete
@@ -988,7 +1189,14 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
                     image={image}
                     onClick={() => openSlideshow(index)}
                     onDelete={deleteImage}
+                    onEdit={handleEditCaption}
                     isAdmin={isAdmin}
+                    isEditing={editingImageId === image.id}
+                    editCaption={editCaption}
+                    onEditCaptionChange={setEditCaption}
+                    onSaveEdit={updateImageCaption}
+                    onCancelEdit={handleCancelEdit}
+                    isUpdatingCaption={isUpdatingCaption}
                   />
                 ))
               )}
@@ -1026,4 +1234,5 @@ const EventGallery = ({ eventId, hideTitle = false }) => {
   );
 };
 
-export default React.memo(EventGallery);
+// Don't memoize the main component - it needs to re-render when user context changes
+export default EventGallery;

@@ -218,7 +218,7 @@
   border: 1px solid #2a2a2a;
   background-color: #1a1a1a;
   color: #ffffff;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   backdrop-filter: blur(10px);
 }
 

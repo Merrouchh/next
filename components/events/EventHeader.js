@@ -133,7 +133,10 @@ const EventHeader = ({ event, registrationStatus, isPublicView, teamState, brack
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>Registrations:</span>
           <span>
-            {registrationStatus.registeredCount}
+            {/* For completed events, always show as full (UI "cheat" to display properly) */}
+            {event.status === 'Completed' && registrationStatus.registrationLimit !== null
+              ? registrationStatus.registrationLimit
+              : registrationStatus.registeredCount}
             {registrationStatus.registrationLimit !== null && 
               ` / ${registrationStatus.registrationLimit}`}
           </span>

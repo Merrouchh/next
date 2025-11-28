@@ -30,7 +30,10 @@ const OptimizedEventCard = React.memo(({ event }) => {
   const isCheckingRef = useRef(false);
   
   // Extract registration count from event
-  const registeredCount = event.registered_count || 0;
+  // For completed events, always show as full (UI "cheat" to display properly)
+  const registeredCount = event.status === 'Completed' && event.registration_limit !== null
+    ? event.registration_limit
+    : (event.registered_count || 0);
   
   // Cleanup function to reset loading state - memoized
   const resetLoadingState = useCallback(() => {

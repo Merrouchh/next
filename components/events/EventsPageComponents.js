@@ -165,6 +165,11 @@ export const EventCardImage = React.memo(function EventCardImage({ event, isRegi
 
 // Event Card Meta Information Component
 export const EventCardMeta = React.memo(function EventCardMeta({ event, registeredCount }) {
+  // For completed events, always show as full (UI "cheat" to display properly)
+  const displayCount = event.status === 'Completed' && event.registration_limit !== null
+    ? event.registration_limit
+    : registeredCount;
+  
   return (
     <div className={styles.eventMeta}>
       <div className={styles.eventTime}>
@@ -181,13 +186,13 @@ export const EventCardMeta = React.memo(function EventCardMeta({ event, register
               <div 
                 className={styles.progressBar}
                 style={{ 
-                  width: `${Math.min(100, (registeredCount / event.registration_limit) * 100)}%`,
-                  backgroundColor: registeredCount >= event.registration_limit ? '#dc3545' : '#28a745'
+                  width: `${Math.min(100, (displayCount / event.registration_limit) * 100)}%`,
+                  backgroundColor: displayCount >= event.registration_limit ? '#dc3545' : '#28a745'
                 }}
               ></div>
             </div>
             <span className={styles.registrationCount}>
-              {registeredCount}/{event.registration_limit}
+              {displayCount}/{event.registration_limit}
             </span>
           </div>
         </div>
