@@ -28,8 +28,7 @@ const nextConfig = {
 
   // ESLint configuration
   eslint: {
-    ignoreDuringBuilds: false,
-    dirs: ['pages', 'components', 'lib', 'utils', 'contexts']
+    ignoreDuringBuilds: false
   },
 
   // Standard webpack configuration - no Turbopack
