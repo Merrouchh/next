@@ -26,11 +26,6 @@ const nextConfig = {
     ],
   },
 
-  // ESLint configuration
-  eslint: {
-    ignoreDuringBuilds: false
-  },
-
   // Standard webpack configuration - no Turbopack
   webpack: (config, { isServer, dev }) => {
     config.infrastructureLogging = { level: 'error' };
@@ -137,6 +132,9 @@ const nextConfig = {
   experimental: {
     scrollRestoration: true,
   },
+
+  // Turbopack configuration (empty to use webpack instead)
+  turbopack: {},
 };
 
 // Validate required environment variables
