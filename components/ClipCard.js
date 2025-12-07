@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MdVisibility, MdPerson, 
-  MdPublic, MdLock, MdDelete, MdShare, MdSync, MdComment } from 'react-icons/md';
+  MdPublic, MdLock, MdDelete, MdShare, MdSync, MdComment, MdEdit, MdCheck, MdClose } from 'react-icons/md';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import styles from '../styles/ClipCard.module.css';
 import VideoPlayer from './VideoPlayer';
@@ -138,6 +138,10 @@ const ClipCard = ({
   const router = useRouter();
   // const [, setIsClosing] = useState(false); // Removed unused state
   const [showTitleModal, setShowTitleModal] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [isUpdatingTitle, setIsUpdatingTitle] = useState(false);
+  const titleInputRef = useRef(null);
   const cardRef = useRef(null);
   const subscriptionRef = useRef(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -412,6 +416,73 @@ const ClipCard = ({
     }
   };
 
+  const handleStartEdit = () => {
+    setEditedTitle(clipData.title || '');
+    setIsEditingTitle(true);
+    // Focus input after state update
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+    }, 0);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingTitle(false);
+    setEditedTitle('');
+  };
+
+  const handleSaveTitle = async () => {
+    if (isUpdatingTitle) return;
+
+    const trimmedTitle = editedTitle.trim();
+    // If title is empty, keep it as null (allow empty titles)
+    const newTitle = trimmedTitle === '' ? null : trimmedTitle;
+
+    // If title hasn't changed, just cancel edit
+    if (newTitle === (clipData.title || null)) {
+      handleCancelEdit();
+      return;
+    }
+
+    try {
+      setIsUpdatingTitle(true);
+
+      const response = await fetch('/api/clips/update-title', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies for authentication
+        body: JSON.stringify({
+          clipId: clipData.id,
+          title: newTitle,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update title');
+      }
+
+      const { clip: updatedClip } = await response.json();
+
+      // Update local state
+      setClipData(prev => ({ ...prev, title: updatedClip.title }));
+      
+      // Call onClipUpdate if provided
+      if (typeof onClipUpdate === 'function') {
+        onClipUpdate(clipData.id, 'title', { title: updatedClip.title });
+      }
+
+      setIsEditingTitle(false);
+      setEditedTitle('');
+    } catch (error) {
+      console.error('Failed to update title:', error);
+      alert(`Failed to update title: ${error.message}`);
+    } finally {
+      setIsUpdatingTitle(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       setIsUpdating(true);
@@ -615,13 +686,62 @@ const ClipCard = ({
           </div>
           
           <div className={styles.titleContainer}>
-            <h3 
-              ref={titleRef}
-              className={`${styles.title} ${isTruncated ? styles.clickable : ''}`}
-              onClick={() => isTruncated && setShowTitleModal(true)}
-            >
-              {clipData.title || 'Untitled Clip'}
-            </h3>
+            {isEditingTitle ? (
+              <div className={styles.titleEditContainer}>
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveTitle();
+                    } else if (e.key === 'Escape') {
+                      handleCancelEdit();
+                    }
+                  }}
+                  className={styles.titleInput}
+                  maxLength={200}
+                  autoFocus
+                />
+                <button
+                  className={styles.titleEditButton}
+                  onClick={handleSaveTitle}
+                  disabled={isUpdatingTitle}
+                  title="Save"
+                >
+                  <MdCheck />
+                </button>
+                <button
+                  className={styles.titleEditButton}
+                  onClick={handleCancelEdit}
+                  disabled={isUpdatingTitle}
+                  title="Cancel"
+                >
+                  <MdClose />
+                </button>
+              </div>
+            ) : (
+              <div className={styles.titleWrapper}>
+                <h3 
+                  ref={titleRef}
+                  className={`${styles.title} ${isTruncated ? styles.clickable : ''}`}
+                  onClick={() => isTruncated && setShowTitleModal(true)}
+                >
+                  {clipData.title || 'Untitled Clip'}
+                </h3>
+                {isOwner && (
+                  <button
+                    className={styles.editTitleButton}
+                    onClick={handleStartEdit}
+                    title="Edit title"
+                    aria-label="Edit title"
+                  >
+                    <MdEdit />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -105,6 +105,12 @@ const UserClips = ({ userId, isOwner }) => {
           ? { ...clip, visibility: updatedData.visibility }
           : clip
       ));
+    } else if (action === 'title') {
+      setClips(clips.map(clip => 
+        clip.id === clipId 
+          ? { ...clip, title: updatedData.title }
+          : clip
+      ));
     }
   };
 

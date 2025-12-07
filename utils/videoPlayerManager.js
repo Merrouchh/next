@@ -56,7 +56,22 @@ class VideoPlayerManager {
       return;
     }
     
-    // Set the new currently playing player first so we don't pause ourselves
+    // Immediately pause the previous player if it exists
+    if (this.currentlyPlayingId && this.currentlyPlayingId !== playerId) {
+      const previousPlayer = this.activePlayers.get(this.currentlyPlayingId);
+      if (previousPlayer) {
+        try {
+          if (typeof previousPlayer.pause === 'function' && !previousPlayer.paused()) {
+            console.log(`Immediately pausing previous player: ${this.currentlyPlayingId}`);
+            previousPlayer.pause();
+          }
+        } catch (err) {
+          console.error(`Error pausing previous player ${this.currentlyPlayingId}:`, err);
+        }
+      }
+    }
+    
+    // Set the new currently playing player
     this.currentlyPlayingId = playerId;
     
     // Add a small delay before pausing other players to prevent race condition
@@ -67,7 +82,7 @@ class VideoPlayerManager {
       
       // Log active players for debugging
       this.logActivePlayers();
-    }, 100); // 100ms delay to prevent interrupting the play() call
+    }, 50); // Reduced delay from 100ms to 50ms for faster response
   }
   
   // Explicitly pause all players except the given one
@@ -119,11 +134,8 @@ class VideoPlayerManager {
           // Finally, if we passed all checks, try the normal path
           if (typeof player.pause === 'function' && typeof player.paused === 'function') {
             try {
-              // Check if player is in the process of starting to play (readyState 0-2)
-              if (player.readyState && player.readyState() < 3) {
-                console.log(`Player ${id} is still loading (readyState: ${player.readyState()}), skipping pause`);
-                return;
-              }
+              // Don't skip pause based on readyState - we want to pause even if loading
+              // This fixes the issue where videos don't pause when switching
               
               // Final safety check right before calling paused()
               if (player.tech && player.tech_.el_) {

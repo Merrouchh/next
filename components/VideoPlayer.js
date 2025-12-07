@@ -27,6 +27,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   const [mounted, setMounted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const pendingViewTrackingRef = useRef(false); // Track if view tracking is pending
+  const wasPlayingBeforeSeekRef = useRef(false); // Track if video was playing before seek
 
   // Set mounted state
   useEffect(() => {
@@ -65,6 +66,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         trackingAttemptedRef.current = false;
         lastTimeUpdateRef.current = 0;
         actualPlaybackTimeRef.current = 0; // Reset the accurate playback counter
+        wasPlayingBeforeSeekRef.current = false; // Reset seek tracking
 
         // Clean up previous player instance
         if (playerRef.current) {
@@ -267,8 +269,37 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           // When user seeks, update the last timestamp to prevent counting the jump
           lastTimestamp = player.currentTime();
           
+          // Track if video was playing before seek started
+          wasPlayingBeforeSeekRef.current = !player.paused();
+          
           // Show controls during seeking
           player.userActive(true);
+          
+          // Set buffering state when seeking starts
+          setIsBuffering(true);
+          onLoadingChange?.(true);
+        });
+
+        player.on('seeked', () => {
+          // When seeking is complete, update timestamp and clear buffering
+          lastTimestamp = player.currentTime();
+          setIsBuffering(false);
+          onLoadingChange?.(false);
+          
+          // If video was playing before seeking, resume playback
+          if (wasPlayingBeforeSeekRef.current && player.paused()) {
+            console.log('Resuming playback after seek');
+            player.play().catch(err => {
+              console.error('Error resuming playback after seek:', err);
+              // If play fails, update state
+              setIsActuallyPlaying(false);
+              setShowCustomPlayButton(true);
+              wasPlayingBeforeSeekRef.current = false;
+            });
+          } else {
+            // Reset the ref
+            wasPlayingBeforeSeekRef.current = false;
+          }
         });
 
         player.on('waiting', () => {

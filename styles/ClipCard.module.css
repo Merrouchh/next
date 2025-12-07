@@ -46,6 +46,13 @@
   padding: 6px 0;
 }
 
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .title {
   font-size: 0.95rem;
   line-height: 1.2;
@@ -66,6 +73,91 @@
 
 .title.clickable {
   cursor: pointer;
+}
+
+/* Edit title button */
+.editTitleButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.editTitleButton:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.editTitleButton:active {
+  transform: scale(0.95);
+}
+
+/* Title edit container */
+.titleEditContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.titleInput {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-primary);
+  border-radius: 20px;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.titleInput:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-primary, #E6CF00);
+  box-shadow: 0 0 0 2px rgba(230, 207, 0, 0.2);
+}
+
+.titleInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.titleEditButton {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.titleEditButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.titleEditButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.titleEditButton:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 /* New expanded title styles */
