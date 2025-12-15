@@ -31,7 +31,7 @@ export const useMediaQuery = (query) => {
           // Store in sessionStorage for consistency
           try {
             sessionStorage.setItem(`mq-${query}`, String(newMatches));
-          } catch (e) {
+          } catch {
             // Ignore storage errors
           }
         });

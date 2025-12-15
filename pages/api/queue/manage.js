@@ -5,67 +5,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Function to handle automatic mode after queue changes
-async function handleAutomaticModeAfterChange() {
-  try {
-    // Get current queue status and settings
-    const { data: queueStatus, error: statusError } = await supabase.rpc('get_queue_status');
-    
-    if (statusError) {
-      console.error('Error getting queue status in automatic mode:', statusError);
-      return;
-    }
-    
-    const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
-    
-    if (!status) {
-      console.log('No queue status found');
-      return;
-    }
-    
-    if (!status.automatic_mode) {
-      console.log('Automatic mode is off, skipping queue control');
-      return;
-    }
-
-    const currentQueueSize = status.current_queue_size || 0;
-    const isCurrentlyActive = status.is_active;
-
-    console.log(`Automatic mode check: Queue size=${currentQueueSize}, Currently active=${isCurrentlyActive}, Automatic mode=${status.automatic_mode}`);
-
-    // Auto-control logic
-    if (currentQueueSize > 0 && !isCurrentlyActive) {
-      // Should be active but isn't - turn it on
-      const { error: updateError } = await supabase
-        .from('queue_settings')
-        .update({ is_active: true })
-        .eq('id', 1);
-      
-      if (updateError) {
-        console.error('Error activating queue:', updateError);
-      } else {
-        console.log('Automatic mode: Started queue system (queue not empty)');
-      }
-    } else if (currentQueueSize === 0 && isCurrentlyActive) {
-      // Should be inactive but isn't - turn it off
-      const { error: updateError } = await supabase
-        .from('queue_settings')
-        .update({ is_active: false })
-        .eq('id', 1);
-      
-      if (updateError) {
-        console.error('Error deactivating queue:', updateError);
-      } else {
-        console.log('Automatic mode: Stopped queue system (queue empty)');
-      }
-    } else {
-      console.log('Queue state is correct, no changes needed');
-    }
-  } catch (error) {
-    console.error('Error in automatic mode handler:', error);
-  }
-}
-
 // Verify admin access
 async function verifyAdmin(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -240,9 +179,6 @@ async function handleAddToQueue(req, res, admin) {
 
     console.log(`Queue addition successful: ${userName} added at position ${nextPos}`);
 
-    // Check and handle automatic mode after addition
-    await handleAutomaticModeAfterChange();
-
     return res.status(201).json({
       success: true,
       message: `${userName} added to queue at position ${nextPos}`,
@@ -391,9 +327,6 @@ async function handleRemoveFromQueue(req, res) {
 
     console.log(`Queue removal successful: ${removedEntry.user_name} removed from position ${removedPosition}`);
 
-    // Check and handle automatic mode after removal
-    await handleAutomaticModeAfterChange();
-
     return res.status(200).json({
       success: true,
       message: 'Removed from queue successfully',
@@ -414,14 +347,13 @@ async function handleRemoveFromQueue(req, res) {
 
 // Update queue settings
 async function handleUpdateSettings(req, res, admin) {
-  const { isActive, allowOnlineJoining, maxQueueSize, automaticMode } = req.body;
+  const { isActive, allowOnlineJoining, maxQueueSize } = req.body;
 
   try {
     const updates = { updated_by: admin.id };
     if (isActive !== undefined) updates.is_active = isActive;
     if (allowOnlineJoining !== undefined) updates.allow_online_joining = allowOnlineJoining;
     if (maxQueueSize !== undefined) updates.max_queue_size = maxQueueSize;
-    if (automaticMode !== undefined) updates.automatic_mode = automaticMode;
 
     const { data: settings, error: updateError } = await supabase
       .from('queue_settings')

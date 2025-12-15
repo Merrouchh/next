@@ -11,6 +11,10 @@ import { useModal } from '../contexts/ModalContext';
 import { isAuthPage, isAdminPage } from '../utils/routeConfig';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { MdFileUpload } from 'react-icons/md';
+import dynamic from 'next/dynamic';
+
+// Dynamically import DashboardRefreshButton to avoid importing dashboard hooks in Layout
+const DashboardRefreshButton = dynamic(() => import('./DashboardRefreshButton'), { ssr: false });
 
 const Layout = ({ children }) => {
   const router = useRouter();
@@ -22,11 +26,27 @@ const Layout = ({ children }) => {
   const [ripple, setRipple] = useState(false);
   const [rippleStyle, setRippleStyle] = useState({});
   const uploadButtonRef = useRef(null);
+  const [uploadButtonAnimated, setUploadButtonAnimated] = useState(false);
+
+  // Check if upload button has already animated (persist across page navigations)
+  React.useEffect(() => {
+    const animated = sessionStorage.getItem('upload-button-animated');
+    if (animated === 'true') {
+      setUploadButtonAnimated(true);
+    } else {
+      // Mark as animated after first render
+      setTimeout(() => {
+        setUploadButtonAnimated(true);
+        sessionStorage.setItem('upload-button-animated', 'true');
+      }, 500);
+    }
+  }, []);
 
   const shouldHideFooter = useCallback(() => {
-    if (!router?.pathname) return true;
+    if (!router.pathname) return true;
     
     const hideFooterPaths = [
+      '/',
       '/avcomputers', 
       '/dashboard', 
       '/shop', 
@@ -45,7 +65,7 @@ const Layout = ({ children }) => {
     const isProfilePage = router.pathname.startsWith('/profile/');
     const isEventDetailPage = router.pathname.startsWith('/events/') && router.pathname !== '/events';
     return hideFooterPaths.includes(router.pathname) || isProfilePage || isEventDetailPage;
-  }, [router?.pathname, isVerificationPage]);
+  }, [router.pathname, isVerificationPage]);
 
   // Handle conditional rendering based on state
   if (!initialized) {
@@ -125,7 +145,7 @@ const Layout = ({ children }) => {
         <button 
           ref={uploadButtonRef}
           id="floating-upload-button"
-          className={styles.floatingUploadButton}
+          className={`${styles.floatingUploadButton} ${uploadButtonAnimated ? styles.alreadyAnimated : ''}`}
           onClick={handleUploadClick}
           aria-label="Upload new content"
           title="Upload new content"
@@ -138,6 +158,9 @@ const Layout = ({ children }) => {
 
       {/* Notification Bubble - Show for all logged-in users on all pages */}
       {user && <NotificationBubble />}
+      
+      {/* Floating refresh button for mobile on dashboard page - rendered outside stacking context */}
+      {user && router.pathname === '/dashboard' && <DashboardRefreshButton />}
     </>
   );
 };

@@ -1211,8 +1211,12 @@ export const AuthProvider = ({ children, onError }) => {
       if (error) throw error;
 
       // Only redirect to home if we're not on a public route
+      // Add auth_action=login query parameter to automatically open login modal
       if (!isPublicRoute(router.pathname)) {
-        await router.push('/');
+        await router.push('/?auth_action=login');
+      } else if (router.pathname === '/') {
+        // If already on home page, add query parameter to trigger login modal
+        await router.push('/?auth_action=login');
       }
 
     } catch (error) {

@@ -88,7 +88,7 @@ export function validateRequestBody(body, schema) {
     
     // Type validation and sanitization
     switch (rules.type) {
-      case 'string':
+      case 'string': {
         if (typeof value !== 'string') {
           errors.push(`${field} must be a string`);
           break;
@@ -113,6 +113,7 @@ export function validateRequestBody(body, schema) {
         
         sanitized[field] = sanitizedString;
         break;
+      }
         
       case 'integer':
         if (!validateInteger(value, rules.min, rules.max)) {

@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineCalendar, AiOutlineVideoCamera, AiOutlineDashboard } from 'react-icons/ai';
+import { AiOutlineCalendar, AiOutlineVideoCamera, AiOutlineDashboard, AiOutlineTrophy, AiOutlineShop } from 'react-icons/ai';
+import { FaUsers } from 'react-icons/fa';
 import styles from '../styles/DesktopHeader.module.css';
 import { useModal } from '../contexts/ModalContext';
 
@@ -55,37 +57,54 @@ const Header = () => {
   return (
     <div className={`${styles.headerWrapper} desktopOnly`}>
       <nav className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
-        <div className={styles.logoContainer}>
+        <div className={`${styles.logoContainer} ${styles.logoContainerHome}`}>
           <Link href="/" className={styles.logoLink}>
-            <h1 className={styles.logo}>
-              <span className={styles.merrouch}>Merrouch</span>{' '}
-              <span className={styles.gaming}>Gaming</span>
-            </h1>
+            <Image
+              src="/logomobile.png"
+              alt="Merrouch Gaming"
+              width={200}
+              height={50}
+              className={styles.desktopLogo}
+              priority
+            />
           </Link>
         </div>
 
-        <div className={styles.nav}>
+        <div className={`${styles.nav} ${user ? styles.navLoggedIn : styles.navCentered}`}>
           {user ? (
             <>
-              {user?.isAdmin && (
-                <button 
-                  className={styles.adminButton}
-                  onClick={() => router.push('/admin')}
-                >
-                  <AiOutlineDashboard className={styles.buttonIcon} />
-                  Admin
-                </button>
-              )}
-              <span className={styles.usernameBox}>
-                {user?.username}
-                {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
-              </span>
+              <div className={styles.navLeft}>
+                {user?.isAdmin && (
+                  <button 
+                    className={styles.adminButton}
+                    onClick={() => router.push('/admin')}
+                  >
+                    <AiOutlineDashboard className={styles.buttonIcon} />
+                    Admin
+                  </button>
+                )}
+                {user?.isStaff && (
+                  <button 
+                    className={styles.adminButton}
+                    onClick={() => router.push('/admin/queue')}
+                  >
+                    <FaUsers className={styles.buttonIcon} />
+                    Queue
+                  </button>
+                )}
+                <span className={styles.usernameBox}>
+                  {user?.username}
+                </span>
+              </div>
               <button className={styles.logoutButton} onClick={handleLogout}>
                 Logout
               </button>
             </>
           ) : (
             <>
+              <button className={`${styles.loginButton} ${styles.yellowButton}`} onClick={openLoginModal}>
+                Login
+              </button>
               <button 
                 className={styles.eventsButton} 
                 onClick={() => router.push('/events')}
@@ -98,10 +117,21 @@ const Header = () => {
                 onClick={() => router.push('/discover')}
               >
                 <AiOutlineVideoCamera className={styles.buttonIcon} />
-                Public Clips
+                Users Highlight Clips
               </button>
-              <button className={`${styles.loginButton} ${styles.yellowButton}`} onClick={openLoginModal}>
-                Login
+              <button 
+                className={styles.topUsersButton} 
+                onClick={() => router.push('/topusers')}
+              >
+                <AiOutlineTrophy className={styles.buttonIcon} />
+                Top Users
+              </button>
+              <button 
+                className={styles.shopButton} 
+                onClick={() => router.push('/shop')}
+              >
+                <AiOutlineShop className={styles.buttonIcon} />
+                Prices
               </button>
             </>
           )}

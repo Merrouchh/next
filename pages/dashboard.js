@@ -12,7 +12,6 @@ import {
   TopUsersCard,
   ActiveSessionsCard,
   RefreshCard,
-  AdminStaffSection,
   UpcomingMatchesCard
 } from '../components/dashboard';
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -20,7 +19,6 @@ import {
   createNavigationHandler 
 } from '../utils/dashboardHelpers';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { AiOutlineReload } from 'react-icons/ai';
 import { toast } from 'react-hot-toast';
 import styles from '../styles/Dashboard.module.css';
 import { useCallback, useRef } from 'react';
@@ -38,7 +36,7 @@ export async function getServerSideProps({ res }) {
 
 const Dashboard = React.memo(() => {
   const router = useRouter();
-  const { user, loading: authLoading, initialized } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data, loading, error, isRefreshing, refreshData } = useDashboardData();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const lastRefreshTime = useRef(0);
@@ -206,32 +204,8 @@ const Dashboard = React.memo(() => {
               />
             )}
         </div>
-
-                 {/* Admin/Staff Section */}
-         <AdminStaffSection 
-           user={user} 
-           authLoading={authLoading} 
-           initialized={initialized} 
-           router={router}
-         />
       </main>
     </ProtectedPageWrapper>
-    
-    {/* Floating refresh button for mobile */}
-    {isMobile && (
-      <button 
-        id="floating-refresh-button"
-        className={styles.floatingRefreshButton}
-        onClick={handleRefreshClick}
-        disabled={loading || isRefreshing}
-        aria-label="Refresh dashboard data"
-        title="Refresh dashboard data"
-      >
-        <AiOutlineReload className={loading || isRefreshing ? styles.spinning : ''} />
-        <span className={styles.refreshButtonText}>Refresh</span>
-      </button>
-    )}
-
     </>
   );
 });

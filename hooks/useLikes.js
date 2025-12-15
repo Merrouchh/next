@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { updateLike, checkLikeStatus, getLikesByClipId } from '../utils/supabase/clips';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '../utils/supabase/component';
 
 export function useLikes(clipId, initialCount = 0, currentUser = null) {
@@ -8,8 +7,6 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
   const [isUpdatingLike, setIsUpdatingLike] = useState(false);
   const [likesList, setLikesList] = useState([]);
   const [isLoadingLikes, setIsLoadingLikes] = useState(false);
-  const [isConfirmingUpdate, setIsConfirmingUpdate] = useState(false);
-  const likesCache = useRef(new Map());
 
   const fetchLikes = useCallback(async (isConfirmation = false) => {
     if (!clipId) return;
@@ -17,8 +14,6 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
     // Only show loading for non-confirmation fetches
     if (!isConfirmation) {
       setIsLoadingLikes(true);
-    } else {
-      setIsConfirmingUpdate(true);
     }
     
     try {
@@ -62,11 +57,10 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
         setLikesCount(0);
         return [];
       }
-    } catch (error) {
+    } catch {
       return [];
     } finally {
       setIsLoadingLikes(false);
-      setIsConfirmingUpdate(false);
     }
   }, [clipId]);
 
@@ -155,8 +149,8 @@ export function useLikes(clipId, initialCount = 0, currentUser = null) {
 
           if (error) throw error;
           setLiked(!!data);
-        } catch (error) {
-          // Remove this line
+        } catch {
+          // Ignore
         }
       }
     };

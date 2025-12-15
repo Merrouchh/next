@@ -4,9 +4,9 @@
   align-items: center;
   width: 100%;
   height: var(--search-height, 50px);
-  background: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: none;
   padding: 0 1rem;
 }
 

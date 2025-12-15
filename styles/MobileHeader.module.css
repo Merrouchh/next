@@ -5,8 +5,8 @@
   right: 0;
   width: 100%;
   z-index: 999;
-  background: rgba(15, 15, 25, 0.95);
-  backdrop-filter: blur(10px);
+  background: transparent !important;
+  backdrop-filter: none !important;
 }
 
 .header {
@@ -14,8 +14,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.6rem 1rem;
-  background: #141414;
-  backdrop-filter: blur(10px);
+  background: transparent !important;
+  backdrop-filter: none !important;
   color: #ffffff;
   height: 60px;
   z-index: 1002;
@@ -23,7 +23,7 @@
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: none !important;
   width: 100%;
   position: relative;
 }
@@ -33,10 +33,18 @@
 }
 
 .logoContainer {
-  flex-grow: 1;
-  justify-content: center;
+  flex: 1;
   display: flex;
+  justify-content: center;
   align-items: center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  pointer-events: none;
+  width: 100%;
 }
 
 .logoLink {
@@ -45,6 +53,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  z-index: 2;
+  position: relative;
 }
 
 .logoLink:hover {
@@ -54,12 +65,16 @@
 
 .mobileLogo {
   height: 40px;
-  width: auto !important;
+  width: auto;
+  max-width: 120px;
   object-fit: contain;
-  display: block;
-  margin: 0 auto;
-  max-height: 50px;
+  display: block !important;
+  margin: 0;
   transition: transform 0.2s ease;
+  position: relative;
+  z-index: 2;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .hamburger {
@@ -124,26 +139,55 @@
   color: #FFC000;
 }
 
-.mobileMenuPortal {
+.mobileMenuBackdrop {
   position: fixed;
-  top: 60px;
+  top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(20, 20, 20, 0.97);
+  background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+  pointer-events: auto;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mobileMenuPortal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  background-color: rgba(20, 20, 20, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 1001;
-  padding: 1rem;
+  padding: 1.5rem;
   overflow-y: auto;
-  transform: translateY(-100%);
-  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-  border-top: 1px solid #2a2a2a;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
   display: none;
   pointer-events: none;
 }
 
 .mobileMenuPortal.open {
-  transform: translateY(0);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
   display: block;
   pointer-events: auto;
 }
@@ -152,8 +196,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 1rem;
-  gap: 1rem;
+  padding: 0;
+  gap: 0.75rem;
   background-color: transparent;
   border-top: none;
 }
@@ -168,21 +212,30 @@
 .logoutButton,
 .eventsButton,
 .clipsButton,
+.topUsersButton,
+.shopButton,
 .adminButton {
-  font-family: 'Poppins', 'Montserrat', sans-serif;
-  font-size: 0.85rem;
+  font-family: 'Poppins', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.875rem;
   letter-spacing: 0.5px;
-  text-transform: uppercase;
-  font-weight: 600;
+  text-transform: none;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0.6rem 1.25rem;
-  height: 38px;
-  border-radius: 5px;
+  padding: 0.75rem 1.25rem;
+  height: 44px;
+  border-radius: 8px;
   width: 100%;
-  margin: 5px 0;
+  margin: 8px 0;
   justify-content: center;
   display: flex;
   align-items: center;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
 }
 
 .buttonIcon {
@@ -191,35 +244,88 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFD700;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.2s ease;
 }
 
 .eventsButton {
-  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
-  color: #ffffff;
-  border: 1px solid #333333;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .eventsButton:hover {
-  background: linear-gradient(135deg, #333333, #222222);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  border-color: #FFD700;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.eventsButton:hover .buttonIcon {
+  color: #ffffff;
+}
+
+.eventsButton:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .clipsButton {
-  background: linear-gradient(135deg, #2b2b2b, #1a1a1a);
-  color: #ffffff;
-  border: 1px solid #333333;
-  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .clipsButton:hover {
-  background: linear-gradient(135deg, #333333, #222222);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  border-color: #FFD700;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.clipsButton:hover .buttonIcon {
+  color: #ffffff;
+}
+
+.clipsButton:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.topUsersButton {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.topUsersButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.topUsersButton:hover .buttonIcon {
+  color: #ffffff;
+}
+
+.topUsersButton:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shopButton {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.shopButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.shopButton:hover .buttonIcon {
+  color: #ffffff;
+}
+
+.shopButton:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .usernameBox {
@@ -336,10 +442,25 @@
 }
 
 .yellowButton {
-  background: linear-gradient(135deg, #FFD700, #FFC000) !important;
-  color: #000 !important;
-  border: 1px solid #FFD700 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.yellowButton:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.yellowButton:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Animation for menu items */

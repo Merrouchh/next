@@ -157,18 +157,26 @@ async function handleJoinQueue(req, res, queueData) {
       });
     }
 
+    const notifyWhatsapp = queueData?.notifyWhatsapp !== false; // default true
+    const phoneNumber = profile.phone || null;
+    const noWhatsappMarker = '[no_whatsapp]';
+    const baseNotes = queueData?.notes || null;
+    const finalNotes = notifyWhatsapp
+      ? baseNotes
+      : (baseNotes ? `${baseNotes} ${noWhatsappMarker}` : noWhatsappMarker);
+
     // Add user to queue
     const { data: newEntry, error: insertError } = await supabase
       .from('computer_queue')
       .insert({
         user_name: profile.username,
         user_id: user.id,
-        phone_number: profile.phone || null,
-        computer_type: queueData.computer_type || 'any',
+        phone_number: phoneNumber,
+        computer_type: queueData?.computer_type || 'any',
         position: currentSize + 1,
         is_physical: false,
         status: 'waiting',
-        notes: queueData.notes || null
+        notes: finalNotes
       })
       .select()
       .single();

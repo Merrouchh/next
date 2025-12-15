@@ -9,6 +9,29 @@ import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
 // import { MdChevronRight } from 'react-icons/md'; // Removed unused import
 import UserLoginModal from '../components/UserLoginModal';
+import { FaUsers, FaArrowUp, FaArrowDown, FaDesktop, FaTimes } from 'react-icons/fa';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+
+// Simple component to display user's position in their specific queue type
+const QueuePositionDisplay = React.memo(function QueuePositionDisplay({ userInQueue }) {
+  if (!userInQueue) return null;
+
+  const userPosition = userInQueue?.position;
+  const userComputerType = userInQueue?.computer_type;
+
+  const queueTypeLabel = userComputerType === 'any' ? 'any computer'
+    : userComputerType === 'bottom' ? 'bottom floor computers'
+    : 'top floor computers';
+
+  const displayText = `Position ${userPosition} for ${queueTypeLabel}`;
+
+  return (
+    <span className={styles.positionText}>
+      {displayText}
+    </span>
+  );
+});
 
 export const getServerSideProps = async ({ res }) => {
   // Disable all caching - always fresh data
@@ -274,7 +297,6 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
     is_active: false, 
     allow_online_joining: true, // Default to true to show button initially
     current_queue_size: 0,
-    automatic_mode: false 
   });
   const [userInQueue, setUserInQueue] = useState(null);
   const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
@@ -313,7 +335,6 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
         is_active: false, 
         allow_online_joining: true,
         current_queue_size: 0,
-        automatic_mode: false 
       });
     }
   }, [user]);
@@ -362,7 +383,7 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
     };
   }, [user, supabase, fetchQueueStatus, scheduleQueueRefresh]);
 
-  const joinQueue = async (computerType = 'any') => {
+  const joinQueue = async (computerType = 'any', notifyWhatsapp = true) => {
     // Prevent multiple simultaneous joins
     if (isJoiningQueue) {
       console.log('Already joining queue, preventing duplicate request');
@@ -397,7 +418,7 @@ const useQueueSystem = (user, supabase, modalSetters = {}) => {
         body: JSON.stringify({
           action: 'join',
           userId: user.id,
-          queueData: { computerType }
+          queueData: { computer_type: computerType, notifyWhatsapp }
         })
       });
 
@@ -523,12 +544,18 @@ const AvailableComputers = () => {
   const [userCurrentComputer, setUserCurrentComputer] = useState(null);
   // Store user's gizmo_id for checking active sessions
   const [userGizmoId, setUserGizmoId] = useState(null);
+  const [userPhone, setUserPhone] = useState(null);
   // Track which computers have loaded data
   const [loadedComputers, setLoadedComputers] = useState({});
   // Queue related states
   const [showQueueModal, setShowQueueModal] = useState(false);
-  const [showQueueConfirmation, setShowQueueConfirmation] = useState(false);
-  const [selectedQueueType, setSelectedQueueType] = useState(null);
+  const [queueModalStep, setQueueModalStep] = useState('floor'); // 'floor' | 'whatsapp' | 'phone'
+  const [pendingQueueType, setPendingQueueType] = useState(null);
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneSubmitting, setPhoneSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   // Success/Error modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -557,23 +584,24 @@ const AvailableComputers = () => {
   // Fetch user's gizmo_id when they log in
   useEffect(() => {
     if (user?.id) {
-      const fetchUserGizmoId = async () => {
+      const fetchUserData = async () => {
         try {
           const { data, error } = await supabase
             .from('users')
-            .select('gizmo_id')
+            .select('gizmo_id, phone')
             .eq('id', user.id)
             .single();
             
-          if (data && !error && data.gizmo_id) {
-            setUserGizmoId(data.gizmo_id);
+          if (data && !error) {
+            if (data.gizmo_id) setUserGizmoId(data.gizmo_id);
+            setUserPhone(data.phone || null);
           }
         } catch (err) {
-          console.error("Error fetching user's gizmo_id:", err);
+          console.error("Error fetching user data:", err);
         }
       };
       
-      fetchUserGizmoId();
+      fetchUserData();
     }
   }, [user, supabase]);
 
@@ -588,24 +616,157 @@ const AvailableComputers = () => {
     setConfirmAction
   });
 
-  // Handle queue type selection - show confirmation modal
-  const handleQueueSelection = (queueType) => {
-    // Prevent selection if already joining
+  const handleJoinQueue = async (queueType = 'any', notifyWhatsapp = true) => {
     if (isJoiningQueue) return;
-    
-    setSelectedQueueType(queueType);
-    setShowQueueModal(false);
-    setShowQueueConfirmation(true);
-  };
-
-  // Handle final queue confirmation
-  const handleQueueConfirmation = async () => {
-    const success = await joinQueue(selectedQueueType);
+    const success = await joinQueue(queueType, notifyWhatsapp);
     if (success) {
-      setShowQueueConfirmation(false);
-      setSelectedQueueType(null);
       // Refresh queue status to get updated data
       fetchQueueStatus();
+      closeQueueModal();
+    }
+  };
+
+  const openQueueModal = () => {
+    setShowQueueModal(true);
+    setQueueModalStep('floor');
+    setPendingQueueType(null);
+    setPhoneError('');
+    setOtpSent(false);
+    setOtpCode('');
+    setPhoneDraft('');
+  };
+
+  const closeQueueModal = () => {
+    setShowQueueModal(false);
+    setQueueModalStep('floor');
+    setPendingQueueType(null);
+    setPhoneError('');
+    setOtpSent(false);
+    setOtpCode('');
+    setPhoneDraft('');
+  };
+
+  // Step 1: choose floor (then go to WhatsApp step)
+  const handleQueueFloorSelected = (queueType) => {
+    if (isJoiningQueue) return;
+    setPendingQueueType(queueType);
+    setQueueModalStep('whatsapp');
+  };
+
+  // Step 2: WhatsApp preference
+  const handleWhatsappChoice = async (wantsWhatsapp) => {
+    if (!pendingQueueType) return;
+
+    // If user wants WhatsApp but has no phone, force them to add phone first
+    if (wantsWhatsapp && !userPhone) {
+      setQueueModalStep('phone');
+      return;
+    }
+
+    await handleJoinQueue(pendingQueueType, wantsWhatsapp);
+  };
+
+  const normalizeE164 = (raw) => {
+    if (!raw) return '';
+    const trimmed = String(raw).trim();
+    if (!trimmed) return '';
+
+    // PhoneInput (react-phone-input-2) returns digits without "+" by default.
+    // Also handle the common Morocco local format: 06xxxxxxxx -> +2126xxxxxxxx
+    // Remove the national trunk prefix "0" if present.
+    let normalized = trimmed.startsWith('+') ? trimmed : `+${trimmed}`;
+
+    // Morocco trunk prefix removal:
+    // - +2120XXXXXXXXX -> +212XXXXXXXXX
+    // - +06XXXXXXXXX   -> +2126XXXXXXXX
+    if (normalized.startsWith('+2120')) {
+      normalized = `+212${normalized.slice(5)}`;
+    } else if (normalized.startsWith('+0')) {
+      // treat as local Morocco number
+      normalized = `+212${normalized.slice(2)}`;
+    }
+
+    return normalized;
+  };
+
+  const isValidE164 = (phone) => /^\+[1-9]\d{1,14}$/.test(phone);
+
+  const handleSendOtp = async () => {
+    setPhoneError('');
+    const phone = normalizeE164(phoneDraft);
+    if (!isValidE164(phone)) {
+      setPhoneError('Please enter a valid phone number (E.164). Example: +12125551234');
+      return;
+    }
+
+    try {
+      setPhoneSubmitting(true);
+
+      // Create verification attempt record (matches profile flow)
+      const recordRes = await fetch('/api/phone/create-verification-record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, phone })
+      });
+      if (!recordRes.ok) {
+        const err = await recordRes.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to start phone verification');
+      }
+
+      const res = await fetch('/api/verify-phone-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send', phone, userId: user.id })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data.success === false) {
+        const msg = data?.message || data?.error || 'Failed to send verification code';
+        throw new Error(msg);
+      }
+
+      setOtpSent(true);
+    } catch (e) {
+      setPhoneError(e?.message || 'Failed to send verification code');
+    } finally {
+      setPhoneSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setPhoneError('');
+    const phone = normalizeE164(phoneDraft);
+    const code = otpCode.trim();
+    if (!isValidE164(phone)) {
+      setPhoneError('Phone number is invalid.');
+      return;
+    }
+    if (!code) {
+      setPhoneError('Please enter the verification code.');
+      return;
+    }
+
+    try {
+      setPhoneSubmitting(true);
+      const res = await fetch('/api/verify-phone-new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', phone, code, userId: user.id })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || data.success === false) {
+        const msg = data?.message || data?.error || 'Failed to verify code';
+        throw new Error(msg);
+      }
+
+      // Phone is now stored on user; keep local state in sync
+      setUserPhone(phone);
+      setQueueModalStep('whatsapp');
+    } catch (e) {
+      setPhoneError(e?.message || 'Failed to verify code');
+    } finally {
+      setPhoneSubmitting(false);
     }
   };
 
@@ -803,14 +964,14 @@ const AvailableComputers = () => {
           return;
         }
       } else {
-        // If queue is active but user not in queue, prompt to join
+        // If user isn't in queue, they must join the queue first (if allowed)
         if (queueStatus.allow_online_joining) {
-          setShowQueueModal(true);
-          return;
-        } else {
-          alert("A queue is currently active and online joining is disabled. Please visit the gaming center to join the physical queue.");
+          openQueueModal();
           return;
         }
+
+        alert("Online joining is currently disabled. Please visit the gaming center to join the physical queue.");
+        return;
       }
     }
     
@@ -1123,52 +1284,6 @@ const AvailableComputers = () => {
     return loadedComputers[computerId] === true;
   }, [loadedComputers]);
 
-  // Simple component to display user's position in their specific queue type
-  const QueuePositionDisplay = ({ userInQueue }) => {
-    if (!userInQueue) return null;
-    
-    const userPosition = userInQueue?.position;
-    const userComputerType = userInQueue?.computer_type;
-    
-    const queueTypeLabel = userComputerType === 'any' ? 'any computer' 
-      : userComputerType === 'bottom' ? 'bottom floor computers' 
-      : 'top floor computers';
-
-    const displayText = `Position ${userPosition} for ${queueTypeLabel}`;
-    
-    return (
-      <span className={styles.positionText}>
-        {displayText}
-      </span>
-    );
-  };
-
-  // Check occupancy status for different computer types
-  const computerOccupancy = useMemo(() => {
-    const bottomOccupied = computers.normal.filter(computer => computer.isActive).length;
-    const topOccupied = computers.vip.filter(computer => computer.isActive).length;
-    const totalOccupied = bottomOccupied + topOccupied;
-    
-    return {
-      bottom: {
-        occupied: bottomOccupied,
-        total: 8,
-        isFull: bottomOccupied === 8
-      },
-      top: {
-        occupied: topOccupied,
-        total: 6,
-        isFull: topOccupied === 6
-      },
-      all: {
-        occupied: totalOccupied,
-        total: 14,
-        isFull: totalOccupied === 14
-      }
-    };
-  }, [computers.normal, computers.vip]);
-
-
 
   // Page is always ready now - no loading screen needed
 
@@ -1203,20 +1318,44 @@ const AvailableComputers = () => {
         </div>
 
 
-        {/* Compact Queue Status Display with Breakdown */}
-        {queueStatus && (queueStatus.is_active || queueStatus.current_queue_size > 0) && (
+        {/* Queue UI:
+            - If nobody is waiting -> show only Join Queue button
+            - If someone is waiting -> show queue container + Join button
+        */}
+        {(() => {
+          const queueCount = queueStatus?.current_queue_size || 0;
+          const shouldShowContainer = queueCount > 0 || !!userInQueue;
+          const canShowJoin = !userInQueue && !userAlreadyLoggedIn;
+          const isOnlineJoinAllowed = !!queueStatus?.allow_online_joining;
+          const joinDisabled = !queueStatus || !isOnlineJoinAllowed || isJoiningQueue || !canShowJoin;
+
+          if (!shouldShowContainer) {
+            return (
+              <div className={styles.queueJoinOnly}>
+                <button
+                  className={styles.queueJoinButton}
+                  onClick={openQueueModal}
+                  disabled={joinDisabled}
+                  title={!queueStatus ? 'Loading queue...' : (!isOnlineJoinAllowed ? 'Online joining is blocked' : undefined)}
+                >
+                  {isJoiningQueue ? 'Joining...' : (
+                    <>
+                      <FaUsers className={styles.queueJoinIcon} />
+                      Join Queue
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          }
+
+          return (
           <div className={styles.compactQueueStatus}>
             <div className={styles.queueHeader}>
-              <h3>🎮 Queue Active ({queueStatus.current_queue_size} waiting)</h3>
-              {queueStatus.allow_online_joining && !userInQueue && !userAlreadyLoggedIn && (
-                <button 
-                  className={styles.compactJoinButton} 
-                  onClick={() => setShowQueueModal(true)}
-                  disabled={isJoiningQueue}
-                >
-                  {isJoiningQueue ? 'Joining...' : 'Join'}
-                </button>
-              )}
+              <h3 className={styles.queueHeaderTitle}>
+                <FaUsers className={styles.queueHeaderIcon} />
+                Queue ({queueCount} waiting)
+              </h3>
             </div>
 
             {/* Queue Breakdown by Computer Type */}
@@ -1245,25 +1384,32 @@ const AvailableComputers = () => {
                   userInQueue={userInQueue}
                 />
                 <button className={styles.compactLeaveButton} onClick={leaveQueue}>
-                  Leave
+                  Leave Queue
+                </button>
+              </div>
+            )}
+
+            {/* Join Queue Button (always visible; disabled if online joining is blocked) */}
+            {canShowJoin && (
+              <div className={styles.queueJoinSection}>
+                <button
+                  className={styles.queueJoinButton}
+                  onClick={openQueueModal}
+                  disabled={joinDisabled}
+                  title={!queueStatus ? 'Loading queue...' : (!isOnlineJoinAllowed ? 'Online joining is blocked' : undefined)}
+                >
+                  {isJoiningQueue ? 'Joining...' : (
+                    <>
+                      <FaUsers className={styles.queueJoinIcon} />
+                      Join Queue
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </div>
-        )}
-
-        {/* Simple Join Queue Button */}
-        {!userInQueue && !userAlreadyLoggedIn && (
-          <div className={styles.simpleQueueSection}>
-            <button 
-              className={styles.simpleJoinButton} 
-              onClick={() => setShowQueueModal(true)}
-              disabled={isJoiningQueue}
-            >
-              {isJoiningQueue ? 'Joining...' : 'Join Queue'}
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
 
 
@@ -1306,146 +1452,187 @@ const AvailableComputers = () => {
           autoLoginUser={loginModalState.autoLogin}
         />
 
-        {/* Queue Join Modal */}
+        {/* Queue Join Preference Modal - Simplified */}
         {showQueueModal && (
           <div className={styles.queueModal}>
             <div className={styles.queueModalContent}>
-              <h3>Choose Your Queue Preference</h3>
-              <p>
-                Choose your preferred computer floor below. You can join a queue for any floor even if some computers are currently available.
-              </p>
-              
-                              <div className={styles.queueModalOptions}>
-                  <h4>Computer Preference:</h4>
+              <button 
+                className={styles.queueModalClose}
+                onClick={closeQueueModal}
+                disabled={isJoiningQueue}
+                aria-label="Close modal"
+              >
+                <FaTimes />
+              </button>
+
+              {queueModalStep === 'floor' && (
+                <>
+                  <h3>Choose Computer Floor</h3>
+                  <p>Select your preferred floor to join the queue</p>
+
                   <div className={styles.preferenceButtons}>
-                    {/* Any Computer Option - Always show, best when all are full */}
                     <button 
-                      className={`${styles.preferenceButton} ${computerOccupancy.all.isFull ? '' : styles.lessPreferred}`}
-                      onClick={() => handleQueueSelection('any')}
+                      className={styles.preferenceButton}
+                      onClick={() => handleQueueFloorSelected('any')}
                       disabled={isJoiningQueue}
                     >
-                      <div className={styles.preferenceTitle}>🎮 Any Available Computer</div>
-                      <div className={styles.preferenceSubtitle}>
-                        Get the next available computer from any floor
-                        {computerOccupancy.all.isFull ? ' (fastest option)' : ' (when all floors are full)'}
-                      </div>
-                                             <div className={styles.estimatedWait}>
-                         {computerOccupancy.all.isFull 
-                           ? `~${Math.max(5, (queueStatus?.any_queue_count || 0) * 3)} min wait (${queueStatus?.any_queue_count || 0} ahead)`
-                           : 'Will wait for any floor to have availability'
-                         }
-                       </div>
+                      <FaDesktop className={styles.preferenceIcon} />
+                      <span className={styles.preferenceLabel}>Any Floor</span>
                     </button>
                     
-                    {/* Bottom Floor Option - Always show */}
                     <button 
-                      className={`${styles.preferenceButton} ${!computerOccupancy.bottom.isFull ? styles.availableOption : ''}`}
-                      onClick={() => handleQueueSelection('bottom')}
+                      className={styles.preferenceButton}
+                      onClick={() => handleQueueFloorSelected('bottom')}
                       disabled={isJoiningQueue}
                     >
-                      <div className={styles.preferenceTitle}>
-                        ⬇️ Bottom Floor Only 
-                        {!computerOccupancy.bottom.isFull && (
-                          <span className={styles.availableBadge}>({8 - computerOccupancy.bottom.occupied} available now!)</span>
-                        )}
-                      </div>
-                      <div className={styles.preferenceSubtitle}>
-                        Bottom floor gaming PCs only (PC 1-8)
-                        {computerOccupancy.bottom.isFull ? ' - Currently Full' : ' - Some Available!'}
-                      </div>
-                                             <div className={styles.estimatedWait}>
-                         {computerOccupancy.bottom.isFull 
-                           ? `~${Math.max(10, (queueStatus?.bottom_queue_count || 0) * 7)} min wait (${queueStatus?.bottom_queue_count || 0} ahead)`
-                           : 'Available now - Try login directly or join queue!'
-                         }
-                       </div>
+                      <FaArrowDown className={styles.preferenceIcon} />
+                      <span className={styles.preferenceLabel}>Bottom Floor</span>
                     </button>
                     
-                    {/* Top Floor Option - Always show */}
                     <button 
-                      className={`${styles.preferenceButton} ${!computerOccupancy.top.isFull ? styles.availableOption : ''}`}
-                      onClick={() => handleQueueSelection('top')}
+                      className={styles.preferenceButton}
+                      onClick={() => handleQueueFloorSelected('top')}
                       disabled={isJoiningQueue}
                     >
-                      <div className={styles.preferenceTitle}>
-                        ⬆️ Top Floor Only 
-                        {!computerOccupancy.top.isFull && (
-                          <span className={styles.availableBadge}>({6 - computerOccupancy.top.occupied} available now!)</span>
-                        )}
-                      </div>
-                      <div className={styles.preferenceSubtitle}>
-                        Top floor gaming PCs only (PC 9-14)
-                        {computerOccupancy.top.isFull ? ' - Currently Full' : ' - Some Available!'}
-                      </div>
-                                             <div className={styles.estimatedWait}>
-                         {computerOccupancy.top.isFull 
-                           ? `~${Math.max(15, (queueStatus?.top_queue_count || 0) * 10)} min wait (${queueStatus?.top_queue_count || 0} ahead)`
-                           : 'Available now - Try login directly or join queue!'  
-                         }
-                       </div>
+                      <FaArrowUp className={styles.preferenceIcon} />
+                      <span className={styles.preferenceLabel}>Top Floor</span>
                     </button>
                   </div>
-                </div>
+                </>
+              )}
 
-              <div className={styles.queueModalActions}>
-                <button 
-                  className={styles.queueCancelButton}
-                  onClick={() => setShowQueueModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+              {queueModalStep === 'whatsapp' && (
+                <>
+                  <h3>WhatsApp Notifications</h3>
+                  <p>Do you want to receive WhatsApp notifications about your queue status?</p>
 
-        {/* Queue Confirmation Modal */}
-        {showQueueConfirmation && (
-          <div className={styles.queueModal}>
-            <div className={styles.queueModalContent}>
-              <h3>🎮 Join Queue Confirmation</h3>
-              <div className={styles.confirmationMessage}>
-                <p>
-                  <strong>You&apos;re about to join the queue for {
-                    selectedQueueType === 'any' ? 'any available computer' :
-                    selectedQueueType === 'bottom' ? 'bottom floor computers' :
-                    'top floor computers'
-                  }.</strong>
-                </p>
-                
-                <div className={styles.confirmationInfo}>
-                  <p>📋 <strong>What happens next:</strong></p>
-                  <ul>
-                    <li>✅ You&apos;ll be added to the waiting list</li>
-                    <li>🔔 We&apos;ll notify you when it&apos;s your turn</li>
-                    <li>🎮 <strong>We will automatically log you in</strong> when a computer becomes available</li>
-                    <li>❌ If you change your mind, you can remove yourself from the queue</li>
-                  </ul>
-                </div>
+                  {!userPhone ? (
+                    <>
+                      <div className={styles.modalNote}>
+                        Your account does not have a phone number yet.
+                      </div>
+                      <div className={styles.whatsappButtons}>
+                        <button
+                          className={styles.secondaryActionButton}
+                          onClick={() => handleWhatsappChoice(false)}
+                          disabled={isJoiningQueue}
+                        >
+                          No
+                        </button>
+                        <button
+                          className={styles.primaryActionButton}
+                          onClick={() => setQueueModalStep('phone')}
+                          disabled={isJoiningQueue}
+                        >
+                          Add phone number
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles.modalNote}>
+                        Phone: <strong>{userPhone}</strong>
+                      </div>
+                      <div className={styles.whatsappButtons}>
+                        <button
+                          className={styles.primaryActionButton}
+                          onClick={() => handleWhatsappChoice(true)}
+                          disabled={isJoiningQueue}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          className={styles.secondaryActionButton}
+                          onClick={() => handleWhatsappChoice(false)}
+                          disabled={isJoiningQueue}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
-                <div className={styles.importantNote}>
-                  <p>⚠️ <strong>Important:</strong> Make sure you&apos;re ready to start gaming when it&apos;s your turn!</p>
-                </div>
-              </div>
+              {queueModalStep === 'phone' && (
+                <>
+                  <h3>Add Phone Number</h3>
+                  <p>Enter your phone number to enable WhatsApp notifications.</p>
 
-              <div className={styles.queueModalActions}>
-                <button 
-                  className={styles.queueCancelButton}
-                  onClick={() => {
-                    setShowQueueConfirmation(false);
-                    setSelectedQueueType(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className={styles.queueConfirmButton}
-                  onClick={handleQueueConfirmation}
-                  disabled={isJoiningQueue}
-                >
-                  {isJoiningQueue ? 'Joining...' : 'Confirm & Join Queue'}
-                </button>
-              </div>
+                  <div className={styles.phoneForm}>
+                    <label className={styles.phoneLabel}>Phone (E.164)</label>
+                    <div className={styles.phoneInputContainer}>
+                      <PhoneInput
+                        country={'ma'}
+                        preferredCountries={['ma']}
+                        value={phoneDraft}
+                        onChange={(value) => setPhoneDraft(value)}
+                        placeholder="2126xxxxxxx"
+                        disabled={phoneSubmitting}
+                        inputClass={styles.phoneInput}
+                        containerClass={styles.phoneInputContainerInner}
+                        buttonClass={styles.phoneInputButton}
+                      />
+                    </div>
+
+                    {!otpSent ? (
+                      <button
+                        className={styles.primaryActionButton}
+                        onClick={handleSendOtp}
+                        disabled={phoneSubmitting}
+                      >
+                        {phoneSubmitting ? 'Sending...' : 'Send code'}
+                      </button>
+                    ) : (
+                      <>
+                        <div className={styles.verificationHeader}>
+                          <label className={styles.phoneLabel}>Verification code</label>
+                          <button
+                            className={styles.resendButton}
+                            type="button"
+                            onClick={() => {
+                              setOtpCode('');
+                              handleSendOtp();
+                            }}
+                            disabled={phoneSubmitting}
+                          >
+                            Resend
+                          </button>
+                        </div>
+                        <input
+                          className={styles.phoneInput}
+                          type="text"
+                          inputMode="numeric"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value)}
+                          placeholder="123456"
+                          disabled={phoneSubmitting}
+                        />
+                        <button
+                          className={styles.primaryActionButton}
+                          onClick={handleVerifyOtp}
+                          disabled={phoneSubmitting}
+                        >
+                          {phoneSubmitting ? 'Verifying...' : 'Verify'}
+                        </button>
+                      </>
+                    )}
+
+                    {phoneError && (
+                      <div className={styles.modalError}>{phoneError}</div>
+                    )}
+
+                    <button
+                      className={styles.linkButton}
+                      type="button"
+                      onClick={() => setQueueModalStep('whatsapp')}
+                      disabled={phoneSubmitting}
+                    >
+                      Back
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

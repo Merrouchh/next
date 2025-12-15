@@ -16,6 +16,21 @@ const NotificationBubble = () => {
   const refreshTimeoutRef = useRef(null);
   const [userId, setUserId] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // Check if button has already animated (persist across page navigations)
+  useEffect(() => {
+    const animated = sessionStorage.getItem('notification-bubble-animated');
+    if (animated === 'true') {
+      setHasAnimated(true);
+    } else {
+      // Mark as animated after first render
+      setTimeout(() => {
+        setHasAnimated(true);
+        sessionStorage.setItem('notification-bubble-animated', 'true');
+      }, 500);
+    }
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -250,8 +265,16 @@ const NotificationBubble = () => {
     }
 
     return () => {
-      try { supabase.removeChannel(notifChannel); } catch {}
-      if (readsChannel) { try { supabase.removeChannel(readsChannel); } catch {} }
+      try { supabase.removeChannel(notifChannel); } catch (e) {
+        // Ignore errors when removing channel
+        console.debug('Error removing notification channel:', e);
+      }
+      if (readsChannel) { 
+        try { supabase.removeChannel(readsChannel); } catch (e) {
+          // Ignore errors when removing channel
+          console.debug('Error removing reads channel:', e);
+        }
+      }
       if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     };
   }, [supabase, userId, scheduleRefresh]);
@@ -302,11 +325,16 @@ const NotificationBubble = () => {
   }, []);
 
   return (
-    <div className={styles.bubbleContainer} ref={bubbleRef} style={{ bottom: `${bottomOffset}px` }}>
+    <div 
+      className={styles.bubbleContainer} 
+      ref={bubbleRef} 
+      style={{ bottom: `${bottomOffset}px` }}
+      data-animated={hasAnimated}
+    >
       
       {/* Bubble Button */}
       <button 
-        className={`${styles.bubbleButton} ${isExpanded ? styles.expanded : ''}`}
+        className={`${styles.bubbleButton} ${isExpanded ? styles.expanded : ''} ${hasAnimated ? styles.alreadyAnimated : ''}`}
         onClick={handleToggle}
         aria-label={`${unreadCount} unread notifications`}
       >

@@ -1,9 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-// Constants for upload optimization
-const CHUNK_SIZE = 1024 * 1024 * 2; // 2MB chunks for better performance with network files
-const SLOW_UPLOAD_THRESHOLD = 500; // 500ms to detect slow uploads
-
 export function useVideoUpload() {
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -34,12 +30,6 @@ export function useVideoUpload() {
       }
     };
   }, []);
-  
-  // Function to detect if we should use chunked upload
-  const shouldUseChunkedUpload = useCallback((file) => {
-    // Use chunked upload for large files or if we detect slow network
-    return file.size > 20 * 1024 * 1024 || isSlowNetwork;
-  }, [isSlowNetwork]);
   
   // Regular direct upload
   const performDirectUpload = useCallback(async (file, uploadUrl, uid) => {

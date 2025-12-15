@@ -7,8 +7,12 @@ import styles from '../../styles/AdminQueue.module.css';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/router';
 import { 
-  FaPlay, FaStop, FaUserPlus, FaTrash, FaEye, FaEyeSlash,
-  FaUsers, FaClock, FaDesktop, FaPhone, FaStickyNote, FaCog, FaCogs 
+  FaUserPlus,
+  FaTrash,
+  FaEye,
+  FaEyeSlash,
+  FaPhone,
+  FaStickyNote
 } from 'react-icons/fa';
 import { withServerSideStaff } from '../../utils/supabase/server-admin';
 
@@ -22,10 +26,8 @@ export default function AdminQueue() {
   const [refreshing, setRefreshing] = useState(false);
   
   // Queue system state
-  const [queueActive, setQueueActive] = useState(false);
   const [onlineJoiningAllowed, setOnlineJoiningAllowed] = useState(true);
   const [queueList, setQueueList] = useState([]);
-  const [automaticMode, setAutomaticMode] = useState(false);
   
   // Add new person form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -44,26 +46,14 @@ export default function AdminQueue() {
   const [movingPerson, setMovingPerson] = useState(null);
   const [removingPerson, setRemovingPerson] = useState(null);
   
-  // Add refs for automatic mode check to avoid recreating intervals
-  const automaticModeRef = useRef(automaticMode);
   const queueListRef = useRef(queueList);
-  const queueActiveRef = useRef(queueActive);
   const loadQueueDataRef = useRef();
   const refreshTimeoutRef = useRef(null);
   const isRefreshingRef = useRef(false);
   
-  // Update refs when state changes
-  useEffect(() => {
-    automaticModeRef.current = automaticMode;
-  }, [automaticMode]);
-  
   useEffect(() => {
     queueListRef.current = queueList;
   }, [queueList]);
-  
-  useEffect(() => {
-    queueActiveRef.current = queueActive;
-  }, [queueActive]);
   
   // Modal state
   const [modal, setModal] = useState({
@@ -114,13 +104,7 @@ export default function AdminQueue() {
         // The status is an array, get the first element
         const status = Array.isArray(data.status) ? data.status[0] : data.status;
         
-        setQueueActive(status.is_active);
         setOnlineJoiningAllowed(status.allow_online_joining);
-        
-        // Load automatic mode setting from database
-        if (status.automatic_mode !== undefined) {
-          setAutomaticMode(status.automatic_mode);
-        }
         
         const newQueueList = data.queue || [];
         setQueueList(newQueueList);
@@ -172,102 +156,7 @@ export default function AdminQueue() {
     }, 2000); // Increased to 2 seconds to handle multiple rapid database changes
   }, []);
 
-  // =============================================================================
-  // 2. START/STOP QUEUE SYSTEM - IMPROVED WITH OPTIMISTIC UPDATES
-  // =============================================================================
-  const toggleQueueSystem = async () => {
-    setSaving(true);
-    
-    // Optimistic update
-    const previousState = queueActive;
-    setQueueActive(!queueActive);
-    
-    try {
-      const response = await fetch('/api/internal/admin/queue-management', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'toggle-active',
-          userId: user.id,
-          queueData: { isActive: !previousState }
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          showModal('success', 'Queue System Updated', 
-            previousState ? 'Queue system has been stopped.' : 'Queue system has been started.');
-          
-          // Force refresh to ensure all data is in sync
-          setTimeout(() => {
-            loadQueueDataRef.current?.(0, false);
-          }, 500);
-        } else {
-          // Revert optimistic update on error
-          setQueueActive(previousState);
-          showModal('error', 'Error', result.error || 'Failed to update queue system. Please try again.');
-        }
-      } else {
-        // Revert optimistic update on error
-        setQueueActive(previousState);
-        showModal('error', 'Error', 'Failed to update queue system. Please try again.');
-      }
-    } catch {
-      // Revert optimistic update on error
-      setQueueActive(previousState);
-      showModal('error', 'Error', 'Failed to update queue system. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // =============================================================================
-  // 3. TOGGLE AUTOMATIC MODE - IMPROVED WITH OPTIMISTIC UPDATES
-  // =============================================================================
-  const toggleAutomaticMode = async () => {
-    setSaving(true);
-    
-    // Optimistic update
-    const previousState = automaticMode;
-    setAutomaticMode(!automaticMode);
-    
-    try {
-      const response = await fetch('/api/internal/admin/queue-management', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'toggle-automatic',
-          userId: user.id,
-          queueData: { automaticMode: !previousState }
-        })
-      });
-
-      if (response.ok) {
-        if (!previousState) {
-          showModal('success', 'Automatic Mode Enabled', 
-            'Queue will automatically turn ON when people join and OFF when empty.');
-        } else {
-          showModal('success', 'Automatic Mode Disabled', 
-            'Manual control has been restored. You can now manually start/stop the queue.');
-        }
-      } else {
-        // Revert optimistic update on error
-        setAutomaticMode(previousState);
-        showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
-      }
-    } catch {
-      // Revert optimistic update on error
-      setAutomaticMode(previousState);
-      showModal('error', 'Error', 'Failed to update automatic mode. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Queue is always open. Staff only controls whether online users can join.
 
   // =============================================================================
   // 4. ALLOW/BLOCK ONLINE USERS FROM JOINING - IMPROVED WITH OPTIMISTIC UPDATES
@@ -607,32 +496,16 @@ export default function AdminQueue() {
       <div className={styles.queueAdmin}>
         
         {/* =================================================================== */}
-        {/* MAIN CONTROLS - Start/Stop Queue & Allow/Block Online Users */}
+        {/* MAIN CONTROL - Allow/Block Online Users */}
         {/* =================================================================== */}
         <div className={styles.mainControls}>
           <div className={styles.controlCard}>
-            <h3>Queue System Control</h3>
-            <p>Turn the queue system on or off for your gaming center</p>
-            <button
-              className={`${styles.bigButton} ${queueActive ? styles.stopButton : styles.startButton}`}
-              onClick={toggleQueueSystem}
-              disabled={saving}
-            >
-              {queueActive ? <FaStop /> : <FaPlay />}
-              {queueActive ? 'Stop Queue System' : 'Start Queue System'}
-            </button>
-            <div className={styles.status}>
-              Status: <strong>{queueActive ? 'ACTIVE' : 'INACTIVE'}</strong>
-            </div>
-          </div>
-
-          <div className={styles.controlCard}>
             <h3>Online User Access</h3>
-            <p>Allow or block people from joining the queue online</p>
+            <p>Queue is always open on AV Computers. Use this to allow/block online joining.</p>
             <button
               className={`${styles.bigButton} ${onlineJoiningAllowed ? styles.blockButton : styles.allowButton}`}
               onClick={toggleOnlineJoining}
-              disabled={saving || !queueActive}
+              disabled={saving}
             >
               {onlineJoiningAllowed ? <FaEyeSlash /> : <FaEye />}
               {onlineJoiningAllowed ? 'Block Online Joining' : 'Allow Online Joining'}
@@ -641,65 +514,6 @@ export default function AdminQueue() {
               Online Access: <strong>{onlineJoiningAllowed ? 'ALLOWED' : 'BLOCKED'}</strong>
             </div>
           </div>
-
-          <div className={styles.controlCard}>
-            <h3>Automatic Mode</h3>
-            <p>Auto turn ON queue when people join, auto turn OFF when empty</p>
-            <button
-              className={`${styles.bigButton} ${automaticMode ? styles.autoOnButton : styles.autoOffButton}`}
-              onClick={toggleAutomaticMode}
-              disabled={saving}
-            >
-              {automaticMode ? <FaCogs /> : <FaCog />}
-              {automaticMode ? 'Automatic Mode ON' : 'Enable Automatic Mode'}
-            </button>
-            <div className={styles.status}>
-              Auto Control: <strong>{automaticMode ? 'ENABLED' : 'DISABLED'}</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* =================================================================== */}
-        {/* QUEUE STATISTICS */}
-        {/* =================================================================== */}
-        <div className={styles.statsSection}>
-          <div className={styles.statCard}>
-            <FaUsers />
-            <div>
-              <div className={styles.statNumber}>{queueList.length}</div>
-              <div className={styles.statLabel}>Total in Queue</div>
-            </div>
-          </div>
-          
-          <div className={styles.statCard}>
-            <FaDesktop />
-            <div>
-              <div className={styles.statNumber}>
-                {queueList.filter(p => p.is_physical).length}
-              </div>
-              <div className={styles.statLabel}>Physical Waiters</div>
-            </div>
-          </div>
-          
-          <div className={styles.statCard}>
-            <FaClock />
-            <div>
-              <div className={styles.statNumber}>
-                {queueList.filter(p => !p.is_physical).length}
-              </div>
-              <div className={styles.statLabel}>Online Waiters</div>
-            </div>
-          </div>
-          
-          {/* Add refresh indicator */}
-          {refreshing && (
-            <div className={styles.statCard}>
-              <div className={styles.spinner}></div>
-              <div>
-                <div className={styles.statLabel}>Refreshing...</div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* =================================================================== */}
@@ -710,7 +524,7 @@ export default function AdminQueue() {
             <button 
               className={styles.showAddButton}
               onClick={() => setShowAddForm(true)}
-              disabled={!queueActive && !automaticMode}
+              disabled={saving}
             >
               <FaUserPlus /> Add Person Who&apos;s Here Physically
             </button>
@@ -874,9 +688,12 @@ export default function AdminQueue() {
                       <span>Added: {new Date(person.created_at).toLocaleTimeString()}</span>
                     </div>
                     
-                    {person.notes && (
-                      <div className={styles.personNotes}>📝 {person.notes}</div>
-                    )}
+                    {(() => {
+                      if (!person.notes) return null;
+                      const cleaned = String(person.notes).replace('[no_whatsapp]', '').trim();
+                      if (!cleaned) return null;
+                      return <div className={styles.personNotes}>📝 {cleaned}</div>;
+                    })()}
                     
                     {/* Show operation status */}
                     {removingPerson === person.id && (
@@ -925,30 +742,7 @@ export default function AdminQueue() {
           )}
         </div>
 
-        {/* =================================================================== */}
-        {/* HELP SECTION */}
-        {/* =================================================================== */}
-        <div className={styles.helpSection}>
-          <h3>How to Use This Queue System</h3>
-          <div className={styles.helpCards}>
-            <div className={styles.helpCard}>
-              <h4>1. Start the Queue</h4>
-              <p>Click &quot;Start Queue System&quot; when all computers are busy and people are waiting</p>
-            </div>
-            <div className={styles.helpCard}>
-              <h4>2. Add Physical Waiters</h4>
-              <p>When someone comes to your gaming center, add them using &quot;Add Person&quot; button</p>
-            </div>
-            <div className={styles.helpCard}>
-              <h4>3. Control Online Access</h4>
-              <p>Block online joining if you want only physical waiters, or allow it for both</p>
-            </div>
-            <div className={styles.helpCard}>
-              <h4>4. Manage the Queue</h4>
-              <p>Remove people when they get a computer or leave. The queue auto-reorders.</p>
-            </div>
-          </div>
-        </div>
+        {/* Help section removed (simplified UI) */}
       </div>
 
       {/* Modal Component */}

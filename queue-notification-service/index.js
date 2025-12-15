@@ -139,7 +139,7 @@ async function updateQueueSnapshot() {
   try {
     const { data: currentQueue, error } = await supabase
       .from('computer_queue')
-      .select('id, user_name, phone_number, computer_type, position')
+      .select('id, user_name, phone_number, computer_type, position, notes')
       .eq('status', 'waiting')
       .order('position', { ascending: true });
 
@@ -168,6 +168,12 @@ async function updateQueueSnapshot() {
     // Send notifications for position changes
     for (const change of positionChanges) {
       const { person, oldPosition, newPosition } = change;
+
+      const hasOptedOut = typeof person.notes === 'string' && person.notes.includes('[no_whatsapp]');
+      if (hasOptedOut) {
+        console.log(`📵 ${person.user_name} opted out of WhatsApp notifications`);
+        continue;
+      }
       
       if (!person.phone_number) {
         console.log(`📱 ${person.user_name} position changed ${oldPosition}→${newPosition} but no phone number`);
@@ -215,7 +221,7 @@ async function initializeQueueSnapshot() {
     
     const { data: currentQueue, error } = await supabase
       .from('computer_queue')
-      .select('id, user_name, phone_number, computer_type, position')
+      .select('id, user_name, phone_number, computer_type, position, notes')
       .eq('status', 'waiting')
       .order('position', { ascending: true });
 

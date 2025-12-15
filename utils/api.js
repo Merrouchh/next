@@ -6,7 +6,7 @@ const getSupabase = () => {
   if (!supabase) {
     try {
       supabase = createClient();
-    } catch {
+    } catch (error) {
       console.warn('Supabase client not ready:', error.message);
       return null;
     }
@@ -38,7 +38,7 @@ const getAuthHeaders = async () => {
         'Content-Type': 'application/json'
       };
     }
-  } catch {
+  } catch (error) {
     console.warn('Failed to get auth token:', error);
   }
   
@@ -84,7 +84,7 @@ const enhancedFetch = async (url, options = {}) => {
       }
 
       return response;
-    } catch {
+    } catch (error) {
       clearTimeout(timeout);
       
       if (attempt === MAX_RETRIES - 1) {
@@ -157,7 +157,7 @@ export const validateGamingCredentials = async (username, password) => {
     }
     
     return data;
-  } catch {
+  } catch (error) {
     console.error('Error validating gaming credentials:', error);
     return { 
       isValid: false, 
@@ -230,7 +230,7 @@ export const validateUserCredentials = async (username, password) => {
         details: data.result || {}
       };
     }
-  } catch {
+  } catch (error) {
     console.error('Validation error:', error);
     // Detect common privacy browser errors
     const isPrivacyBlock = error.message?.includes('Failed to fetch') || 
@@ -288,7 +288,7 @@ export const fetchActiveUserSessions = async () => {
       return [];
     }
     return data.result || [];
-  } catch {
+  } catch (error) {
     console.warn('Error fetching active sessions:', error);
     return [];
   }
@@ -306,7 +306,7 @@ export const fetchUserBalance = async (gizmoId) => {
       return 'Error fetching time';
     }
     return data.balance || 'Error fetching time';
-  } catch {
+  } catch (error) {
     console.error('Error fetching balance:', error);
     return 'Error fetching time';
   }
@@ -407,7 +407,7 @@ export const fetchTopUsers = async (numberOfUsers = 10) => {
     }
     console.log('Top users fetch succeeded:', data);
     return data;
-  } catch {
+  } catch (error) {
     console.error('Error in fetchTopUsers:', error);
     throw error;
   }
@@ -422,7 +422,7 @@ export const fetchGizmoId = async (username) => {
     if (!response.ok) throw new Error('Failed to fetch Gizmo ID');
     const data = await response.json();
     return { gizmoId: data.gizmoId };
-  } catch {
+  } catch (error) {
     console.error('Error in fetchGizmoId:', error);
     return { gizmoId: null };
   }
@@ -476,7 +476,7 @@ export const fetchUserPoints = async (gizmoId) => {
       points: data.result,
       success: !data.isError
     };
-  } catch {
+  } catch (error) {
     console.error('Error fetching user points:', error);
     return { points: 0, success: false };
   }
@@ -532,7 +532,7 @@ export const fetchUserTimeInfo = async (gizmoId) => {
     return {
       total: formatTime(totalSeconds)
     };
-  } catch {
+  } catch (error) {
     console.error('Error fetching user time info:', error);
     // Return default values on error
     return {
@@ -552,7 +552,7 @@ const fetchUserData = async () => { // Removed unused function
     if (error) throw error;
 
     console.log('User data:', data);
-  } catch {
+  } catch (error) {
     console.error('Error fetching user data:', error);
   }
 };
@@ -614,7 +614,7 @@ export const fetchTopClipOfWeek = async (supabase) => {
       thumbnailUrl: thumbnailUrl || videoData?.publicUrl
     };
 
-  } catch {
+  } catch (error) {
     console.error('Error fetching top clip:', error);
     return null;
   }
@@ -669,7 +669,7 @@ export const cleanupBlobUrls = () => {
   blobUrls.forEach(url => {
     try {
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
       console.error('Error revoking blob URL:', error);
     }
   });
@@ -692,7 +692,7 @@ export const uploadUserPicture = async (gizmoId, file) => {
     });
 
     return true;
-  } catch {
+  } catch (error) {
     console.error('Error uploading picture:', error);
     return false;
   }
@@ -759,7 +759,7 @@ export const getClientIP = async () => {
     const response = await fetch('https://api.ipify.org?format=json', fetchConfig);
     const data = await response.json();
     return data.ip;
-  } catch {
+  } catch (error) {
     console.error('Error getting IP:', error);
     return '0.0.0.0'; // fallback IP
   }
@@ -786,7 +786,7 @@ export const fetchComputers = async () => {
     };
 
     return computers;
-  } catch {
+  } catch (error) {
     console.error('Error in fetchComputers:', error);
     throw error;
   }
@@ -831,7 +831,7 @@ export async function fetchUserUpcomingMatches(userId) {
     const data = await response.json();
     console.log(`Retrieved ${data.matches?.length || 0} upcoming matches for user`);
     return data.matches || [];
-  } catch {
+  } catch (error) {
     console.error('Error fetching upcoming matches:', error);
     // Return empty array instead of throwing, to handle the error gracefully
     return [];
@@ -871,7 +871,7 @@ export const fetchShiftReports = async (dateFrom, dateTo, reportType = 2) => {
     // Return the complete response data
     const data = await response.json();
     return data; // This includes version, result, httpStatusCode, message, isError
-  } catch {
+  } catch (error) {
     console.error('Error fetching shift reports:', error);
     throw error;
   }
@@ -937,7 +937,7 @@ export const loginUserToComputer = async (gizmoId, hostId) => {
       result: data.result,
       message: data.message || 'User logged in successfully'
     };
-  } catch {
+  } catch (error) {
     console.error('Error in loginUserToComputer:', error);
     return {
       success: false,
@@ -980,7 +980,7 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
           }
         }
       }
-    } catch {
+    } catch (error) {
       console.error('Error getting user ID from gizmo_id:', error);
     }
 
@@ -1013,7 +1013,7 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
     }
 
     return result;
-  } catch {
+  } catch (error) {
     console.error('Error in addGameTimeToUser:', error);
     return {
       success: false,
@@ -1021,3 +1021,5 @@ export const addGameTimeToUser = async (gizmoId, seconds) => {
     };
   }
 };
+
+

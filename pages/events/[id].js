@@ -854,7 +854,10 @@ export default function EventDetail() {
             try {
               const err = await response.json();
               message = err?.error || message;
-            } catch {}
+            } catch (e) {
+              // Ignore parse errors; fall back to message
+              console.debug('Failed to parse error response JSON:', e);
+            }
             throw new Error(message);
           }
           
@@ -923,7 +926,10 @@ export default function EventDetail() {
           try {
             const err = await response.json();
             message = err?.error || message;
-          } catch {}
+          } catch (e) {
+            // Ignore parse errors; fall back to message
+            console.debug('Failed to parse error response JSON:', e);
+          }
           throw new Error(message);
         }
         

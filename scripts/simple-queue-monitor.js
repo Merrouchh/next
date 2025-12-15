@@ -220,6 +220,7 @@ async function fetchQueue() {
         id, 
         user_name, 
         phone_number, 
+        notes,
         position, 
         user_id,
         created_at,
@@ -503,6 +504,13 @@ async function monitorQueue() {
 
       const createdAt = new Date(entry.created_at);
       const lastNotified = entry.last_notified_at ? new Date(entry.last_notified_at) : null;
+      
+      // Respect WhatsApp opt-out marker on queue entry
+      const hasOptedOut = typeof entry.notes === 'string' && entry.notes.includes('[no_whatsapp]');
+      if (hasOptedOut) {
+        Logger.info(`📵 ${entry.user_name} opted out of WhatsApp notifications`);
+        continue;
+      }
       
       // Get phone number
       let phoneNumber = entry.phone_number;

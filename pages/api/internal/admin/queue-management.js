@@ -5,6 +5,11 @@ import { createClient } from '@supabase/supabase-js';
  * This API handles authentication server-side and calls the original APIs internally
  * This prevents authorization headers from being exposed to the client
  */
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ 
@@ -26,14 +31,8 @@ async function handler(req, res) {
       });
     }
 
-    // Create Supabase client with service role key for server-side operations
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
     // Get user data to verify they exist and get their admin status
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, username, is_admin, is_staff')
       .eq('id', req.body.userId)
@@ -61,8 +60,6 @@ async function handler(req, res) {
     switch (action) {
       case 'toggle-active':
         return await handleToggleActive(req, res, queueData);
-      case 'toggle-automatic':
-        return await handleToggleAutomatic(req, res, queueData);
       case 'toggle-online-joining':
         return await handleToggleOnlineJoining(req, res, queueData);
       case 'add-person':
@@ -75,7 +72,7 @@ async function handler(req, res) {
         return res.status(400).json({ 
           success: false,
           error: 'Invalid action',
-          details: 'Action must be one of: toggle-active, toggle-automatic, toggle-online-joining, add-person, delete-entry, reorder'
+          details: 'Action must be one of: toggle-active, toggle-online-joining, add-person, delete-entry, reorder'
         });
     }
 
@@ -92,17 +89,28 @@ async function handler(req, res) {
 // Toggle queue active status
 async function handleToggleActive(req, res, queueData) {
   try {
-    const response = await fetch(`${process.env.API_BASE_URL}/api/queue/manage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({ isActive: queueData.isActive })
-    });
+    const isActive = !!queueData?.isActive;
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    const { error } = await supabaseAdmin
+      .from('queue_settings')
+      .update({ 
+        is_active: isActive
+      })
+      .eq('id', 1);
+
+    if (error) {
+      console.error('[INTERNAL API] Toggle active update error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to toggle active status',
+        message: error.message || 'Database error'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: isActive ? 'Queue system has been started.' : 'Queue system has been stopped.'
+    });
   } catch (error) {
     console.error('[INTERNAL API] Toggle active error:', error);
     return res.status(500).json({
@@ -113,44 +121,29 @@ async function handleToggleActive(req, res, queueData) {
   }
 }
 
-// Toggle automatic mode
-async function handleToggleAutomatic(req, res, queueData) {
-  try {
-    const response = await fetch(`${process.env.API_BASE_URL}/api/queue/manage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({ automaticMode: queueData.automaticMode })
-    });
-
-    const data = await response.json();
-    return res.status(response.status).json(data);
-  } catch (error) {
-    console.error('[INTERNAL API] Toggle automatic error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to toggle automatic mode',
-      message: 'Internal server error'
-    });
-  }
-}
-
 // Toggle online joining
 async function handleToggleOnlineJoining(req, res, queueData) {
   try {
-    const response = await fetch(`${process.env.API_BASE_URL}/api/queue/manage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify({ allowOnlineJoining: queueData.allowOnlineJoining })
-    });
+    const allowOnlineJoining = !!queueData?.allowOnlineJoining;
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    const { error } = await supabaseAdmin
+      .from('queue_settings')
+      .update({ allow_online_joining: allowOnlineJoining })
+      .eq('id', 1);
+
+    if (error) {
+      console.error('[INTERNAL API] Toggle online joining update error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to toggle online joining',
+        message: error.message || 'Database error'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: allowOnlineJoining ? 'Online joining enabled.' : 'Online joining disabled.'
+    });
   } catch (error) {
     console.error('[INTERNAL API] Toggle online joining error:', error);
     return res.status(500).json({
@@ -410,17 +403,75 @@ async function handleDeleteEntry(req, res, queueData) {
 // Reorder queue
 async function handleReorder(req, res, queueData) {
   try {
-    const response = await fetch(`${process.env.API_BASE_URL}/api/queue/reorder`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
-      },
-      body: JSON.stringify(queueData)
-    });
+    const { personId, direction } = queueData || {};
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    if (!personId || !direction || !['up', 'down'].includes(direction)) {
+      return res.status(400).json({ success: false, error: 'Invalid parameters' });
+    }
+
+    const { data: currentPerson, error: fetchError } = await supabaseAdmin
+      .from('computer_queue')
+      .select('position')
+      .eq('id', personId)
+      .eq('status', 'waiting')
+      .single();
+
+    if (fetchError || !currentPerson) {
+      return res.status(404).json({ success: false, error: 'Person not found in queue' });
+    }
+
+    const currentPosition = currentPerson.position;
+    const newPosition = direction === 'up' ? currentPosition - 1 : currentPosition + 1;
+
+    const { data: swapPerson, error: swapError } = await supabaseAdmin
+      .from('computer_queue')
+      .select('id')
+      .eq('position', newPosition)
+      .eq('status', 'waiting')
+      .single();
+
+    if (swapError || !swapPerson) {
+      return res.status(400).json({ success: false, error: 'Cannot find person to swap with' });
+    }
+
+    // Swap positions safely using a temporary slot
+    const TEMP_POS = 9999;
+    const { error: tempError } = await supabaseAdmin
+      .from('computer_queue')
+      .update({ position: TEMP_POS })
+      .eq('id', personId);
+
+    if (tempError) {
+      console.error('Error moving to temp position:', tempError);
+      return res.status(500).json({ success: false, error: 'Failed to reorder queue' });
+    }
+
+    const { error: swapError1 } = await supabaseAdmin
+      .from('computer_queue')
+      .update({ position: currentPosition })
+      .eq('id', swapPerson.id);
+
+    if (swapError1) {
+      console.error('Error moving swap person:', swapError1);
+      // best-effort revert
+      await supabaseAdmin.from('computer_queue').update({ position: currentPosition }).eq('id', personId);
+      return res.status(500).json({ success: false, error: 'Failed to reorder queue' });
+    }
+
+    const { error: finalError } = await supabaseAdmin
+      .from('computer_queue')
+      .update({ position: newPosition })
+      .eq('id', personId);
+
+    if (finalError) {
+      console.error('Error moving current person to final position:', finalError);
+      // best-effort revert
+      await supabaseAdmin.from('computer_queue').update({ position: newPosition }).eq('id', swapPerson.id);
+      await supabaseAdmin.from('computer_queue').update({ position: currentPosition }).eq('id', personId);
+      return res.status(500).json({ success: false, error: 'Failed to reorder queue' });
+    }
+
+    return res.status(200).json({ success: true });
   } catch (error) {
     console.error('[INTERNAL API] Reorder error:', error);
     return res.status(500).json({

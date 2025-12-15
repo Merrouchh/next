@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTopUsers } from '../utils/api';
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000;
+const REFRESH_INTERVAL = 30 * 1000; // 30 seconds refresh - no caching, always fresh
+
 export const useTopUsers = (limit = 10) => {
   const [state, setState] = useState({
     users: [],
@@ -11,10 +15,6 @@ export const useTopUsers = (limit = 10) => {
   
   const retryCountRef = useRef(0);
   const isMountedRef = useRef(true);
-  
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 2000;
-  const REFRESH_INTERVAL = 30 * 1000; // 30 seconds refresh - no caching, always fresh
 
   // Cleanup on unmount
   useEffect(() => {
@@ -24,7 +24,7 @@ export const useTopUsers = (limit = 10) => {
   }, []);
 
   // Fetch top users with retry logic - no caching
-  const fetchUsers = useCallback(async (isRetry = false) => {
+  const fetchUsers = useCallback(async (_isRetry = false) => {
     setState(prev => ({ ...prev, loading: true }));
 
     try {

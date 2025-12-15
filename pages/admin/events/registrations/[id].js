@@ -306,8 +306,6 @@ export default function EventRegistrations() {
     if (user?.isAdmin && id) {
       fetchEventRegistrations();
     }
-    // Only re-fetch when id, user.id, or isAdmin status changes, not when user object reference changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id, user?.isAdmin, supabase]);
   
   // Export registrations to CSV

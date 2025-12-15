@@ -31,17 +31,17 @@ class MyDocument extends Document {
     
     // Default metadata for pages without dynamic metadata
     const defaultMetadata = {
-      title: "Premium Gaming Center Tangier | RTX 3070 Gaming PCs & eSports",
-      description: "Top-rated gaming center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive prices. Gaming café près de vous à Tanger. مقهى الألعاب في طنجة. Join our gaming community!",
+      title: "PC Gaming Center Tangier | RTX 3070 Gaming PCs - PC Only Gaming Hub",
+      description: "Premium PC-only gaming center in Tangier with RTX 3070 gaming PCs, Ryzen 7 7700, 180Hz monitors, and 200Mbps internet. Specialized PC gaming café for competitive gaming. PC gaming near me in Tangier, Morocco. مقهى الألعاب PC في طنجة.",
       image: "https://merrouchgaming.com/top.jpg",
       url: "https://merrouchgaming.com",
       type: "website",
-      keywords: "gaming center tangier, cyber cafe tanger, RTX 3070 gaming, gaming cafe morocco, esports tangier, internet cafe near me, gaming center near me, cyber gaming tanger, salle de jeux tanger, قاعة العاب طنجة, مقهى الانترنت في طنجة, gaming pc rental tangier, competitive gaming morocco",
+      keywords: "PC gaming center tangier, RTX 3070 gaming PC rental, PC gaming cafe tangier, Ryzen 7 gaming PC, high-end gaming PC tangier, 180Hz gaming monitor, PC gaming morocco, competitive PC gaming, esports PC gaming center, gaming PC with RTX 3070, PC gaming hub tangier, professional gaming PC, cyber cafe PC gaming, gaming PC rental tangier, VALORANT gaming PC, CS2 gaming PC, League of Legends PC gaming, PC gaming near me tangier, salle de jeux PC tanger, قاعة العاب PC طنجة",
       structuredData: {
         "@context": "https://schema.org",
         "@type": "LocalBusiness",
         "name": "Cyber Merrouch Gaming Center",
-        "description": "Premium Gaming Center in Tangier offering RTX 3070 gaming PCs, 200Mbps internet, competitive eSports events, and professional gaming setups. Best gaming experience in Morocco.",
+        "description": "Premium PC-only Gaming Center in Tangier specializing in high-performance PC gaming. Features RTX 3070 gaming PCs, AMD Ryzen 7 7700 processors, 180Hz gaming monitors, 200Mbps internet, and competitive PC gaming tournaments. Best PC gaming experience in Tangier, Morocco.",
         "image": "https://merrouchgaming.com/top.jpg",
         "url": "https://merrouchgaming.com",
         "telephone": "+212531098983",
@@ -130,6 +130,14 @@ class MyDocument extends Document {
             rel="preconnect" 
             href="https://fonts.gstatic.com" 
             crossOrigin="anonymous"
+          />
+          <link 
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" 
+            rel="stylesheet"
+          />
+          <link 
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" 
+            rel="stylesheet"
           />
           
           {/* Map tile servers preconnect - saves ~300ms LCP */}
@@ -329,9 +337,9 @@ function generateStaticMetadata(page) {
       keywords: "top gaming users, leaderboards, gaming rankings, best players, Merrouch Gaming, Tangier"
     },
     home: {
-      title: "Premium Gaming Center Tangier | RTX 3070 Gaming PCs & eSports",
-      description: "Top-rated gaming center in Tangier with RTX 3070 PCs, 200Mbps internet, and competitive prices. Gaming café près de vous à Tanger. مقهى الألعاب في طنجة. Join our gaming community!",
-      keywords: "gaming center tangier, cyber cafe tanger, RTX 3070 gaming, gaming cafe morocco, esports tangier, internet cafe near me, gaming center near me, cyber gaming tanger, salle de jeux tanger, قاعة العاب طنجة, مقهى الانترنت في طنجة, gaming pc rental tangier, competitive gaming morocco"
+      title: "PC Gaming Center Tangier | RTX 3070 Gaming PCs - PC Only Gaming Hub",
+      description: "Premium PC-only gaming center in Tangier with RTX 3070 gaming PCs, Ryzen 7 7700, 180Hz monitors, and 200Mbps internet. Specialized PC gaming café for competitive gaming. PC gaming near me in Tangier, Morocco. مقهى الألعاب PC في طنجة.",
+      keywords: "PC gaming center tangier, RTX 3070 gaming PC rental, PC gaming cafe tangier, Ryzen 7 gaming PC, high-end gaming PC tangier, 180Hz gaming monitor, PC gaming morocco, competitive PC gaming, esports PC gaming center, gaming PC with RTX 3070, PC gaming hub tangier, professional gaming PC, cyber cafe PC gaming, gaming PC rental tangier, VALORANT gaming PC, CS2 gaming PC, League of Legends PC gaming, PC gaming near me tangier, salle de jeux PC tanger, قاعة العاب PC طنجة"
     },
     admin: {
       title: "Admin Panel | Merrouch Gaming Center",

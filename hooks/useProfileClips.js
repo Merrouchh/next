@@ -7,7 +7,6 @@ export function useProfileClips(username, isOwner, initialClips = []) {
   const [hasMore, setHasMore] = useState(true);
   const { supabase, user } = useAuth();
   const CLIPS_PER_PAGE = 3;
-  const initialLoadDone = useRef(false);
   const lastLoadTime = useRef(Date.now());
 
   // Filter clips based on authentication status and ownership

@@ -45,6 +45,18 @@
   background: var(--background-secondary);
 }
 
+/* Make header transparent on home page */
+.headerTransparent {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Make search header transparent */
+.searchHeaderTransparent {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .contentWrapper {
   flex: 1;
   min-height: calc(100vh - var(--header-height));
@@ -85,8 +97,8 @@
   left: 0;
   right: 0;
   z-index: 998;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  background: transparent !important;
+  border-bottom: none !important;
   height: var(--search-height);
   display: flex;
   justify-content: center;

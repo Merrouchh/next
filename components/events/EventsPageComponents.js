@@ -216,7 +216,7 @@ export const EventCardContent = React.memo(function EventCardContent({ event }) 
       
       <div className={styles.eventDescription}>
         <div className={styles.descriptionText}>
-          {truncateText(event.description?.replace(/[#*_`\[\]()~>]/g, '') || '')}
+          {truncateText(event.description?.replace(/[#*_`[\]()~>]/g, '') || '')}
         </div>
       </div>
     </div>

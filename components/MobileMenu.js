@@ -6,9 +6,12 @@ const MobileMenu = memo(({ isOpen, children }) => {
   if (typeof window === 'undefined') return null;
   
   return createPortal(
-    <div className={`${styles.mobileMenuPortal} ${isOpen ? styles.open : ''}`}>
-      {children}
-    </div>,
+    <>
+      {isOpen && <div className={styles.mobileMenuBackdrop} />}
+      <div className={`${styles.mobileMenuPortal} ${isOpen ? styles.open : ''}`}>
+        {children}
+      </div>
+    </>,
     document.body
   );
 });

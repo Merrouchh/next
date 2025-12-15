@@ -99,7 +99,7 @@ const ProtectedPageWrapper = ({ children }) => {
       {/* Fixed header section */}
       <div className={styles.fixedHeadersContainer}>
         {/* Header - uses static rendering approach to prevent flashing */}
-        <div className={styles.fixedHeader} style={{ zIndex: 'var(--header-z-index)' }}>
+        <div className={`${styles.fixedHeader} ${router.pathname === '/' ? styles.headerTransparent : ''}`} style={{ zIndex: 'var(--header-z-index)' }}>
           {isMobile ? <MobileHeader /> : <Header />}
         </div>
         
@@ -115,7 +115,7 @@ const ProtectedPageWrapper = ({ children }) => {
         
         {/* User search navigation (if needed) */}
         {hasSearchHeader && (
-          <div className={styles.fixedHeader} style={{ 
+          <div className={`${styles.fixedHeader} ${styles.searchHeaderTransparent}`} style={{ 
             top: showDashboardHeader 
               ? 'calc(var(--header-height) + var(--dashboard-header-height))' 
               : 'var(--header-height)',

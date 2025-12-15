@@ -633,82 +633,334 @@
   border: 1px solid #374151;
   border-radius: 12px;
   padding: 2rem;
-  max-width: 500px;
+  max-width: 400px;
   width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-in-out;
+  position: relative;
+}
+
+.queueModalClose {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 2rem;
+  height: 2rem;
+  z-index: 10;
 }
 
 .queueModalContent h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   color: #f9fafb;
   font-size: 1.5rem;
   font-weight: 600;
+  text-align: center;
+}
+
+.queueModalClose:hover:not(:disabled) {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.queueModalClose:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .queueModalContent p {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 2rem 0;
   color: #d1d5db;
   line-height: 1.5;
-}
-
-.queueModalOptions h4 {
-  margin: 0 0 1rem 0;
-  color: #f3f4f6;
-  font-size: 1.1rem;
-  font-weight: 500;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
 .preferenceButtons {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .preferenceButton {
-  padding: 1rem;
+  padding: 1.25rem 1.5rem;
   background: #374151;
   border: 2px solid #4b5563;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #f9fafb;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
+  width: 100%;
   text-align: left;
 }
 
-.preferenceButton:hover {
+.preferenceButton:hover:not(:disabled) {
   background: #4b5563;
-  border-color: #6b7280;
+  border-color: #10b981;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
-.preferenceButton:active {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: white;
+.preferenceButton:active:not(:disabled) {
+  background: #10b981;
+  border-color: #10b981;
+  transform: translateY(0);
 }
 
-.preferenceTitle {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
+.preferenceButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.preferenceIcon {
+  font-size: 1.5rem;
   color: inherit;
+  flex-shrink: 0;
+  width: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.preferenceSubtitle {
-  font-size: 0.85rem;
-  color: #9ca3af;
-  margin-bottom: 0.5rem;
+.preferenceLabel {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: left;
+  flex: 1;
 }
 
-.estimatedWait {
-  font-size: 0.8rem;
-  color: #fbbf24;
-  font-weight: 500;
+.modalNote {
+  background: rgba(255, 215, 0, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  color: #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem 0;
+  font-size: 0.95rem;
+}
+
+.whatsappButtons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.primaryActionButton,
+.secondaryActionButton {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primaryActionButton {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+}
+
+.primaryActionButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+}
+
+.secondaryActionButton {
+  background: #374151;
+  color: #f9fafb;
+  border: 1px solid #4b5563;
+}
+
+.secondaryActionButton:hover:not(:disabled) {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.primaryActionButton:disabled,
+.secondaryActionButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.phoneForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.verificationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.resendButton {
+  background: transparent;
+  border: 1px solid #374151;
+  color: #f9fafb;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resendButton:hover:not(:disabled) {
+  background: #1f2937;
+  border-color: #10b981;
+}
+
+.resendButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.phoneInputContainer {
+  width: 100%;
+}
+
+.phoneInputContainerInner {
+  width: 100%;
+}
+
+.phoneInputButton {
+  border: 1px solid #374151 !important;
+  background: #111827 !important;
+}
+
+.phoneLabel {
+  color: #d1d5db;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.phoneInput {
+  width: 100%;
+  background: #111827;
+  border: 1px solid #374151;
+  color: #f9fafb;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.phoneInput:focus {
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+/* react-phone-input-2 (PhoneInput) dark theme overrides
+   NOTE: containerClass is applied on the same element as `.react-tel-input`,
+   so we target descendants directly under `.phoneInputContainerInner`. */
+.phoneInput {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+}
+
+.phoneInput::placeholder {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.phoneInputContainerInner :global(.form-control) {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+  box-shadow: none !important;
+}
+
+.phoneInputContainerInner :global(.form-control::placeholder) {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.phoneInputContainerInner :global(.flag-dropdown) {
+  background: #111827 !important;
+  border: 1px solid #374151 !important;
+}
+
+.phoneInputContainerInner :global(.selected-flag) {
+  background: #111827 !important;
+}
+
+.phoneInputContainerInner :global(.selected-flag:hover),
+.phoneInputContainerInner :global(.selected-flag:focus) {
+  background: #1f2937 !important;
+}
+
+.phoneInputContainerInner :global(.country-list) {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+}
+
+.phoneInputContainerInner :global(.country-list .country) {
+  color: #ffffff !important;
+}
+
+.phoneInputContainerInner :global(.country-list .country:hover),
+.phoneInputContainerInner :global(.country-list .country.highlight) {
+  background: #1f2937 !important;
+}
+
+.phoneInputContainerInner :global(.search-box) {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+}
+
+.phoneInputContainerInner :global(.search-box::placeholder) {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.modalError {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fecaca;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
+.linkButton {
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  align-self: flex-start;
+}
+
+.linkButton:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.linkButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .queueModalActions {
@@ -1027,36 +1279,83 @@
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-.compactJoinButton {
-  background: linear-gradient(135deg, #FFD700 0%, #FFC800 100%);
-  color: #000000;
+.queueHeaderTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.queueHeaderIcon {
+  font-size: 1.05rem;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.25));
+}
+
+.queueJoinIcon {
+  font-size: 1.15rem;
+}
+
+/* Join Queue Button Section - Prominent and Full Width */
+.queueJoinSection {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.queueJoinActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.queueJoinButton {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
   border: none;
-  border-radius: 8px;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 6px 20px rgba(5, 150, 105, 0.4),
+    0 0 20px rgba(5, 150, 105, 0.2);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.compactJoinButton:hover {
-  background: linear-gradient(135deg, #FFC800 0%, #FFB000 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+.queueJoinButton:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 25px rgba(5, 150, 105, 0.5),
+    0 0 30px rgba(5, 150, 105, 0.3);
 }
 
-.compactJoinButton:active {
+.queueJoinButton:active {
   transform: translateY(-1px);
+  box-shadow: 
+    0 4px 15px rgba(5, 150, 105, 0.4),
+    0 0 20px rgba(5, 150, 105, 0.2);
 }
 
-.compactJoinButton:disabled {
+.queueJoinButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+}
+
+/* When queue is empty we show only the join button */
+.queueJoinOnly {
+  width: 100%;
+  max-width: 800px;
+  margin: 1rem auto;
 }
 
 .queueBreakdown {
@@ -1232,11 +1531,20 @@
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
   }
 
-  .compactJoinButton {    
-    padding: 0.35rem 0.6rem;
-    font-size: 0.75rem;
-    border-radius: 6px;
-    box-shadow: 0 3px 8px rgba(255, 215, 0, 0.25);
+  .queueJoinButton {
+    padding: 0.9rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    box-shadow: 
+      0 5px 18px rgba(5, 150, 105, 0.35),
+      0 0 15px rgba(5, 150, 105, 0.15);
+  }
+
+  .queueJoinButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 7px 22px rgba(5, 150, 105, 0.45),
+      0 0 25px rgba(5, 150, 105, 0.25);
   }
 
   .queueBreakdown {
@@ -1284,6 +1592,11 @@
     align-self: flex-end;
     border-radius: 4px;
     box-shadow: 0 2px 6px rgba(255, 68, 68, 0.25);
+  }
+
+  .queueJoinSection {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
   }
 
   .flexibleQueueSection {
@@ -1393,41 +1706,3 @@
   transform: translateY(0);
 }
 
-/* Simple Queue Section */
-.simpleQueueSection {
-  display: flex;
-  justify-content: center;
-  margin: 1rem 0;
-}
-
-.simpleJoinButton {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.simpleJoinButton:hover {
-  background: linear-gradient(135deg, #047857 0%, #059669 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
-}
-
-.simpleJoinButton:active {
-  transform: translateY(-1px);
-}
-
-.simpleJoinButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
-}

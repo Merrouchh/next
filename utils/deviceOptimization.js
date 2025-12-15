@@ -161,7 +161,7 @@ export const optimizedMarkdownProcessing = (text, maxLength = 200) => {
   // For old/limited devices, strip markdown and use simple text
   if (isOldDevice() || hasLimitedPerformance()) {
     const simpleText = text
-      .replace(/[*_#\[\]()]/g, '') // Remove markdown syntax
+      .replace(/[*_#[\]()]/g, '') // Remove markdown syntax
       .replace(/\n+/g, ' ')        // Replace line breaks with spaces
       .replace(/\s+/g, ' ')        // Normalize whitespace
       .trim();

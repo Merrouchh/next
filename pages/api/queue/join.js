@@ -54,67 +54,6 @@ async function getNextQueuePositionWithRetry(maxRetries = 3) {
   }
 }
 
-// Function to handle automatic mode after queue changes
-async function handleAutomaticModeAfterChange() {
-  try {
-    // Get current queue status and settings
-    const { data: queueStatus, error: statusError } = await supabase.rpc('get_queue_status');
-    
-    if (statusError) {
-      console.error('Error getting queue status in automatic mode:', statusError);
-      return;
-    }
-    
-    const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
-    
-    if (!status) {
-      console.log('No queue status found');
-      return;
-    }
-    
-    if (!status.automatic_mode) {
-      console.log('Automatic mode is off, skipping queue control');
-      return;
-    }
-
-    const currentQueueSize = status.current_queue_size || 0;
-    const isCurrentlyActive = status.is_active;
-
-    console.log(`Automatic mode check: Queue size=${currentQueueSize}, Currently active=${isCurrentlyActive}, Automatic mode=${status.automatic_mode}`);
-
-    // Auto-control logic
-    if (currentQueueSize > 0 && !isCurrentlyActive) {
-      // Should be active but isn't - turn it on
-      const { error: updateError } = await supabase
-        .from('queue_settings')
-        .update({ is_active: true })
-        .eq('id', 1);
-      
-      if (updateError) {
-        console.error('Error activating queue:', updateError);
-      } else {
-        console.log('Automatic mode: Started queue system (queue not empty)');
-      }
-    } else if (currentQueueSize === 0 && isCurrentlyActive) {
-      // Should be inactive but isn't - turn it off
-      const { error: updateError } = await supabase
-        .from('queue_settings')
-        .update({ is_active: false })
-        .eq('id', 1);
-      
-      if (updateError) {
-        console.error('Error deactivating queue:', updateError);
-      } else {
-        console.log('Automatic mode: Stopped queue system (queue empty)');
-      }
-    } else {
-      console.log('Queue state is correct, no changes needed');
-    }
-  } catch (error) {
-    console.error('Error in automatic mode handler:', error);
-  }
-}
-
 export default async function handler(req, res) {
   try {
     // Verify authentication for all methods
@@ -159,16 +98,16 @@ async function handleJoinQueue(req, res, user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
-    const { computerType = 'any' } = req.body;
+    const { computerType = 'any', notifyWhatsapp = true } = req.body || {};
 
-    // Check if queue is active and allows online joining
+    // Check if online joining is allowed
     const { data: queueStatus } = await supabase.rpc('get_queue_status');
     
     // Handle case where queueStatus is an array
     const status = Array.isArray(queueStatus) ? queueStatus[0] : queueStatus;
     
-    if (!status || (!status.is_active && !status.automatic_mode)) {
-      return res.status(400).json({ error: 'Queue is not currently active' });
+    if (!status) {
+      return res.status(400).json({ error: 'Queue status is unavailable' });
     }
 
     if (!status.allow_online_joining) {
@@ -178,6 +117,12 @@ async function handleJoinQueue(req, res, user) {
     if (status.current_queue_size >= status.max_queue_size) {
       return res.status(400).json({ error: 'Queue is full' });
     }
+
+    // If user opted out of WhatsApp notifications, keep phone for staff display,
+    // but mark the queue entry so the notification service can skip WhatsApp.
+    const phoneNumber = userData.phone || null;
+    const noWhatsappMarker = '[no_whatsapp]';
+    const notes = notifyWhatsapp ? null : noWhatsappMarker;
 
     // Check if user is already in queue
     const { data: existingEntry } = await supabase
@@ -202,11 +147,12 @@ async function handleJoinQueue(req, res, user) {
       .from('computer_queue')
       .insert({
         user_name: userData.username,
-        phone_number: userData.phone || null,
+        phone_number: phoneNumber,
         computer_type: computerType,
         position: nextPos,
         is_physical: false,
-        user_id: user.id
+        user_id: user.id,
+        notes
       })
       .select()
       .single();
@@ -224,11 +170,12 @@ async function handleJoinQueue(req, res, user) {
           .from('computer_queue')
           .insert({
             user_name: userData.username,
-            phone_number: userData.phone || null,
+            phone_number: phoneNumber,
             computer_type: computerType,
             position: retryPos,
             is_physical: false,
-            user_id: user.id
+            user_id: user.id,
+            notes
           })
           .select()
           .single();
@@ -237,9 +184,6 @@ async function handleJoinQueue(req, res, user) {
           console.error('Retry also failed:', retryError);
           return res.status(500).json({ error: 'Failed to join queue due to high traffic. Please try again.' });
         }
-        
-        // Check and handle automatic mode after joining
-        await handleAutomaticModeAfterChange();
         
         return res.status(201).json({
           success: true,
@@ -255,9 +199,6 @@ async function handleJoinQueue(req, res, user) {
       
       return res.status(500).json({ error: 'Failed to join queue' });
     }
-
-    // Check and handle automatic mode after joining
-    await handleAutomaticModeAfterChange();
 
     return res.status(201).json({
       success: true,
@@ -303,9 +244,6 @@ async function handleLeaveQueue(req, res, user) {
 
     // Add a small delay to ensure database operations are complete
     await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Check and handle automatic mode after removal
-    await handleAutomaticModeAfterChange();
 
     return res.status(200).json({
       success: true,

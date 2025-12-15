@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 /**
  * GET handler - Fetch comments for a clip
  */
-async function getComments(req, res, supabase) {
+async function getComments(req, res, supabase, user) {
   try {
     const { clipId, limit = 10, page = 0 } = req.query;
 
@@ -105,7 +105,7 @@ async function getComments(req, res, supabase) {
 /**
  * POST handler - Add a new comment
  */
-async function addComment(req, res, supabase) {
+async function addComment(req, res, supabase, user) {
   try {
 
     const { clipId, content } = req.body;
@@ -117,7 +117,7 @@ async function addComment(req, res, supabase) {
     // First check if the clip exists
     const { data: clip, error: clipError } = await supabase
       .from('clips')
-      .select('id, visibility')
+      .select('id, visibility, user_id')
       .eq('id', clipId)
       .single();
 
@@ -127,7 +127,7 @@ async function addComment(req, res, supabase) {
     }
 
     // Prevent commenting on private clips for non-owners
-    if (clip.visibility === 'private' && clip.user_id !== session.user.id) {
+    if (clip.visibility === 'private' && clip.user_id !== user.id) {
       return res.status(403).json({ error: 'Cannot comment on private clips' });
     }
 
@@ -135,7 +135,7 @@ async function addComment(req, res, supabase) {
     const { data: userProfile, error: userError } = await supabase
       .from('users')
       .select('username')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     if (userError) {
@@ -148,8 +148,8 @@ async function addComment(req, res, supabase) {
       .from('clip_comments')
       .insert({
         clip_id: clipId,
-        user_id: session.user.id,
-        username: userProfile.username || session.user.email,
+        user_id: user.id,
+        username: userProfile.username || user.email,
         content
       })
       .select()
@@ -166,12 +166,12 @@ async function addComment(req, res, supabase) {
       const { count: likesCount, error: likesError } = await supabase
         .from('video_likes')
         .select('id', { count: 'exact' })
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .limit(1);
         
       if (!likesError && likesCount > 0) {
         // User has both commented and liked, so award the achievement
-        await markAchievementCompleted(supabase, session.user.id, 'first-interaction');
+        await markAchievementCompleted(supabase, user.id, 'first-interaction');
       }
     } catch (achievementError) {
       console.error('Error checking/triggering achievement:', achievementError);
@@ -188,7 +188,7 @@ async function addComment(req, res, supabase) {
 /**
  * PUT handler - Update an existing comment
  */
-async function updateComment(req, res, supabase) {
+async function updateComment(req, res, supabase, user) {
   try {
 
     const { commentId, content } = req.body;
@@ -210,7 +210,7 @@ async function updateComment(req, res, supabase) {
     }
 
     // Check ownership
-    if (comment.user_id !== session.user.id) {
+    if (comment.user_id !== user.id) {
       return res.status(403).json({ error: 'Cannot edit another user\'s comment' });
     }
 
@@ -272,7 +272,7 @@ async function deleteComment(req, res, supabase, user) {
         .eq('id', comment.clip_id)
         .single();
         
-      if (clipError || clip.user_id !== session.user.id) {
+      if (clipError || clip.user_id !== user.id) {
         return res.status(403).json({ error: 'Not authorized to delete this comment' });
       }
     }

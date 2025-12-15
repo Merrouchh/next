@@ -7,12 +7,12 @@ import { AiOutlineUser, AiOutlineCopy } from 'react-icons/ai';
 // import { useRouter } from 'next/router'; // Removed unused import
 import { fetchUserPicture, cleanupBlobUrls } from '../utils/api';
 import styles from '../styles/Profile.module.css';
-// import { useAuth } from '../contexts/AuthContext'; // Removed unused import
+import { useAuth } from '../contexts/AuthContext';
 import { createClient } from '../utils/supabase/component';
 
 const UserProfileSection = memo(({ username, isOwner, supabase }) => {
   // const router = useRouter(); // Removed unused variable
-  // const { user, isLoggedIn } = useAuth(); // Removed unused variables
+  const { isLoggedIn } = useAuth();
   const [userPicture, setUserPicture] = useState(null);
   const [pictureLoading, setPictureLoading] = useState(true);
   const [isEditingProfiles, setIsEditingProfiles] = useState(false);
@@ -30,7 +30,7 @@ const UserProfileSection = memo(({ username, isOwner, supabase }) => {
       console.log('User logged out, resetting edit state');
       setIsEditingProfiles(false);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   // Subscribe to real-time profile changes
   useEffect(() => {

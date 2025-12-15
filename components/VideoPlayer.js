@@ -12,8 +12,11 @@ const CONTROL_FADE_TIMEOUT = 2000; // Timeout in ms for controls to fade
 const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
   const videoElementRef = useRef(null);
   const playerRef = useRef(null);
-  const playerIdRef = useRef(`player_${clip?.id || Math.random().toString(36).substring(2)}`);
+  // Generate player ID once using useState with lazy initializer to avoid impure function in render
+  const [playerId] = useState(() => `player_${clip?.id || Math.random().toString(36).substring(2)}`);
+  const playerIdRef = useRef(playerId);
   const [error, setError] = useState(null);
+  
   const [hasTrackedView, setHasTrackedView] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [isActuallyPlaying, setIsActuallyPlaying] = useState(false);
@@ -74,8 +77,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           playerRef.current = null;
         }
 
-        // Update player ID when clip changes
-        playerIdRef.current = `player_${clip.id || Math.random().toString(36).substring(2)}`;
+        // Update player ID when clip changes - use clip ID or timestamp for uniqueness
+        playerIdRef.current = `player_${clip.id || `temp_${Date.now()}`}`;
 
         // Initialize Video.js with minimal loading
         console.log('Initializing Video.js player for clip:', clip.id);

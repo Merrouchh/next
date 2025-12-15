@@ -171,7 +171,7 @@ const UploadPage = () => {
     const path = file.path || '';
     
     // Look for patterns like \\server\share or //server/share in the path if available
-    const networkPathRegex = /^(\\\\|\/\/)[^\\\/]+[\\\/][^\\\/]+/;
+    const networkPathRegex = /^(\\\\|\/\/)[^\\/]+[\\/][^\\/]+/;
     
     if (path && networkPathRegex.test(path)) {
       return true;

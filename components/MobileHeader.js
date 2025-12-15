@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineDashboard, AiOutlineStar, AiOutlineShop } from 'react-icons/ai';
+import { AiOutlineCalendar, AiOutlineCompass, AiOutlineDesktop, AiOutlineVideoCamera, AiOutlineDashboard, AiOutlineStar, AiOutlineShop, AiOutlineTrophy } from 'react-icons/ai';
+import { FaUsers } from 'react-icons/fa';
 import styles from '../styles/MobileHeader.module.css';
-import Image from 'next/image';
 import MobileMenu from './MobileMenu';
 import { useModal } from '../contexts/ModalContext';
 
@@ -88,21 +89,6 @@ const MobileHeader = () => {
   return (
     <div className={`${styles.headerWrapper} mobileOnly`}>
       <nav className={`${styles.header} ${isSticky ? styles.sticky : ''}`}>
-        <div className={styles.logoContainer}>
-          <Link href="/" className={styles.logoLink}>
-            <Image
-              src="/logomobile.png"
-              alt="Merrouch Gaming"
-              width={36}
-              height={40}
-              priority={true}
-              loading="eager"
-              className={styles.mobileLogo}
-              sizes="(max-width: 768px) 36px, 40px"
-            />
-          </Link>
-        </div>
-
         <div
           ref={hamburgerRef}
           className={`${styles.hamburger} ${isMenuOpen ? styles.open : ''}`}
@@ -111,6 +97,19 @@ const MobileHeader = () => {
           <div className={styles.bar}></div>
           <div className={styles.bar}></div>
           <div className={styles.bar}></div>
+        </div>
+        
+        <div className={styles.logoContainer}>
+          <Link href="/" className={styles.logoLink}>
+            <Image
+              src="/logomobile.png"
+              alt="Merrouch Gaming"
+              width={120}
+              height={40}
+              className={styles.mobileLogo}
+              priority
+            />
+          </Link>
         </div>
       </nav>
 
@@ -196,6 +195,19 @@ const MobileHeader = () => {
                   <span className={styles.label}>Admin</span>
                 </button>
               )}
+
+              {user?.isStaff && (
+                <button
+                  onClick={() => {
+                    router.push('/admin/queue');
+                    closeMenu();
+                  }}
+                  className={`${styles.navButton} ${router.pathname === '/admin/queue' ? styles.active : ''}`}
+                >
+                  <span className={styles.icon}><FaUsers size={20} /></span>
+                  <span className={styles.label}>Queue</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -203,7 +215,6 @@ const MobileHeader = () => {
             <>
               <div className={styles.usernameBox}>
                 {user?.username}
-                {user?.isAdmin && <span className={styles.adminBadge}>Admin</span>}
               </div>
               <button className={styles.logoutButton} onClick={handleLogout}>
                 Logout
@@ -211,6 +222,15 @@ const MobileHeader = () => {
             </>
           ) : (
             <>
+              <button
+                className={`${styles.loginButton} ${styles.yellowButton}`}
+                onClick={() => {
+                  openLoginModal();
+                  closeMenu();
+                }}
+              >
+                Login
+              </button>
               <button 
                 className={styles.eventsButton} 
                 onClick={() => {
@@ -229,16 +249,27 @@ const MobileHeader = () => {
                 }}
               >
                 <AiOutlineVideoCamera className={styles.buttonIcon} />
-                Public Clips
+                Users Highlight Clips
               </button>
-              <button
-                className={`${styles.loginButton} ${styles.yellowButton}`}
+              <button 
+                className={styles.topUsersButton} 
                 onClick={() => {
-                  openLoginModal();
+                  router.push('/topusers');
                   closeMenu();
                 }}
               >
-                Login
+                <AiOutlineTrophy className={styles.buttonIcon} />
+                Top Users
+              </button>
+              <button 
+                className={styles.shopButton} 
+                onClick={() => {
+                  router.push('/shop');
+                  closeMenu();
+                }}
+              >
+                <AiOutlineShop className={styles.buttonIcon} />
+                Prices
               </button>
             </>
           )}

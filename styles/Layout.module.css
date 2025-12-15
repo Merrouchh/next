@@ -105,7 +105,7 @@
   border: none;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  z-index: 99;
+  z-index: 11002; /* Above all modals (including 11000) but below notification bubble */
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   overflow: hidden;
 }
@@ -172,6 +172,13 @@
 
 .floatingUploadButton {
   animation: floatingButtonAppear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Skip animation if already animated (smooth transitions on page navigation) */
+.floatingUploadButton.alreadyAnimated {
+  animation: none;
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* Ripple effect for upload button */

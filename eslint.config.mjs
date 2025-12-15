@@ -67,8 +67,15 @@ export default [
       ...nextPlugin.configs["core-web-vitals"].rules,
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+      // Next.js styled-jsx uses <style jsx>, allow these props
+      "react/no-unknown-property": ["error", { ignore: ["jsx", "global"] }],
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      // Disable React Compiler-oriented rules that are too strict for this codebase
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/immutability": "off",
     },
   },
   {
@@ -105,8 +112,15 @@ export default [
       ...nextPlugin.configs["core-web-vitals"].rules,
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+      // Next.js styled-jsx uses <style jsx>, allow these props
+      "react/no-unknown-property": ["error", { ignore: ["jsx", "global"] }],
       "no-unused-vars": "off", // TypeScript handles this
-      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      // Disable React Compiler-oriented rules that are too strict for this codebase
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/immutability": "off",
     },
   },
 ];

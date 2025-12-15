@@ -13,6 +13,9 @@ import { toast } from 'react-hot-toast';
 
 export const useDashboardData = () => {
   const { user, refreshSession } = useAuth();
+  const gizmoId = user?.gizmo_id;
+  const userId = user?.id;
+  const username = user?.username;
   const [pageState, setPageState] = useState({
     loading: true,
     error: null,
@@ -22,6 +25,11 @@ export const useDashboardData = () => {
   const isRefreshingRef = useRef(false);
   const isMountedRef = useRef(true);
   const hasInitializedRef = useRef(false);
+  const pageStateRef = useRef(pageState);
+  
+  useEffect(() => {
+    pageStateRef.current = pageState;
+  }, [pageState]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -31,7 +39,7 @@ export const useDashboardData = () => {
   }, []);
 
   const fetchDashboardData = useCallback(async (showToast = true, retryCount = 0) => {
-    if (!user?.gizmo_id) return;
+    if (!gizmoId) return;
     
     // Use a ref to track if we're already refreshing to prevent multiple calls
     if (isRefreshingRef.current) return;
@@ -41,7 +49,7 @@ export const useDashboardData = () => {
     setPageState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      console.log('🔄 Refreshing dashboard data for user:', user?.username);
+      console.log('🔄 Refreshing dashboard data for user:', username);
       
       // Fetch essential data with individual error handling
       const [
@@ -60,26 +68,26 @@ export const useDashboardData = () => {
           console.warn('Failed to fetch top users:', err);
           return [];
         }),
-        fetchUserPoints(user.gizmo_id).catch(err => {
+        fetchUserPoints(gizmoId).catch(err => {
           console.warn('Failed to fetch user points:', err);
           return { points: 0 };
         }),
-        fetchUserTimeInfo(user.gizmo_id).catch(err => {
+        fetchUserTimeInfo(gizmoId).catch(err => {
           console.warn('Failed to fetch time info:', err);
           return {};
         }),
-        fetchUserBalanceWithDebt(user.gizmo_id).catch(err => {
+        fetchUserBalanceWithDebt(gizmoId).catch(err => {
           console.warn('Failed to fetch balance info:', err);
           return { rawBalance: 0 };
         }),
-        user.id ? fetchUserUpcomingMatches(user.id).catch(err => {
+        userId ? fetchUserUpcomingMatches(userId).catch(err => {
           console.warn('Failed to fetch upcoming matches:', err);
           return [];
         }) : Promise.resolve([]),
       ]);
       
       console.log('✅ Dashboard data fetch completed successfully');
-      console.log('🔍 Checking mounted state:', { isMounted: isMountedRef.current, userExists: !!user });
+      console.log('🔍 Checking mounted state:', { isMounted: isMountedRef.current, userExists: !!userId });
 
       // Update state with essential data
       const newData = {
@@ -124,7 +132,7 @@ export const useDashboardData = () => {
       // Fetch picture separately (non-blocking)
       setTimeout(async () => {
         try {
-          const userPicture = await fetchUserPicture(user.gizmo_id);
+          const userPicture = await fetchUserPicture(gizmoId);
           setPageState(prev => ({
             ...prev,
             data: prev.data ? {
@@ -182,7 +190,7 @@ export const useDashboardData = () => {
       isRefreshingRef.current = false;
       setIsRefreshing(false);
     }
-  }, [user?.gizmo_id]); // Removed isRefreshing from dependencies
+  }, [gizmoId, userId, username]); // Removed isRefreshing from dependencies
 
   // Initialize data on mount
   useEffect(() => {
@@ -232,14 +240,14 @@ export const useDashboardData = () => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.gizmo_id]); // Removed user.username to prevent unnecessary re-runs
+  }, [user, gizmoId, pageState.data, fetchDashboardData]); // keep deps explicit
   
   // Add a timeout to prevent infinite loading
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
       if (pageState.loading && !isRefreshingRef.current) {
         console.warn('Dashboard loading timeout - forcing error state');
-        console.log('Current state:', { user: user?.username, gizmo_id: user?.gizmo_id, pageState });
+        console.log('Current state:', { user: username, gizmo_id: gizmoId, pageState: pageStateRef.current });
         setPageState(prev => ({
           ...prev,
           loading: false,
@@ -249,19 +257,19 @@ export const useDashboardData = () => {
     }, 15000); // 15 second timeout
 
     return () => clearTimeout(loadingTimeout);
-  }, [pageState.loading]);
+  }, [pageState.loading, gizmoId, username]);
   
   // Add a safety check to ensure loading state isn't stuck due to auth issues
   useEffect(() => {
     // Only show error if we've been loading for a while and user definitely has no gizmo_id
     // AND we're not in the middle of a refresh AND we've actually tried to load data
     // AND we don't already have data (to prevent showing error when data is available)
-    if (user !== null && !user?.gizmo_id && pageState.loading && !pageState.data && hasInitializedRef.current && !isRefreshingRef.current) {
+    if (user !== null && !gizmoId && pageState.loading && !pageState.data && hasInitializedRef.current && !isRefreshingRef.current) {
       // Add a longer delay to make sure we're not in the middle of auth refresh or data loading
       const timeoutId = setTimeout(() => {
         // Double-check that we're still in the same state and haven't started refreshing
         // AND that we still don't have data (to prevent race conditions)
-        if (!user?.gizmo_id && !isRefreshingRef.current && pageState.loading && !pageState.data) {
+        if (!gizmoId && !isRefreshingRef.current && pageState.loading && !pageState.data) {
           console.log('Fixing stuck loading state - user has no gizmo_id after extended wait');
           setPageState({
             loading: false,
@@ -273,7 +281,7 @@ export const useDashboardData = () => {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [user?.gizmo_id, pageState.loading, pageState.data]); // Added pageState.data to dependencies
+  }, [user, gizmoId, pageState.loading, pageState.data]); // Explicit dependencies
 
   // Auto-refresh on visibility change
   useEffect(() => {
@@ -291,11 +299,11 @@ export const useDashboardData = () => {
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user?.gizmo_id, pageState.data]); // Simplified dependencies
+  }, [user, pageState.data, refreshSession, fetchDashboardData]); // Explicit dependencies
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    if (!user?.gizmo_id || !pageState.data) return;
+    if (!gizmoId || !pageState.data) return;
 
     const autoRefresh = setInterval(() => {
       if (document.visibilityState === 'visible' && !isRefreshingRef.current) {
@@ -305,7 +313,7 @@ export const useDashboardData = () => {
     }, 60000); // Increased to 60 seconds to reduce frequency
 
     return () => clearInterval(autoRefresh);
-  }, [user?.gizmo_id, pageState.data]); // Simplified dependencies
+  }, [gizmoId, pageState.data, fetchDashboardData]); // Explicit dependencies
 
   return {
     ...pageState,

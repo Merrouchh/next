@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -14,49 +14,7 @@ export const useEventsData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user, supabase, session } = useAuth();
-
-  // Fetch events function
-  const fetchEvents = useCallback(async (forceRefresh = false) => {
-    if (forceRefresh) {
-      setIsRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    
-    setError(null);
-
-    try {
-      // Fetch events data (public endpoint, no auth needed)
-      const response = await fetch('/api/events', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to fetch events: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setEvents(data);
-      
-      // Sync registration counts if user is logged in
-      if (user) {
-        syncRegistrationCounts(data);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      setError(error.message);
-      toast.error('Failed to load events. Please try again later.');
-      setEvents([]);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [user, session]);
+  const { user, supabase } = useAuth();
 
   // Function to sync registration counts with the database
   const syncRegistrationCounts = useCallback(async (eventsList) => {
@@ -93,6 +51,48 @@ export const useEventsData = () => {
       console.error('Error syncing registration counts:', error);
     }
   }, [supabase]);
+
+  // Fetch events function
+  const fetchEvents = useCallback(async (forceRefresh = false) => {
+    if (forceRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
+    setError(null);
+
+    try {
+      // Fetch events data (public endpoint, no auth needed)
+      const response = await fetch('/api/events', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to fetch events: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setEvents(data);
+      
+      // Sync registration counts if user is logged in
+      if (user) {
+        await syncRegistrationCounts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setError(error.message);
+      toast.error('Failed to load events. Please try again later.');
+      setEvents([]);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [user, syncRegistrationCounts]);
 
   // Set up real-time subscription for registration updates
   useEffect(() => {
@@ -160,10 +160,10 @@ export const useEventsData = () => {
     
     // Clean up subscription when component unmounts
     return () => {
-      supabase.channel('events-updates-combined').unsubscribe();
+      channel.unsubscribe();
       clearInterval(intervalId);
     };
-  }, [events, supabase, user]);
+  }, [events, supabase, user, syncRegistrationCounts]);
 
   // Initial fetch
   useEffect(() => {
