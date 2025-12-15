@@ -9231,3 +9231,43 @@
 [2025-12-15T08:16:33.487Z] [INFO] Automatic mode is disabled, skipping auto-control
 [2025-12-15T08:16:33.568Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
 [2025-12-15T08:16:33.569Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:16:43.313Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:16:43.415Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:16:43.487Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:16:43.553Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:16:43.553Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:16:53.318Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:16:53.474Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:16:53.546Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:16:53.619Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:16:53.620Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:03.326Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:04.399Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:04.477Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:04.547Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:04.547Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:13.336Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:13.458Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:13.533Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:13.620Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:13.620Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:23.348Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:23.472Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:23.545Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:23.619Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:23.619Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:33.352Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:33.482Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:33.577Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:33.654Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:33.654Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:43.365Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:43.477Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:43.544Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:43.613Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:43.613Z] [SUCCESS] Queue monitoring cycle completed
+[2025-12-15T08:17:53.372Z] [INFO] 🔍 Starting queue monitoring cycle
+[2025-12-15T08:17:53.479Z] [INFO] Found 0 active sessions and 2 queue entries
+[2025-12-15T08:17:53.580Z] [INFO] Automatic mode is disabled, skipping auto-control
+[2025-12-15T08:17:53.659Z] [INFO] ⏭️ admin3 (pos 2) - already notified at this position
+[2025-12-15T08:17:53.660Z] [SUCCESS] Queue monitoring cycle completed
