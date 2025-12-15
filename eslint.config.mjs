@@ -22,7 +22,6 @@ export default [
       "*.config.js",
       "*.config.mjs",
       "CloudFlareStreamProgressDataUpdate/**",
-      "queue-notification-service/**",
       "scripts/**",
       "migrations/**",
       "sql/**",

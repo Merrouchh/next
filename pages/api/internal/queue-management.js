@@ -159,11 +159,11 @@ async function handleJoinQueue(req, res, queueData) {
 
     const notifyWhatsapp = queueData?.notifyWhatsapp !== false; // default true
     const phoneNumber = profile.phone || null;
-    const noWhatsappMarker = '[no_whatsapp]';
+    const noWhatsappNote = 'User cancelled WhatsApp notifications';
     const baseNotes = queueData?.notes || null;
     const finalNotes = notifyWhatsapp
       ? baseNotes
-      : (baseNotes ? `${baseNotes} ${noWhatsappMarker}` : noWhatsappMarker);
+      : (baseNotes ? `${baseNotes} - ${noWhatsappNote}` : noWhatsappNote);
 
     // Add user to queue
     const { data: newEntry, error: insertError } = await supabase

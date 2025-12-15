@@ -45,6 +45,7 @@ export default function AdminQueue() {
   // Add loading states for individual operations
   const [movingPerson, setMovingPerson] = useState(null);
   const [removingPerson, setRemovingPerson] = useState(null);
+  const [updatingPersonType, setUpdatingPersonType] = useState(null);
   
   const queueListRef = useRef(queueList);
   const loadQueueDataRef = useRef();
@@ -210,16 +211,27 @@ export default function AdminQueue() {
     }
 
     try {
+      // Get user IDs that are already in the queue
+      const usersInQueue = queueList
+        .filter(person => person.user_id)
+        .map(person => person.user_id);
+
       // Search for users that contain the typed text
       const { data, error } = await supabase
         .from('users')
         .select('id, username, email, phone, gizmo_id')
         .ilike('username', `%${username.trim().toLowerCase()}%`)
-        .limit(8); // Show max 8 results
+        .limit(20); // Get more results to filter
 
       if (data && !error && data.length > 0) {
-        setSearchResults(data);
-        setShowDropdown(true);
+        // Filter out users who are already in the queue
+        const filteredResults = data.filter(user => !usersInQueue.includes(user.id));
+        
+        // Limit to 8 results after filtering
+        const limitedResults = filteredResults.slice(0, 8);
+        
+        setSearchResults(limitedResults);
+        setShowDropdown(limitedResults.length > 0);
         setFoundUser(null); // Always clear selection until user clicks
       } else {
         setSearchResults([]);
@@ -344,6 +356,49 @@ export default function AdminQueue() {
       showModal('error', 'Failed to Remove Person', 'An error occurred while removing person from queue.');
     } finally {
       setRemovingPerson(null);
+    }
+  };
+
+  // =============================================================================
+  // 6.5. UPDATE PERSON COMPUTER TYPE (any/top/bottom)
+  // =============================================================================
+  const updatePersonComputerType = async (id, userName, newType) => {
+    setUpdatingPersonType(id);
+
+    // Optimistic update
+    const previousQueueList = [...queueList];
+    const nextQueueList = previousQueueList.map(p => (
+      p.id === id ? { ...p, computer_type: newType } : p
+    ));
+    setQueueList(nextQueueList);
+
+    try {
+      const response = await fetch('/api/internal/admin/queue-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update-computer-type',
+          userId: user.id,
+          queueData: { id, computerType: newType }
+        })
+      });
+
+      if (response.ok) {
+        showModal('success', 'Updated', `${userName}'s preference updated.`);
+        // Refresh to ensure data is in sync
+        setTimeout(() => {
+          loadQueueDataRef.current?.(0, false);
+        }, 400);
+      } else {
+        setQueueList(previousQueueList);
+        const err = await response.json().catch(() => ({}));
+        showModal('error', 'Update Failed', err.error || 'Failed to update preference.');
+      }
+    } catch {
+      setQueueList(previousQueueList);
+      showModal('error', 'Update Failed', 'Failed to update preference.');
+    } finally {
+      setUpdatingPersonType(null);
     }
   };
 
@@ -684,16 +739,30 @@ export default function AdminQueue() {
                     </div>
                     
                     <div className={styles.personInfo}>
-                      <span>Wants: {person.computer_type === 'any' ? 'Any Computer' : `${person.computer_type.charAt(0).toUpperCase() + person.computer_type.slice(1)} Floor Only`}</span>
+                      <span className={styles.personPreference}>
+                        Wants:
+                        <select
+                          className={styles.personPreferenceSelect}
+                          value={person.computer_type || 'any'}
+                          onChange={(e) => updatePersonComputerType(person.id, person.user_name, e.target.value)}
+                          disabled={updatingPersonType === person.id || removingPerson === person.id || movingPerson === person.id}
+                          title="Change queue preference"
+                        >
+                          <option value="any">Any Computer</option>
+                          <option value="top">Top Only</option>
+                          <option value="bottom">Bottom Only</option>
+                        </select>
+                        {updatingPersonType === person.id && <span className={styles.inlineStatus}>Saving...</span>}
+                      </span>
                       <span>Added: {new Date(person.created_at).toLocaleTimeString()}</span>
                     </div>
                     
-                    {(() => {
-                      if (!person.notes) return null;
-                      const cleaned = String(person.notes).replace('[no_whatsapp]', '').trim();
-                      if (!cleaned) return null;
-                      return <div className={styles.personNotes}>📝 {cleaned}</div>;
-                    })()}
+                    {person.notes && (
+                      <div className={styles.personNotes}>
+                        <FaStickyNote style={{marginRight: '6px', fontSize: '14px'}} />
+                        <span>{person.notes}</span>
+                      </div>
+                    )}
                     
                     {/* Show operation status */}
                     {removingPerson === person.id && (

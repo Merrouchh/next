@@ -68,11 +68,13 @@ async function handler(req, res) {
         return await handleDeleteEntry(req, res, queueData);
       case 'reorder':
         return await handleReorder(req, res, queueData);
+      case 'update-computer-type':
+        return await handleUpdateComputerType(req, res, queueData);
       default:
         return res.status(400).json({ 
           success: false,
           error: 'Invalid action',
-          details: 'Action must be one of: toggle-active, toggle-online-joining, add-person, delete-entry, reorder'
+          details: 'Action must be one of: toggle-active, toggle-online-joining, add-person, delete-entry, reorder, update-computer-type'
         });
     }
 
@@ -477,6 +479,54 @@ async function handleReorder(req, res, queueData) {
     return res.status(500).json({
       success: false,
       error: 'Failed to reorder queue',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Update a queue entry's desired computer type (any/top/bottom)
+async function handleUpdateComputerType(req, res, queueData) {
+  try {
+    const { id, computerType } = queueData || {};
+    const allowed = new Set(['any', 'top', 'bottom']);
+
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Queue entry ID is required' });
+    }
+    if (!computerType || !allowed.has(computerType)) {
+      return res.status(400).json({ success: false, error: 'Invalid computer type' });
+    }
+
+    const { data: entry, error: fetchError } = await supabaseAdmin
+      .from('computer_queue')
+      .select('id, status')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !entry) {
+      return res.status(404).json({ success: false, error: 'Queue entry not found' });
+    }
+    if (entry.status !== 'waiting') {
+      return res.status(400).json({ success: false, error: 'Only waiting entries can be updated' });
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('computer_queue')
+      .update({ computer_type: computerType })
+      .eq('id', id)
+      .eq('status', 'waiting');
+
+    if (updateError) {
+      console.error('[INTERNAL API] Update computer type error:', updateError);
+      return res.status(500).json({ success: false, error: 'Failed to update computer type' });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('[INTERNAL API] Update computer type error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update computer type',
       message: 'Internal server error'
     });
   }

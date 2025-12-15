@@ -325,7 +325,7 @@ async function handleAutomaticMode(queueCount) {
     }
 
     if (!settings.automatic_mode) {
-      Logger.debug('Automatic mode is disabled, skipping auto-control');
+      Logger.info('Automatic mode is disabled, skipping auto-control');
       return;
     }
 
@@ -360,7 +360,7 @@ async function handleAutomaticMode(queueCount) {
         Logger.success('✅ Auto-control: Queue system stopped');
       }
     } else {
-      Logger.debug('✅ Auto-control: Queue state is correct, no changes needed');
+      Logger.info('✅ Auto-control: Queue state is correct, no changes needed');
     }
   } catch (error) {
     Logger.error('Error handling automatic mode', error);
@@ -488,10 +488,20 @@ async function monitorQueue() {
         await removeFromQueue(entry.id, entry.user_name, reason);
       }
       
+      // Wait a moment for database trigger to reorder positions
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Re-fetch queue to get updated positions after removals
+      const updatedQueue = await fetchQueue();
+      queueEntries.length = 0;
+      queueEntries.push(...updatedQueue);
+      
+      Logger.info(`Queue refreshed: ${queueEntries.length} entries remaining after removals`);
+      
       // Re-check automatic mode after removals
-      const remainingCount = queueEntries.length - toRemove.length;
-      if (remainingCount !== queueEntries.length) {
-        Logger.info(`Queue count changed from ${queueEntries.length} to ${remainingCount}, re-checking automatic mode`);
+      const remainingCount = queueEntries.length;
+      if (remainingCount !== queueEntries.length + toRemove.length) {
+        Logger.info(`Queue count changed from ${queueEntries.length + toRemove.length} to ${remainingCount}, re-checking automatic mode`);
         await handleAutomaticMode(remainingCount);
       }
     }
@@ -499,14 +509,14 @@ async function monitorQueue() {
     // Check for notification needs
     const now = new Date();
     for (const entry of queueEntries) {
-      // Skip if we're about to remove this user
-      if (toRemove.some(r => r.entry.id === entry.id)) continue;
 
       const createdAt = new Date(entry.created_at);
       const lastNotified = entry.last_notified_at ? new Date(entry.last_notified_at) : null;
       
-      // Respect WhatsApp opt-out marker on queue entry
-      const hasOptedOut = typeof entry.notes === 'string' && entry.notes.includes('[no_whatsapp]');
+      // Respect WhatsApp opt-out - check for readable note or legacy marker
+      const hasOptedOut = typeof entry.notes === 'string' && 
+        (entry.notes.includes('User cancelled WhatsApp notifications') || 
+         entry.notes.includes('[no_whatsapp]'));
       if (hasOptedOut) {
         Logger.info(`📵 ${entry.user_name} opted out of WhatsApp notifications`);
         continue;
@@ -528,13 +538,10 @@ async function monitorQueue() {
       // Calculate time since last notification for debugging
       const timeSinceLastNotification = lastNotified ? (now - lastNotified) / 1000 / 60 : null; // in minutes
 
-      // SMART NOTIFICATION SYSTEM 
+      // SIMPLE NOTIFICATION SYSTEM 
       // - Notify once when user joins
       // - Notify immediately when position improves  
-      // - For position #1: Max 3 "your turn" reminders (2 min apart), then stop
-      // - For positions 2-5: Max 2 periodic updates (15 min apart), then stop
-      // - Positions 6+: No notifications (too far back)
-      // - Counter resets when position changes
+      // - No repeat/reminder notifications
       shouldNotify = false;
       isYourTurn = false;
       notificationReason = '';
@@ -553,58 +560,25 @@ async function monitorQueue() {
         notificationReason = `position_improved_${entry.last_notified_position}_to_${entry.position}`;
         Logger.info(`🔔 ${entry.user_name} - Position improved (${entry.last_notified_position} → ${entry.position})`);
         
-        // Reset notification count when position improves
+        // Update notification status when position improves
         await supabase
           .from('computer_queue')
-          .update({ periodic_notification_count: 0 })
+          .update({ 
+            periodic_notification_count: 0,
+            last_notified_at: new Date().toISOString(),
+            last_notified_position: entry.position
+          })
           .eq('id', entry.id);
       }
-      // 3. Smart retry system for position #1 (Your turn!)
-      else if (entry.position === 1) {
-        const notificationCount = entry.periodic_notification_count || 0;
-        const minTimeBetweenRetries = 120000; // 2 minutes between retries
-        
-        // Only retry if:
-        // - Haven't exceeded max attempts (3 total)
-        // - Enough time has passed since last notification
-        // - Still at the same position as last notification
-        if (notificationCount < 3 && 
-            (!lastNotified || (now - lastNotified) > minTimeBetweenRetries) &&
-            entry.last_notified_position === entry.position) {
-          
-          shouldNotify = true;
-          isYourTurn = true;
-          notificationReason = `your_turn_attempt_${notificationCount + 1}`;
-          Logger.info(`🔔 ${entry.user_name} - Your turn reminder #${notificationCount + 1}/3 (last: ${timeSinceLastNotification?.toFixed(1)}m ago)`);
-        } else {
-          Logger.info(`⏭️ ${entry.user_name} (pos 1) - Max attempts reached (${notificationCount}/3) or too soon`);
-        }
-      }
-      // 4. Periodic updates for positions 2-5 (less frequent)
-      else if (entry.position >= 2 && entry.position <= 5) {
-        const notificationCount = entry.periodic_notification_count || 0;
-        const minTimeBetweenUpdates = 900000; // 15 minutes between periodic updates
-        
-        // Only send periodic updates:
-        // - Max 2 times per position
-        // - 15 minutes between updates
-        // - Still at same position
-        if (notificationCount < 2 && 
-            lastNotified && 
-            (now - lastNotified) > minTimeBetweenUpdates &&
-            entry.last_notified_position === entry.position) {
-          
-          shouldNotify = true;
-          isYourTurn = false;
-          notificationReason = `periodic_update_${notificationCount + 1}`;
-          Logger.info(`🔔 ${entry.user_name} - Periodic update #${notificationCount + 1}/2 (position ${entry.position})`);
-        } else {
-          Logger.info(`⏭️ ${entry.user_name} (pos ${entry.position}) - No periodic update needed (${notificationCount}/2 sent)`);
-        }
-      }
-      // 5. No notifications for positions 6+ (too far back)
+      // 3. No repeat notifications - clarify why we're skipping
       else {
-        Logger.info(`⏭️ ${entry.user_name} (pos ${entry.position}) - Too far back for notifications`);
+        const lastPos = entry.last_notified_position;
+        const reason = lastPos === entry.position
+          ? 'already notified at this position'
+          : (lastPos && entry.position > lastPos
+              ? `position worsened from ${lastPos} to ${entry.position} (no notification)`
+              : 'no notification needed');
+        Logger.info(`⏭️ ${entry.user_name} (pos ${entry.position}) - ${reason}`);
       }
 
       if (shouldNotify) {
@@ -618,15 +592,9 @@ async function monitorQueue() {
         );
 
         if (result.success) {
-          await updateNotificationStatus(entry.id, entry.position);
-          
-          // Increment notification count for smart retry system
-          if (notificationReason.startsWith('your_turn_attempt_') || 
-              notificationReason.startsWith('periodic_update_')) {
-            await supabase
-              .from('computer_queue')
-              .update({ periodic_notification_count: (entry.periodic_notification_count || 0) + 1 })
-              .eq('id', entry.id);
+          // Only update notification status if we didn't already update it (position improved case)
+          if (!notificationReason.startsWith('position_improved_')) {
+            await updateNotificationStatus(entry.id, entry.position);
           }
           
           Logger.success(`✅ Notified ${entry.user_name} about ${notificationReason}`);

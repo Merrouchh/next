@@ -13,25 +13,10 @@ import { FaUsers, FaArrowUp, FaArrowDown, FaDesktop, FaTimes } from 'react-icons
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-// Simple component to display user's position in their specific queue type
-const QueuePositionDisplay = React.memo(function QueuePositionDisplay({ userInQueue }) {
-  if (!userInQueue) return null;
-
-  const userPosition = userInQueue?.position;
-  const userComputerType = userInQueue?.computer_type;
-
-  const queueTypeLabel = userComputerType === 'any' ? 'any computer'
-    : userComputerType === 'bottom' ? 'bottom floor computers'
-    : 'top floor computers';
-
-  const displayText = `Position ${userPosition} for ${queueTypeLabel}`;
-
-  return (
-    <span className={styles.positionText}>
-      {displayText}
-    </span>
-  );
-});
+import { QueuePositionDisplay } from '../components/avcomputers/QueuePositionDisplay';
+import { ComputerBox } from '../components/avcomputers/ComputerBox';
+import { TopComputers } from '../components/avcomputers/TopComputers';
+import { useQueueSystem } from '../hooks/useQueueSystem';
 
 export const getServerSideProps = async ({ res }) => {
   // Disable all caching - always fresh data
@@ -59,456 +44,6 @@ export const getServerSideProps = async ({ res }) => {
       },
     };
   }
-};
-
-// Computer component
-const ComputerBox = ({ 
-  computer, 
-  isTopFloor, 
-  lastUpdate, 
-  highlightActive, 
-  onOpenLoginModal, 
-  isLoading, 
-  userAlreadyLoggedIn, 
-  userCurrentComputer 
-}) => {
-  // If component is in loading state, show a skeleton
-  if (isLoading) {
-    return (
-      <div className={`${isTopFloor ? styles.vipPcBox : styles.pcSquare} ${styles.loadingComputer}`}>
-        <div className={styles.loadingPulse}></div>
-      </div>
-    );
-  }
-
-  const timeParts = computer.timeLeft && computer.timeLeft !== 'No Time'
-    ? computer.timeLeft.split(' : ') 
-    : [0, 0];
-  const hours = parseInt(timeParts[0]) || 0;
-  const minutes = parseInt(timeParts[1]) || 0;
-  const totalMinutes = hours * 60 + minutes;
-
-  const boxClass = isTopFloor ? styles.vipPcBox : styles.pcSquare;
-  const activeClass = computer.isActive
-    ? totalMinutes < 60
-      ? isTopFloor ? styles.orange : styles.warning
-      : styles.active
-    : styles.inactive;
-
-  const lastUpdateTime = lastUpdate[computer.id];
-  const isRecentlyUpdated = lastUpdateTime && Date.now() - lastUpdateTime < 1000;
-  
-  // Check if this is the computer the user is logged into
-  const isUserCurrentComputer = userCurrentComputer && userCurrentComputer.hostId === computer.id;
-
-  return (
-    <div 
-      key={computer.id} 
-      className={`
-        ${boxClass} 
-        ${activeClass}
-        ${isRecentlyUpdated ? styles.updated : ''}
-        ${highlightActive && computer.isActive ? styles.highlight : ''}
-        ${isUserCurrentComputer ? styles.userCurrentComputer : ''}
-      `}
-    >
-      {isUserCurrentComputer && (
-        <div className={styles.currentUserBadge}>Your Session</div>
-      )}
-      <div className={styles.pcNumber}>
-        PC {computer.number}
-      </div>
-      <div className={styles.statusText}>
-        {computer.isActive 
-          ? `Active - Time Left: ${computer.timeLeft}` 
-          : 'No User'}
-      </div>
-      
-      {/* Show login button only for available computers and if user is not already logged in elsewhere */}
-      {!computer.isActive && !userAlreadyLoggedIn && (
-        <button 
-          className={styles.loginButton}
-          onClick={() => onOpenLoginModal({
-            hostId: computer.id,
-            type: isTopFloor ? 'Top' : 'Bottom',
-            number: computer.number
-          })}
-        >
-          Login
-        </button>
-      )}
-    </div>
-  );
-};
-
-// Top Computers section (Upper Floor)
-const TopComputers = ({ 
-  computers, 
-  lastUpdate, 
-  highlightActive, 
-  onOpenLoginModal, 
-  // isLoading, // Removed unused parameter
-  userAlreadyLoggedIn,
-  userCurrentComputer,
-  isComputerLoaded
-}) => {
-  const vipContainerRef = useRef(null);
-  const [isAtEnd, setIsAtEnd] = useState(false);
-  const [isAtStart, setIsAtStart] = useState(true);
-  const [currentPair, setCurrentPair] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [cachedPairWidth, setCachedPairWidth] = useState(0);
-
-  const totalPairs = Math.ceil(computers.length / 2) - 1;
-
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Cache the pair width to avoid repeated clientWidth access
-  useEffect(() => {
-    if (!isMobile || !vipContainerRef.current) return;
-    
-    const updatePairWidth = () => {
-      if (vipContainerRef.current) {
-        setCachedPairWidth(vipContainerRef.current.clientWidth);
-      }
-    };
-    
-    updatePairWidth();
-    
-    // Use ResizeObserver for better performance
-    let resizeObserver;
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(updatePairWidth);
-      resizeObserver.observe(vipContainerRef.current);
-    } else {
-      // Fallback for older browsers
-      window.addEventListener('resize', updatePairWidth);
-    }
-    
-    return () => {
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener('resize', updatePairWidth);
-      }
-    };
-  }, [isMobile]);
-
-  // Only run scroll handling on mobile
-  const handleScroll = useCallback((e) => {
-    if (!isMobile || !e.target || !cachedPairWidth) return;
-    
-    const container = e.target;
-    const currentScrollPosition = container.scrollLeft;
-    const currentPairIndex = Math.round(currentScrollPosition / cachedPairWidth);
-    
-    setCurrentPair(currentPairIndex);
-    setIsAtStart(currentPairIndex === 0);
-    setIsAtEnd(currentPairIndex === totalPairs);
-  }, [isMobile, totalPairs, cachedPairWidth]);
-
-  const handleScrollButton = useCallback((direction) => {
-    if (!isMobile || !vipContainerRef.current || !cachedPairWidth) return;
-    
-    const container = vipContainerRef.current;
-    
-    const newPairIndex = direction === 'left' ? 
-      Math.max(0, currentPair - 1) : 
-      Math.min(totalPairs, currentPair + 1);
-    
-    container.scrollTo({
-      left: newPairIndex * cachedPairWidth,
-      behavior: 'smooth'
-    });
-    
-    setCurrentPair(newPairIndex);
-    setIsAtStart(newPairIndex === 0);
-    setIsAtEnd(newPairIndex === totalPairs);
-  }, [isMobile, currentPair, totalPairs, cachedPairWidth]);
-
-  useEffect(() => {
-    const container = vipContainerRef.current;
-    if (!container || !isMobile) return;
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll, isMobile]);
-
-  return (
-    <div className={styles.vipWrapper}>
-      <div className={styles.vipSection}>
-        <h2 className={styles.sectionHeading}>Top Computers</h2>
-        <div className={styles.swipeControls}>
-          <button 
-            onClick={() => handleScrollButton('left')} 
-            className={`${styles.swipeButton} ${isAtStart ? styles.edgeDisabled : ''}`}
-            disabled={isAtStart}
-          >
-            <span className={styles.swipeArrow}>←</span>
-          </button>
-          
-          <button 
-            onClick={() => handleScrollButton('right')} 
-            className={`${styles.swipeButton} ${isAtEnd ? styles.edgeDisabled : ''}`}
-            disabled={isAtEnd}
-          >
-            <span className={styles.swipeArrow}>→</span>
-          </button>
-        </div>
-
-        <div 
-          ref={vipContainerRef} 
-          className={styles.vipComputers}
-        >
-          {computers.map(computer => (
-            <ComputerBox 
-              key={computer.id} 
-              computer={computer} 
-              isTopFloor={true}
-              lastUpdate={lastUpdate}
-              highlightActive={highlightActive}
-              onOpenLoginModal={onOpenLoginModal}
-              isLoading={!isComputerLoaded(computer.id)}
-              userAlreadyLoggedIn={userAlreadyLoggedIn}
-              userCurrentComputer={userCurrentComputer}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Custom hook for queue management
-const useQueueSystem = (user, supabase, modalSetters = {}) => {
-  const { setErrorMessage, setShowErrorModal, setSuccessMessage, setShowSuccessModal, setConfirmMessage, setShowConfirmModal, setConfirmAction } = modalSetters;
-  const [queueStatus, setQueueStatus] = useState({ 
-    is_active: false, 
-    allow_online_joining: true, // Default to true to show button initially
-    current_queue_size: 0,
-  });
-  const [userInQueue, setUserInQueue] = useState(null);
-  const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
-  const refreshTimeoutRef = useRef(null);
-  
-  const fetchQueueStatus = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const response = await fetch('/api/queue/status');
-      if (response.ok) {
-        const data = await response.json();
-        const status = data.status; // Status is now always an object due to API fix
-        console.log('Queue status updated:', status); // Debug log
-        
-        // Ensure allow_online_joining is true unless explicitly set to false by admin
-        const safeStatus = {
-          ...status,
-          allow_online_joining: status.allow_online_joining !== false // Default to true unless explicitly false
-        };
-        
-        setQueueStatus(safeStatus);
-        
-        // Check if current user is in queue
-        if (data.queue) {
-          const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
-          setUserInQueue(userQueueEntry || null);
-        }
-      } else {
-        console.error('Failed to fetch queue status:', response.status);
-      }
-    } catch (error) {
-      console.error('Error fetching queue status:', error);
-      // Keep a safe default on error
-      setQueueStatus({ 
-        is_active: false, 
-        allow_online_joining: true,
-        current_queue_size: 0,
-      });
-    }
-  }, [user]);
-
-  const scheduleQueueRefresh = useCallback(() => {
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = setTimeout(() => {
-      fetchQueueStatus();
-    }, 400);
-  }, [fetchQueueStatus]);
-
-  // Set up real-time subscriptions and polling
-  useEffect(() => {
-    if (!user || !supabase) return;
-    
-    fetchQueueStatus();
-    
-    // Set up real-time subscription for queue changes (debounced)
-    const queueSubscription = supabase
-      .channel('queue-changes-users')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'computer_queue'
-      }, (payload) => {
-        console.log('Queue data changed:', payload);
-        scheduleQueueRefresh();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'queue_settings'
-      }, (payload) => {
-        console.log('Queue settings changed:', payload);
-        scheduleQueueRefresh();
-      })
-      .subscribe();
-
-    // Backup polling every 60 seconds since we have real-time updates
-    const queueInterval = setInterval(fetchQueueStatus, 60000);
-    
-    return () => {
-      queueSubscription.unsubscribe();
-      clearInterval(queueInterval);
-      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-    };
-  }, [user, supabase, fetchQueueStatus, scheduleQueueRefresh]);
-
-  const joinQueue = async (computerType = 'any', notifyWhatsapp = true) => {
-    // Prevent multiple simultaneous joins
-    if (isJoiningQueue) {
-      console.log('Already joining queue, preventing duplicate request');
-      return false;
-    }
-
-    // Check if user is already in queue (immediate local check)
-    if (userInQueue) {
-      setErrorMessage('You are already in the queue!');
-      setShowErrorModal(true);
-      return false;
-    }
-
-    setIsJoiningQueue(true);
-    
-    try {
-      // Properly await the session to get the access token
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-
-      if (!accessToken) {
-        setErrorMessage('Authentication required. Please log in again.');
-        setShowErrorModal(true);
-        return false;
-      }
-
-      const response = await fetch('/api/internal/queue-management', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'join',
-          userId: user.id,
-          queueData: { computer_type: computerType, notifyWhatsapp }
-        })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        // Immediately update local state to prevent duplicate joins
-        setUserInQueue({ 
-          position: result.position || 1, 
-          computer_type: computerType,
-          id: result.id 
-        });
-        setSuccessMessage('You have been added to the queue! We\'ll notify you when a computer becomes available.');
-        setShowSuccessModal(true);
-        return true;
-      } else {
-        setErrorMessage('Unable to join queue: ' + result.error);
-        setShowErrorModal(true);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error joining queue:', error);
-      setErrorMessage('Error joining queue');
-      setShowErrorModal(true);
-      return false;
-    } finally {
-      setIsJoiningQueue(false);
-    }
-  };
-
-  const leaveQueue = async () => {
-    if (!userInQueue) return;
-    
-    // Show custom confirmation modal instead of browser confirm
-    setConfirmMessage('Are you sure you want to leave the queue?');
-    setConfirmAction(() => performLeaveQueue);
-    setShowConfirmModal(true);
-  };
-
-  const performLeaveQueue = async () => {
-    setShowConfirmModal(false); // Close confirmation modal
-    
-    try {
-      // Properly await the session to get the access token
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-
-      if (!accessToken) {
-        setErrorMessage('Authentication required. Please log in again.');
-        setShowErrorModal(true);
-        return false;
-      }
-
-      const response = await fetch('/api/internal/queue-management', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'leave',
-          userId: user.id
-        })
-      });
-
-      if (response.ok) {
-        setSuccessMessage('You have left the queue');
-        setShowSuccessModal(true);
-        return true;
-      } else {
-        const errorData = await response.json();
-        setErrorMessage('Error leaving queue: ' + errorData.error);
-        setShowErrorModal(true);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error leaving queue:', error);
-      setErrorMessage('Error leaving queue');
-      setShowErrorModal(true);
-      return false;
-    }
-  };
-
-  return {
-    queueStatus,
-    userInQueue,
-    fetchQueueStatus,
-    joinQueue,
-    leaveQueue,
-    isJoiningQueue
-  };
 };
 
 /**
@@ -606,7 +141,7 @@ const AvailableComputers = () => {
   }, [user, supabase]);
 
   // Queue management
-  const { queueStatus, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase, {
+  const { queueStatus, queueEntries, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase, {
     setErrorMessage,
     setShowErrorModal,
     setSuccessMessage,
@@ -615,6 +150,26 @@ const AvailableComputers = () => {
     setShowConfirmModal,
     setConfirmAction
   });
+
+  const getUserPositionAmongEligibleFromQueue = useCallback((eligibleTypes) => {
+    if (!user?.id) return 999;
+    const list = Array.isArray(queueEntries) ? queueEntries : [];
+    const eligible = list
+      .filter(e => (e?.status || 'waiting') === 'waiting')
+      .filter(e => eligibleTypes.includes((e?.computer_type || 'any')))
+      .sort((a, b) => (a?.position || 0) - (b?.position || 0));
+
+    const idx = eligible.findIndex(e => e?.user_id === user.id);
+    return idx === -1 ? 999 : idx + 1;
+  }, [queueEntries, user?.id]);
+
+  const userIsNextForTop = useMemo(() => (
+    getUserPositionAmongEligibleFromQueue(['any', 'top']) === 1
+  ), [getUserPositionAmongEligibleFromQueue]);
+
+  const userIsNextForBottom = useMemo(() => (
+    getUserPositionAmongEligibleFromQueue(['any', 'bottom']) === 1
+  ), [getUserPositionAmongEligibleFromQueue]);
 
   const handleJoinQueue = async (queueType = 'any', notifyWhatsapp = true) => {
     if (isJoiningQueue) return;
@@ -944,10 +499,24 @@ const AvailableComputers = () => {
           console.log(`User is #1 in ${userInQueue.computer_type} queue and can login to ${computer.type} computer`);
         } else {
           // User must wait - not eligible for this computer type
-          const computerType = computer.type.toLowerCase();
-          const computerTypeLabel = computerType === 'top' ? 'top floor' : 'bottom floor';
-          const breakdown = await getQueueBreakdownBeforeUser(userInQueue);
-          
+          const computerType = String(computer.type || '').toLowerCase(); // 'top' or 'bottom'
+          const isTopComputer = computerType === 'top';
+          const computerTypeLabel = isTopComputer ? 'top floor' : 'bottom floor';
+
+          // If user selected a specific floor queue, make mismatch explicit (avoid misleading "position for bottom/top")
+          if (userInQueue.computer_type === 'top' && !isTopComputer) {
+            alert('You joined the Top Only queue. Please choose a top floor computer.');
+            return;
+          }
+          if (userInQueue.computer_type === 'bottom' && isTopComputer) {
+            alert('You joined the Bottom Only queue. Please choose a bottom floor computer.');
+            return;
+          }
+
+          // Compute breakdown for the clicked computer type (not just the user queue type)
+          const eligibleTypesForComputer = isTopComputer ? ['any', 'top'] : ['any', 'bottom'];
+          const breakdown = await getQueueBreakdownBeforeUser(userInQueue, eligibleTypesForComputer);
+
           let message = `You are #${breakdown.position} for ${computerTypeLabel} computers.`;
           
           // Add breakdown of who's ahead
@@ -964,14 +533,20 @@ const AvailableComputers = () => {
           return;
         }
       } else {
-        // If user isn't in queue, they must join the queue first (if allowed)
-        if (queueStatus.allow_online_joining) {
-          openQueueModal();
+        // If user isn't in queue, check if anyone is waiting for this computer type
+        const hasWaiters = await hasEligibleWaitersForComputer(computer.type);
+
+        if (hasWaiters) {
+          // Respect queue: they must join first
+          if (queueStatus.allow_online_joining) {
+            openQueueModal();
+            return;
+          }
+
+          alert("Online joining is currently disabled. Please visit the gaming center to join the physical queue.");
           return;
         }
-
-        alert("Online joining is currently disabled. Please visit the gaming center to join the physical queue.");
-        return;
+        // No one is waiting for this computer type -> allow direct login
       }
     }
     
@@ -1033,6 +608,38 @@ const AvailableComputers = () => {
     return positionAmongEligible === 1;
   };
 
+  // Helper: is there anyone waiting who could take this computer?
+  const hasEligibleWaitersForComputer = async (computerType) => {
+    const type = computerType.toLowerCase();
+    const anyCount = queueStatus?.any_queue_count || 0;
+    const bottomCount = queueStatus?.bottom_queue_count || 0;
+    const topCount = queueStatus?.top_queue_count || 0;
+
+    // Use cached counts when available
+    if (queueStatus && typeof queueStatus.current_queue_size === 'number') {
+      const eligibleCount = type === 'top'
+        ? (topCount + anyCount)
+        : (bottomCount + anyCount);
+      return eligibleCount > 0;
+    }
+
+    // Fallback: query Supabase directly
+    const eligibleTypes = type === 'top' ? ['any', 'top'] : ['any', 'bottom'];
+    const { data, error } = await supabase
+      .from('computer_queue')
+      .select('id')
+      .in('computer_type', eligibleTypes)
+      .eq('status', 'waiting')
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking eligible waiters:', error);
+      return true; // Be conservative on error
+    }
+
+    return (data || []).length > 0;
+  };
+
   // Helper function to get user's position within their specific queue type - UNUSED
   /*
   const getUserPositionInQueueType = async (queueType) => {
@@ -1088,12 +695,17 @@ const AvailableComputers = () => {
   const queueBreakdownCacheTime = useRef(new Map());
 
   // Helper function to get breakdown of who's ahead of the user (with caching)
-  const getQueueBreakdownBeforeUser = useCallback(async (userQueueEntry) => {
+  // If eligibleQueueTypesOverride is provided, we compute the breakdown for that computer type
+  // (ex: clicking Top PC should compute among ['any','top'], even if the user is in another queue type).
+  const getQueueBreakdownBeforeUser = useCallback(async (userQueueEntry, eligibleQueueTypesOverride = null) => {
     // Use stable values for cache key, not object properties that might change reference
     const userId = userQueueEntry.user_id || userQueueEntry.id;
     const userPos = userQueueEntry.position;
     const compType = userQueueEntry.computer_type;
-    const cacheKey = `${userId}-${userPos}-${compType}`;
+    const overrideKey = Array.isArray(eligibleQueueTypesOverride)
+      ? eligibleQueueTypesOverride.slice().sort().join(',')
+      : 'default';
+    const cacheKey = `${userId}-${userPos}-${compType}-${overrideKey}`;
     const now = Date.now();
     
     // Check if we have cached data that's less than 12 seconds old (longer cache)
@@ -1108,7 +720,9 @@ const AvailableComputers = () => {
       // Get all queue entries that could compete with this user
       let eligibleQueueTypes = [];
       
-      if (userQueueEntry.computer_type === 'any') {
+      if (Array.isArray(eligibleQueueTypesOverride) && eligibleQueueTypesOverride.length > 0) {
+        eligibleQueueTypes = eligibleQueueTypesOverride;
+      } else if (userQueueEntry.computer_type === 'any') {
         eligibleQueueTypes = ['any', 'bottom', 'top']; // Any queue competes with everyone
       } else if (userQueueEntry.computer_type === 'bottom') {
         eligibleQueueTypes = ['any', 'bottom']; // Bottom competes with any + bottom
@@ -1361,17 +975,17 @@ const AvailableComputers = () => {
             {/* Queue Breakdown by Computer Type */}
             <div className={styles.queueBreakdown}>
               <div className={styles.queueType}>
-                <span className={styles.queueIcon}>🎮</span>
+                <FaDesktop className={styles.queueIcon} />
                 <span className={styles.queueLabel}>Any Computer</span>
                 <span className={styles.queueCount}>{queueStatus.any_queue_count || 0}</span>
               </div>
               <div className={styles.queueType}>
-                <span className={styles.queueIcon}>⬇️</span>
+                <FaArrowDown className={styles.queueIcon} />
                 <span className={styles.queueLabel}>Bottom Only</span>
                 <span className={styles.queueCount}>{queueStatus.bottom_queue_count || 0}</span>
               </div>
               <div className={styles.queueType}>
-                <span className={styles.queueIcon}>⬆️</span>
+                <FaArrowUp className={styles.queueIcon} />
                 <span className={styles.queueLabel}>Top Only</span>
                 <span className={styles.queueCount}>{queueStatus.top_queue_count || 0}</span>
               </div>
@@ -1428,6 +1042,10 @@ const AvailableComputers = () => {
               isLoading={!isComputerLoaded(computer.id)}
               userAlreadyLoggedIn={userAlreadyLoggedIn}
               userCurrentComputer={userCurrentComputer}
+              queueStatus={queueStatus}
+              userInQueue={userInQueue}
+              userIsNextForTop={userIsNextForTop}
+              userIsNextForBottom={userIsNextForBottom}
             />
           ))}
         </div>
@@ -1441,6 +1059,10 @@ const AvailableComputers = () => {
           userAlreadyLoggedIn={userAlreadyLoggedIn}
           userCurrentComputer={userCurrentComputer}
           isComputerLoaded={isComputerLoaded}
+          queueStatus={queueStatus}
+          userInQueue={userInQueue}
+          userIsNextForTop={userIsNextForTop}
+          userIsNextForBottom={userIsNextForBottom}
         />
         
         {/* User confirmation login modal */}

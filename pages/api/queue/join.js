@@ -121,8 +121,8 @@ async function handleJoinQueue(req, res, user) {
     // If user opted out of WhatsApp notifications, keep phone for staff display,
     // but mark the queue entry so the notification service can skip WhatsApp.
     const phoneNumber = userData.phone || null;
-    const noWhatsappMarker = '[no_whatsapp]';
-    const notes = notifyWhatsapp ? null : noWhatsappMarker;
+    const noWhatsappNote = 'User cancelled WhatsApp notifications';
+    const notes = notifyWhatsapp ? null : noWhatsappNote;
 
     // Check if user is already in queue
     const { data: existingEntry } = await supabase

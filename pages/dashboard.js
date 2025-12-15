@@ -155,15 +155,6 @@ const Dashboard = React.memo(() => {
 
         <section className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
-                          <h1 className={styles.welcomeText}>
-              Hey <span className={styles.username}>
-                {user?.username ? (
-                  user.username.charAt(0).toUpperCase() + user.username.slice(1)
-                ) : 'User'}
-              </span>!
-              {user?.isAdmin && <span className={styles.adminIndicator}>Admin</span>}
-              {user?.isStaff && !user?.isAdmin && <span className={styles.adminIndicator}>Staff</span>}
-            </h1>
             <DashboardUserSearch />
           </div>
         </section>
