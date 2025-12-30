@@ -14,7 +14,7 @@ export const faqData = [
     "name": "What PC gaming equipment do you have?",
     "acceptedAnswer": {
       "@type": "Answer",
-      "text": `We offer high-end gaming PCs equipped with ${businessInfo.pcGaming?.specifications?.cpu || 'AMD Ryzen 7 7700'} processors, ${businessInfo.pcGaming?.specifications?.gpu || 'NVIDIA GeForce RTX 3070 (8GB VRAM)'} graphics cards, ${businessInfo.pcGaming?.specifications?.ram || '16GB DDR5 RAM'}, NVMe SSD storage, and ${businessInfo.pcGaming?.specifications?.monitors || '180Hz gaming monitors'}. All PCs include mechanical gaming keyboards and high-DPI gaming mice for the best PC gaming experience.`
+      "text": `We offer high-end gaming PCs equipped with ${businessInfo.pcGaming?.specifications?.cpu || 'AMD Ryzen 7 7700'} processors, ${businessInfo.pcGaming?.specifications?.gpu || 'NVIDIA GeForce RTX 3070 (8GB VRAM)'} graphics cards, ${businessInfo.pcGaming?.specifications?.ram || '16GB DDR5 RAM'}, NVMe SSD storage, and ${businessInfo.pcGaming?.specifications?.monitors || '240Hz gaming monitors'}. All PCs include mechanical gaming keyboards and high-DPI gaming mice for the best PC gaming experience.`
     }
   },
   {
@@ -46,7 +46,7 @@ export const faqData = [
     "name": "What FPS can your gaming PCs achieve?",
     "acceptedAnswer": {
       "@type": "Answer",
-      "text": `Our RTX 3070 gaming PCs can achieve ${businessInfo.pcGaming?.performance?.maxFPS || '180+ FPS'} at 1080p resolution on high settings in most popular PC games. With our 180Hz gaming monitors, you'll experience smooth, competitive gaming with full refresh rate support. Ray tracing and DLSS 2.0 are also supported for compatible games.`
+      "text": `Our RTX 3070 gaming PCs can achieve ${businessInfo.pcGaming?.performance?.maxFPS || '240+ FPS'} at 1080p resolution on high settings in most popular PC games. With our 240Hz gaming monitors, you'll experience smooth, competitive gaming with full refresh rate support. Ray tracing and DLSS 2.0 are also supported for compatible games.`
     }
   },
   {

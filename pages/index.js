@@ -9,6 +9,7 @@ import LoginModal from '../components/LoginModal';
 import ProtectedPageWrapper from '../components/ProtectedPageWrapper';
 // DynamicMeta removed - metadata now handled in _document.js
 import HeroSection from '../components/HeroSection';
+import SEOContentSection from '../components/SEOContentSection';
 
 // DarkModeMap removed for performance - replaced with static location card
 
@@ -194,14 +195,17 @@ const Home = () => {
   return (
     <>
       <Head>
-        <title>PC Gaming Center Tangier | RTX 3070 Gaming PCs - PC Only Gaming Hub</title>
-        <meta name="description" content="Premium PC-only gaming center in Tangier with RTX 3070 gaming PCs, Ryzen 7 7700, 180Hz monitors, and 200Mbps internet. Specialized PC gaming café for competitive gaming. PC gaming near me in Tangier, Morocco." />
+        <title>PC Gaming Center Tangier | RTX 3070 Gaming PCs Morocco</title>
+        <meta name="description" content="Premium PC gaming center in Tangier with RTX 3070 PCs, Ryzen 7 7700, 240Hz monitors & 200Mbps internet. Competitive gaming café in Morocco." />
       </Head>
 
       <ProtectedPageWrapper>
         <HeroSection 
           router={router}
         />
+
+        {/* SEO Content Section with H2-H6 Header Tags */}
+        <SEOContentSection />
 
         {/* Modals */}
         <LoginModal 

@@ -9,7 +9,7 @@ Since you're a **PC-only gaming center**, here are the most critical SEO element
 - **GPU**: RTX 3070 (already mentioned - excellent!)
 - **CPU**: Ryzen 7 7700 (add this prominently)
 - **RAM**: 16GB DDR5 (mention for competitive advantage)
-- **Monitor**: 180Hz (emphasize this - rare in gaming centers)
+- **Monitor**: 240Hz (emphasize this - rare in gaming centers)
 - **Storage**: NVMe SSD (fast load times)
 - **Peripherals**: Mechanical keyboards, gaming mice
 
@@ -44,7 +44,7 @@ PC gamers want to know if their favorite games work:
 
 ### 4. **Performance Metrics** ⭐⭐⭐⭐
 PC gamers care about performance numbers:
-- **FPS**: "180+ FPS at 1080p" (match your 180Hz monitor)
+- **FPS**: "240+ FPS at 1080p" (match your 240Hz monitor)
 - **Resolution**: "1080p Ultra / 1440p High settings"
 - **Features**: Ray Tracing, DLSS support
 - **Ping**: "Ultra-low latency" for competitive gaming
@@ -135,7 +135,7 @@ Already implemented well:
 - RTX 3070 gaming PC rental Tangier
 - PC gaming cafe Tangier
 - High-end gaming PC Tangier
-- 180Hz gaming monitor Tangier
+- 240Hz gaming monitor Tangier
 
 ### Tier 2 (High Priority):
 - Ryzen 7 gaming PC Tangier
@@ -170,7 +170,7 @@ Already implemented well:
 5. **Create blog posts** about:
    - "Best PC games to play at our gaming center"
    - "Why RTX 3070 is perfect for competitive gaming"
-   - "180Hz vs 60Hz: Why refresh rate matters for PC gaming"
+   - "240Hz vs 60Hz: Why refresh rate matters for PC gaming"
 
 ## 📈 Expected SEO Impact
 

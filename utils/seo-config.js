@@ -46,7 +46,7 @@ export const businessInfo = {
     },
     {
       "@type": "LocationFeatureSpecification",
-      "name": "180Hz Gaming Monitors",
+      "name": "240Hz Gaming Monitors",
       "value": true
     }
   ],
@@ -58,7 +58,7 @@ export const businessInfo = {
       gpu: "NVIDIA GeForce RTX 3070 (8GB VRAM)",
       ram: "16GB DDR5 RAM",
       storage: "NVMe SSD",
-      monitors: "180Hz Gaming Monitors",
+      monitors: "240Hz Gaming Monitors",
       resolution: "1080p Ultra / 1440p High settings",
       keyboard: "Mechanical Gaming Keyboards",
       mouse: "High-DPI Gaming Mice",
@@ -83,7 +83,7 @@ export const businessInfo = {
     ],
     // Performance Capabilities
     performance: {
-      maxFPS: "180+ FPS at 1080p",
+      maxFPS: "240+ FPS at 1080p",
       rayTracing: "Supported",
       dlss: "DLSS 2.0 Supported",
       vrReady: false,
@@ -96,7 +96,7 @@ export const businessInfo = {
       "high-end gaming PC Tangier",
       "competitive PC gaming Morocco",
       "Ryzen 7 gaming PC",
-      "180Hz gaming monitor Tangier",
+      "240Hz gaming monitor Tangier",
       "PC gaming cafe Tangier",
       "esports PC gaming center",
       "professional gaming PC rental",

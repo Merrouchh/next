@@ -3,15 +3,14 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/AdminPageWrapper.module.css';
 import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { FaUsers, FaDesktop, FaCalendarAlt, FaTachometerAlt, FaChevronLeft, FaChartLine, FaBell, FaClock, FaTrophy } from 'react-icons/fa';
+import AdminTopNav from './AdminTopNav';
 
 /**
  * Wrapper component for admin-only pages
  * Provides consistent layout and navigation for admin pages
  * Checks if the user is an admin and redirects to dashboard if not
  */
-export default function AdminPageWrapper({ children, title }) {
+export default function AdminPageWrapper({ children }) {
   const { user, isLoggedIn, loading, initialized } = useAuth();
   const router = useRouter();
   const currentPath = router.pathname;
@@ -124,77 +123,11 @@ export default function AdminPageWrapper({ children, title }) {
     return <div className={styles.adminLoading}>Redirecting to queue management...</div>;
   }
 
-  // Admin menu items - filter based on user role
-  const baseAdminMenu = [
-    { path: '/admin', label: 'Dashboard', icon: <FaTachometerAlt />, adminOnly: false },
-    { path: '/admin/users', label: 'Users', icon: <FaUsers />, adminOnly: true },
-    { path: '/admin/events', label: 'Events', icon: <FaCalendarAlt />, adminOnly: true },
-    { path: '/admin/events/brackets', label: 'Brackets', icon: <FaTrophy />, adminOnly: true },
-    { path: '/admin/sessions', label: 'Sessions', icon: <FaDesktop />, adminOnly: true },
-    { path: '/admin/queue', label: 'Queue', icon: <FaUsers />, adminOnly: false },
-    { path: '/admin/stats', label: 'Analytics', icon: <FaChartLine />, adminOnly: true },
-    { path: '/admin/tasks', label: 'Tasks', icon: <FaClock />, adminOnly: true },
-    { path: '/admin/notifications', label: 'Notifications', icon: <FaBell />, adminOnly: true },
-  ];
-
-  // Filter menu items based on user role
-  const adminMenu = baseAdminMenu.filter(item => {
-    if (user?.isAdmin) return true; // Admins see everything
-    if (user?.isStaff) return !item.adminOnly; // Staff only see non-admin-only items
-    return false;
-  });
-
-  // Check if path is active (exact match or active section)
-  const isActivePath = (path) => {
-    if (path === '/admin') {
-      return currentPath === '/admin';
-    }
-    return currentPath.startsWith(path);
-  };
-
   return (
     <div className={styles.adminWrapper}>
-      <div className={styles.adminSidebar}>
-        <div className={styles.adminLogo}>
-          <h2 className={styles.adminLogoText}>Admin Panel</h2>
-          <div className={styles.adminLogoGlow}></div>
-        </div>
-        
-        <nav className={styles.adminNav}>
-          <ul>
-            {adminMenu.map((item) => (
-              <li key={item.path}>
-                <Link 
-                  href={item.path}
-                  className={`${styles.adminNavLink} ${isActivePath(item.path) ? styles.active : ''}`}
-                >
-                  <span className={styles.adminNavIcon}>{item.icon}</span>
-                  <span className={styles.adminNavLabel}>{item.label}</span>
-                  {isActivePath(item.path) && <span className={styles.activeIndicator}></span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        
-        <div className={styles.adminBackLink}>
-          <Link href="/dashboard" className={styles.backToDashboard}>
-            <FaChevronLeft /> Back to Dashboard
-          </Link>
-        </div>
-      </div>
-      
+      <AdminTopNav currentPath={currentPath} />
+
       <div className={styles.adminContent}>
-        <header className={styles.adminHeader}>
-          <h1 className={styles.adminTitle}>{title || 'Admin Panel'}</h1>
-          <div className={styles.adminUser}>
-            {user?.username || user?.email} 
-            <span className={styles.adminBadge}>
-              {user?.isAdmin ? 'Admin' : 'Staff'}
-            </span>
-          </div>
-        </header>
-        
         <main className={styles.adminMain}>
           {children}
         </main>

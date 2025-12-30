@@ -516,7 +516,7 @@ const AvailableComputers = () => {
           // Compute breakdown for the clicked computer type (not just the user queue type)
           const eligibleTypesForComputer = isTopComputer ? ['any', 'top'] : ['any', 'bottom'];
           const breakdown = await getQueueBreakdownBeforeUser(userInQueue, eligibleTypesForComputer);
-
+          
           let message = `You are #${breakdown.position} for ${computerTypeLabel} computers.`;
           
           // Add breakdown of who's ahead
@@ -538,13 +538,13 @@ const AvailableComputers = () => {
 
         if (hasWaiters) {
           // Respect queue: they must join first
-          if (queueStatus.allow_online_joining) {
-            openQueueModal();
-            return;
-          }
-
-          alert("Online joining is currently disabled. Please visit the gaming center to join the physical queue.");
+        if (queueStatus.allow_online_joining) {
+          openQueueModal();
           return;
+        }
+
+        alert("Online joining is currently disabled. Please visit the gaming center to join the physical queue.");
+        return;
         }
         // No one is waiting for this computer type -> allow direct login
       }

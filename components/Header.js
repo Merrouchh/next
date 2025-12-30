@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/router';
-import { AiOutlineCalendar, AiOutlineVideoCamera, AiOutlineDashboard, AiOutlineTrophy, AiOutlineShop } from 'react-icons/ai';
+import { AiOutlineCalendar, AiOutlineVideoCamera, AiOutlineTrophy, AiOutlineShop } from 'react-icons/ai';
 import { FaUsers } from 'react-icons/fa';
 import styles from '../styles/DesktopHeader.module.css';
 import { useModal } from '../contexts/ModalContext';
@@ -74,16 +74,7 @@ const Header = () => {
           {user ? (
             <>
               <div className={styles.navLeft}>
-                {user?.isAdmin && (
-                  <button 
-                    className={styles.adminButton}
-                    onClick={() => router.push('/admin')}
-                  >
-                    <AiOutlineDashboard className={styles.buttonIcon} />
-                    Admin
-                  </button>
-                )}
-                {user?.isStaff && (
+                {user?.isStaff && !user?.isAdmin && (
                   <button 
                     className={styles.adminButton}
                     onClick={() => router.push('/admin/queue')}
@@ -92,9 +83,18 @@ const Header = () => {
                     Queue
                   </button>
                 )}
-                <span className={styles.usernameBox}>
-                  {user?.username}
-                </span>
+                {user?.isAdmin ? (
+                  <button 
+                    className={styles.usernameBox}
+                    onClick={() => router.push('/admin')}
+                  >
+                    {user?.username}
+                  </button>
+                ) : (
+                  <span className={styles.usernameBox}>
+                    {user?.username}
+                  </span>
+                )}
               </div>
               <button className={styles.logoutButton} onClick={handleLogout}>
                 Logout

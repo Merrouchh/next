@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { FaUsers, FaCalendarAlt, FaDesktop, FaClock, FaChartBar, FaBell, FaTrophy } from 'react-icons/fa';
+import { FaUsers, FaCalendarAlt, FaDesktop, FaTrophy } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminPageWrapper from '../../components/AdminPageWrapper';
 import styles from '../../styles/AdminDashboard.module.css';
-import sharedStyles from '../../styles/Shared.module.css';
 import { fetchActiveUserSessions } from '../../utils/api';
 import { withServerSideAdmin } from '../../utils/supabase/server-admin';
 
@@ -169,62 +168,14 @@ export default function AdminDashboard() {
   };
 
   // Admin features with icons and descriptions
+  // Only include features that are NOT already in the admin navigation
   const adminFeatures = [
-    {
-      title: 'User Management',
-      icon: <FaUsers className={styles.featureIcon} />,
-      description: 'Manage user accounts, view profiles, and adjust permissions.',
-      action: () => router.push('/admin/users'),
-      color: '#4285F4' // Blue
-    },
-    {
-      title: 'Event Management',
-      icon: <FaCalendarAlt className={styles.featureIcon} />,
-      description: 'Create, edit, and manage gaming events and tournaments.',
-      action: () => router.push('/admin/events'),
-      color: '#EA4335' // Red
-    },
-    {
-      title: 'Session Management',
-      icon: <FaDesktop className={styles.featureIcon} />,
-      description: 'Monitor active gaming sessions and computer usage.',
-      action: () => router.push('/admin/sessions'),
-      color: '#34A853' // Green
-    },
-    {
-      title: 'Queue Management',
-      icon: <FaUsers className={styles.featureIcon} />,
-      description: 'Manage customer queue and waiting lists for computers.',
-      action: () => router.push('/admin/queue'),
-      color: '#6C757D' // Gray
-    },
     {
       title: 'Achievement Reviews',
       icon: <FaTrophy className={styles.featureIcon} />,
       description: 'Verify user achievement claims and award points.',
       action: () => router.push('/admin/achievements'),
       color: '#FFD700' // Gold
-    },
-    {
-      title: 'Statistics',
-      icon: <FaChartBar className={styles.featureIcon} />,
-      description: 'View detailed analytics and reports about your gaming center.',
-      action: () => router.push('/admin/stats'),
-      color: '#FBBC05' // Yellow
-    },
-    {
-      title: 'Scheduled Tasks',
-      icon: <FaClock className={styles.featureIcon} />,
-      description: 'Set up automated tasks and scheduled events.',
-      action: () => router.push('/admin/tasks'),
-      color: '#9C27B0' // Purple
-    },
-    {
-      title: 'Notifications',
-      icon: <FaBell className={styles.featureIcon} />,
-      description: 'Send announcements and notifications to users.',
-      action: () => router.push('/admin/notifications'),
-      color: '#FF9800' // Orange
     }
   ];
 
@@ -306,64 +257,30 @@ export default function AdminDashboard() {
           </div>
         </section>
         
-        <section className={styles.featuresSection}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionTitleText}>Admin Features</span>
-            <span className={styles.sectionTitleLine}></span>
-          </h2>
-          
-          <div className={styles.featuresGrid}>
-            {adminFeatures.map((feature, index) => (
-              <div key={index} className={styles.featureCard} onClick={feature.action}>
-                <div className={styles.featureIconContainer} style={{ backgroundColor: `${feature.color}20` }}>
-                  <span style={{ color: feature.color }}>{feature.icon}</span>
+        {adminFeatures.length > 0 && (
+          <section className={styles.featuresSection}>
+            <h2 className={styles.sectionTitle}>
+              <span className={styles.sectionTitleText}>Admin Features</span>
+              <span className={styles.sectionTitleLine}></span>
+            </h2>
+            
+            <div className={styles.featuresGrid}>
+              {adminFeatures.map((feature, index) => (
+                <div key={index} className={styles.featureCard} onClick={feature.action}>
+                  <div className={styles.featureIconContainer} style={{ backgroundColor: `${feature.color}20` }}>
+                    <span style={{ color: feature.color }}>{feature.icon}</span>
+                  </div>
+                  <h3 className={styles.featureTitle}>{feature.title}</h3>
+                  <p className={styles.featureDescription}>{feature.description}</p>
+                  <button className={styles.featureButton}>
+                    Manage
+                  </button>
                 </div>
-                <h3 className={styles.featureTitle}>{feature.title}</h3>
-                <p className={styles.featureDescription}>{feature.description}</p>
-                <button className={styles.featureButton}>
-                  Manage
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
         
-        <section className={styles.quickActionsSection}>
-          <h2 className={styles.sectionTitle}>
-            <span className={styles.sectionTitleText}>Quick Actions</span>
-            <span className={styles.sectionTitleLine}></span>
-          </h2>
-          
-          <div className={styles.quickActionsGrid}>
-            <button 
-              className={`${sharedStyles.primaryButton} ${styles.quickActionButton}`}
-              onClick={() => router.push('/admin/events?action=create')}
-            >
-              Create Event
-            </button>
-            
-            <button 
-              className={`${sharedStyles.primaryButton} ${styles.quickActionButton}`}
-              onClick={() => router.push('/admin/users?action=create')}
-            >
-              Add User
-            </button>
-            
-            <button 
-              className={`${sharedStyles.primaryButton} ${styles.quickActionButton}`}
-              onClick={() => router.push('/dashboard')}
-            >
-              View Dashboard
-            </button>
-            
-            <button 
-              className={`${sharedStyles.primaryButton} ${styles.quickActionButton}`}
-              onClick={() => router.push('/admin/reports')}
-            >
-              Generate Reports
-            </button>
-          </div>
-        </section>
       </div>
     </AdminPageWrapper>
   );

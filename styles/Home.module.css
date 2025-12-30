@@ -2910,3 +2910,80 @@
     max-width: 100%;
   }
 }
+
+/* SEO Content Section - Hidden visually but accessible to search engines */
+.seoContentSection {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  max-width: 1200px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.seoContentSection h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem 0;
+  color: var(--accent-primary);
+}
+
+.seoContentSection h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem 0;
+  color: var(--text-primary);
+}
+
+.seoContentSection h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.seoContentSection h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.seoContentSection h6 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem 0;
+  color: var(--text-primary);
+}
+
+.seoContentSection p {
+  margin: 0.5rem 0 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* Responsive styles for SEO section */
+@media (max-width: 768px) {
+  .seoContentSection {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .seoContentSection h2 {
+    font-size: 1.5rem;
+  }
+  
+  .seoContentSection h3 {
+    font-size: 1.3rem;
+  }
+  
+  .seoContentSection h4 {
+    font-size: 1.1rem;
+  }
+}

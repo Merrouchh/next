@@ -7,16 +7,17 @@
   max-width: 1200px;
   margin: 0 auto;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #e6e8ec;
 }
 
 .loading {
   text-align: center;
   padding: 60px 20px;
   font-size: 1.2rem;
-  color: #666;
-  background: white;
+  color: #e6e8ec;
+  background: #0f1119;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,8 +34,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007bff;
+  border: 4px solid #1f2230;
+  border-top: 4px solid #ffd700;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -56,10 +57,10 @@
 }
 
 .detailsSection {
-  background: white;
+  background: #10131c;
   border-radius: 12px;
-  border: 2px solid #f0f0f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #1f2230;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   margin-bottom: 30px;
   overflow: hidden;
 }
@@ -68,9 +69,10 @@
   cursor: pointer;
   padding: 16px 18px;
   font-weight: 700;
-  color: #333;
+  color: #e6e8ec;
   list-style: none;
   user-select: none;
+  background: #161a29;
 }
 
 .detailsSummary::-webkit-details-marker {
@@ -80,7 +82,7 @@
 .detailsSummary::after {
   content: '▾';
   float: right;
-  color: #666;
+  color: #9aa0b5;
 }
 
 .detailsSection[open] .detailsSummary::after {
@@ -89,6 +91,7 @@
 
 .detailsBody {
   padding: 0 18px 18px 18px;
+  background: #10131c;
 }
 
 .advancedGrid {
@@ -99,8 +102,8 @@
 }
 
 .compactStats {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background: #131722;
+  border: 1px solid #1f2230;
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -112,7 +115,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #495057;
+  color: #cfd3de;
   font-size: 0.95rem;
 }
 
@@ -124,28 +127,28 @@
 
 .compactStatRow strong {
   font-size: 1.1rem;
-  color: #212529;
+  color: #ffffff;
 }
 
 .controlCard {
-  background: white;
+  background: #10131c;
   padding: 25px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   text-align: center;
-  border: 2px solid #f0f0f0;
+  border: 1px solid #1f2230;
 }
 
 .controlCard h3 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: #ffffff;
   font-size: 1.3rem;
   font-weight: 600;
 }
 
 .controlCard p {
   margin: 0 0 20px 0;
-  color: #666;
+  color: #c6cad6;
   font-size: 0.95rem;
   line-height: 1.4;
 }
@@ -255,10 +258,11 @@
 .status {
   margin-top: 15px;
   padding: 8px 12px;
-  background: #f8f9fa;
+  background: #131722;
   border-radius: 6px;
   font-size: 0.9rem;
-  color: #495057;
+  color: #cfd3de;
+  border: 1px solid #1f2230;
 }
 
 /* =========================================================================== */
@@ -273,31 +277,31 @@
 }
 
 .statCard {
-  background: white;
+  background: #10131c;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   gap: 15px;
-  border: 2px solid #f0f0f0;
+  border: 1px solid #1f2230;
 }
 
 .statCard svg {
   font-size: 2rem;
-  color: #007bff;
+  color: #ffd700;
 }
 
 .statNumber {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #333;
+  color: #ffffff;
   margin: 0;
 }
 
 .statLabel {
   font-size: 0.9rem;
-  color: #666;
+  color: #c6cad6;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -308,7 +312,7 @@
 /* =========================================================================== */
 
 .refreshIndicator {
-  color: #007bff;
+  color: #ffd700;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
@@ -331,6 +335,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  color: #e6e8ec;
 }
 
 /* =========================================================================== */
@@ -338,20 +343,32 @@
 /* =========================================================================== */
 
 .queuePerson.removing {
-  opacity: 0.6;
-  background: #ffe6e6;
-  border-color: #ffcccc;
+  opacity: 0.8;
+  background: #2a1a1f;
+  border-color: #5a1f2c;
   transform: scale(0.98);
   transition: all 0.3s ease;
 }
 
 .queuePerson.moving {
-  background: #e6f3ff;
-  border-color: #cce6ff;
+  background: #1b2737;
+  border-color: #23405c;
   transform: scale(1.02);
   transition: all 0.3s ease;
 }
 
+.operationStatus {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #ffd700;
+  color: #0f1119;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+  animation: pulse 1.5s ease-in-out infinite;
+}
 .operationStatus {
   margin-top: 8px;
   padding: 4px 8px;
@@ -408,11 +425,12 @@
 /* =========================================================================== */
 
 .addSection {
-  background: white;
+  background: #12141f;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   margin-bottom: 30px;
   overflow: hidden;
+  border: 1px solid #22263a;
 }
 
 .showAddButton {
@@ -450,18 +468,18 @@
   align-items: flex-start;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #22263a;
 }
 
 .addFormHeader h3 {
   margin: 0;
-  color: #333;
+  color: #ffffff;
   font-size: 1.3rem;
 }
 
 .addFormHeader p {
   margin: 5px 0 0 0;
-  color: #666;
+  color: #c6cad6;
   font-size: 0.9rem;
 }
 
@@ -494,7 +512,7 @@
 .formGroup label {
   font-weight: 500;
   margin-bottom: 5px;
-  color: #333;
+  color: #e6e8ec;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -504,17 +522,19 @@
 .formGroup input,
 .formGroup select {
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #2a2f45;
   border-radius: 6px;
   font-size: 0.95rem;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  background: #0f1119;
+  color: #e6e8ec;
 }
 
 .formGroup input:focus,
 .formGroup select:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: #ffd700;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
 }
 
 .searchContainer {
@@ -526,10 +546,10 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: #ffffff;
-  border: 2px solid #007bff;
+  background: #0f1119;
+  border: 2px solid #ffd700;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   max-height: 250px;
   overflow-y: auto;
   z-index: 1000;
@@ -539,14 +559,14 @@
 .searchResult {
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #1f2436;
   transition: all 0.2s ease;
-  color: #333333;
+  color: #e6e8ec;
 }
 
 .searchResult:hover {
-  background-color: #f8f9fa;
-  border-left: 4px solid #007bff;
+  background-color: #161a29;
+  border-left: 4px solid #ffd700;
 }
 
 .searchResult:last-child {
@@ -561,55 +581,57 @@
 }
 
 .resultMain strong {
-  color: #333333;
+  color: #ffffff;
   font-weight: 600;
   font-size: 1rem;
 }
 
 .resultPhone {
   font-size: 0.8rem;
-  color: #007bff;
-  background: #e7f3ff;
+  color: #ffd700;
+  background: #1f2436;
   padding: 4px 8px;
   border-radius: 12px;
   font-weight: 500;
-  border: 1px solid #b8daff;
+  border: 1px solid #303854;
 }
 
 .resultEmail {
   font-size: 0.85rem;
-  color: #666666;
+  color: #9aa0b5;
   font-style: italic;
 }
 
 .userFound {
   margin-top: 5px;
   padding: 8px 10px;
-  background: #d4edda;
-  color: #155724;
+  background: #1f2a1f;
+  color: #b6e3b6;
   border-radius: 4px;
   font-size: 0.85rem;
-  border: 1px solid #c3e6cb;
+  border: 1px solid #2e4632;
 }
 
 .addSubmitButton {
-  background: #007bff;
-  color: white;
+  background: linear-gradient(135deg, #ffd700, #ffae00);
+  color: #0f1119;
   border: none;
   padding: 12px 25px;
   border-radius: 8px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .addSubmitButton:hover:not(:disabled) {
-  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.25);
 }
 
 .addSubmitButton:disabled {
-  background: #6c757d;
+  background: #4a4f60;
+  color: #d0d3dd;
   cursor: not-allowed;
 }
 
@@ -618,24 +640,28 @@
 /* =========================================================================== */
 
 .queueSection {
-  background: white;
+  background: #10131c;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   padding: 25px;
   margin-bottom: 30px;
+  border: 1px solid #1f2230;
 }
 
 .queueSection h3 {
   margin: 0 0 20px 0;
-  color: #333;
+  color: #ffffff;
   font-size: 1.3rem;
 }
 
 .emptyQueue {
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: #cfd3de;
   font-style: italic;
+  background: #0f1119;
+  border-radius: 10px;
+  border: 1px dashed #1f2230;
 }
 
 .queueList {
@@ -648,30 +674,31 @@
   display: flex;
   align-items: center;
   padding: 15px;
-  background: #f8f9fa;
+  background: #131722;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #1f2230;
   transition: all 0.2s ease;
 }
 
 .queuePerson:hover {
-  background: #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: #161a29;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
 }
 
 .personPosition {
   flex-shrink: 0;
   width: 50px;
   height: 50px;
-  background: #007bff;
-  color: white;
+  background: linear-gradient(135deg, #ffd700, #ffae00);
+  color: #0f1119;
   border-radius: 50%;
   display: flex;
-  align-items: center;
+  alignments: center;
   justify-content: center;
   font-weight: bold;
   font-size: 1.2rem;
   margin-right: 15px;
+  box-shadow: 0 4px 12px rgba(255, 174, 0, 0.25);
 }
 
 .personDetails {
@@ -686,7 +713,7 @@
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 1.1rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .personType {
@@ -696,18 +723,19 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid #22263a;
 }
 
 .personType.physical {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: #1f2a1f;
+  color: #b6e3b6;
+  border: 1px solid #2e4632;
 }
 
 .personType.online {
-  background: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
+  background: #1c2730;
+  color: #9fd5e0;
+  border: 1px solid #2b3c4d;
 }
 
 .personInfo {
@@ -715,7 +743,7 @@
   flex-wrap: wrap;
   gap: 15px;
   font-size: 0.9rem;
-  color: #666;
+  color: #c6cad6;
   margin-bottom: 5px;
 }
 
@@ -727,20 +755,20 @@
 
 .personPreferenceSelect {
   appearance: none;
-  background: white;
-  border: 1px solid #ced4da;
+  background: #0f1119;
+  border: 1px solid #2a2f45;
   border-radius: 6px;
   padding: 6px 28px 6px 10px;
   font-size: 0.85rem;
-  color: #212529;
+  color: #e6e8ec;
   cursor: pointer;
   line-height: 1;
 }
 
 .personPreferenceSelect:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  border-color: #ffd700;
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.15);
 }
 
 .personPreferenceSelect:disabled {
@@ -758,15 +786,16 @@
   align-items: center;
   gap: 6px;
   font-size: 0.8rem;
-  color: #495057;
+  color: #c6cad6;
   margin-top: 4px;
   padding: 4px 8px;
-  background: #f8f9fa;
+  background: #0f1119;
   border-radius: 4px;
   max-width: fit-content;
   word-wrap: break-word;
   overflow-wrap: break-word;
   line-height: 1.3;
+  border: 1px solid #22263a;
 }
 
 .personNotes span {

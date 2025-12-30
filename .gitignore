@@ -28,6 +28,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .cursor/debug.log
+logs/*.log
+logs/*.log.*
+logs/simple-queue-monitor-info.log
+logs/simple-queue-monitor-errors.log
+logs/queue-monitor-info.log
+logs/queue-monitor-errors.log
+logs/queue-monitor-pm2-*.log
 
 # env files (can opt-in for committing if needed)
 .env*.local

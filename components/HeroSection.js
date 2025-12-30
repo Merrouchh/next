@@ -16,7 +16,7 @@ const HERO_SLIDES = [
     id: 1,
     image: '/top.jpg',
     title: 'Merrouch Gaming PC Center - Premium PC Gaming Experience in Tangier',
-    subtitle: 'PC-Only Gaming Center | RTX 3070 Gaming PCs | Ryzen 7 7700 | 180Hz Monitors | Best PC Gaming Hub in Tangier, Morocco',
+    subtitle: 'PC-Only Gaming Center | RTX 3070 Gaming PCs | Ryzen 7 7700 | 240Hz Monitors | Best PC Gaming Hub in Tangier, Morocco',
     stats: [
       { icon: FaGamepad, value: '14', label: 'PC Gaming Stations' },
       { icon: FaBolt, value: '200', label: 'Mbps Speed' },
