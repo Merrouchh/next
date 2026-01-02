@@ -79,8 +79,6 @@ export default async function handler(req, res) {
     }
 
     // Insert read record (ignore if already exists due to UNIQUE constraint)
-    console.log('Inserting read record:', { notification_id, user_id: user.id });
-    
     const { error: insertError } = await supabase
       .from('notification_reads')
       .insert({
@@ -88,16 +86,25 @@ export default async function handler(req, res) {
         user_id: user.id
       });
 
-    console.log('Insert result:', { insertError });
-
-    // If it's a duplicate key error, that's fine - user already marked it as read
-    if (insertError && insertError.code !== '23505') {
-      console.error('Error marking notification as read:', insertError);
-      return res.status(500).json({
-        success: false,
-        error: 'database_error',
-        message: 'Failed to mark notification as read'
-      });
+    // If it's a duplicate key error (23505), that's fine - user already marked it as read
+    // This can happen if user clicks notification multiple times or marks it manually
+    if (insertError) {
+      if (insertError.code === '23505') {
+        // Duplicate key - notification already marked as read, this is expected
+        // Silently return success since the notification is already marked as read
+        return res.status(200).json({
+          success: true,
+          message: 'Notification already marked as read'
+        });
+      } else {
+        // Some other database error - log and return error
+        console.error('Error marking notification as read:', insertError);
+        return res.status(500).json({
+          success: false,
+          error: 'database_error',
+          message: 'Failed to mark notification as read'
+        });
+      }
     }
 
     return res.status(200).json({

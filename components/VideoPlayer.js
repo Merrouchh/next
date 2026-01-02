@@ -56,6 +56,34 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
 
     const initializePlayer = async () => {
       try {
+        // Wait for container to have proper dimensions (important for client-side navigation)
+        const checkContainerSize = () => {
+          // Check the videoWrapper container (parent of data-vjs-player)
+          const wrapper = videoElementRef.current?.parentElement?.parentElement;
+          if (wrapper) {
+            const rect = wrapper.getBoundingClientRect();
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:62',message:'Checking container dimensions',data:{clipId:clip.id,wrapperWidth:rect.width,wrapperHeight:rect.height,hasSize:rect.width>0&&rect.height>0},sessionId:'debug-session',runId:'run1',hypothesisId:'I'}),timestamp:Date.now()}).catch(()=>{});
+            // #endregion
+            return rect.width > 0 && rect.height > 0;
+          }
+          return false;
+        };
+
+        // If container doesn't have size yet, wait for layout (client-side navigation case)
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (!checkContainerSize() && attempts < maxAttempts) {
+          // Wait for next animation frame to ensure layout is complete
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.warn(`Container still has no dimensions after ${maxAttempts} attempts, proceeding anyway`);
+        }
+
         // Load video scripts conditionally to prevent critical request chain
         await loadVideoScripts();
 
@@ -80,6 +108,16 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         // Update player ID when clip changes - use clip ID or timestamp for uniqueness
         playerIdRef.current = `player_${clip.id || `temp_${Date.now()}`}`;
 
+        // Generate thumbnail URL with fallback to cloudflare_uid if thumbnail_path is missing
+        let thumbnailUrl = clip.thumbnail_path || clip.thumbnail_url || '';
+        if (!thumbnailUrl && clip.cloudflare_uid) {
+          thumbnailUrl = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
+        }
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:96',message:'VideoPlayer thumbnail URL',data:{clipId:clip.id,thumbnail_path:clip.thumbnail_path,thumbnail_url:clip.thumbnail_url,cloudflare_uid:clip.cloudflare_uid,generatedThumbnailUrl:thumbnailUrl},sessionId:'debug-session',runId:'run1',hypothesisId:'G'}),timestamp:Date.now()}).catch(()=>{});
+        // #endregion
+
         // Initialize Video.js with minimal loading
         console.log('Initializing Video.js player for clip:', clip.id);
         const player = videojs(videoElementRef.current, {
@@ -92,7 +130,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           aspectRatio: '16:9', // Maintain aspect ratio
           playbackRates: [0.5, 1, 1.5, 2],
           bigPlayButton: false, // Using our custom play button
-          poster: clip.thumbnail_path || '', // Use thumbnail as poster
+          poster: thumbnailUrl, // Use generated thumbnail URL
           userActions: {
             hotkeys: true, // Enable keyboard controls
             doubleClick: true // Enable double-click to fullscreen
@@ -131,6 +169,11 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
             playerEl.style.maxWidth = '100%';
             playerEl.style.maxHeight = '100%';
             playerEl.style.overflow = 'hidden';
+            playerEl.style.width = '100%';
+            playerEl.style.height = '100%';
+            playerEl.style.position = 'absolute';
+            playerEl.style.top = '0';
+            playerEl.style.left = '0';
             
             // Ensure video element stays contained
             const videoEl = playerEl.querySelector('video');
@@ -138,6 +181,17 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
               videoEl.style.objectFit = isInClipCard ? 'cover' : 'contain';
               videoEl.style.maxWidth = '100%';
               videoEl.style.maxHeight = '100%';
+              videoEl.style.width = '100%';
+              videoEl.style.height = '100%';
+              videoEl.style.display = 'block';
+            }
+            
+            // Ensure vjs-tech element is visible
+            const techEl = playerEl.querySelector('.vjs-tech');
+            if (techEl) {
+              techEl.style.width = '100%';
+              techEl.style.height = '100%';
+              techEl.style.display = 'block';
             }
           }
         };
@@ -147,6 +201,9 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         if (playerEl) {
           playerEl.classList.add('vjs-theme-merrouch');
         }
+        
+        // Apply containment immediately
+        containVideo();
 
         // Set video source with multiple types for better compatibility
         const setVideoSource = () => {
@@ -154,11 +211,17 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           const fileExtension = clip.mp4link.split('.').pop().toLowerCase();
           const mimeType = getMimeType(fileExtension);
           
+          // Generate thumbnail URL for source
+          let sourceThumbnailUrl = clip.thumbnail_path || clip.thumbnail_url || '';
+          if (!sourceThumbnailUrl && clip.cloudflare_uid) {
+            sourceThumbnailUrl = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
+          }
+          
           // Set main source
           player.src({
             type: mimeType,
             src: clip.mp4link,
-            poster: clip.thumbnail_path || ''
+            poster: sourceThumbnailUrl
           });
         };
 
@@ -179,6 +242,11 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         // Set the source
         setVideoSource();
         
+        // Explicitly set the poster after source is set to ensure it updates
+        if (thumbnailUrl) {
+          player.poster(thumbnailUrl);
+        }
+        
         console.log('Video.js player created and source set:', {
           playerId: playerIdRef.current,
           player: !!player,
@@ -186,7 +254,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           paused: player.paused(),
           src: player.src(),
           clipId: clip.id,
-          mp4link: clip.mp4link
+          mp4link: clip.mp4link,
+          poster: player.poster()
         });
 
         // Event handlers
@@ -196,6 +265,27 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           setIsBuffering(false);
           setError(null);
           setShowCustomPlayButton(false);
+          
+          // Ensure video is visible when playing (fix for client-side navigation)
+          requestAnimationFrame(() => {
+            containVideo();
+            const playerEl = player.el();
+            if (playerEl) {
+              const videoEl = playerEl.querySelector('video');
+              if (videoEl) {
+                // #region agent log
+                const rect = videoEl.getBoundingClientRect();
+                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:215',message:'Video play event - checking dimensions',data:{clipId:clip.id,videoWidth:rect.width,videoHeight:rect.height},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
+                // #endregion
+                
+                videoEl.style.width = '100%';
+                videoEl.style.height = '100%';
+                videoEl.style.display = 'block';
+                videoEl.style.visibility = 'visible';
+                videoEl.style.opacity = '1';
+              }
+            }
+          });
           
           // Start preloading if not already initialized
           if (!videoInitialized) {
@@ -238,6 +328,68 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           
           // Show controls when ended
           player.userActive(true);
+        });
+
+        // Ensure poster is set when player is ready
+        player.on('loadedmetadata', () => {
+          if (thumbnailUrl && player.poster() !== thumbnailUrl) {
+            console.log(`Updating poster for player ${playerIdRef.current} to:`, thumbnailUrl);
+            player.poster(thumbnailUrl);
+          }
+          // Ensure video is properly sized when metadata loads
+          containVideo();
+        });
+        
+        // Ensure video is visible when player is ready
+        player.ready(() => {
+          console.log(`Player ${playerIdRef.current} is ready, ensuring visibility`);
+          // Use requestAnimationFrame to ensure DOM is ready
+          requestAnimationFrame(() => {
+            containVideo();
+            const playerElement = player.el();
+            if (playerElement) {
+              const rect = playerElement.getBoundingClientRect();
+              // #region agent log
+              fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:318',message:'Player ready - checking dimensions',data:{clipId:clip.id,playerWidth:rect.width,playerHeight:rect.height},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
+              // #endregion
+              
+              playerElement.style.width = '100%';
+              playerElement.style.height = '100%';
+              
+              // Force video element to be visible
+              const videoEl = playerElement.querySelector('video');
+              if (videoEl) {
+                const videoRect = videoEl.getBoundingClientRect();
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:329',message:'Video element dimensions',data:{clipId:clip.id,videoWidth:videoRect.width,videoHeight:videoRect.height,videoDisplay:window.getComputedStyle(videoEl).display},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
+                // #endregion
+                
+                videoEl.style.width = '100%';
+                videoEl.style.height = '100%';
+                videoEl.style.display = 'block';
+                videoEl.style.visibility = 'visible';
+                videoEl.style.opacity = '1';
+                videoEl.style.position = 'absolute';
+                videoEl.style.top = '0';
+                videoEl.style.left = '0';
+              }
+              
+              // Force tech element to be visible
+              const techEl = playerElement.querySelector('.vjs-tech');
+              if (techEl) {
+                const techRect = techEl.getBoundingClientRect();
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:345',message:'Tech element dimensions',data:{clipId:clip.id,techWidth:techRect.width,techHeight:techRect.height,techDisplay:window.getComputedStyle(techEl).display},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
+                // #endregion
+                
+                techEl.style.width = '100%';
+                techEl.style.height = '100%';
+                techEl.style.display = 'block';
+                techEl.style.visibility = 'visible';
+                techEl.style.opacity = '1';
+              }
+            }
+          });
         });
 
         // More precise timeupdate handling
@@ -357,11 +509,56 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
 
         // Apply containment styles on initialization and events
         containVideo();
+        
+        // Force resize after delays to ensure container has dimensions (client-side navigation fix)
+        // Multiple timeouts to catch different timing scenarios
+        setTimeout(() => {
+          containVideo();
+          try {
+            player.trigger('resize');
+          } catch (e) {
+            console.log('Resize trigger failed (may be normal):', e);
+          }
+        }, 100);
+        
+        setTimeout(() => {
+          containVideo();
+          try {
+            player.trigger('resize');
+          } catch (e) {
+            console.log('Second resize trigger failed (may be normal):', e);
+          }
+        }, 500);
+        
+        // Also trigger resize on window load/resize events (client-side navigation)
+        const handleResize = () => {
+          containVideo();
+          try {
+            player.trigger('resize');
+          } catch {
+            // Ignore errors
+          }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        const loadHandler = () => {
+          setTimeout(handleResize, 100);
+        };
+        if (document.readyState === 'complete') {
+          // If document already loaded, trigger resize immediately
+          setTimeout(handleResize, 100);
+        } else {
+          window.addEventListener('load', loadHandler);
+        }
+        
         player.on('loadedmetadata', containVideo);
         player.on('resize', containVideo);
 
         // Return cleanup function that will properly dispose the player when unmounted
         return () => {
+          // Clean up resize handlers
+          window.removeEventListener('resize', handleResize);
+          window.removeEventListener('load', loadHandler);
           try {
             // First, call the unregister function returned from video player manager
             unregisterPlayer();
@@ -469,7 +666,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         }
       }
     };
-  }, [clip?.id, clip?.mp4link, mounted, isInClipCard, clip.thumbnail_path, onLoadingChange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clip?.id, clip?.mp4link, clip?.thumbnail_path, clip?.thumbnail_url, clip?.cloudflare_uid, mounted, isInClipCard, onLoadingChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle custom play button click - starts preloading and plays
   const handleCustomPlayButtonClick = () => {
@@ -614,7 +811,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           className="video-js"
           playsInline
           preload="none" 
-          poster={clip.thumbnail_path || ''}
+          poster={clip.thumbnail_path || clip.thumbnail_url || (clip.cloudflare_uid ? `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg` : '')}
           data-player-id={playerIdRef.current}
           style={{ maxWidth: '100%', maxHeight: '100%' }}
         >

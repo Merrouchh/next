@@ -33,6 +33,9 @@ const NotificationBubble = () => {
   }, []);
 
   const fetchNotifications = useCallback(async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:35',message:'fetchNotifications called',data:{timestamp:Date.now()},sessionId:'debug-session',runId:'run1',hypothesisId:'A'}),timestamp:Date.now()}).catch(()=>{});
+    // #endregion
     try {
       setIsLoading(true);
       
@@ -49,17 +52,28 @@ const NotificationBubble = () => {
       }
       
       const response = await fetch('/api/notifications', {
-        headers
+        headers,
+        cache: 'no-store'
       });
       const result = await response.json();
       
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:56',message:'fetchNotifications result received',data:{success:result.success,notificationCount:result.notifications?.length||0,notificationIds:result.notifications?.map(n=>n.id)||[],readStatus:result.notifications?.slice(0,5).map(n=>({id:n.id,isRead:n.isRead}))||[]},sessionId:'debug-session',runId:'run1',hypothesisId:'A'}),timestamp:Date.now()}).catch(()=>{});
+      // #endregion
+      
       if (result.success) {
         setNotifications(result.notifications || []);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:58',message:'Notifications state updated',data:{count:result.notifications?.length||0},sessionId:'debug-session',runId:'run1',hypothesisId:'A'}),timestamp:Date.now()}).catch(()=>{});
+        // #endregion
       } else {
         console.error('Failed to fetch notifications:', result.message);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:62',message:'fetchNotifications error',data:{error:error.message},sessionId:'debug-session',runId:'run1',hypothesisId:'A'}),timestamp:Date.now()}).catch(()=>{});
+      // #endregion
     } finally {
       setIsLoading(false);
     }
@@ -81,13 +95,22 @@ const NotificationBubble = () => {
 
   // Debounced refresh helper to avoid fetch storms
   const scheduleRefresh = useCallback(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:83',message:'scheduleRefresh called',data:{hasExistingTimeout:!!refreshTimeoutRef.current},sessionId:'debug-session',runId:'run1',hypothesisId:'D'}),timestamp:Date.now()}).catch(()=>{});
+    // #endregion
     if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
     refreshTimeoutRef.current = setTimeout(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:86',message:'scheduleRefresh timeout fired, calling fetchNotifications',data:{},sessionId:'debug-session',runId:'run1',hypothesisId:'D'}),timestamp:Date.now()}).catch(()=>{});
+      // #endregion
       fetchNotifications();
     }, 350);
   }, [fetchNotifications]);
 
   const markNotificationAsRead = useCallback(async (notificationId) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:90',message:'markNotificationAsRead called',data:{notificationId},sessionId:'debug-session',runId:'run1',hypothesisId:'B'}),timestamp:Date.now()}).catch(()=>{});
+    // #endregion
     // Mark notification as read in the database
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -104,10 +127,16 @@ const NotificationBubble = () => {
           body: JSON.stringify({ notification_id: notificationId })
         });
 
-        await response.json();
+        const result = await response.json();
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:107',message:'markNotificationAsRead completed',data:{notificationId,success:result.success},sessionId:'debug-session',runId:'run1',hypothesisId:'B'}),timestamp:Date.now()}).catch(()=>{});
+        // #endregion
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:110',message:'markNotificationAsRead error',data:{notificationId,error:error.message},sessionId:'debug-session',runId:'run1',hypothesisId:'B'}),timestamp:Date.now()}).catch(()=>{});
+      // #endregion
     }
   }, [supabase]);
 
@@ -148,30 +177,27 @@ const NotificationBubble = () => {
       if ((notification?.type === 'like' || notification?.type === 'comment' || notification?.type === 'upload') && clipId) {
         const baseTarget = `/clip/${clipId}`;
         const target = `${baseTarget}?${uniqueParam}`;
-        // If already on this clip page, replace to force a rerender with a fresh ts
-        if (router.asPath.split('?')[0] === baseTarget) {
-          await router.replace(target, undefined, { scroll: false });
-        } else {
-          router.push(target);
-        }
+        // Use full page load to ensure everything loads properly
+        window.location.href = target;
+        return; // Exit early since we're doing a full page load
       } else if (notification?.type === 'event' && eventId) {
         const baseTarget = `/events/${eventId}`;
         const target = `${baseTarget}?${uniqueParam}`;
-        if (router.asPath.split('?')[0] === baseTarget) {
-          await router.replace(target, undefined, { scroll: false });
-        } else {
-          router.push(target);
-        }
+        // Use full page load to ensure everything loads properly
+        window.location.href = target;
+        return; // Exit early since we're doing a full page load
       }
       // Close the bubble immediately so navigation isn't blocked visually
       setIsExpanded(false);
-      // Optimistically mark this item as read
-      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
-      await markNotificationAsRead(notification.id);
-    } catch {
+      // Mark notification as read before navigating (non-blocking)
+      markNotificationAsRead(notification.id).catch(err => {
+        console.error('Error marking notification as read:', err);
+      });
+    } catch (error) {
       // ignore navigation errors
+      console.error('Navigation error:', error);
     }
-  }, [router, markNotificationAsRead]);
+  }, [markNotificationAsRead]);
 
   const handleMarkOneAsRead = useCallback(async (notificationId) => {
     if (isMarkingRef.current) return;
@@ -214,9 +240,25 @@ const NotificationBubble = () => {
   }, []);
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:216',message:'Component mounted, fetching notifications',data:{},sessionId:'debug-session',runId:'run1',hypothesisId:'A'}),timestamp:Date.now()}).catch(()=>{});
+    // #endregion
     fetchNotifications();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
+
+  // Track route changes
+  useEffect(() => {
+    // #region agent log
+    const handleRouteChangeComplete = (url) => {
+      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NotificationBubble.js:275',message:'Route change complete',data:{url,currentPath:router.asPath},sessionId:'debug-session',runId:'run1',hypothesisId:'C'}),timestamp:Date.now()}).catch(()=>{});
+    };
+    // #endregion
+    router.events.on('routeChangeComplete', handleRouteChangeComplete);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChangeComplete);
+    };
+  }, [router]);
 
   useEffect(() => {
     // Close bubble when clicking outside
