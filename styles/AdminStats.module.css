@@ -90,6 +90,8 @@
   transform: translateY(-50%);
   color: #FFD700;
   font-size: 1rem;
+  pointer-events: none; /* Prevent icon from interfering with clicks */
+  z-index: 1;
 }
 
 .dateInput {
@@ -105,12 +107,47 @@
   transition: border-color 0.2s;
   box-sizing: border-box;
   flex-shrink: 1;
+  text-align: left;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
 }
 
 .dateInput:focus {
   outline: none;
   border-color: #FFD700;
   box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.5);
+}
+
+.dateInput[type="date"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.75rem;
+  opacity: 0.6;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  z-index: 2;
+  filter: brightness(0) saturate(100%) invert(85%) sepia(100%) saturate(10000%) hue-rotate(0deg);
+}
+
+.dateInput[type="date"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.dateInput[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+  text-align: left;
+}
+
+.dateInput[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+  text-align: left;
+}
+
+.dateInput[type="date"]::-webkit-datetime-edit-text {
+  padding: 0 0.25rem;
 }
 
 .operatorSelect {
@@ -372,12 +409,29 @@
   
   .dateInput {
     font-size: 16px; /* Prevents zoom on iOS */
-    padding: 0.625rem 0.875rem 0.625rem 2.25rem;
+    padding: 0.625rem 2.5rem 0.625rem 2rem; /* Extra right padding for iOS calendar icon */
     width: 100%;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
     flex-shrink: 1;
+    text-align: left;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .dateInput[type="date"]::-webkit-calendar-picker-indicator {
+    right: 0.5rem;
+    width: 18px;
+    height: 18px;
+  }
+  
+  .dateIcon {
+    left: 0.625rem;
+    font-size: 0.85rem;
+    pointer-events: none; /* Prevent icon from interfering with clicks */
   }
   
   .operatorSelect {
@@ -402,6 +456,28 @@
   
   .summaryCards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* iOS/Safari specific fixes for date inputs */
+@supports (-webkit-touch-callout: none) {
+  .dateInput[type="date"],
+  .dateInput[type="date"]::-webkit-date-and-time-value {
+    text-align: left !important;
+    -webkit-text-align: left;
+    margin: 0;
+  }
+  
+  .dateInput[type="date"]::-webkit-inner-spin-button,
+  .dateInput[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0.5rem;
+    opacity: 1;
+    cursor: pointer;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
   }
 }
 
@@ -441,13 +517,30 @@
   }
   
   .dateInput {
-    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    padding: 0.5rem 2.25rem 0.5rem 1.75rem; /* Extra right padding for iOS calendar icon */
     font-size: 16px;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
     flex-shrink: 1;
+    text-align: left;
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .dateInput[type="date"]::-webkit-calendar-picker-indicator {
+    right: 0.375rem;
+    width: 16px;
+    height: 16px;
+  }
+  
+  .dateIcon {
+    left: 0.5rem;
+    font-size: 0.8rem;
+    pointer-events: none; /* Prevent icon from interfering with clicks */
   }
   
   .operatorSelect {
@@ -455,11 +548,8 @@
     max-width: 100%;
     box-sizing: border-box;
     padding-right: 2.5rem;
-  }
-  
-  .dateIcon {
-    left: 0.625rem;
-    font-size: 0.85rem;
+    -webkit-appearance: none;
+    appearance: none;
   }
   
   .searchButton {
