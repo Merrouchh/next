@@ -127,11 +127,9 @@ export default function AdminPageWrapper({ children }) {
     <div className={styles.adminWrapper}>
       <AdminTopNav currentPath={currentPath} />
 
-      <div className={styles.adminContent}>
-        <main className={styles.adminMain}>
-          {children}
-        </main>
-      </div>
+      <main className={styles.adminContent}>
+        {children}
+      </main>
     </div>
   );
 } 

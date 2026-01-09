@@ -1,12 +1,8 @@
-.statsContainer {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
 .header {
   margin-bottom: 2rem;
+  margin-top: 2rem;
   text-align: center;
+  padding: 0 24px;
 }
 
 .title {
@@ -29,11 +25,11 @@
 }
 
 .reportsSection {
-  background-color: #1a1a1a;
-  border-radius: 10px;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 2rem 0;
   margin-bottom: 2rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sectionTitle {
@@ -62,6 +58,8 @@
 .dateControl {
   flex: 1;
   min-width: 200px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .dateControl label {
@@ -73,6 +71,9 @@
 
 .dateInputWrapper {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .dateIcon {
@@ -86,6 +87,7 @@
 
 .dateInput {
   width: 100%;
+  max-width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
   background-color: #2a2a2a;
   border: 1px solid #444;
@@ -93,12 +95,23 @@
   color: #e0e0e0;
   font-size: 1rem;
   transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .dateInput:focus {
   outline: none;
   border-color: #FFD700;
   box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.5);
+}
+
+.operatorSelect {
+  padding-left: 1rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  cursor: pointer;
 }
 
 .searchButton {
@@ -307,8 +320,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .statsContainer {
-    padding: 1rem;
+  .header {
+    padding: 0 16px;
   }
   
   .title {
@@ -316,20 +329,69 @@
   }
   
   .reportsSection {
-    padding: 1.5rem;
+    padding: 1.5rem 0;
   }
   
   .controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.75rem;
   }
   
   .dateControl {
     width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+  
+  .dateInput {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.625rem 0.875rem 0.625rem 2.25rem;
+  }
+  
+  .dateIcon {
+    left: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .searchButton {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
   }
   
   .summaryCards {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .header {
+    padding: 0 16px;
+  }
+  
+  .reportsSection {
+    padding: 1rem 0;
+  }
+  
+  .controls {
+    gap: 0.5rem;
+  }
+  
+  .dateInput {
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    font-size: 16px;
+  }
+  
+  .dateIcon {
+    left: 0.625rem;
+    font-size: 0.85rem;
+  }
+  
+  .searchButton {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
   }
 }
 

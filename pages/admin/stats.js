@@ -29,6 +29,19 @@ export default function AdminStats() {
   });
   const reportType = 2;
   const [shiftReports, setShiftReports] = useState(null);
+  const [selectedOperator, setSelectedOperator] = useState(''); // Empty string means "All operators"
+  
+  // List of operators
+  const operators = [
+    { value: '', label: 'All Operators' },
+    { value: 'admin', label: 'admin' },
+    { value: 'amr', label: 'amr' },
+    { value: 'natris', label: 'natris' },
+    { value: 'zero', label: 'zero' },
+    { value: 'potato', label: 'potato' },
+    { value: 'Nighthawk', label: 'Nighthawk' },
+    { value: 'wissam', label: 'wissam' }
+  ];
 
   // Helper function to get today at 7am
   function getTodayAt7AM() {
@@ -231,8 +244,17 @@ export default function AdminStats() {
       totalDuration: shiftReports.totalDuration
     });
 
+    // Filter by operator if selected
+    let operatorFilteredShifts = shiftReports.shifts;
+    if (selectedOperator) {
+      operatorFilteredShifts = shiftReports.shifts.filter(shift => {
+        const operatorName = shift.operatorName || '';
+        return operatorName.toLowerCase() === selectedOperator.toLowerCase();
+      });
+    }
+
     // Filter out shifts where both startCash and expected are 0
-    const validShifts = shiftReports.shifts.filter(shift => {
+    const validShifts = operatorFilteredShifts.filter(shift => {
       const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
       const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
       return !(startCash === 0 && expected === 0);
@@ -462,16 +484,15 @@ export default function AdminStats() {
 
   return (
     <AdminPageWrapper title="Admin Statistics">
-      <div className={styles.statsContainer}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>
-            <FaChartLine className={styles.titleIcon} />
-            Admin Statistics
-          </h1>
-          <p className={styles.subtitle}>View detailed reports and statistics</p>
-        </header>
+      <header className={styles.header}>
+        <h1 className={styles.title}>
+          <FaChartLine className={styles.titleIcon} />
+          Admin Statistics
+        </h1>
+        <p className={styles.subtitle}>View detailed reports and statistics</p>
+      </header>
 
-        <section className={styles.reportsSection}>
+      <section className={styles.reportsSection}>
           <h2 className={styles.sectionTitle}>
             <FaMoneyBillWave className={styles.sectionIcon} />
             Shift Reports
@@ -506,6 +527,23 @@ export default function AdminStats() {
                   onChange={handleDateChange}
                 />
               </div>
+            </div>
+
+            <div className={styles.dateControl}>
+              <label htmlFor="operator">Operator</label>
+              <select
+                id="operator"
+                name="operator"
+                className={`${styles.dateInput} ${styles.operatorSelect}`}
+                value={selectedOperator}
+                onChange={(e) => setSelectedOperator(e.target.value)}
+              >
+                {operators.map(operator => (
+                  <option key={operator.value} value={operator.value}>
+                    {operator.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button 
@@ -658,8 +696,17 @@ export default function AdminStats() {
                   <tbody>
                     {shiftReports.shifts && shiftReports.shifts.length > 0 ? (
                       (() => {
+                        // Filter by operator if selected
+                        let operatorFilteredShifts = shiftReports.shifts;
+                        if (selectedOperator) {
+                          operatorFilteredShifts = shiftReports.shifts.filter(shift => {
+                            const operatorName = shift.operatorName || '';
+                            return operatorName.toLowerCase() === selectedOperator.toLowerCase();
+                          });
+                        }
+                        
                         // Filter out rows where both startCash and expected are 0 or undefined/null
-                        const filteredShifts = shiftReports.shifts.filter(shift => {
+                        const filteredShifts = operatorFilteredShifts.filter(shift => {
                           const startCash = Number.isFinite(shift.startCash) ? Number(shift.startCash) : 0;
                           const expected = Number.isFinite(shift.expected) ? Number(shift.expected) : 0;
                           return !(startCash === 0 && expected === 0);
@@ -731,8 +778,7 @@ export default function AdminStats() {
               Select a date range and click Search to view shift reports
             </div>
           )}
-        </section>
-      </div>
+      </section>
     </AdminPageWrapper>
   );
 }

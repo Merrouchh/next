@@ -139,14 +139,8 @@ const ClipCard = ({
 
   // Sync clipData with clip prop when it changes (e.g., when navigating to a different clip)
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ClipCard.js:137',message:'Clip prop changed, syncing clipData',data:{clipId:clip?.id,clipDataId:clipData?.id,cloudflareUid:clip?.cloudflare_uid},sessionId:'debug-session',runId:'run1',hypothesisId:'F'}),timestamp:Date.now()}).catch(()=>{});
-    // #endregion
     if (clip) {
       if (clip.id !== clipData?.id) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ClipCard.js:141',message:'Clip ID changed, updating clipData',data:{oldClipId:clipData?.id,newClipId:clip.id},sessionId:'debug-session',runId:'run1',hypothesisId:'F'}),timestamp:Date.now()}).catch(()=>{});
-        // #endregion
         // Different clip - update immediately
         setClipData(clip);
       } else {
@@ -154,7 +148,7 @@ const ClipCard = ({
         setClipData(clip);
       }
     }
-  }, [clip]);
+  }, [clip, clipData?.id]);
   // const [, setIsClosing] = useState(false); // Removed unused state
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);

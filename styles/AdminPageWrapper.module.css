@@ -39,8 +39,13 @@
 .adminContent {
   flex: 1;
   width: 100%;
-  padding: 96px 20px 32px; /* top padding offsets fixed admin header (~76px) */
-  background-color: #0f1119;
+  padding: 0 24px 32px;
+  margin-top: 110px; /* Ensures content starts below fixed nav bar */
+  background-color: transparent;
+  min-height: 80vh;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
   box-sizing: border-box;
 }
 
@@ -93,21 +98,17 @@
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.18);
 }
 
-.adminMain {
-  background-color: #10131c;
-  border-radius: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  padding: 24px;
-  min-height: 80vh;
-  border: 1px solid #1f2230;
-  max-width: 1200px;
-  margin: 0 auto;
+/* Responsive styles */
+@media (max-width: 1024px) {
+  .adminContent {
+    margin-top: 90px; /* Smaller nav on mobile/tablet */
+  }
 }
 
-/* Responsive styles */
 @media (max-width: 768px) {
   .adminContent {
-    padding: 96px 15px 24px;
+    padding: 0 16px 24px;
+    margin-top: 85px;
   }
 }
 
