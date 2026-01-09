@@ -30,6 +30,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .sectionTitle {
@@ -53,6 +54,10 @@
   gap: 1rem;
   margin-bottom: 2rem;
   align-items: flex-end;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .dateControl {
@@ -330,23 +335,48 @@
   
   .reportsSection {
     padding: 1.5rem 0;
+    overflow-x: hidden;
   }
   
   .controls {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
   }
   
   .dateControl {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+  
+  .dateInputWrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
   }
   
   .dateInput {
     font-size: 16px; /* Prevents zoom on iOS */
     padding: 0.625rem 0.875rem 0.625rem 2.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .operatorSelect {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-right: 2.5rem;
   }
   
   .dateIcon {
@@ -356,8 +386,10 @@
   
   .searchButton {
     width: 100%;
+    max-width: 100%;
     justify-content: center;
     padding: 0.75rem 1.5rem;
+    box-sizing: border-box;
   }
   
   .summaryCards {
@@ -373,15 +405,37 @@
   
   .reportsSection {
     padding: 1rem 0;
+    overflow-x: hidden;
   }
   
   .controls {
     gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  .dateControl {
+    width: 100%;
+    max-width: 100%;
   }
   
   .dateInput {
     padding: 0.5rem 0.75rem 0.5rem 2rem;
     font-size: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .operatorSelect {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-right: 2.5rem;
   }
   
   .dateIcon {
@@ -392,6 +446,9 @@
   .searchButton {
     padding: 0.625rem 1rem;
     font-size: 0.9rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
 
