@@ -20,7 +20,6 @@ import {
   EventDescription,
   EventActions,
   RegistrationInfo,
-  RegistrationInfoLoading,
   AdminSection,
   AdaptiveLoader
 } from '../../components/events';
@@ -730,6 +729,20 @@ export default function EventDetail() {
     }
   }, [id, supabase, user?.id]);
 
+  // Clear registration status when user logs out
+  useEffect(() => {
+    if (!user) {
+      // User logged out, clear registration status to hide personal info
+      setRegistrationStatus(prev => ({
+        ...prev,
+        isRegistered: false,
+        teamMembers: [],
+        partnerInfo: null,
+        registeredBy: null
+      }));
+    }
+  }, [user]);
+
   const closeTeamModal = useCallback(() => {
     setModalState(prev => ({ ...prev, isTeamModalOpen: false }));
     setTeamState(prev => ({ ...prev, searchQuery: '' }));
@@ -1237,8 +1250,8 @@ export default function EventDetail() {
   };
   
   // Filter team members based on search query
-  const filteredTeamMembers = registrationStatus.availableTeamMembers.filter(member => 
-    member.username.toLowerCase().includes(teamState.searchQuery.toLowerCase())
+  const filteredTeamMembers = (registrationStatus.availableTeamMembers || []).filter(member => 
+    member && member.username && member.username.toLowerCase().includes(teamState.searchQuery.toLowerCase())
   );
   
   // Modal functions - memoized to prevent re-renders
@@ -1537,11 +1550,8 @@ export default function EventDetail() {
                   onLoginClick={openLoginModal}
                 />
                 
-                {/* Registration information - for all users */}
+                {/* Registration progress bar only */}
                 <RegistrationInfo event={event} registrationStatus={registrationStatus} />
-                
-                {/* Loading indicator for registration info - show only during loading */}
-                <RegistrationInfoLoading event={event} registrationStatus={registrationStatus} />
                 
                 {/* Admin section - only for admins */}
                 <AdminSection
@@ -1585,7 +1595,7 @@ export default function EventDetail() {
         
         {/* Team selection modal */}
         {modalState.isTeamModalOpen && (
-          <div className={styles.modalOverlay} onClick={closeTeamModal}>
+          <div className={styles.modalOverlay}>
             {modalState.isMobile ? (
               <MobileTeamModal
                 filteredTeamMembers={filteredTeamMembers}

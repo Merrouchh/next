@@ -210,20 +210,40 @@ async function handleUpdateEvent(req, res, eventId, eventData) {
 
     console.log('[INTERNAL API] Updating event:', eventId, eventData);
 
+    // Prepare update data - only include fields that are provided
+    const updateFields = {
+      title: eventData.title,
+      description: eventData.description,
+      date: eventData.date,
+      time: eventData.time,
+      location: eventData.location,
+      game: eventData.game,
+      status: eventData.status,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Only include these fields if they are provided in eventData
+    if (eventData.image !== undefined) {
+      updateFields.image = eventData.image;
+    }
+    if (eventData.registration_limit !== undefined) {
+      updateFields.registration_limit = eventData.registration_limit === '' || eventData.registration_limit === null 
+        ? null 
+        : parseInt(eventData.registration_limit);
+    }
+    if (eventData.team_type !== undefined) {
+      updateFields.team_type = eventData.team_type;
+    }
+    if (eventData.phone_verification_required !== undefined) {
+      updateFields.phone_verification_required = eventData.phone_verification_required;
+    }
+
+    console.log('[INTERNAL API] Update fields:', updateFields);
+
     // Update event directly in Supabase
     const { data: updatedEvent, error: updateError } = await supabase
       .from('events')
-      .update({
-        title: eventData.title,
-        description: eventData.description,
-        date: eventData.date,
-        time: eventData.time,
-        location: eventData.location,
-        game: eventData.game,
-        status: eventData.status,
-        image: eventData.image,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateFields)
       .eq('id', eventId)
       .select()
       .single();

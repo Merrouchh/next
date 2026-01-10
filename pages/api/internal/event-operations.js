@@ -206,16 +206,99 @@ async function handleGetRegistrationStatus(req, res, eventId, supabase) {
       }
     }
 
-    console.log('[INTERNAL API] Registration status:', { isRegistered, registrationInfo, partnerInfo });
+    // Get available team members if user is not registered and it's a team/duo event
+    let availableTeamMembers = [];
+    let teamMembers = [];
+    
+    if (!isRegistered && eventData.team_type !== 'solo') {
+      try {
+        console.log('[INTERNAL API] Fetching available team members for team/duo event');
+        
+        // Get users who are not already registered for this event
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('id, username')
+          .neq('id', req.body.userId) // Exclude current user
+          .not('username', 'is', null) // Exclude users without usernames
+          .order('username');
+        
+        if (!usersError && users) {
+          // Filter out any users with null or empty usernames (just in case)
+          const validUsers = users.filter(user => user.username && user.username.trim().length > 0);
+          
+          // Get users who are already registered for this event
+          const { data: registeredUsers, error: regUsersError } = await supabase
+            .from('event_registrations')
+            .select('user_id')
+            .eq('event_id', eventId);
+          
+          // Get all registrations for this event
+          const { data: eventRegistrations, error: eventRegError } = await supabase
+            .from('event_registrations')
+            .select('id')
+            .eq('event_id', eventId);
+            
+          // Get team members for these registrations
+          let existingTeamMembers = [];
+          if (!eventRegError && eventRegistrations && eventRegistrations.length > 0) {
+            const registrationIds = eventRegistrations.map(reg => reg.id);
+            
+            const { data: teamMembersData, error: teamMembersError } = await supabase
+              .from('event_team_members')
+              .select('user_id')
+              .in('registration_id', registrationIds);
+              
+            if (!teamMembersError && teamMembersData) {
+              existingTeamMembers = teamMembersData;
+            }
+          }
+          
+          if (!regUsersError && registeredUsers) {
+            // Create a set of all unavailable user IDs (registered users + team members)
+            const unavailableUserIds = new Set(registeredUsers.map(reg => reg.user_id));
+            
+            // Add team members to the set of unavailable users
+            if (existingTeamMembers && existingTeamMembers.length > 0) {
+              existingTeamMembers.forEach(member => {
+                unavailableUserIds.add(member.user_id);
+              });
+              console.log(`[INTERNAL API] Found ${existingTeamMembers.length} team members already in the event`);
+            }
+            
+            // Filter out users who are already registered or are team members
+            availableTeamMembers = validUsers.filter(user => !unavailableUserIds.has(user.id));
+            console.log(`[INTERNAL API] Filtered available team members: ${availableTeamMembers.length} out of ${validUsers.length} total users`);
+          } else {
+            availableTeamMembers = validUsers;
+          }
+        } else {
+          console.error('[INTERNAL API] Error fetching users:', usersError);
+        }
+      } catch (error) {
+        console.error('[INTERNAL API] Error fetching available team members:', error);
+        // Continue with empty availableTeamMembers array
+      }
+    } else if (isRegistered && eventData.team_type !== 'solo' && registrationInfo?.id) {
+      // Get team members if user is registered
+      const { data: teamMembersData, error: teamMembersError } = await supabase
+        .from('event_team_members')
+        .select('user_id, username')
+        .eq('registration_id', registrationInfo.id);
+        
+      if (!teamMembersError && teamMembersData) {
+        teamMembers = teamMembersData;
+      }
+    }
+
+    console.log('[INTERNAL API] Registration status:', { isRegistered, registrationInfo, partnerInfo, availableTeamMembersCount: availableTeamMembers.length });
     return res.status(200).json({ 
       success: true,
       isRegistered,
       registrationInfo,
       partnerInfo,
       eventData,
-      // Add fields that frontend expects
-      teamMembers: [], // Will be populated by frontend if needed
-      availableTeamMembers: [], // Will be populated by frontend if needed
+      teamMembers,
+      availableTeamMembers,
       registeredBy: isRegistered && partnerInfo ? partnerInfo.username : null
     });
     

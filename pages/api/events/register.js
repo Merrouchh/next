@@ -839,9 +839,12 @@ async function getRegistrationStatus(req, res, supabase, user) {
           .from('users')
           .select('id, username')
           .neq('id', userId) // Exclude current user
+          .not('username', 'is', null) // Exclude users without usernames
           .order('username');
         
         if (!usersError && users) {
+          // Filter out any users with null or empty usernames (just in case)
+          const validUsers = users.filter(user => user.username && user.username.trim().length > 0);
           // Get users who are already registered for this event
           const { data: registeredUsers, error: regUsersError } = await supabase
             .from('event_registrations')
@@ -882,10 +885,10 @@ async function getRegistrationStatus(req, res, supabase, user) {
             }
             
             // Filter out users who are already registered or are team members
-            availableTeamMembers = users.filter(user => !unavailableUserIds.has(user.id));
-            console.log(`Filtered available team members: ${availableTeamMembers.length} out of ${users.length} total users`);
+            availableTeamMembers = validUsers.filter(user => !unavailableUserIds.has(user.id));
+            console.log(`Filtered available team members: ${availableTeamMembers.length} out of ${validUsers.length} total users`);
           } else {
-            availableTeamMembers = users;
+            availableTeamMembers = validUsers;
           }
         }
       } catch (error) {

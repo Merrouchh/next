@@ -128,8 +128,8 @@ export default function AdminPageWrapper({ children }) {
       <AdminTopNav currentPath={currentPath} />
 
       <main className={styles.adminContent}>
-        {children}
-      </main>
+          {children}
+        </main>
     </div>
   );
 } 

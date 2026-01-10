@@ -265,8 +265,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1300; /* Above AdminTopNav (z-index: 1200) */
   padding: 1rem;
+  padding-top: 5rem; /* Account for fixed nav bar (60px + spacing) */
 }
 
 .modal {
@@ -275,8 +276,10 @@
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 .modalHeader {
@@ -285,6 +288,11 @@
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  background: var(--primary-black);
+  z-index: 1;
+  flex-shrink: 0;
 }
 
 .modalHeader h2 {
@@ -308,6 +316,9 @@
 /* Form Styles */
 .eventForm {
   padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .formGroup {
@@ -607,11 +618,14 @@
     grid-template-columns: 1fr;
   }
   
+  .modalOverlay {
+    padding-top: 4.5rem; /* Slightly less padding on tablet/mobile */
+  }
+  
   .modal {
     width: 95%;
     max-width: 500px;
     max-height: 90vh;
-    overflow-y: auto;
   }
   
   .actionButtons {
@@ -662,6 +676,12 @@
   .viewButton {
     background: rgba(255, 215, 0, 0.2);
     border-width: 2px;
+  }
+  
+  .modalOverlay {
+    padding-top: 4rem; /* Less padding on small mobile */
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
   
   .modal {

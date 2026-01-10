@@ -13,42 +13,18 @@ const RegistrationInfo = ({ event, registrationStatus }) => {
     ? registrationStatus.registrationLimit
     : registrationStatus.registeredCount;
 
+  // Only show progress bar if there's a registration limit
+  if (registrationStatus.registrationLimit === null) {
+    return null;
+  }
+
   return (
     <div className={styles.registrationInfo}>
-      <h3>Registration Information</h3>
-      {registrationStatus.registrationLimit !== null ? (
-        <p>
-          {displayCount} out of {registrationStatus.registrationLimit} spots filled
-          {displayCount >= registrationStatus.registrationLimit ? 
-            ' (Registration is full)' : ''}
-        </p>
-      ) : (
-        <p>
-          {displayCount} {displayCount === 1 ? 'person has' : 'people have'} registered for this event
-        </p>
-      )}
-      
-      {/* Show duo partner information if available */}
-      {event.team_type === 'duo' && registrationStatus.isRegistered && registrationStatus.partnerInfo && (
-        <div className={styles.duoPartnerInfo}>
-          <p><strong>Duo Partner:</strong> {registrationStatus.partnerInfo.username}</p>
-        </div>
-      )}
-      
-      {/* Show "Waiting for partner" if it's a duo event but no partner found */}
-      {event.team_type === 'duo' && registrationStatus.isRegistered && !registrationStatus.partnerInfo && (
-        <div className={styles.duoPartnerInfo}>
-          <p><strong>Duo Partner:</strong> <span style={{color: '#ffc107'}}>Waiting for partner to register</span></p>
-        </div>
-      )}
-      
       <div className={styles.progressBarContainer}>
         <div 
           className={styles.progressBar}
           style={{ 
-            width: registrationStatus.registrationLimit !== null ? 
-              `${Math.min(100, (displayCount / registrationStatus.registrationLimit) * 100)}%` : 
-              '100%',
+            width: `${Math.min(100, (displayCount / registrationStatus.registrationLimit) * 100)}%`,
             backgroundColor: displayCount >= registrationStatus.registrationLimit ? 
               '#dc3545' : '#28a745'
           }}

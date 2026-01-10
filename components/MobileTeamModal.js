@@ -49,7 +49,7 @@ export default function MobileTeamModal({
   
   // Modal content
   const modalContent = (
-    <div className={styles.modalOverlay} onClick={closeModal}>
+    <div className={styles.modalOverlay}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h3>{teamType === 'duo' ? 'Select Your Partner' : 'Select Your Team'}</h3>

@@ -484,15 +484,15 @@ export default function AdminStats() {
 
   return (
     <AdminPageWrapper title="Admin Statistics">
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <FaChartLine className={styles.titleIcon} />
-          Admin Statistics
-        </h1>
-        <p className={styles.subtitle}>View detailed reports and statistics</p>
-      </header>
+        <header className={styles.header}>
+          <h1 className={styles.title}>
+            <FaChartLine className={styles.titleIcon} />
+            Admin Statistics
+          </h1>
+          <p className={styles.subtitle}>View detailed reports and statistics</p>
+        </header>
 
-      <section className={styles.reportsSection}>
+        <section className={styles.reportsSection}>
           <h2 className={styles.sectionTitle}>
             <FaMoneyBillWave className={styles.sectionIcon} />
             Shift Reports
@@ -778,7 +778,7 @@ export default function AdminStats() {
               Select a date range and click Search to view shift reports
             </div>
           )}
-      </section>
+        </section>
     </AdminPageWrapper>
   );
 }
