@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-// import Head from 'next/head'; // Removed unused import
+import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { toast } from 'react-hot-toast';
@@ -1493,7 +1493,15 @@ export default function EventDetail() {
 
   return (
     <ProtectedPageWrapper>
-              {/* DynamicMeta removed - metadata now handled in _document.js */}
+      {/* Set browser tab title dynamically */}
+      <Head>
+        <title>
+          {event 
+            ? `${event.title} | Gaming Event | Merrouch Gaming`
+            : 'Event | Merrouch Gaming'
+          }
+        </title>
+      </Head>
 
       <div className={styles.container}>
         <Link href="/events" className={styles.backLink}>
