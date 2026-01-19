@@ -91,15 +91,91 @@ async function generateSiteMap() {
       duration: 30
     }));
 
-    // Fetch only users who have public clips
-    const { data: users } = await supabase
+    // Fetch users with engagement metrics to prioritize profiles
+    // Include ALL profiles but prioritize by quality (best profiles first in sitemap)
+    const { data: userClips } = await supabase
       .from('clips')
-      .select('username')
-      .eq('visibility', 'public')
-      .order('uploaded_at', { ascending: false });
+      .select('username, views_count, likes_count')
+      .eq('visibility', 'public');
 
-    // Get unique usernames
-    const uniqueUsers = [...new Set(users?.map(user => user.username))];
+    // Calculate engagement metrics per user
+    const userStats = {};
+    if (userClips) {
+      userClips.forEach(clip => {
+        if (!userStats[clip.username]) {
+          userStats[clip.username] = {
+            username: clip.username,
+            clipsCount: 0,
+            totalViews: 0,
+            totalLikes: 0
+          };
+        }
+        userStats[clip.username].clipsCount++;
+        userStats[clip.username].totalViews += clip.views_count || 0;
+        userStats[clip.username].totalLikes += clip.likes_count || 0;
+      });
+    }
+
+    // Get user points
+    const usernames = Object.keys(userStats);
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('username, points')
+      .in('username', usernames);
+
+    // Merge points into stats
+    if (usersData) {
+      usersData.forEach(user => {
+        if (userStats[user.username]) {
+          userStats[user.username].points = user.points || 0;
+        }
+      });
+    }
+
+    // Note: Event participations could be added to quality score in the future
+    // For now, we focus on clips, views, likes, and points
+
+    // Calculate quality score for ALL profiles (no filtering - include everyone)
+    const profilesWithClips = Object.values(userStats)
+      .map(stat => {
+        // Calculate quality score: clips (40%) + views (30%) + likes (20%) + points (10%)
+        const qualityScore = 
+          (stat.clipsCount * 10) +           // More clips = better
+          (stat.totalViews / 100) +          // Views matter
+          (stat.totalLikes * 5) +             // Likes matter more
+          (stat.points || 0) / 10;            // Points bonus
+
+        return {
+          ...stat,
+          qualityScore
+        };
+      })
+      // Sort by quality score (best first)
+      .sort((a, b) => b.qualityScore - a.qualityScore);
+
+    // Also include users who have no clips but exist in the system (with very low priority)
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('username, points')
+      .not('username', 'is', null);
+
+    // Add users without clips to the list (with zero quality score)
+    const usersWithoutClips = (allUsers || [])
+      .filter(user => !userStats[user.username])
+      .map(user => ({
+        username: user.username,
+        clipsCount: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        points: user.points || 0,
+        qualityScore: (user.points || 0) / 100 // Very low score for users without clips
+      }));
+
+    // Combine all profiles and sort by quality (best first)
+    const allProfilesWithScore = [...profilesWithClips, ...usersWithoutClips]
+      .sort((a, b) => b.qualityScore - a.qualityScore);
+
+    console.log(`Including all ${allProfilesWithScore.length} profiles in sitemap (${profilesWithClips.length} with clips, ${usersWithoutClips.length} without clips), prioritized by quality score`);
     
     // Fetch all events data for sitemap
     const { data: events } = await supabase
@@ -113,7 +189,7 @@ async function generateSiteMap() {
       `)
       .order('date', { ascending: false });
 
-    console.log(`Generated sitemap with ${processedClips?.length || 0} clips, ${uniqueUsers?.length || 0} user profiles, and ${events?.length || 0} events`);
+    console.log(`Generated sitemap with ${processedClips?.length || 0} clips, ${allProfilesWithScore?.length || 0} user profiles (prioritized by quality), and ${events?.length || 0} events`);
 
     return `<?xml version="1.0" encoding="UTF-8"?>
    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -227,15 +303,38 @@ async function generateSiteMap() {
        </url>
      `}).join('') : ''}
 
-     <!-- Users with Public Clips -->
-     ${uniqueUsers ? uniqueUsers.map(username => `
+     <!-- All User Profiles (Prioritized by Quality - Best Profiles First) -->
+     ${allProfilesWithScore ? allProfilesWithScore.map((profile, index) => {
+       // Calculate priority based on position (best profiles first)
+       // This ensures Google shows the best profiles in sitelinks
+       let priority = '0.3'; // Default low priority for empty profiles
+       
+       if (index < 10) {
+         // Top 10 profiles: Highest priority (0.9-1.0) - these will show first
+         priority = (1.0 - (index * 0.01)).toFixed(2);
+       } else if (index < 30) {
+         // Next 20 profiles: High priority (0.7-0.89)
+         priority = (0.89 - ((index - 10) * 0.01)).toFixed(2);
+       } else if (index < 60) {
+         // Next 30 profiles: Medium priority (0.5-0.69)
+         priority = (0.69 - ((index - 30) * 0.006)).toFixed(2);
+       } else {
+         // Rest: Low priority (0.3-0.49) - empty/low engagement profiles
+         priority = (0.49 - ((index - 60) * 0.003)).toFixed(2);
+       }
+       
+       // Ensure priority doesn't go below 0.1 or above 1.0
+       priority = Math.max(0.1, Math.min(parseFloat(priority), 1.0)).toFixed(2);
+       
+       return `
        <url>
-         <loc>${EXTERNAL_DATA_URL}/profile/${username}</loc>
+         <loc>${EXTERNAL_DATA_URL}/profile/${profile.username}</loc>
          <lastmod>${lastMod}</lastmod>
          <changefreq>daily</changefreq>
-         <priority>0.6</priority>
+         <priority>${priority}</priority>
        </url>
-     `).join('') : ''}
+     `;
+     }).join('') : ''}
    </urlset>`;
   } catch (error) {
     console.error('Error generating sitemap:', error);
