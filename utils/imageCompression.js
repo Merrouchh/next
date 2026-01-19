@@ -118,7 +118,18 @@ export async function getImageMetadata(imageBuffer) {
  * @returns {Object} - Validation result
  */
 export function validateImageFile(file) {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  // Sharp supports HEIC/HEIF format, so we allow it (will be converted to JPEG)
+  const allowedTypes = [
+    'image/jpeg', 
+    'image/jpg', 
+    'image/png', 
+    'image/webp', 
+    'image/gif',
+    'image/heic',
+    'image/heif',
+    'image/heic-sequence',
+    'image/heif-sequence'
+  ];
   const maxSize = 10 * 1024 * 1024; // 10MB
 
   if (!file) {
@@ -126,7 +137,7 @@ export function validateImageFile(file) {
   }
 
   if (!allowedTypes.includes(file.mimetype)) {
-    return { valid: false, error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' };
+    return { valid: false, error: 'Invalid file type. Only JPEG, PNG, WebP, GIF, and HEIC are allowed.' };
   }
 
   if (file.size > maxSize) {

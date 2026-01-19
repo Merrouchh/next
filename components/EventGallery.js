@@ -541,7 +541,7 @@ const UploadModal = React.memo(function UploadModal({ isOpen, onClose, onSubmit,
                 <span>Click to select image</span>
                 <input 
                   type="file"
-                  accept="image/jpeg, image/png, image/gif, image/webp"
+                  accept="image/jpeg, image/png, image/gif, image/webp, image/heic, image/heif"
                   className={styles.fileInput}
                   onChange={handleFileChange}
                   ref={fileInputRef}

@@ -3,7 +3,7 @@ import { IncomingForm } from 'formidable';
 import fs from 'fs';
 // import path from 'path'; // Removed unused import
 import { 
-  compressImageForSocialMedia, 
+  compressEventImage, 
   validateImageFile, 
   generateOptimizedFilename,
   getImageMetadata 
@@ -380,9 +380,9 @@ export default async function handler(req, res) {
           format: originalMetadata.format
         });
 
-        // Compress image for social media optimization
-        console.log('Compressing gallery image for social media optimization...');
-        const compressedFileContent = await compressImageForSocialMedia(originalFileContent);
+        // Compress image for gallery display (better quality than social media)
+        console.log('Compressing gallery image for optimal gallery display...');
+        const compressedFileContent = await compressEventImage(originalFileContent);
         
         // Get compressed image metadata
         const compressedMetadata = await getImageMetadata(compressedFileContent);
