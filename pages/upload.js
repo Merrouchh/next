@@ -94,6 +94,13 @@ const UploadPage = () => {
   const processingTimeoutRef = useRef(null);
   const [bannerKey, setBannerKey] = useState(0); // Add state to force banner refresh
   const [localUploadStatus, setLocalUploadStatus] = useState('idle');
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState([]);
+  const [bulkIndex, setBulkIndex] = useState(0);
+  const [bulkError, setBulkError] = useState('');
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const bulkInputRef = useRef(null);
+  const bulkCancelRef = useRef(false);
 
   const { 
     uploadStatus, 
@@ -159,6 +166,10 @@ const UploadPage = () => {
     
     return null;
   }, []);
+
+  const getBaseTitle = useCallback((fileName) => (
+    fileName.replace(/\.[^/.]+$/, '')
+  ), []);
 
   // Detect if a file is likely from a network path
   const isNetworkPath = useCallback((file) => {
@@ -351,6 +362,128 @@ const UploadPage = () => {
         console.error('Upload error:', error);
         alert(`Upload failed: ${error.message}`);
       }
+    }
+  };
+
+  const handleBulkSelectClick = () => {
+    if (bulkInputRef.current) {
+      bulkInputRef.current.value = '';
+      bulkInputRef.current.click();
+    }
+  };
+
+  const handleBulkFilesSelected = useCallback((event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    const valid = [];
+    const rejected = [];
+
+    files.forEach((file) => {
+      const error = validateFile(file);
+      if (error) {
+        rejected.push({ file, error });
+      } else {
+        valid.push(file);
+      }
+    });
+
+    if (!valid.length) {
+      setBulkError('No valid video files found in the selected folder.');
+      return;
+    }
+
+    setIsBulkMode(true);
+    setBulkFiles(valid);
+    setBulkIndex(0);
+    setBulkError(rejected.length ? `Skipped ${rejected.length} unsupported or oversized files.` : '');
+    setSelectedFile(null);
+    setPreviewUrl('');
+    setFileError(null);
+    setIsProcessing(false);
+    setVisibility('private');
+    setTitle('');
+  }, [validateFile]);
+
+  const exitBulkMode = () => {
+    if (isBulkUploading) return;
+    setIsBulkMode(false);
+    setBulkFiles([]);
+    setBulkIndex(0);
+    setBulkError('');
+    setVisibility('public');
+    setTitle('');
+  };
+
+  const uploadSingleFile = async (file, gameName) => {
+    const baseTitle = getBaseTitle(file.name);
+    const fileExt = file.name.split('.').pop();
+    const safeTitle = baseTitle.replace(/\s+/g, '_');
+    const fileName = `${username}_${Date.now()}_${safeTitle}.${fileExt}`;
+
+    const response = await fetch('/api/copy-to-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: baseTitle,
+        game: gameName,
+        visibility: 'private',
+        username,
+        fileName
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to get upload URL: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const { uploadUrl, uid } = data;
+    currentUploadUid.current = uid;
+
+    await uploadWithUrl(file, uploadUrl, uid);
+    resetForm();
+  };
+
+  const handleBulkUpload = async () => {
+    if (!bulkFiles.length || !user || !username) {
+      alert('Please log in and select a folder with videos.');
+      return;
+    }
+
+    if (!game || (game === 'Other' && !customGame.trim())) {
+      alert('Please select a game for bulk uploads.');
+      return;
+    }
+
+    setShowProgress(true);
+    setLocalUploadStatus('uploading');
+    setIsBulkUploading(true);
+    bulkCancelRef.current = false;
+
+    const gameName = game === 'Other' ? customGame.trim() : game;
+
+    try {
+      for (let i = 0; i < bulkFiles.length; i += 1) {
+        if (bulkCancelRef.current) {
+          throw new Error('Upload cancelled');
+        }
+        setBulkIndex(i);
+        const file = bulkFiles[i];
+        const baseTitle = getBaseTitle(file.name);
+        setTitle(baseTitle);
+        setVisibility('private');
+        await uploadSingleFile(file, gameName);
+      }
+
+      setLocalUploadStatus('success');
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      setLocalUploadStatus(error.message === 'Upload cancelled' ? 'cancelled' : 'error');
+      setBulkError(error.message || 'Bulk upload failed');
+    } finally {
+      setIsBulkUploading(false);
     }
   };
 
@@ -669,7 +802,8 @@ const UploadPage = () => {
     onDrop,
     accept: SUPPORTED_FORMATS,
     maxFiles: 1,
-    maxSize: MAX_FILE_SIZE
+    maxSize: MAX_FILE_SIZE,
+    disabled: isBulkMode || isBulkUploading
   });
 
   const handleCloseProgress = useCallback(() => {
@@ -700,6 +834,62 @@ const UploadPage = () => {
             <MdGamepad className={styles.gameIcon} />
             <h1>Upload Your Highlight</h1>
           </header>
+
+          <div className={styles.bulkSection}>
+            <div className={styles.bulkHeader}>
+              <h2>Bulk Upload</h2>
+              <p>Select a folder to upload multiple videos quickly.</p>
+              <p className={styles.bulkHint}>
+                Bulk folder upload works best on desktop Chrome/Edge. On mobile, use single upload.
+              </p>
+            </div>
+            <div className={styles.bulkActions}>
+              <button
+                type="button"
+                className={styles.bulkSelectButton}
+                onClick={handleBulkSelectClick}
+                disabled={isBulkUploading}
+              >
+                Select Folder
+              </button>
+              {isBulkMode && (
+                <button
+                  type="button"
+                  className={styles.bulkExitButton}
+                  onClick={exitBulkMode}
+                  disabled={isBulkUploading}
+                >
+                  Exit Bulk Mode
+                </button>
+              )}
+            </div>
+            <input
+              ref={bulkInputRef}
+              type="file"
+              multiple
+              webkitdirectory="true"
+              accept="video/mp4,video/quicktime,video/x-matroska"
+              onChange={handleBulkFilesSelected}
+              style={{ display: 'none' }}
+            />
+            {isBulkMode && (
+              <div className={styles.bulkSummary}>
+                <span>{bulkFiles.length} video(s) selected</span>
+                <span>Visibility: Private</span>
+              </div>
+            )}
+            {bulkError && <div className={styles.bulkError}>{bulkError}</div>}
+            {isBulkMode && (
+              <button
+                type="button"
+                className={styles.bulkStartButton}
+                onClick={handleBulkUpload}
+                disabled={isBulkUploading || !bulkFiles.length || !game || (game === 'Other' && !customGame.trim())}
+              >
+                {isBulkUploading ? 'Uploading...' : 'Start Bulk Upload'}
+              </button>
+            )}
+          </div>
 
           <div {...getRootProps()} className={`${styles.dropzone} ${isDragActive ? styles.dropzoneActive : ''} ${fileError ? styles.dropzoneError : ''}`}>
             <input {...getInputProps()} />
@@ -737,10 +927,19 @@ const UploadPage = () => {
                 ) : (
                   <>
                     <MdCloudUpload className={styles.uploadIcon} />
-                    <p>{isDragActive ? 'Drop your video here' : 'Drag and drop your video here, or click to browse'}</p>
+                    <p>
+                      {isBulkMode
+                        ? `${bulkFiles.length} video(s) selected for bulk upload`
+                        : (isDragActive ? 'Drop your video here' : 'Drag and drop your video here, or click to browse')}
+                    </p>
                     <span className={styles.supportedFormats}>
                       MP4, MOV, or MKV • Max 100MB
                     </span>
+                    {isBulkMode && (
+                      <span className={styles.bulkNote}>
+                        Bulk mode is active. Single upload is temporarily disabled.
+                      </span>
+                    )}
                   </>
                 )}
               </div>
@@ -748,17 +947,19 @@ const UploadPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.uploadForm}>
-            <div className={styles.formGroup}>
-              <input
-                type="text"
-                value={title}
-                onChange={handleTitleChange}
-                placeholder="Give your clip a title"
-                className={styles.input}
-                required
-                disabled={isProcessing}
-              />
-            </div>
+            {!isBulkMode && (
+              <div className={styles.formGroup}>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  placeholder="Give your clip a title"
+                  className={styles.input}
+                  required
+                  disabled={isProcessing || isBulkMode}
+                />
+              </div>
+            )}
 
             <div className={styles.formGroup}>
               <select
@@ -772,7 +973,7 @@ const UploadPage = () => {
                 }}
                 className={styles.select}
                 required
-                disabled={isProcessing}
+                disabled={isProcessing || isBulkUploading}
               >
                 <option value="">Select Game</option>
                 <option value="Counter-Strike 2">Counter-Strike 2</option>
@@ -790,7 +991,7 @@ const UploadPage = () => {
                   placeholder="Enter game name"
                   className={styles.input}
                   required
-                  disabled={isProcessing}
+                  disabled={isProcessing || isBulkUploading}
                   style={{ marginTop: '10px' }}
                 />
               )}
@@ -800,7 +1001,7 @@ const UploadPage = () => {
               <div className={styles.visibilityOptions}>
                 <label 
                   className={`${styles.visibilityOption} ${visibility === 'public' ? styles.selected : ''}`}
-                  onClick={() => !isProcessing && setVisibility('public')}
+                  onClick={() => !isProcessing && !isBulkMode && setVisibility('public')}
                 >
                   <input
                     type="radio"
@@ -809,7 +1010,7 @@ const UploadPage = () => {
                     checked={visibility === 'public'}
                     onChange={(e) => setVisibility(e.target.value)}
                     className={styles.radioInput}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isBulkMode}
                   />
                   <MdPublic className={styles.visibilityIcon} />
                   <div className={styles.visibilityText}>
@@ -820,7 +1021,7 @@ const UploadPage = () => {
 
                 <label 
                   className={`${styles.visibilityOption} ${visibility === 'private' ? styles.selected : ''}`}
-                  onClick={() => !isProcessing && setVisibility('private')}
+                  onClick={() => !isProcessing && !isBulkMode && setVisibility('private')}
                 >
                   <input
                     type="radio"
@@ -829,7 +1030,7 @@ const UploadPage = () => {
                     checked={visibility === 'private'}
                     onChange={(e) => setVisibility(e.target.value)}
                     className={styles.radioInput}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isBulkMode}
                   />
                   <MdLock className={styles.visibilityIcon} />
                   <div className={styles.visibilityText}>
@@ -840,13 +1041,24 @@ const UploadPage = () => {
               </div>
             </div>
 
-            <button 
-              type="submit"
-              className={styles.uploadButton}
-              disabled={!selectedFile || uploadStatus === 'uploading' || isProcessing || fileError || (game === 'Other' && !customGame.trim())}
-            >
-              Upload Clip
-            </button>
+            {isBulkMode ? (
+              <button
+                type="button"
+                className={styles.uploadButton}
+                onClick={handleBulkUpload}
+                disabled={isBulkUploading || !bulkFiles.length || !game || (game === 'Other' && !customGame.trim())}
+              >
+                {isBulkUploading ? 'Uploading...' : 'Start Bulk Upload'}
+              </button>
+            ) : (
+              <button 
+                type="submit"
+                className={styles.uploadButton}
+                disabled={!selectedFile || uploadStatus === 'uploading' || isProcessing || fileError || (game === 'Other' && !customGame.trim())}
+              >
+                Upload Clip
+              </button>
+            )}
 
             <button 
               type="button"
@@ -877,11 +1089,12 @@ const UploadPage = () => {
         onCancel={() => {
           console.log('Cancel button clicked from UploadProgress');
           console.log(`Current upload UID when cancelling: ${currentUploadUid.current}`);
+          bulkCancelRef.current = true;
           handleCancelUpload();
         }}
         onReset={handleSuccess}
-        title={title}
-        game={game === 'Other' ? customGame : game}
+        title={isBulkUploading ? `Bulk Upload ${bulkIndex + 1}/${bulkFiles.length}` : title}
+        game={isBulkUploading ? 'Private' : (game === 'Other' ? customGame : game)}
         allowClose={uploadStatus !== 'uploading' && localUploadStatus !== 'uploading'}
         isNetworkFile={fileError && fileError.includes("Network file")}
       />
