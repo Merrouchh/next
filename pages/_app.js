@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import '../styles/globals.css';
 import { Inter, Orbitron, Rajdhani, Zen_Dots } from 'next/font/google';
 import { useEffect, useState, StrictMode } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import ClientOnlyToaster from '../components/ClientOnlyToaster';
 import { ModalProvider } from '../contexts/ModalContext';
@@ -43,7 +44,20 @@ function MyApp({ Component, pageProps }) {
   useEffect(() => {
     if (!mounted) return;
 
+    const resetBodyScrollLock = () => {
+      if (typeof document === 'undefined') return;
+      const body = document.body;
+      if (!body) return;
+      body.style.overflow = '';
+      body.style.position = '';
+      body.style.width = '';
+      body.classList.remove('modal-open');
+    };
+
     const handleRouteChange = () => {
+      // Always clear any leftover scroll locks from modals/slideshows
+      resetBodyScrollLock();
+
       // Simple scroll to top on route change
       setTimeout(() => {
         window.scrollTo(0, 0);
@@ -65,11 +79,18 @@ function MyApp({ Component, pageProps }) {
       <div style={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        alignItems: 'center', 
+        alignItems: 'center',
         height: '100vh',
         backgroundColor: '#000000'
       }}>
-        <div style={{ color: '#FFD700' }}>Loading...</div>
+        <Image 
+          src="/logomobile.png"
+          alt="Merrouch Gaming"
+          width={200}
+          height={50}
+          style={{ width: 200, height: 50, objectFit: 'contain' }}
+          priority
+        />
       </div>
     );
   }

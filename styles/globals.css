@@ -5,11 +5,14 @@
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  cursor: default;
+}
+
+html, body {
+  user-select: auto;
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  cursor: auto;
 }
 
 /* Lightweight CSS animations to replace framer-motion */
@@ -44,32 +47,29 @@
   animation: slideUp 0.4s ease-out 0.6s both;
 }
 
-/* Base styles - use natural document scroll (works on all devices including Android) */
-html {
+/* Base styles - standard document scrolling (Chrome/Edge friendly) */
+html,
+body {
+  margin: 0;
+  padding: 0;
   background: rgb(15, 15, 15);
   color: #ffffff;
   font-family: var(--font-rajdhani, 'Rajdhani'), sans-serif;
   line-height: 1.6;
   transition: opacity 0.3s ease;
-  scroll-behavior: smooth;
-  overflow-x: hidden;
   max-width: 100vw;
   width: 100%;
-  /* Do not set overflow-y or height on html - let document scroll naturally */
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  max-width: 100%;
-  width: 100%;
   position: relative;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
-  /* Do not set overflow-y - default allows page scroll on all browsers */
 }
 
 /* Typography */

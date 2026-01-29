@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useCallback, useRef } from 'react';
 import React from 'react';
+import Image from 'next/image';
 import styles from '../styles/Layout.module.css';
 import LoginModal from './LoginModal';
 import NotificationBubble from './NotificationBubble';
@@ -69,7 +70,25 @@ const Layout = ({ children }) => {
 
   // Handle conditional rendering based on state
   if (!initialized) {
-    return null;
+    // Match initial loading UI in _app while auth state is resolving
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#000000'
+      }}>
+        <Image
+          src="/logomobile.png"
+          alt="Merrouch Gaming"
+          width={200}
+          height={50}
+          style={{ width: 200, height: 50, objectFit: 'contain' }}
+          priority
+        />
+      </div>
+    );
   }
 
   if (isVerificationPage) {

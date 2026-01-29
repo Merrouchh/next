@@ -80,7 +80,7 @@ class MyDocument extends Document {
     const metadata = dynamicMetadata || defaultMetadata;
     
     return (
-      <Html lang="en">
+      <Html lang="en" data-scroll-behavior="smooth">
         <Head>
           {/* UNIVERSAL METADATA INJECTION - WORKS FOR ALL SOCIAL MEDIA CRAWLERS */}
           {/* Note: <title> is handled by Next.js Head component in pages, not _document.js */}

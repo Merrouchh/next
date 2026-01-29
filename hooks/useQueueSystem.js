@@ -11,11 +11,9 @@ export const useQueueSystem = (user, supabase, modalSetters = {}) => {
     setConfirmAction = () => {}
   } = modalSetters;
 
-  const [queueStatus, setQueueStatus] = useState({
-    is_active: false,
-    allow_online_joining: true, // Default to true to show button initially
-    current_queue_size: 0,
-  });
+  // Until we fetch from the API we treat queue status as unknown to avoid race
+  const [queueStatus, setQueueStatus] = useState(null);
+  const [queueLoaded, setQueueLoaded] = useState(false);
   const [queueEntries, setQueueEntries] = useState([]);
   const [userInQueue, setUserInQueue] = useState(null);
   const [isJoiningQueue, setIsJoiningQueue] = useState(false); // Prevent race conditions
@@ -47,18 +45,21 @@ export const useQueueSystem = (user, supabase, modalSetters = {}) => {
           const userQueueEntry = data.queue.find(entry => entry.user_id === user.id);
           setUserInQueue(userQueueEntry || null);
         }
+
+        setQueueLoaded(true);
       } else {
         console.error('Failed to fetch queue status:', response.status);
       }
     } catch (error) {
       console.error('Error fetching queue status:', error);
-      // Keep a safe default on error
+      // On error, mark as loaded but keep queue disabled to be safe
       setQueueStatus({
         is_active: false,
-        allow_online_joining: true,
+        allow_online_joining: false,
         current_queue_size: 0,
       });
       setQueueEntries([]);
+      setQueueLoaded(true);
     }
   }, [user]);
 
@@ -226,6 +227,7 @@ export const useQueueSystem = (user, supabase, modalSetters = {}) => {
 
   return {
     queueStatus,
+    queueLoaded,
     queueEntries,
     userInQueue,
     fetchQueueStatus,

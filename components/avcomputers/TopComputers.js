@@ -14,7 +14,8 @@ export const TopComputers = ({
   queueStatus,
   userInQueue,
   userIsNextForTop,
-  userIsNextForBottom
+  userIsNextForBottom,
+  queueLoaded
 }) => {
   const vipContainerRef = useRef(null);
   const [isAtEnd, setIsAtEnd] = useState(false);
@@ -150,6 +151,7 @@ export const TopComputers = ({
               userInQueue={userInQueue}
               userIsNextForTop={userIsNextForTop}
               userIsNextForBottom={userIsNextForBottom}
+              queueLoaded={queueLoaded}
             />
           ))}
         </div>

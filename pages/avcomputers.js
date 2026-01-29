@@ -141,7 +141,7 @@ const AvailableComputers = () => {
   }, [user, supabase]);
 
   // Queue management
-  const { queueStatus, queueEntries, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase, {
+  const { queueStatus, queueLoaded, queueEntries, userInQueue, fetchQueueStatus, joinQueue, leaveQueue, isJoiningQueue } = useQueueSystem(user, supabase, {
     setErrorMessage,
     setShowErrorModal,
     setSuccessMessage,
@@ -475,6 +475,11 @@ const AvailableComputers = () => {
 
   // Handle open login modal
   const handleOpenLoginModal = async (computer) => {
+    // Be conservative: if queue status not loaded yet, don't allow direct login
+    if (!queueLoaded) {
+      alert('Checking queue status, please wait a moment and try again.');
+      return;
+    }
     // Don't allow login if user is already logged in elsewhere
     if (userAlreadyLoggedIn) {
       alert("You are already logged in to another computer");
@@ -941,7 +946,7 @@ const AvailableComputers = () => {
           const shouldShowContainer = queueCount > 0 || !!userInQueue;
           const canShowJoin = !userInQueue && !userAlreadyLoggedIn;
           const isOnlineJoinAllowed = !!queueStatus?.allow_online_joining;
-          const joinDisabled = !queueStatus || !isOnlineJoinAllowed || isJoiningQueue || !canShowJoin;
+          const joinDisabled = !queueLoaded || !queueStatus || !isOnlineJoinAllowed || isJoiningQueue || !canShowJoin;
 
           if (!shouldShowContainer) {
             return (
@@ -1046,6 +1051,7 @@ const AvailableComputers = () => {
               userInQueue={userInQueue}
               userIsNextForTop={userIsNextForTop}
               userIsNextForBottom={userIsNextForBottom}
+              queueLoaded={queueLoaded}
             />
           ))}
         </div>
@@ -1063,6 +1069,7 @@ const AvailableComputers = () => {
           userInQueue={userInQueue}
           userIsNextForTop={userIsNextForTop}
           userIsNextForBottom={userIsNextForBottom}
+          queueLoaded={queueLoaded}
         />
         
         {/* User confirmation login modal */}

@@ -13,7 +13,8 @@ export const ComputerBox = ({
   queueStatus,
   userInQueue,
   userIsNextForTop,
-  userIsNextForBottom
+  userIsNextForBottom,
+  queueLoaded
 }) => {
   // If component is in loading state, show a skeleton
   if (isLoading) {
@@ -47,7 +48,8 @@ export const ComputerBox = ({
   // Check if there are waiters for this computer type
   // Only show "Queue" if queue is active AND there are waiters for this specific zone
   // BUT if user is #1 in queue for this computer type, show "Login" instead
-  const hasWaiters = queueStatus && queueStatus.is_active ? (() => {
+  // If queueLoaded is false (status unknown), be conservative and assume there are waiters
+  const hasWaiters = !queueLoaded ? true : (queueStatus && queueStatus.is_active ? (() => {
     if (isTopFloor) {
       // For top computers: check if there are "any" or "top" waiters
       const anyWaiters = (queueStatus.any_queue_count || 0) > 0;
@@ -59,7 +61,7 @@ export const ComputerBox = ({
       const bottomWaiters = (queueStatus.bottom_queue_count || 0) > 0;
       return anyWaiters || bottomWaiters;
     }
-  })() : false; // If queue is not active, no waiters
+  })() : false); // If queue is not active, no waiters
 
   // Check if user is #1 in queue for this computer type
   // This is a simplified check - the full eligibility is verified in handleOpenLoginModal
