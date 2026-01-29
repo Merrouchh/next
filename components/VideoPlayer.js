@@ -62,9 +62,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           const wrapper = videoElementRef.current?.parentElement?.parentElement;
           if (wrapper) {
             const rect = wrapper.getBoundingClientRect();
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:62',message:'Checking container dimensions',data:{clipId:clip.id,wrapperWidth:rect.width,wrapperHeight:rect.height,hasSize:rect.width>0&&rect.height>0},sessionId:'debug-session',runId:'run1',hypothesisId:'I'}),timestamp:Date.now()}).catch(()=>{});
-            // #endregion
             return rect.width > 0 && rect.height > 0;
           }
           return false;
@@ -80,10 +77,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           attempts++;
         }
         
-        if (attempts >= maxAttempts) {
-          console.warn(`Container still has no dimensions after ${maxAttempts} attempts, proceeding anyway`);
-        }
-
         // Load video scripts conditionally to prevent critical request chain
         await loadVideoScripts();
 
@@ -113,13 +106,7 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
         if (!thumbnailUrl && clip.cloudflare_uid) {
           thumbnailUrl = `https://customer-uqoxn79wf4pr7eqz.cloudflarestream.com/${clip.cloudflare_uid}/thumbnails/thumbnail.jpg`;
         }
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:96',message:'VideoPlayer thumbnail URL',data:{clipId:clip.id,thumbnail_path:clip.thumbnail_path,thumbnail_url:clip.thumbnail_url,cloudflare_uid:clip.cloudflare_uid,generatedThumbnailUrl:thumbnailUrl},sessionId:'debug-session',runId:'run1',hypothesisId:'G'}),timestamp:Date.now()}).catch(()=>{});
-        // #endregion
 
-        // Initialize Video.js with minimal loading
-        console.log('Initializing Video.js player for clip:', clip.id);
         const player = videojs(videoElementRef.current, {
           controls: true,
           autoplay: false,
@@ -273,11 +260,6 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
             if (playerEl) {
               const videoEl = playerEl.querySelector('video');
               if (videoEl) {
-                // #region agent log
-                const rect = videoEl.getBoundingClientRect();
-                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:215',message:'Video play event - checking dimensions',data:{clipId:clip.id,videoWidth:rect.width,videoHeight:rect.height},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
-                // #endregion
-                
                 videoEl.style.width = '100%';
                 videoEl.style.height = '100%';
                 videoEl.style.display = 'block';
@@ -287,34 +269,17 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
             }
           });
           
-          // Start preloading if not already initialized
           if (!videoInitialized) {
-            console.log(`Starting preload for: ${playerIdRef.current}`);
             player.preload('auto');
             setVideoInitialized(true);
           }
-          
-          // Add debugging info about player state
-          try {
-            console.log(`Player state on play: isPlaying=${!player.paused()}, playerId=${playerIdRef.current}, clipId=${clip.id}`);
-          } catch (e) {
-            console.error('Error logging player state:', e);
-          }
-          
-          // Notify the video manager that this player has started playing
-          // This will pause all other players
-          console.log(`Notifying video manager that ${playerIdRef.current} has started playing`);
           videoPlayerManager.playerStartedPlaying(playerIdRef.current);
         });
 
         player.on('pause', () => {
-          console.log(`Video paused: ${playerIdRef.current}`);
           setIsActuallyPlaying(false);
           setShowCustomPlayButton(true);
-          
-          // Update the video player manager if this was the currently playing video
           if (videoPlayerManager.currentlyPlayingId === playerIdRef.current) {
-            console.log(`Clearing current playing ID in manager: ${playerIdRef.current}`);
             videoPlayerManager.currentlyPlayingId = null;
           }
           
@@ -330,40 +295,22 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
           player.userActive(true);
         });
 
-        // Ensure poster is set when player is ready
         player.on('loadedmetadata', () => {
           if (thumbnailUrl && player.poster() !== thumbnailUrl) {
-            console.log(`Updating poster for player ${playerIdRef.current} to:`, thumbnailUrl);
             player.poster(thumbnailUrl);
           }
-          // Ensure video is properly sized when metadata loads
           containVideo();
         });
         
-        // Ensure video is visible when player is ready
         player.ready(() => {
-          console.log(`Player ${playerIdRef.current} is ready, ensuring visibility`);
-          // Use requestAnimationFrame to ensure DOM is ready
           requestAnimationFrame(() => {
             containVideo();
             const playerElement = player.el();
             if (playerElement) {
-              const rect = playerElement.getBoundingClientRect();
-              // #region agent log
-              fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:318',message:'Player ready - checking dimensions',data:{clipId:clip.id,playerWidth:rect.width,playerHeight:rect.height},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
-              // #endregion
-              
               playerElement.style.width = '100%';
               playerElement.style.height = '100%';
-              
-              // Force video element to be visible
               const videoEl = playerElement.querySelector('video');
               if (videoEl) {
-                const videoRect = videoEl.getBoundingClientRect();
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:329',message:'Video element dimensions',data:{clipId:clip.id,videoWidth:videoRect.width,videoHeight:videoRect.height,videoDisplay:window.getComputedStyle(videoEl).display},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
-                // #endregion
-                
                 videoEl.style.width = '100%';
                 videoEl.style.height = '100%';
                 videoEl.style.display = 'block';
@@ -373,15 +320,8 @@ const VideoPlayer = ({ clip, user, onLoadingChange, isInClipCard }) => {
                 videoEl.style.top = '0';
                 videoEl.style.left = '0';
               }
-              
-              // Force tech element to be visible
               const techEl = playerElement.querySelector('.vjs-tech');
               if (techEl) {
-                const techRect = techEl.getBoundingClientRect();
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VideoPlayer.js:345',message:'Tech element dimensions',data:{clipId:clip.id,techWidth:techRect.width,techHeight:techRect.height,techDisplay:window.getComputedStyle(techEl).display},sessionId:'debug-session',runId:'run1',hypothesisId:'H'}),timestamp:Date.now()}).catch(()=>{});
-                // #endregion
-                
                 techEl.style.width = '100%';
                 techEl.style.height = '100%';
                 techEl.style.display = 'block';

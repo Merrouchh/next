@@ -136,44 +136,22 @@ const ClipPage = ({ clip, status, error, isOwnClip, isPrivate }) => {
   // Keep local state in sync if server props update due to client navigation
   useEffect(() => {
     setLocalClip(clip);
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clip/[id].js:131',message:'Clip prop changed, updating localClip',data:{clipId:clip?.id,routerQueryId:router.query.id,routerAsPath:router.asPath},sessionId:'debug-session',runId:'run1',hypothesisId:'E'}),timestamp:Date.now()}).catch(()=>{});
-    // #endregion
   }, [clip, router.query.id, router.asPath]);
 
   // Handle route changes - detect when URL changes but props haven't updated
   useEffect(() => {
     const clipId = router.query.id;
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clip/[id].js:137',message:'Route change check',data:{clipId,currentClipId:clip?.id,routerAsPath:router.asPath,isMatch:clipId===clip?.id?.toString()},sessionId:'debug-session',runId:'run1',hypothesisId:'E'}),timestamp:Date.now()}).catch(()=>{});
-    // #endregion
-    
     if (clipId && clipId !== clip?.id?.toString()) {
-      // URL changed but props haven't updated yet - clear local state to prevent showing stale data
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clip/[id].js:144',message:'Mismatch: URL changed but props not updated, clearing local state and forcing refresh',data:{clipId,currentClipId:clip?.id},sessionId:'debug-session',runId:'run1',hypothesisId:'E'}),timestamp:Date.now()}).catch(()=>{});
-      // #endregion
-      // Clear local clip to prevent showing stale data while new data loads
       setLocalClip(null);
-      // Force router to reload the page data
       router.replace(router.asPath, undefined, { scroll: false });
     }
   }, [router.query.id, router.asPath, clip?.id, router]);
 
   // Listen for route change completion to ensure props are in sync
   useEffect(() => {
-    const handleRouteChangeComplete = (url) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clip/[id].js:152',message:'Route change complete event',data:{url,routerQueryId:router.query.id,currentClipId:clip?.id},sessionId:'debug-session',runId:'run1',hypothesisId:'E'}),timestamp:Date.now()}).catch(()=>{});
-      // #endregion
-      
-      // Check if URL and props are in sync after route change
+    const handleRouteChangeComplete = () => {
       const clipIdFromUrl = router.query.id;
       if (clipIdFromUrl && clipIdFromUrl !== clip?.id?.toString()) {
-        // Still not in sync - force a refresh
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/a05d6a1c-7523-4326-8d61-7bfc627de1aa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'clip/[id].js:157',message:'Route change complete but still mismatched, forcing refresh',data:{clipIdFromUrl,currentClipId:clip?.id},sessionId:'debug-session',runId:'run1',hypothesisId:'E'}),timestamp:Date.now()}).catch(()=>{});
-        // #endregion
         setTimeout(() => {
           router.replace(router.asPath, undefined, { scroll: false });
         }, 100);

@@ -436,7 +436,7 @@ async function generateDynamicMetadata(ctx) {
   
   try {
     // Only attempt Supabase operations for dynamic pages that need database data
-    const needsDatabase = ['/discover', '/profile/[username]', '/clip/[id]', '/events/[id]', '/events/[id]/bracket'].includes(pathname);
+    const needsDatabase = ['/discover', '/profile/[username]', '/clip/[id]', '/events/[id]', '/events/[id]/bracket', '/topusers'].includes(pathname);
     
     if (!needsDatabase) {
       // For static pages, use static metadata generator
@@ -447,7 +447,6 @@ async function generateDynamicMetadata(ctx) {
         '/upload': 'upload',
         '/awards': 'awards',
         '/avcomputers': 'avcomputers',
-        '/topusers': 'topusers',
         '/': 'home'
       };
       
@@ -480,6 +479,8 @@ async function generateDynamicMetadata(ctx) {
       return await generateEventMetadata(supabase, query.id);
     } else if (pathname === '/events/[id]/bracket') {
       return await generateBracketMetadata(supabase, query.id);
+    } else if (pathname === '/topusers') {
+      return await generateTopUsersMetadata(supabase);
     }
     
     return null;
@@ -807,6 +808,102 @@ async function generateEventMetadata(supabase, eventId) {
       url: `https://merrouchgaming.com/events/${eventId}`,
       type: "event",
       keywords: "gaming event, tournament, Merrouch Gaming, Tangier"
+    };
+  }
+}
+
+// Top Users page metadata with structured data for important profiles
+async function generateTopUsersMetadata(supabase) {
+  try {
+    // Get top users with engagement metrics (similar to sitemap logic)
+    const { data: userClips } = await supabase
+      .from('clips')
+      .select('username, views_count, likes_count')
+      .eq('visibility', 'public');
+
+    // Calculate engagement metrics
+    const userStats = {};
+    if (userClips) {
+      userClips.forEach(clip => {
+        if (!userStats[clip.username]) {
+          userStats[clip.username] = {
+            username: clip.username,
+            clipsCount: 0,
+            totalViews: 0,
+            totalLikes: 0
+          };
+        }
+        userStats[clip.username].clipsCount++;
+        userStats[clip.username].totalViews += clip.views_count || 0;
+        userStats[clip.username].totalLikes += clip.likes_count || 0;
+      });
+    }
+
+    // Get user points
+    const usernames = Object.keys(userStats);
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('username, points')
+      .in('username', usernames);
+
+    // Merge points
+    if (usersData) {
+      usersData.forEach(user => {
+        if (userStats[user.username]) {
+          userStats[user.username].points = user.points || 0;
+        }
+      });
+    }
+
+    // Calculate quality scores and get top 20 profiles
+    const topProfiles = Object.values(userStats)
+      .map(stat => {
+        const qualityScore = 
+          (stat.clipsCount * 10) +
+          (stat.totalViews / 100) +
+          (stat.totalLikes * 5) +
+          (stat.points || 0) / 10;
+        return { ...stat, qualityScore };
+      })
+      .sort((a, b) => b.qualityScore - a.qualityScore)
+      .slice(0, 20); // Top 20 profiles
+
+    // Create ItemList structured data to help Google understand which profiles are most important
+    const itemList = topProfiles.map((profile, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "ProfilePage",
+        "name": `${profile.username}'s Gaming Profile`,
+        "url": `https://merrouchgaming.com/profile/${profile.username}`,
+        "description": `${profile.username}'s gaming profile with ${profile.clipsCount} clips, ${profile.totalViews} views, and ${profile.totalLikes} likes`
+      }
+    }));
+
+    return {
+      title: "Top Gaming Users | Leaderboards | Merrouch Gaming Center",
+      description: "View the top gaming users and leaderboards at Merrouch Gaming Center. Monthly competitions with gaming time rewards.",
+      image: "https://merrouchgaming.com/top.jpg",
+      url: "https://merrouchgaming.com/topusers",
+      type: "website",
+      keywords: "top gaming users, leaderboards, gaming rankings, best players, Merrouch Gaming, Tangier",
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Top Gaming Users Leaderboard",
+        "description": "Top gaming users at Merrouch Gaming Center ranked by engagement, clips, views, and likes",
+        "itemListElement": itemList
+      }
+    };
+  } catch (error) {
+    console.error('Error generating top users metadata:', error);
+    return {
+      title: "Top Gaming Users | Leaderboards | Merrouch Gaming Center",
+      description: "View the top gaming users and leaderboards at Merrouch Gaming Center.",
+      image: "https://merrouchgaming.com/top.jpg",
+      url: "https://merrouchgaming.com/topusers",
+      type: "website",
+      keywords: "top gaming users, leaderboards, Merrouch Gaming, Tangier"
     };
   }
 }

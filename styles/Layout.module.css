@@ -196,4 +196,80 @@
     opacity: 0;
     transform: scale(2);
   }
+}
+
+/* Floating help button */
+.floatingHelpButton {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #2196F3;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 11002; /* Above all modals (including 11000) but below notification bubble */
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.floatingHelpButton * {
+  cursor: pointer;
+}
+
+.floatingHelpButton svg {
+  font-size: 28px;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+/* Help text hidden by default */
+.helpButtonText {
+  position: absolute;
+  opacity: 0;
+  transform: translateY(20px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+/* On hover, show text and move icon up */
+.floatingHelpButton:hover svg {
+  transform: translateY(-10px);
+}
+
+.floatingHelpButton:hover .helpButtonText {
+  opacity: 1;
+  transform: translateY(10px);
+}
+
+.floatingHelpButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  background-color: #42A5F5;
+}
+
+.floatingHelpButton:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.floatingHelpButton {
+  animation: floatingButtonAppear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Skip animation if already animated */
+.floatingHelpButton.alreadyAnimated {
+  animation: none;
+  opacity: 1;
+  transform: scale(1);
 } 
